@@ -240,10 +240,10 @@ inline uint64_t hashInit(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIt
         me.leftChar = 0;
         //me.hValue = ordValue(*it);
         me.hValue = 0;
-        hash_key = ((uint64_t)1 << (me.span*2 -2 )) - 1;
-        hash_key1 = ((uint64_t)1 << me.span * 2) - ((uint64_t)1 << me.weight * 2);
-        hash_key2 = ((uint64_t) 1 << (me.weight*2)) - 1;
-        hash_key3 = ((uint64_t)1 << (me.span*2 )) - 1;
+        uint64_t hash_key = ((uint64_t)1 << (me.span*2 -2 )) - 1;
+        uint64_t hash_key1 = ((uint64_t)1 << me.span * 2) - ((uint64_t)1 << me.weight * 2);
+        uint64_t hash_key2 = ((uint64_t) 1 << (me.weight*2)) - 1;
+        uint64_t hash_key3 = ((uint64_t)1 << (me.span*2 )) - 1;
         
         uint64_t k =0, count = 0;
         while (count < me.span)

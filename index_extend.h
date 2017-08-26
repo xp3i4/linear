@@ -36,8 +36,7 @@
 #ifndef SEQAN_HEADER_INDEX_PM_H
 #define SEQAN_HEADER_INDEX_PM_H
 
-namespace seqan
-{
+namespace seqan{
 
 //x-begin: min shape open index 
  template < typename TObject, unsigned TSPAN, unsigned TWEIGHT>
@@ -666,7 +665,7 @@ inline void _mergeSort(TIter const & it, String<unsigned> begin, String<unsigned
         begin[maxk] += 1;
     } 
 }
-
+/*
 //template <typename TObj, typename Compare>
 template <typename TIter>
 inline void 
@@ -695,6 +694,39 @@ _radixSort(TIter const & begin,  TIter const & end,
             *(begin + k)  = output[k];
     }
 }
+*/
+
+template <typename TIter>
+inline void 
+//_radixSort(Iterator<TObj>::Type const & begin, Iterator<TObj>::Type const & end, Compare compare)
+_radixSort(TIter const & begin,  TIter const & end, 
+            unsigned const p_bit, unsigned const & l)
+{
+    unsigned  l_move = 64, r_move = 64 - p_bit;
+    //uint64_t count[1<<p_bit];
+    uint64_t count[1024];
+    //int count[1024];
+    String<Pair<uint64_t, uint64_t> > output;
+    resize(output, end - begin);
+    TIter begin1 = begin, end1 = end;
+    for (uint64_t j = 0; j < l; j++)
+    {
+        l_move -= p_bit;
+        for (int k = 0; k< (1<<p_bit); k++)
+            count[k]=0;
+        for (int64_t k = 0; k < end - begin; k++)
+            count[(begin + k)->i1 << l_move >> r_move]++;
+        for (int k = 1; k < (1 << p_bit); k++)
+            count[k] += count[k - 1];
+        for (int64_t k = end - begin - 1; k >=0; k-- )
+            output[--count[(begin + k)->i1 << l_move >> r_move]] = *(begin + k);
+        //for (int64_t k = 0; k < end - begin; k++)
+        //    *(begin + k)  = output[k];
+        std::swap(begin, begin1);
+        std::swap(end, end1);
+    }
+}
+
 
 
 template <typename TIter>
@@ -1037,7 +1069,7 @@ void _qgramCountQGrams(Index<StringSet<String<TObj> >, IndexQGram<Minimizer<TSpa
 }
 
 template <typename TObj, unsigned TSpan, unsigned TWeight>
-void createQGramIndexDirOnly(Index<StringSet<String<TObj> >, IndexQGram<Minimizer<TSpan, TWeight>, OpenAddressing > >& index)
+void _createQGramIndex(Index<StringSet<String<TObj> >, IndexQGram<Minimizer<TSpan, TWeight>, OpenAddressing > >& index)
 {
     double time = sysTime(); 
     //std::cerr << "    createQGramIndexDirOnly() sysTime(): " << std::endl;
@@ -1061,7 +1093,6 @@ void createQGramIndexDirOnly2(Index<StringSet<DnaString>, IndexQGram<Minimizer<T
 // ----------------------------------------------------------------------------
 // Function open()
 // ----------------------------------------------------------------------------
-
 }
 #endif //#ifndef SEQAN_HEADER_...
 
