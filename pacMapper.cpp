@@ -3,18 +3,19 @@
 #include <seqan/index.h>
 #include <seqan/store.h>
 #include <iostream>
+#include <fstream>
 #include <math.h>
 #include <seqan/basic.h>
 #include <bitset>
 #include <climits>
 #include <seqan/arg_parse.h>
 
-#include "shape_pm.h"
-#include "index_pm.h"
-#include "pacmapper.h"
+#include "shape_extend.h"
+#include "index_extend.h"
+#include "base.h"
+#include "pmpfinder.h"
 
-using namespace seqan;
-
+using namespace seqan; 
 
 
     seqan::ArgumentParser::ParseResult
@@ -62,57 +63,29 @@ using namespace seqan;
         if (res != seqan::ArgumentParser::PARSE_OK)
             return res;
 
-        getOptionValue(options.oFile, parser, "output");
+        getOptionValue(options.oPath, parser, "output");
 
-        seqan::getArgumentValue(options.rFile, parser, 0);
-        seqan::getArgumentValue(options.gFile, parser, 1);
+        seqan::getArgumentValue(options.rPath, parser, 0);
+        seqan::getArgumentValue(options.gPath, parser, 1);
 
-        //std::cout << options.rFile << " " << options.gFile << " " << options.oFile<< std::endl;
 
         return seqan::ArgumentParser::PARSE_OK;
     }
 
+
 int main(int argc, char const ** argv)
 {
-//    ArgumentParser parser;
-//    Options options; 
-//    setupArgumentParser(parser, options);
-//
-//    ArgumentParser::ParseResult res = parseCommandLine(options, parser, argc, argv);
-
-    //time = sysTime();
     (void)argc;
-    SeqFileIn gFile(toCString(argv[1]));
-    SeqFileIn rFile(toCString(argv[2]));
-    StringSet<CharString> ids_r;
-    StringSet<CharString> ids_g;
-    //StringSet<DnaString> reads;
-    //StringSet<DnaString> genome;
-    StringSet<String<Dna5> > reads5;
-    StringSet<String<Dna5> > genome5;
-    //MapParm mapParm;
-
-    //readRecords(ids_r, reads, rFile);
-    //readRecords(ids_g, genome, gFile);
-    readRecords(ids_r, reads5, rFile);
-    readRecords(ids_g, genome5, gFile);
-
-    //opKmerAnalysis5(genome, reads);
-    //mnKmerMap(genome, reads);
-    //setupArgumentParser(argc, argv);
-    //mnKmerMap5(genome5, reads5);
-    //mnMap(genome5, reads5, mapParm);
-    map(genome5, reads5);
-    
-          // Parse the command line.
-/*
+    // Parse the command line.
     Options options;
     seqan::ArgumentParser::ParseResult res = parseCommandLine(options, argc, argv);
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res == seqan::ArgumentParser::PARSE_ERROR;
-    std::cout << options.rFile << std::endl;
-    std::cerr << options.gFile << std::endl;
     
-*/
+    Mapper<> mapper(options);
+    options.print(); 
+    map(mapper);
+    
+ 
     return 0;
 }

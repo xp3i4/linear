@@ -127,11 +127,11 @@ struct Anchors{
     typedef typename AnchorBase::AnchorType AnchorType;
     typedef typename AnchorBase::AnchorType * Iter;
 
-    set[AnchorBase::size];
+    AnchorType set[AnchorBase::size];
     unsigned len;
 
     Anchors(){len = 0;};
-    Anchors(AnchorType & val, unsinged range);
+    Anchors(AnchorType & val, unsigned range);
     void init(AnchorType & val, unsigned k);
     AnchorType setAnchor(unsigned p, AnchorType pos1,  AnchorType pos2);
     AnchorType getPos1(unsigned p) const;
@@ -140,8 +140,8 @@ struct Anchors{
     AnchorType deltaPos2(unsigned p1, unsigned p2);
     void sort(unsigned begin, unsigned end);
     void sortPos2(unsigned begin, unsigned end);
-    void appendValue(Anchor val){set[len++]=val;};
-    void appendValue(AnchorType val1, AnchorType val2){set[len++].setAnchor(val1, val2);};
+    void appendValue(AnchorType val){set[len++]=val;};
+    void appendValue(AnchorType val1, AnchorType val2){setAnchor(len++, val1, val2);};
     AnchorType & operator [](unsigned p){return set[p];};
     Iter begin(); 
     Iter end();
@@ -157,7 +157,7 @@ struct CoreBase{
     typedef typename PMRecord<TDna>::RecSeqs RecSeqs; 
     typedef Shape<TDna, CoreMinimizer> CoreShape;
     typedef Index<RecSeqs, IndexQGram<CoreMinimizer, OpenAddressing> > CoreIndex;
-    typedef AnchorSet Anchors;
+    typedef Anchors AnchorSet;
 
 };
 
@@ -167,7 +167,7 @@ struct PMCore
 {
     typedef typename CoreBase<TDna, Minimizer>::CoreIndex Index;
     typedef typename CoreBase<TDna, Minimizer>::RecSeqs Seqs;
-    typedef typename CoreBase<TDna, Minimizer>::Anchors Anchors;
+    typedef typename CoreBase<TDna, Minimizer>::AnchorSet Anchors;
 
     //Index index;
     //Anchor anchor;
@@ -329,39 +329,57 @@ PMRecord<TDna>::PMRecord(Options & options)
 Anchors::Anchors(Anchors::AnchorType & val, unsigned range)
 {
     init(val, range);
-};
+}
+
 inline void Anchors::init(AnchorType & val, unsigned range){
     for (unsigned k = 0; k < range; k++)
         set[k] = val;
 }
+
 inline Anchors::AnchorType Anchors::setAnchor(unsigned p, 
-    Anchors:AnchorType pos1,  Anchors::AnchorType pos2){
+    Anchors::AnchorType pos1,  Anchors::AnchorType pos2)
+{
     set[p] = (pos1 << AnchorBase::bit) + pos2;
 }
-inline Anchors::AnchorType Anchors::getPos1(unsigned p) {
+
+inline Anchors::AnchorType Anchors::getPos1(unsigned p) const 
+{
     return set[p] >> AnchorBase::bit;
 }
-inline Anchors::AnchorType Anchors::getPos2(unsigned p){
+
+inline Anchors::AnchorType Anchors::getPos2(unsigned p) const
+{
     return set[p] & AnchorBase::mask;
-};
-inline Anchors::AnchorType Anchors::deltaPos1(unsigned p1, unsigned p2){
+}
+
+inline Anchors::AnchorType Anchors::deltaPos1(unsigned p1, unsigned p2)
+{
     return (set[p1] >> AnchorBase::bit) - (set[p2] >> AnchorBase::bit);
-};
-inline Anchors::AnchorType Anchors::deltaPos2(unsigned p1, unsigned p2){
+}
+
+inline Anchors::AnchorType Anchors::deltaPos2(unsigned p1, unsigned p2)
+{
     return AnchorBase::mask & (set[p1] - set[p2]);
-};
-inline Anchors::Iter Anchors::begin(){
-    return anchors.set[0];
 }
-inline Anchors::Iter Anchors::End(){
-    return anchors.set + len;
+
+inline Anchors::Iter Anchors::begin()
+{
+    return set;
 }
-void Anchors::sort(unsigned begin, unsigned end){
-    std::sort(begin(set) + begin, begin(set) + end);
+
+inline Anchors::Iter Anchors::end()
+{
+    return set + len;
 }
-void Anchors::sortPos2(unsigned begin, unsigned end){
-    std::sort(begin(set) + begin, begin(set) + end, 
-    [&AnchorBase::mask](AnchorBase::AnchorType & a, 
+
+void Anchors::sort(unsigned sortBegin, unsigned sortEnd)
+{
+    std::sort(begin() + sortBegin, begin() + sortEnd);
+}
+
+void Anchors::sortPos2(unsigned sortBegin, unsigned sortEnd){
+    std::sort(begin() + sortBegin, begin() + sortEnd, 
+    [AnchorBase::mask](AnchorBase::AnchorType & a, 
                 AnchorBase::AnchorType & b)
     {
         return (a & mask) < (b & mask);
@@ -403,7 +421,6 @@ inline void _compltRvseStr(String<Dna5> & str, String<Dna5> & res)
      //   res[k]=_complt[str[k] - 'A'];
         res[k] = _complt[(unsigned)ordValue(str[length(str) - k])];
 }
-
 
 template <typename TDna, typename TSpec>
 inline unsigned getIndexMatch(typename PMCore<TDna, TSpec>::Index  & index,
@@ -452,29 +469,17 @@ inline unsigned getAnchorMatch(AnchorSet & anchors, MapParm & mapParm)
     uint64_t maxLen = 0, c_b=0, ak, cbb=0, sb=0, start = 0;
     anchors[0] = anchors[1];
     ak=anchors[0].getPos1();
-//====
-// anchor sort
-//====
-    //#std::sort(begin(anchors.set), begin(anchors.set) + length(anchors));
     anchors.sort(begin(anchor), end(anchor));
     for (uint64_t k = 1; k <= length(anchors); k++)
     {
-        //#if (anchor[k]-ak < (1000<<20))
-        if (anchors[k].getPos1() - ak < AnchorBase::AnchorThreshold)
+        if (anchors[k].getPos1() - ak < AnchorBase::Value)
             cbb++;
         else
         {
             anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
-            //#std::sort(begin(anchors.set)+sb, begin(anchors.set)+k, 
-//=========
-//sort
-//=========
-            //[&mask_cb](uint64_t &a, uint64_t &b){return (a & mask_cb) < (b & mask_cb);});
             for (uint64_t m = sb+1; m < k; m++)
             {
-//#                if(((anchor[m]-anchor[m-1]) & mask_cb) > shapelength) 
                 if(anchors.deltaPos2(m, m-1) >  mapParm.shapeLen)
-                    //#c_b += shapelength;
                     c_b += mapParm.shapeLen;
                 else
                     c_b += anchors.deltaPos2(m, m-1); 
@@ -487,7 +492,6 @@ inline unsigned getAnchorMatch(AnchorSet & anchors, MapParm & mapParm)
             sb = k;
             ak = anchors[k].getPos1();
             cbb = 1;
-            //c_b = shapelength;
             c_b = mapParm.shapeLen;
         }
 
