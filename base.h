@@ -76,7 +76,6 @@ struct Options{
     typename    Const_::PATH_ gPath;
     typename    Const_::PATH_ oPath;
     bool        Sensitive; 
-
     Options():
         kmerLen(Const_::_SHAPELEN),
         MiKmLen(Const_::_SHAPEWHT),
@@ -130,7 +129,7 @@ struct Anchors{
     AnchorType set[AnchorBase::size];
     unsigned len;
 
-    Anchors(){len = 0;};
+    Anchors(){len = 1;};
     Anchors(AnchorType val, unsigned range);
     void init(AnchorType val, unsigned k);
     void init();
@@ -329,12 +328,12 @@ struct Mapper {
 int Options::print()
 {
     
-    std::cout << "kmerLen " << kmerLen << std::endl;
-    std::cout << "MiKmLen " << MiKmLen << std::endl;
-    std::cout << "reads path " << rPath << std::endl;
-    std::cout << "genomes Path " << gPath << std::endl;
-    std::cout << "output path " << oPath << std::endl;
-    std::cout << "Sensitive " << Sensitive << std::endl;
+    std::cerr << "kmerLen " << kmerLen << std::endl
+              << "MiKmLen " << MiKmLen << std::endl
+              << "reads path " << rPath << std::endl
+              << "genomes Path " << gPath << std::endl
+              << "output path " << oPath << std::endl
+              << "Sensitive " << Sensitive << std::endl;
 }
 
 
@@ -440,7 +439,7 @@ inline void Anchors::appendValue(Anchors::AnchorType val1, Anchors::AnchorType v
 
 void MapParm::print()
 {
-    std::cout << "blockSize " << blockSize << std::endl
+    std::cerr << "blockSize " << blockSize << std::endl
              << "alpha " << alpha << std::endl
              << "delta " << delta << std::endl
              << "threshold " << threshold << std::endl
@@ -507,7 +506,8 @@ inline unsigned getIndexMatch(typename PMCore<TDna, TSpec>::Index  & index,
 
     hashInit(index.shape, begin(read));
     anchor.init();
-    for (unsigned h=0; h <= length(read) - block; h += dt)
+    //for (unsigned h=0; h <= length(read) - block; h += dt)
+    for (unsigned h=0; h <= length(read) - block; h += block)
     {
         hashInit(index.shape, begin(read) + h);
         for (unsigned k = h; k < h + block; k++)
@@ -517,16 +517,20 @@ inline unsigned getIndexMatch(typename PMCore<TDna, TSpec>::Index  & index,
             dn = getDir(index, index.shape);
             pre = ~0;
             //std::cout << "dn " << dn << std::endl;
+            if(_getBodyCounth(index.dir[dn+1]) - _getBodyCounth(index.dir[dn]) != 0)
+    //        std::cout << h << " " << _getBodyCounth(index.dir[dn+1]) - _getBodyCounth(index.dir[dn]) << std::endl;
             if(_getBodyCounth(index.dir[dn+1]) - _getBodyCounth(index.dir[dn]) < mapParm.delta)
             {
                 uint64_t countn = _getBodyCounth(index.dir[dn]);
                //std::cout << countn << " countn " << std::endl;
                 while ( countn < _getBodyCounth(index.dir[dn + 1]))
                 {
+      //              std::cout << index.sa[countn] - pre << std::endl;
                     if (index.sa[countn] - pre > mapParm.kmerStep)
                     {
                         //#anchor[x++] = (((index.sa[n])- k) << 20) + k;
     //std::cout << countn << " countn " << index.sa[countn] - k << " " << k << std::endl;
+     //                   std::cout << index.sa[countn]- k << " index.sa - k" << std::endl;
                         anchor.appendValue(index.sa[countn]- k, k);
                         pre = index.sa[countn];
                     }
@@ -615,13 +619,16 @@ void mnMap(typename PMCore<TDna, TSpec>::Index   & index,
     for (unsigned j = 0; j< length(reads); j++)
     {
         unsigned res = mnMapRead<TDna, TSpec>(index, reads[j], anchors, mapParm);
+        //std::cout << (res & mask1) << std::endl;
         if (res < (mapParm.threshold << 20))
         {
             _compltRvseStr(reads[j], comStr);
             unsigned tmp = mnMapRead<TDna, TSpec>(index, comStr, anchors, mapParm);
             res = (tmp > (mapParm.threshold << 20))?tmp:~0;
         }
-        std::cout << j << " start maxlen " << anchors.getPos1(res & mask) << " " << anchors.getPos2(res & mask) << " " << std::endl;//<< " " << maxLen << std::endl;
+        if (res != ~0 )
+          std::cout << j << " start maxlen " << anchors.getPos1(res & mask1) << " " << anchors.getPos2(res & mask1) << " " << std::endl;//<< " " << maxLen << std::endl;
+        //std::cout << (res & mask1) << std::endl;
 //        else
 //            rs.appendValue(j, anchors[res ], );
         ///rs.appendRes(res);

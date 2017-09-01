@@ -1,37 +1,3 @@
-// ==========================================================================
-//                           Mapping SMRT reads 
-// ==========================================================================
-// Copyright (c) 2006-2016, Knut Reinert, FU Berlin
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-//
-//     * Redistributions of source code must retain the above copyright
-//       notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above copyright
-//       notice, this list of conditions and the following disclaimer in the
-//       documentation and/or other materials provided with the distribution.
-//     * Neither the name of Knut Reinert or the FU Berlin nor the names of
-//       its contributors may be used to endorse or promote products derived
-//       from this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL KNUT REINERT OR THE FU BERLIN BE LIABLE
-// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-// OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-// DAMAGE.
-//
-// ==========================================================================
-// Author: cxpan <chenxu.pan@fu-berlin.de>
-// ==========================================================================
-
 #include <seqan/seq_io.h>
 #include <seqan/stream.h>
 #include <seqan/index.h>
@@ -46,8 +12,8 @@
 
 #include "shape_extend.h"
 #include "index_extend.h"
-#include "base.h"
-#include "pmpfinder.h"
+//#include "pmpfinder.h"
+#include "pacmapper.h"
 
 using namespace seqan; 
 
@@ -71,20 +37,15 @@ using namespace seqan;
         // Argument.
         addArgument(parser, seqan::ArgParseArgument(
             seqan::ArgParseArgument::INPUT_FILE, "read"));
-        setHelpText(parser, 0, "Reads file .fa, .fasta");
 
         addArgument(parser, seqan::ArgParseArgument(
-            seqan::ArgParseArgument::INPUT_FILE, "genome", true));
-        setHelpText(parser, 1, "Reference file .fa, .fasta");
+            seqan::ArgParseArgument::INPUT_FILE, "genome"));
 
         addSection(parser, "Mapping Options");
         addOption(parser, seqan::ArgParseOption(
             "o", "output", "choose output file.",
              seqan::ArgParseArgument::STRING, "STR"));
-        addOption(parser, seqan::ArgParseOption(
-            "s", "sensitive", "Sensitive mode. Default closed",
-             seqan::ArgParseArgument::STRING, "STR"));
-
+        
         // Add Examples Section.
         addTextSection(parser, "Examples");
         addListItem(parser,
@@ -107,100 +68,112 @@ using namespace seqan;
         seqan::getArgumentValue(options.rPath, parser, 0);
         seqan::getArgumentValue(options.gPath, parser, 1);
 
+        //std::cout << options.rFile << " " << options.gFile << " " << options.oFile<< std::endl;
 
         return seqan::ArgumentParser::PARSE_OK;
-
     }
 
 /*
-    typedef Iterator<String<Dna5> >::Type TIter;
-    typedef Shape<Dna5, Minimizer<30> > TShape;
-    typedef Shape<Dna5, UngappedShape<30> > TShape_u;
-
-
-typedef Index<StringSet<Dna5String>, IndexQGram<Minimizer<30>, OpenAddressing > > TIndex;
-typedef Index<StringSet<Dna5String>, IndexQGram<UngappedShape<30>, OpenAddressing > > TIndex_u;
-
-int uTest3(StringSet<Dna5String> & reads, StringSet<Dna5String> & genome)
+void pmpfinder(StringSet<String<Dna5> > & gnome, StringSet<String<Dna5> > & reads)// uint64_t & gbegin, uint64_t &gend)
 {
-    TShape_u t_shape;
-    TIndex_u index(genome);
-    unsigned kmerLength = t_shape.span;
-    uint64_t sum=0, count=0, p = 0;
-    double time = sysTime();
-    std::cout << "uTest3():\n";
-    std::cout << "    fullDirLength " << _fullDirLength(index) << std::endl; 
-
-    indexCreate(index, FibreSADir());
-    std::cout << "    getSA start sysTime(): " << sysTime() - time<< std::endl;
-    for(unsigned k = 0; k < length(reads); k++)
-    {
-        TIter it = begin(reads[k]);
-        hashInit(t_shape, it);
-        for (uint64_t j = 0; j < length(reads[k]) - kmerLength + 1; j++)
-        //for (uint64_t j = 0; j < 100; j++)
+    Shape<Dna5, UngappedShape> > shape;
+    String<uint64_t> readFtr;
+    uint64_t sum = 0;
+    double time = sysTime(); 
+    for (unsigned j = 0; j < length(reads); j++) 
+    {   
+        hashInit(shape, begin(reads[j]));
+        for(uint64_t k = 0; k < length(reads[j]); k++)     
         {
-            hashNext(t_shape, it + j);
-            p = getBucket(index.bucketMap, t_shape.hValue);
-            for (uint64_t k = index.dir[p]; k < index.dir[p+1]; k++)
-                sum ^= index.sa[k].i2;
+            sum ^= hashNext(shape, begin(reads[j]) + k);
         }
-    }
-    std::cout << "    sum = " << sum << " count = " << count << std::endl;
-    std::cout << "    getSA end sysTime(): "<< sysTime() - time<< std::endl;
-    std::cout << "    End uTest()" << std::endl;
-    return 0;
-}
-
-
-int mTest3(StringSet<Dna5String> & reads, StringSet<Dna5String> & genome)
-{
-    TShape shape, shape1;
-    TIndex index(genome);
-    uint64_t sum = 0, p = 0;
-    double time = sysTime();
-    std::cout << "mTest3(): " << std::endl;
-    _createQGramIndex(index);
-    std::cout << "    getDir start sysTime(): " << sysTime() - time << std::endl;
-    std::cout << "    length Dir = " << length(index.dir) << std::endl;
-    std::cout << "    length Text = " << lengthSum(indexText(index)) << std::endl;
-    std::cout << "    length SA = " << length(index.sa) << std::endl;
-    for(uint64_t k = 0; k < length(reads); k++)
-    {
-        TIter it = begin(reads[k]);
-        hashInit(shape, it);
-        for (uint64_t j = 0; j < length(reads[k]) - shape.span + 1; j++)
-        {
-            hashNext(shape, it + j);
-            p = getDir(index, shape);
-            for (uint64_t n = _getBodyCounth(index.dir[p]); n < _getBodyCounth(index.dir[p + 1]); n++)
-            {
-                sum ^= _getSA_i2(index.sa[n]);
-            }
-        }
-    }
-    std::cout << "    sum = " << sum << std::endl;
-    std::cout << "    getDir end sysTime(): " << sysTime() - time << std::endl;
-    std::cout << "    End mTest1()" << std::endl;
-
-    return 0;
+    }   
+    std::cout << sum << " " <<sysTime()-time << std::endl;
 }
 */
 
 int main(int argc, char const ** argv)
 {
+//    ArgumentParser parser;
+//    Options options; 
+//    setupArgumentParser(parser, options);
+//
+//    ArgumentParser::ParseResult res = parseCommandLine(options, parser, argc, argv);
+
+    //time = sysTime();
     (void)argc;
-    // Parse the command line.
+    SeqFileIn gFile(toCString(argv[1]));
+    SeqFileIn rFile(toCString(argv[2]));
+    StringSet<CharString> ids_r;
+    StringSet<CharString> ids_g;
+    //StringSet<DnaString> reads;
+    //StringSet<DnaString> genome;
+    StringSet<String<Dna5> > reads5;
+    StringSet<String<Dna5> > genome5;
+    //MapParm mapParm;
+
+    //readRecords(ids_r, reads, rFile);
+    //readRecords(ids_g, genome, gFile);
+    readRecords(ids_r, reads5, rFile);
+    readRecords(ids_g, genome5, gFile);
+    
+    
+//    std::fstream myfile(toCString(argv[3]), std::ios_base::in);  
+//    String<int> s;
+//    uint64_t a[10000];
+//    int d,f;
+//    String<uint64_t> as;
+//    unsigned k =0;
+//    while(k < 10000)
+//    {
+//        myfile >> d >> f;
+//        
+//        a[k] = ((uint64_t)(d / (float)16 + 0.5)) + ((uint64_t)(f/(float)16+0.5) << 32);
+//        k++;
+//    }
+//    while(k < 10000)
+//    {
+//        myfile >> d >> f;
+//        
+//        appendValue(as, ((uint64_t)(d /16)<< 32) + (uint64_t)(f/16));
+//        //appendValue(as, (((uint64_t)(d /(float)16+0.5))<< 32) + (uint64_t)(f/(float)16+0.5));
+////        std::cout << a[k] << std::endl;
+//        k++;
+//    }
+
+    //opKmerAnalysis5(genome, reads);
+    //mnKmerMap(genome, reads);
+    //setupArgumentParser(argc, argv);
+    //mnKmerMap5(genome5, reads5);
+    //mnMap(genome5, reads5, mapParm);
+    map(genome5, reads5);
+    //pmpfinder(genome5, reads5);
+        //if (k % 100 == 0)
+        //    std::cout << std::endl;
+    //feTest(reads5, begin(genome5[0]) + 33688421, begin(genome5[0]) + 33695356);
+    //feTest(reads5, begin(genome5[0]) + 121275915, begin(genome5[0]) + 121284556);
+    //feTest(reads5, begin(genome5[0]) + 194279648, begin(genome5[0]) + 194286590);
+//    pTest(reads5, begin(genome5[0]) + 33688421, begin(genome5[0]) + 33695356);
+    //pTest(reads5, begin(genome5[0]) + 33688544, begin(genome5[0]) + 33695349);
+    //feTest(reads5[0], begin(genome5[0]), end(genome5[0]));
+//    pTest1(genome5[0]);
+    //pTest2(reads5, begin(genome5[0]) + 33688544, begin(genome5[0]) + 33695349);
+    //pTest2(reads5, begin(genome5[0]) + 33688544 - 127, begin(genome5[0]) + 33695349);
+    
+    //pTest3(reads5, genome5, begin(genome5[0]) + 33688544 - 300, begin(genome5[0]) + 33695349);
+    //pTest4(reads5, genome5, ids_r, a);
+    //dTest(reads5, genome5, as);
+
+          // Parse the command line.
+/*
     Options options;
     seqan::ArgumentParser::ParseResult res = parseCommandLine(options, argc, argv);
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res == seqan::ArgumentParser::PARSE_ERROR;
+    std::cout << options.rFile << std::endl;
+    std::cerr << options.gFile << std::endl;
     
-    Mapper<> mapper(options);
-    options.print(); 
-    map(mapper);
-    
-    //mTest3(mapper.reads(), mapper.genomes());   
-    //uTest3(mapper.reads(), mapper.genomes());   
+*/
+ 
     return 0;
 }
