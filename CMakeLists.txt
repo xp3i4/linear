@@ -15,11 +15,11 @@ set (SEQAN_APP_VERSION "1.1.1")
 # ----------------------------------------------------------------------------
 # Dependencies
 # ----------------------------------------------------------------------------
-#find_package(CXX11 REQUIRED)
-#if (NOT CXX11_FOUND)
-#    message (STATUS " C++11 compiler needed to build pacMapper")
-#    return ()
-#endif (NOT CXX11_FOUND)
+find_package(CXX11 REQUIRED)
+if (NOT CXX11_FOUND)
+    message (STATUS " C++11 compiler needed to build pacMapper")
+    return ()
+endif (NOT CXX11_FOUND)
 
 # Search SeqAn and select dependencies.
 set (SEQAN_FIND_DEPENDENCIES NONE)

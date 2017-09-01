@@ -1,7 +1,7 @@
 // ==========================================================================
-//                 SeqAn - The Library for Sequence Analysis
+//                           Mapping SMRT reads 
 // ==========================================================================
-// Copyright (c) 2006-2015, Knut Reinert, FU Berlin
+// Copyright (c) 2006-2016, Knut Reinert, FU Berlin
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,7 @@
 // DAMAGE.
 //
 // ==========================================================================
-// Author: cxpan 
+// Author: cxpan <chenxu.pan@fu-berlin.de>
 // ==========================================================================
 
 #ifndef SEQAN_HEADER_BASE_H
@@ -38,7 +38,7 @@
 using namespace seqan;
 
 //===================================================================
-// const var and type def
+// variable and type def
 //===================================================================
 //template <typename TSpec = void>
 struct Const_{
@@ -70,11 +70,11 @@ const uint64_t Const_::_LLTMax = ~0;
      
 struct Options{
 
-    unsigned  kmerLen;
-    unsigned  MiKmLen;
-    typename Const_::PATH_ rPath;
-    typename Const_::PATH_ gPath;
-    typename Const_::PATH_ oPath;
+    unsigned    kmerLen;
+    unsigned    MiKmLen;
+    typename    Const_::PATH_ rPath;
+    typename    Const_::PATH_ gPath;
+    typename    Const_::PATH_ oPath;
     bool        Sensitive; 
 
     Options():
@@ -118,8 +118,8 @@ struct PMRecord
 struct AnchorBase{
     typedef typename Const_::BIT_INT_ AnchorType; 
     static const unsigned size = 131072;
-    static const unsigned AnchorValue = 1000;
     static const unsigned bit = 20;
+    static const uint64_t AnchorValue = 1000ULL << bit;
     static const typename Const_::BIT_INT_ mask = (1ULL<<bit) - 1;
 };
 
@@ -131,17 +131,19 @@ struct Anchors{
     unsigned len;
 
     Anchors(){len = 0;};
-    Anchors(AnchorType & val, unsigned range);
-    void init(AnchorType & val, unsigned k);
+    Anchors(AnchorType val, unsigned range);
+    void init(AnchorType val, unsigned k);
+    void init();
     AnchorType setAnchor(unsigned p, AnchorType pos1,  AnchorType pos2);
     AnchorType getPos1(unsigned p) const;
     AnchorType getPos2(unsigned p) const;
     AnchorType deltaPos1(unsigned p1, unsigned p2);
     AnchorType deltaPos2(unsigned p1, unsigned p2);
-    void sort(unsigned begin, unsigned end);
-    void sortPos2(unsigned begin, unsigned end);
-    void appendValue(AnchorType val){set[len++]=val;};
-    void appendValue(AnchorType val1, AnchorType val2){setAnchor(len++, val1, val2);};
+    void sort(Iter begin, Iter end);
+    void sortPos2(Iter begin, Iter end);
+    void appendValue(AnchorType val);
+    void appendValue(AnchorType val1, AnchorType val2);
+    unsigned size() const {return AnchorBase::size;};
     AnchorType & operator [](unsigned p){return set[p];};
     Iter begin(); 
     Iter end();
@@ -179,12 +181,11 @@ struct ResBase{
     typedef unsigned SeqLen;
     typedef typename Const_::BIT_INT_ SeqId;
     typedef typename Const_::BIT_INT_ MapPos;
-    typedef typename Const_::BIT_INT_ MapStrand;
     typedef typename Const_::BIT_INT_ MapScore;
+    typedef bool MapStrand;
 
     static const unsigned bit = 32;
     static const Const_::BIT_INT_ mask = (1ULL << bit) - 1;
-    MapStrand   strand = 1ULL << 63;
 
 };
 
@@ -195,30 +196,51 @@ struct PMRes
     typedef typename ResBase::MapScore Score;
     typedef typename ResBase::MapStrand Strand;
 
-    Id   id;
-    Pos  pos;
-    Score score;  
-    Strand strand;
+//    String<Id>    id;
+//    String<Pos>   pos;
+    StringSet<String<Pos> > pos;
+    StringSet<String<Score> > score;  
+    StringSet<String<Strand> > strand;
 
-    Id getId1(){return id >> ResBase::bit;}; 
-    Id getId2(){return id & ResBase::mask;};
-    Pos getPosBegin(){return pos >> ResBase::bit;};
-    Pos getPosEnd(){return pos & ResBase::mask;};
+    PMRes(){};
+    Id getId1(unsigned); 
+    Id getId2(unsigned);
+    Pos getPosBegin(unsigned);
+    Pos getPosEnd(unsigned);
     Strand getStrand();
-    Id createId(Id id1, Id id2){return (id1 << ResBase::bit) + id2;};
-    void createPos(Pos p1, Pos p2, Strand strand){};
-    //Strand getStrand();
-    //void operator ()(Id & id, Strand & strand, Pos& pos);
+    Id createId(Id, Id);
+    Pos createPos(Pos, Pos);
+    void appendValue(unsigned, Pos, Score, Strand);
 
 };
 
+//inline PMRes::Pos PMRes::getPosBegin(unsigned k)
+//{
+//    return pos[k] >> ResBase::bit;
+//};
+//
+//inline PMRes::Pos PMRes::getPosEnd(unsigned k)
+//{
+//    return pos[k] & ResBase::mask;
+//};
+//
+//inline PMRes::Id createId(PMRes::Id id1, PMRes::Id id2)
+//{
+//    return (id1 << ResBase::bit) + id2;
+//}
+//
+//inline PMRes::Pos createPos(PMRes::Pos p1, PMRes::Pos p2)
+//{
+//    return (p1 << ResBase::bit) + p2;
+//}
 
-struct PMResSet{
-    String<PMRes> res;
-    PMRes & operator[] (unsigned k){return res[k];};
-    void appendValue(PMRes & rst){seqan::appendValue(res, rst);};
-};
-
+inline void PMRes::appendValue(unsigned id, PMRes::Pos rpos, PMRes::Score rscore = 0, PMRes::Strand rstrand = false)
+{
+    //seqan::appendValue(id, rid);
+    seqan::appendValue(pos[id], rpos);
+    seqan::appendValue(score[id], rscore);
+    seqan::appendValue(strand[id], rstrand);
+}
 
 struct MapParm{
     unsigned    blockSize;
@@ -236,7 +258,19 @@ struct MapParm{
         kmerStep(Const_::_KMERSTEP),
         shapeLen(Const_::_SHAPELEN)
         {}
+// ====
+//temp: need modify
+    MapParm(Options & options){MapParm();}
+    MapParm(MapParm & parm):
+        blockSize(parm.blockSize),
+        alpha(parm.alpha),
+        delta(parm.delta),
+        threshold(parm.threshold),
+        kmerStep(parm.kmerStep),
+        shapeLen(parm.shapeLen)
+        {}
     void setMapParm(Options & options);
+    void print ();
     
 }_DefaultMapParm;
 
@@ -247,7 +281,7 @@ struct MapperBase
     typedef Const_::DEFAULT_ALPHABET_ DefaultAlphabet;
     typedef Minimizer<Const_::_SHAPELEN> DefaultShape;
     typedef PMRecord<TDna>  MRecord;
-    typedef PMResSet           MResSet;
+    typedef PMRes           MRes;
     typedef MapParm          MParm;
     typedef PMCore<TDna, TSpec>    MCore;
     typedef typename PMCore<TDna, TSpec>::Index MIndex;
@@ -259,20 +293,19 @@ struct MapperBase
 
 template <typename TDna = typename MapperBase<>::DefaultAlphabet, 
     typename TSpec = typename MapperBase<>::DefaultShape>
-struct Mapper
-{
+struct Mapper {
     typedef MapperBase<TDna, TSpec> Base;
     typedef typename Base::MRecord   Record;
     typedef typename Base::MParm     Parm;
     typedef typename Base::MIndex    Index;
     typedef typename Base::MAnchors    Anchors;
-    typedef typename Base::MResSet   ResSet;
+    typedef typename Base::MRes   Res;
     typedef typename Base::MSeq      Seq;
     typedef typename Base::MSeqs     Seqs;
 
     Record  record;
     Parm    parm;
-    ResSet     res;
+    Res     res;
     Index   qIndex;
 
     Mapper();
@@ -280,9 +313,10 @@ struct Mapper
     Seqs & reads(){return record.seq1;};
     Seqs & genomes(){return record.seq2;};
     Parm & mapParm(){return parm;};
-    ResSet & result(){return res;};
+    Res & result(){return res;};
     Index & index(){return qIndex;};
     void printResult();    
+    void printParm();
     int createIndex();
      
     //Mapper(Options const & options)
@@ -326,14 +360,20 @@ PMRecord<TDna>::PMRecord(Options & options)
    loadRecord(options);
 }
 
-Anchors::Anchors(Anchors::AnchorType & val, unsigned range)
+Anchors::Anchors(Anchors::AnchorType val, unsigned range)
 {
     init(val, range);
 }
 
-inline void Anchors::init(AnchorType & val, unsigned range){
+inline void Anchors::init(AnchorType val, unsigned range){
     for (unsigned k = 0; k < range; k++)
         set[k] = val;
+    len = 0;
+}
+
+inline void Anchors::init()
+{
+    init(AnchorType(0), size());
 }
 
 inline Anchors::AnchorType Anchors::setAnchor(unsigned p, 
@@ -372,23 +412,47 @@ inline Anchors::Iter Anchors::end()
     return set + len;
 }
 
-void Anchors::sort(unsigned sortBegin, unsigned sortEnd)
+inline void Anchors::sort(Anchors::Iter sortBegin, Anchors::Iter sortEnd)
 {
-    std::sort(begin() + sortBegin, begin() + sortEnd);
+    std::sort(sortBegin, sortEnd);
 }
 
-void Anchors::sortPos2(unsigned sortBegin, unsigned sortEnd){
-    std::sort(begin() + sortBegin, begin() + sortEnd, 
-    [AnchorBase::mask](AnchorBase::AnchorType & a, 
+inline void Anchors::sortPos2(Anchors::Iter sortBegin, Anchors::Iter sortEnd){
+    AnchorBase::AnchorType mask = AnchorBase::mask;
+    std::sort(sortBegin, sortEnd,
+    [& mask](AnchorBase::AnchorType & a, 
                 AnchorBase::AnchorType & b)
     {
         return (a & mask) < (b & mask);
     }) ;
 }
 
+inline void Anchors::appendValue(Anchors::AnchorType val)
+{
+    set[len++]=val;
+}
+
+inline void Anchors::appendValue(Anchors::AnchorType val1, Anchors::AnchorType val2)
+{
+    setAnchor(len++, val1, val2);
+    //std::cout << "len " << len << std::endl;
+}
+
+void MapParm::print()
+{
+    std::cout << "blockSize " << blockSize << std::endl
+             << "alpha " << alpha << std::endl
+             << "delta " << delta << std::endl
+             << "threshold " << threshold << std::endl
+             << "kmerStep " << kmerStep << std::endl
+             << "shapeLen " << shapeLen << std::endl;
+    
+}
+
 template <typename TDna, typename TSpec>
 Mapper<TDna, TSpec>::Mapper(Options & options):
     record(options),
+    parm(options),
     qIndex(genomes())
 {}
 
@@ -404,6 +468,12 @@ int Mapper<TDna, TSpec>::createIndex()
 template <typename TDna, typename TSpec>
 void Mapper<TDna, TSpec>::printResult()
 {}
+
+template <typename TDna, typename TSpec>
+void Mapper<TDna, TSpec>::printParm()
+{
+    parm.print();
+}
 
 static String<Dna5> _complt = "tgcan";
 inline void _compltStr(String<Dna5> & str, String<Dna5> & res)
@@ -422,20 +492,20 @@ inline void _compltRvseStr(String<Dna5> & str, String<Dna5> & res)
         res[k] = _complt[(unsigned)ordValue(str[length(str) - k])];
 }
 
+
 template <typename TDna, typename TSpec>
 inline unsigned getIndexMatch(typename PMCore<TDna, TSpec>::Index  & index,
                               typename PMRecord<TDna>::RecSeq & read,
-                              AnchorSet & anchor,
+                              Anchors & anchor,
                               MapParm & mapParm
                              )
 {    
     uint64_t dn, pre;
     unsigned block = (mapParm.blockSize < length(read))?mapParm.blockSize:length(read);
     unsigned dt = block * (mapParm.alpha / (1 - mapParm.alpha));
+    //std::cout << read << std::endl;
 
     hashInit(index.shape, begin(read));
-    //#for (uint64_t h = 0; h < length(anchor); h++)
-    //#    anchor[h] = 0;
     anchor.init();
     for (unsigned h=0; h <= length(read) - block; h += dt)
     {
@@ -443,16 +513,20 @@ inline unsigned getIndexMatch(typename PMCore<TDna, TSpec>::Index  & index,
         for (unsigned k = h; k < h + block; k++)
         {
             hashNext(index.shape, begin(read) + k);
+        //std::cout << "shape " << index.shape.XValue << std::endl;
             dn = getDir(index, index.shape);
             pre = ~0;
+            //std::cout << "dn " << dn << std::endl;
             if(_getBodyCounth(index.dir[dn+1]) - _getBodyCounth(index.dir[dn]) < mapParm.delta)
             {
                 uint64_t countn = _getBodyCounth(index.dir[dn]);
+               //std::cout << countn << " countn " << std::endl;
                 while ( countn < _getBodyCounth(index.dir[dn + 1]))
                 {
                     if (index.sa[countn] - pre > mapParm.kmerStep)
                     {
                         //#anchor[x++] = (((index.sa[n])- k) << 20) + k;
+    //std::cout << countn << " countn " << index.sa[countn] - k << " " << k << std::endl;
                         anchor.appendValue(index.sa[countn]- k, k);
                         pre = index.sa[countn];
                     }
@@ -464,25 +538,31 @@ inline unsigned getIndexMatch(typename PMCore<TDna, TSpec>::Index  & index,
     return 0;
 }
 
-inline unsigned getAnchorMatch(AnchorSet & anchors, MapParm & mapParm)
+inline unsigned getAnchorMatch(Anchors & anchors, MapParm & mapParm)
 {
     uint64_t maxLen = 0, c_b=0, ak, cbb=0, sb=0, start = 0;
     anchors[0] = anchors[1];
-    ak=anchors[0].getPos1();
-    anchors.sort(begin(anchor), end(anchor));
-    for (uint64_t k = 1; k <= length(anchors); k++)
+    ak=anchors[0];
+    anchors.sort(anchors.begin(), anchors.end());
+    //std::cout << anchors.length() << " length ";
+    for (uint64_t k = 1; k <= anchors.length(); k++)
     {
-        if (anchors[k].getPos1() - ak < AnchorBase::Value)
+        //std::cout << anchors[k] << std::endl;
+        //std::cout << "getAnchors " << anchors.getPos1(k) << " " << anchors.getPos2(k) << std::endl;
+        //std::cout << anchors[k]- ak << " " << std::endl;
+        if (anchors[k] - ak < AnchorBase::AnchorValue)
             cbb++;
         else
         {
             anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
+            //std::cout << sb << " " << k << " sb" << std::endl;
             for (uint64_t m = sb+1; m < k; m++)
             {
                 if(anchors.deltaPos2(m, m-1) >  mapParm.shapeLen)
                     c_b += mapParm.shapeLen;
                 else
                     c_b += anchors.deltaPos2(m, m-1); 
+            //std::cout << anchors.deltaPos2(m, m-1) << " shapelen " << mapParm.shapeLen << std::endl;
             }
             if (c_b > maxLen)
             {
@@ -490,19 +570,20 @@ inline unsigned getAnchorMatch(AnchorSet & anchors, MapParm & mapParm)
                 start = sb;
             }
             sb = k;
-            ak = anchors[k].getPos1();
+            ak = anchors[k];
             cbb = 1;
             c_b = mapParm.shapeLen;
         }
 
     }
+    //std::cout << "start maxlen " << anchors.getPos1(start) << " " << anchors.getPos2(start) << " " << maxLen << std::endl;
     return start + (maxLen << 20) ;
 }
 
 template <typename TDna, typename TSpec>
 inline unsigned mnMapRead(typename PMCore<TDna, TSpec>::Index  & index,
                           typename PMRecord<TDna>::RecSeq & read,
-                          AnchorSet & anchors,
+                          Anchors & anchors,
                           MapParm & mapParm
                          )
 {
@@ -514,7 +595,8 @@ inline unsigned mnMapRead(typename PMCore<TDna, TSpec>::Index  & index,
 template <typename TDna, typename TSpec>
 void mnMap(typename PMCore<TDna, TSpec>::Index   & index,
            typename PMRecord<TDna>::RecSeqs      & reads,
-           MapParm                      & mapParm)//,
+           MapParm                      & mapParm)
+      //      Anchors & anchors)
            //PMResSet             & rs )
 {
     typedef typename Mapper<TDna, TSpec>::Seq Seq;
@@ -525,11 +607,11 @@ void mnMap(typename PMCore<TDna, TSpec>::Index   & index,
     //#uint64_t anchor[mask + 1] = {1ULL<<63};
 
     std::cerr << "Filtering reads\n"; 
-    Anchors anchors(Const_::_LLTMax);
+    Anchors anchors(Const_::_LLTMax, AnchorBase::size);
     //Anchors anchor;
     Seq comStr;
     
-    
+   unsigned mask = (1ULL << 20) - 1;
     for (unsigned j = 0; j< length(reads); j++)
     {
         unsigned res = mnMapRead<TDna, TSpec>(index, reads[j], anchors, mapParm);
@@ -537,8 +619,13 @@ void mnMap(typename PMCore<TDna, TSpec>::Index   & index,
         {
             _compltRvseStr(reads[j], comStr);
             unsigned tmp = mnMapRead<TDna, TSpec>(index, comStr, anchors, mapParm);
-            res = (tmp > (mapParm.threshold << 20))?tmp:0;
+            res = (tmp > (mapParm.threshold << 20))?tmp:~0;
         }
+        std::cout << j << " start maxlen " << anchors.getPos1(res & mask) << " " << anchors.getPos2(res & mask) << " " << std::endl;//<< " " << maxLen << std::endl;
+//        else
+//            rs.appendValue(j, anchors[res ], );
+        ///rs.appendRes(res);
+//            std::cout << j << " " << (res & mask1) << " " << (res >> 20) << std::endl;
         //#assignValueI1(rs[j], _getSA_i2(anchor[res & mask1] >> 20));
         //#assignValueI2(rs[j], _getSA_i2(anchor[res & mask1] >> 20) + length(reads[j]));
 //========
@@ -552,8 +639,10 @@ void mnMap(typename PMCore<TDna, TSpec>::Index   & index,
 template <typename TDna, typename TSpec>
 void map(Mapper<TDna, TSpec> map)
 {
+//    map.printParm();
+    _DefaultMapParm.print();
     map.createIndex();
-    mnMap<TDna, TSpec>(map.index(), map.reads(), map.mapParm());//, map.result());
+    mnMap<TDna, TSpec>(map.index(), map.reads(), _DefaultMapParm);//, map.result());
     map.printResult();
 }
 

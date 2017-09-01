@@ -1,7 +1,7 @@
 // ==========================================================================
-//                 SeqAn - The Library for Sequence Analysis
+//                          Mappeing SMRT reads
 // ==========================================================================
-// Copyright (c) 2006-2015, Knut Reinert, FU Berlin
+// Copyright (c) 2006-2016, Knut Reinert, FU Berlin
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,7 @@
 // DAMAGE.
 //
 // ==========================================================================
-// Author: cxpan 
+// Author: cxpan <chenxu.pan@fu-berlin.de>
 // ==========================================================================
 
 //#include "shape_minimizer.h"
