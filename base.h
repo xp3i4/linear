@@ -506,8 +506,8 @@ inline unsigned getIndexMatch(typename PMCore<TDna, TSpec>::Index  & index,
 
     hashInit(index.shape, begin(read));
     anchor.init();
-    //for (unsigned h=0; h <= length(read) - block; h += dt)
-    for (unsigned h=0; h <= length(read) - block; h += block)
+    for (unsigned h=0; h <= length(read) - block; h += dt)
+    //for (unsigned h=0; h <= length(read) - block; h += block)
     {
         hashInit(index.shape, begin(read) + h);
         for (unsigned k = h; k < h + block; k++)
