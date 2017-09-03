@@ -644,13 +644,17 @@ void mnMap(typename PMCore<TDna, TSpec>::Index   & index,
 }
 
 template <typename TDna, typename TSpec>
-void map(Mapper<TDna, TSpec> map)
+void map(Mapper<TDna, TSpec> mapper)
 {
 //    map.printParm();
     _DefaultMapParm.print();
-    map.createIndex();
-    mnMap<TDna, TSpec>(map.index(), map.reads(), _DefaultMapParm);//, map.result());
-    map.printResult();
+    double time = sysTime();
+    std::cerr << "map" << std::endl;
+    mapper.createIndex();
+    mnMap<TDna, TSpec>(mapper.index(), mapper.reads(), _DefaultMapParm);//, mapper.result());
+    std::cerr << "Total time [s] " << sysTime() - time << std::endl;
+    mapper.printResult();
+    
 }
 
 #endif

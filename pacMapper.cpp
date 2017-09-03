@@ -195,9 +195,9 @@ int main(int argc, char const ** argv)
     seqan::ArgumentParser::ParseResult res = parseCommandLine(options, argc, argv);
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res == seqan::ArgumentParser::PARSE_ERROR;
-    
+        
     Mapper<> mapper(options);
-    options.print(); 
+    //options.print(); 
     map(mapper);
     
     //mTest3(mapper.reads(), mapper.genomes());   
