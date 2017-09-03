@@ -60,8 +60,8 @@ struct Const_{
 };
 
 const float Const_::_ALPHA = 0.8;
-const unsigned Const_::_SHAPELEN = 30;
-const unsigned Const_::_SHAPEWHT = 22;
+const unsigned Const_::_SHAPELEN = 25;
+const unsigned Const_::_SHAPEWHT = 18;
 const unsigned Const_::_BLOCKSIZE = 1000;
 const unsigned Const_::_DELAT = 32; 
 const unsigned Const_::_THRESHOLD = 30; 
@@ -615,7 +615,6 @@ void mnMap(typename PMCore<TDna, TSpec>::Index   & index,
     //Anchors anchor;
     Seq comStr;
     
-   unsigned mask = (1ULL << 20) - 1;
     for (unsigned j = 0; j< length(reads); j++)
     {
         unsigned res = mnMapRead<TDna, TSpec>(index, reads[j], anchors, mapParm);
@@ -627,7 +626,9 @@ void mnMap(typename PMCore<TDna, TSpec>::Index   & index,
             res = (tmp > (mapParm.threshold << 20))?tmp:~0;
         }
         if (res != ~0 )
-          std::cout << j << " start maxlen " << anchors.getPos1(res & mask1) << " " << anchors.getPos2(res & mask1) << " " << std::endl;//<< " " << maxLen << std::endl;
+          std::cout << j << " " << anchors.getPos1(res & mask1) << " " << anchors.getPos2(res & mask1) << " " << std::endl;//<< " " << maxLen << std::endl;
+        else
+            std::cout << j <<" 0 0 " << std::endl;
         //std::cout << (res & mask1) << std::endl;
 //        else
 //            rs.appendValue(j, anchors[res ], );
