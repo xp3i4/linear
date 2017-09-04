@@ -367,7 +367,7 @@ Anchors::Anchors(Anchors::AnchorType val, unsigned range)
 inline void Anchors::init(AnchorType val, unsigned range){
     for (unsigned k = 0; k < range; k++)
         set[k] = val;
-    len = 0;
+    len = 1;
 }
 
 inline void Anchors::init()
@@ -496,16 +496,18 @@ template <typename TDna, typename TSpec>
 inline unsigned getIndexMatch(typename PMCore<TDna, TSpec>::Index  & index,
                               typename PMRecord<TDna>::RecSeq & read,
                               Anchors & anchor,
-                              MapParm & mapParm
+                              MapParm & mapParm,
+                            double & time
                              )
 {    
-    uint64_t dn, pre;
+    double t=sysTime();
     unsigned block = (mapParm.blockSize < length(read))?mapParm.blockSize:length(read);
     unsigned dt = block * (mapParm.alpha / (1 - mapParm.alpha));
     //std::cout << read << std::endl;
 
     hashInit(index.shape, begin(read));
     anchor.init();
+    //std::cout << "dt = " << dt << std::endl;;
     for (unsigned h=0; h <= length(read) - block; h += dt)
     //for (unsigned h=0; h <= length(read) - block; h += block)
     {
@@ -514,31 +516,32 @@ inline unsigned getIndexMatch(typename PMCore<TDna, TSpec>::Index  & index,
         {
             hashNext(index.shape, begin(read) + k);
         //std::cout << "shape " << index.shape.XValue << std::endl;
-            dn = getDir(index, index.shape);
-            pre = ~0;
+            uint64_t dn = getDir(index, index.shape);
+            uint64_t pre = ~0;
             //std::cout << "dn " << dn << std::endl;
-            if(_getBodyCounth(index.dir[dn+1]) - _getBodyCounth(index.dir[dn]) != 0)
-    //        std::cout << h << " " << _getBodyCounth(index.dir[dn+1]) - _getBodyCounth(index.dir[dn]) << std::endl;
+            //if(_getBodyCounth(index.dir[dn+1]) - _getBodyCounth(index.dir[dn]) != 0)
+            //std::cout << k << " " << h << " " << index.shape.hValue << " " << _getBodyCounth(index.dir[dn+1]) << " " <<  _getBodyCounth(index.dir[dn]) << std::endl;
             if(_getBodyCounth(index.dir[dn+1]) - _getBodyCounth(index.dir[dn]) < mapParm.delta)
             {
-                uint64_t countn = _getBodyCounth(index.dir[dn]);
-               //std::cout << countn << " countn " << std::endl;
-                while ( countn < _getBodyCounth(index.dir[dn + 1]))
+//                if (countn!=_getBodyCounth(index.dir[dn+1]))
+//               std::cout << countn << " countn " << _getBodyCounth(index.dir[dn+1]) << mapParm.kmerStep << std::endl;
+                for (uint64_t countn = _getBodyCounth(index.dir[dn]); countn < _getBodyCounth(index.dir[dn + 1]); countn++)
                 {
       //              std::cout << index.sa[countn] - pre << std::endl;
                     if (index.sa[countn] - pre > mapParm.kmerStep)
                     {
                         //#anchor[x++] = (((index.sa[n])- k) << 20) + k;
     //std::cout << countn << " countn " << index.sa[countn] - k << " " << k << std::endl;
-     //                   std::cout << index.sa[countn]- k << " index.sa - k" << std::endl;
+                        //std::cout << (index.sa[countn]- k <<20) + k << " index.sa - k " << anchor.length()<< std::endl;
                         anchor.appendValue(index.sa[countn]- k, k);
+                    //anchor.set[anchor.len++] = ((index.sa[countn] - k) << 20 ) + k ;
                         pre = index.sa[countn];
                     }
-                    countn++;
                 }
             }
         }
     }
+    time += sysTime() - t;
     return 0;
 }
 
@@ -547,6 +550,8 @@ inline unsigned getAnchorMatch(Anchors & anchors, MapParm & mapParm)
     uint64_t maxLen = 0, c_b=0, ak, cbb=0, sb=0, start = 0;
     anchors[0] = anchors[1];
     ak=anchors[0];
+    //for (unsigned k = 0; k < anchors.length(); k++)
+    //std::cout << anchors[k] << std::endl;
     anchors.sort(anchors.begin(), anchors.end());
     //std::cout << anchors.length() << " length ";
     for (uint64_t k = 1; k <= anchors.length(); k++)
@@ -588,11 +593,12 @@ template <typename TDna, typename TSpec>
 inline unsigned mnMapRead(typename PMCore<TDna, TSpec>::Index  & index,
                           typename PMRecord<TDna>::RecSeq & read,
                           Anchors & anchors,
-                          MapParm & mapParm
+                          MapParm & mapParm,
+                            double & time 
                          )
 {
     
-    getIndexMatch<TDna, TSpec>(index, read, anchors, mapParm);    
+    getIndexMatch<TDna, TSpec>(index, read, anchors, mapParm, time);    
     return getAnchorMatch(anchors, mapParm);
 }
 
@@ -615,20 +621,25 @@ void mnMap(typename PMCore<TDna, TSpec>::Index   & index,
     //Anchors anchor;
     Seq comStr;
     
+   unsigned mask = (1ULL << 20) - 1;
+    double tm=0;
+    unsigned count = 0;
     for (unsigned j = 0; j< length(reads); j++)
     {
-        unsigned res = mnMapRead<TDna, TSpec>(index, reads[j], anchors, mapParm);
+        count++;
+        unsigned res = mnMapRead<TDna, TSpec>(index, reads[j], anchors, mapParm,tm);
         //std::cout << (res & mask1) << std::endl;
         if (res < (mapParm.threshold << 20))
         {
+            count++;
             _compltRvseStr(reads[j], comStr);
-            unsigned tmp = mnMapRead<TDna, TSpec>(index, comStr, anchors, mapParm);
+            unsigned tmp = mnMapRead<TDna, TSpec>(index, comStr, anchors, mapParm, tm);
             res = (tmp > (mapParm.threshold << 20))?tmp:~0;
         }
         if (res != ~0 )
-          std::cout << j << " " << anchors.getPos1(res & mask1) << " " << anchors.getPos2(res & mask1) << " " << std::endl;//<< " " << maxLen << std::endl;
-        else
-            std::cout << j <<" 0 0 " << std::endl;
+            std::cout << j << " " << anchors.getPos1(res & mask1) << " " << anchors.getPos2(res & mask1) << " " << std::endl;//<< " " << maxLen << std::endl;
+        else 
+            std::cout << j << "0 0 0 " << std::endl; 
         //std::cout << (res & mask1) << std::endl;
 //        else
 //            rs.appendValue(j, anchors[res ], );
@@ -642,20 +653,22 @@ void mnMap(typename PMCore<TDna, TSpec>::Index   & index,
         //rs.appendValue(_getSA_i2(anchor[res & mask1].getPos1()), _getSA_i2(anchor[res & mask1].getPos1()) + length);
     }
     std::cerr << "Time[s]: " << sysTime() - time << std::endl;
+    std::cerr << "tm [s]: " << tm << std::endl;
+    std::cerr << "count " << count << std::endl;
 }
 
 template <typename TDna, typename TSpec>
 void map(Mapper<TDna, TSpec> mapper)
 {
 //    map.printParm();
-    _DefaultMapParm.print();
+    std::cerr << "Encapsulated version " << std::endl;
     double time = sysTime();
-    std::cerr << "map" << std::endl;
+    _DefaultMapParm.print();
     mapper.createIndex();
-    mnMap<TDna, TSpec>(mapper.index(), mapper.reads(), _DefaultMapParm);//, mapper.result());
-    std::cerr << "Total time [s] " << sysTime() - time << std::endl;
+    mnMap<TDna, TSpec>(mapper.index(), mapper.reads(), _DefaultMapParm);//, map.result());
+    std::cerr << "Time of mapping in sum [s] " << sysTime() - time << std::endl;
     mapper.printResult();
-    
 }
 
 #endif
+
