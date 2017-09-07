@@ -44,8 +44,7 @@
 #include <climits>
 #include <seqan/arg_parse.h>
 
-#include "shape_extend.h"
-#include "index_extend.h"
+
 #include "base.h"
 #include "pmpfinder.h"
 
@@ -195,10 +194,11 @@ int main(int argc, char const ** argv)
     seqan::ArgumentParser::ParseResult res = parseCommandLine(options, argc, argv);
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res == seqan::ArgumentParser::PARSE_ERROR;
-        
+    double t=sysTime();
     Mapper<> mapper(options);
     //options.print(); 
     map(mapper);
+    std::cerr << "total time " << sysTime() - t << std::endl;
     
     //mTest3(mapper.reads(), mapper.genomes());   
     //uTest3(mapper.reads(), mapper.genomes());   

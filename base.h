@@ -32,8 +32,12 @@
 // Author: cxpan <chenxu.pan@fu-berlin.de>
 // ==========================================================================
 
+
 #ifndef SEQAN_HEADER_BASE_H
 #define SEQAN_HEADER_BASE_H
+
+#include "shape_extend.h"
+#include "index_extend.h"
 
 using namespace seqan;
 
@@ -196,7 +200,8 @@ struct PMRes
     typedef typename ResBase::MapScore Score;
     typedef typename ResBase::MapStrand Strand;
     
-    typedef String<typename ResBase::MapHit> Hit;
+    typedef typename ResBase::MapHit  MapHit;
+    typedef String<MapHit> Hit;
     typedef StringSet<Hit> Hits;
 
 //    String<Id>    id;
@@ -312,6 +317,8 @@ struct Mapper {
     Res     res;
     Index   qIndex;
 
+    StringSet<String<uint64_t> > cords;
+
     Mapper();
     Mapper(Options & options);
     Seqs & reads(){return record.seq1;};
@@ -319,6 +326,7 @@ struct Mapper {
     Parm & mapParm(){return parm;};
     Res & result(){return res;};
     Index & index(){return qIndex;};
+    void printHits();
     void printResult();    
     void printParm();
     int createIndex();
@@ -470,6 +478,15 @@ int Mapper<TDna, TSpec>::createIndex()
 }
 
 template <typename TDna, typename TSpec>
+void Mapper<TDna, TSpec>::printHits()
+{
+    for (unsigned k = 0; k < length(res.hits); k++)
+    //for (unsigned j = 0; j < length(res.hits[k]); j++)
+        //std::cout << res.hits[k][j] << std::endl;
+        std::cout << length(res.hits[k]) << std::endl;
+}
+
+template <typename TDna, typename TSpec>
 void Mapper<TDna, TSpec>::printResult()
 {}
 
@@ -496,170 +513,6 @@ inline void _compltRvseStr(String<Dna5> & str, String<Dna5> & res)
         res[k] = _complt[(unsigned)ordValue(str[length(str) - k])];
 }
 
-
-template <typename TDna, typename TSpec>
-inline unsigned getIndexMatch(typename PMCore<TDna, TSpec>::Index  & index,
-                              typename PMRecord<TDna>::RecSeq & read,
-//                              Anchors & anchor,
-        uint64_t* const set,
-        unsigned & len,
-                              MapParm & mapParm,
-                            double & time
-                             )
-{    
-    double t=sysTime();
-    unsigned block = (mapParm.blockSize < length(read))?mapParm.blockSize:length(read);
-    unsigned dt = block * (mapParm.alpha / (1 - mapParm.alpha));
-
-    hashInit(index.shape, begin(read));
-    for (unsigned h=0; h <= length(read) - block; h += dt)
-    //for (unsigned h=0; h <= length(read) - block; h += block)
-    {
-        hashInit(index.shape, begin(read) + h);
-        for (unsigned k = h; k < h + block; k++)
-        {
-            hashNext(index.shape, begin(read) + k);
-            uint64_t dn = getDir(index, index.shape);
-            uint64_t pre = ~0;
-            if(_getBodyCounth(index.dir[dn+1]) - _getBodyCounth(index.dir[dn]) < mapParm.delta)
-            {
-                for (uint64_t countn = _getBodyCounth(index.dir[dn]); countn < _getBodyCounth(index.dir[dn + 1]); countn++)
-                {
-                    if (index.sa[countn] - pre > mapParm.kmerStep)
-                    {
-//==
-//appendValue performance improving
-//==
-//                      anchor.appendValue(index.sa[countn]- k, k);
-                        set[len++] = ((index.sa[countn]-k)<<20)+k;
-                        pre = index.sa[countn];
-                    }
-                }
-            }
-        }
-    }
-    time += sysTime() - t;
-    return time;
-}
-
-inline unsigned getAnchorMatch(Anchors & anchors, MapParm & mapParm, PMRes::Hit & hit, double & time )
-{
-    double t=sysTime();
-    uint64_t ak;
-    unsigned maxLen = 0, c_b=mapParm.shapeLen, cbb=0, sb=0, end=0, start = 0;
-    anchors[0] = anchors[1];
-    ak=anchors[0];
-    anchors.sort(anchors.begin(), anchors.end());
-    for (unsigned k = 1; k <= anchors.length(); k++)
-    {
-        if (anchors[k] - ak < AnchorBase::AnchorValue)
-            cbb++;
-        else
-        {
-            anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
-            for (uint64_t m = sb+1; m < k; m++)
-            {
-                if(anchors.deltaPos2(m, m-1) >  mapParm.shapeLen)
-                    c_b += mapParm.shapeLen;
-                else
-                    c_b += anchors.deltaPos2(m, m-1); 
-            }
-            if (c_b > maxLen)
-            {
-                maxLen = c_b;
-                start = sb;
-                end = k;
-            }
-            sb = k;
-            ak = anchors[k];
-            cbb = 1;
-            c_b = mapParm.shapeLen;
-        }
-
-    }
-
-//    std::cerr << start << " " << end << " " << anchors.len<< std::endl;
-    for (unsigned k = start; k < end; k++)
-        appendValue(hit, anchors[k]);
-
-    time += sysTime() - t;
-    return start + (maxLen << 20) ;
-}
-
-template <typename TDna, typename TSpec>
-inline unsigned mnMapRead(typename PMCore<TDna, TSpec>::Index  & index,
-                          typename PMRecord<TDna>::RecSeq & read,
-                          Anchors & anchors,
-                          MapParm & mapParm,
-                          PMRes::Hit & hit,  
-                            double & time,
-                            double & time2 
-                         )
-{
-    
-    getIndexMatch<TDna, TSpec>(index, read, anchors.set, anchors.len, mapParm, time);    
-    return getAnchorMatch(anchors, mapParm, hit, time2);
-}
-
-template <typename TDna, typename TSpec>
-void mnMap(typename PMCore<TDna, TSpec>::Index   & index,
-           typename PMRecord<TDna>::RecSeqs      & reads,
-           MapParm                      & mapParm,
-            typename PMRes::Hits & hits)
-      //      Anchors & anchors)
-           //PMResSet             & rs )
-{
-    typedef typename Mapper<TDna, TSpec>::Seq Seq;
-    typedef typename Mapper<TDna, TSpec>::Anchors Anchors;
-    double time=sysTime();
-
-    std::cerr << "Filtering reads\n"; 
-    Anchors anchors(Const_::_LLTMax, AnchorBase::size);
-    Seq comStr;
-    
-    double tm=0;
-    double tm2=0;
-    unsigned count = 0;
-    for (unsigned j = 0; j< length(reads); j++)
-    {
-//        anchors.init();
-//==
-// anchor fucntion improving
-//==
-        anchors.len=1;
-        if (mnMapRead<TDna, TSpec>(index, reads[j], anchors, mapParm, hits[j], tm, tm2) 
-                    < (mapParm.threshold << 20))
-        {
-            count++;
-            _compltRvseStr(reads[j], comStr);
-            mnMapRead<TDna, TSpec>(index, comStr, anchors, mapParm, hits[j], tm, tm2);
-        }
-
-//========
-//rs
-//========
-        //rs.appendValue(_getSA_i2(anchor[res & mask1].getPos1()), _getSA_i2(anchor[res & mask1].getPos1()) + length);
-         
-    }
-    std::cerr << "Time[s]: " << sysTime() - time << std::endl;
-    std::cerr << "tm [s]: " << tm << std::endl;
-    std::cerr << "tm2 [s]: " << tm2 << std::endl;
-    std::cerr << "count " << count << std::endl;
-}
-
-template <typename TDna, typename TSpec>
-void map(Mapper<TDna, TSpec> mapper)
-{
-//    map.printParm();
-    std::cerr << "Encapsulated version " << std::endl;
-    double time = sysTime();
-    _DefaultMapParm.print();
-    mapper.createIndex();
-    resize(mapper.res.hits, length(mapper.reads()));
-    mnMap<TDna, TSpec>(mapper.index(), mapper.reads(), _DefaultMapParm, mapper.res.hits);//, map.result());
-    std::cerr << "Time of mapping in sum [s] " << sysTime() - time << std::endl;
-    mapper.printResult();
-}
 
 #endif
 

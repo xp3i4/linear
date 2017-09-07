@@ -32,7 +32,6 @@
 // Author: cxpan <chenxu.pan@fu-berlin.de>
 // ==========================================================================
 
-//#include "shape_minimizer.h"
 #ifndef SEQAN_HEADER_INDEX_PM_H
 #define SEQAN_HEADER_INDEX_PM_H
 
@@ -195,6 +194,8 @@ template <typename TObject, unsigned TSPAN, unsigned TWEIGHT>
     static uint64_t _BaseNum_bits = 30 ;    
     static uint64_t _SeqNum_bits = _BodyType_bits - _BaseNum_bits;    
     static uint64_t _BaseNum_code = ((uint64_t)1 << _BaseNum_bits) - 1;
+    static uint64_t _BaseNum_SeqMask = (1ULL << _SeqNum_bits) - 1;
+        
  
     static const uint64_t _Empty_Dir_ = -1;
 
@@ -280,6 +281,12 @@ template <typename TObject, unsigned TSPAN, unsigned TWEIGHT>
         node = (i1 << _BaseNum_bits) + i2;
     }
     
+
+    template <typename HValue> 
+    inline HValue _getSA_i1(HValue const & node)
+    {
+        return (node >> _BaseNum_bits) & _BaseNum_SeqMask;
+    }
     template <typename HValue>
     inline HValue _getSA_i2(HValue const & node)
     {
