@@ -185,12 +185,14 @@ struct ResBase{
     typedef typename Const_::BIT_INT_ SeqId;
     typedef typename Const_::BIT_INT_ MapPos;
     typedef typename Const_::BIT_INT_ MapScore;
-    typedef typename Const_::BIT_INT_ MapHit;
+    typedef typename Const_::BIT_INT_ HitType;
     typedef bool MapStrand;
 
     static const unsigned bit = 32;
     static const Const_::BIT_INT_ mask = (1ULL << bit) - 1;
-
+    static const unsigned hitBit = AnchorBase::bit;
+    static const unsigned hitMask = AnchorBase::mask;
+    
 };
 
 struct PMRes
@@ -200,16 +202,16 @@ struct PMRes
     typedef typename ResBase::MapScore Score;
     typedef typename ResBase::MapStrand Strand;
     
-    typedef typename ResBase::MapHit  MapHit;
-    typedef String<MapHit> Hit;
-    typedef StringSet<Hit> Hits;
+    typedef typename ResBase::HitType  HitType;
+    typedef String<HitType> HitString;
+    typedef StringSet<HitString> HitSet;
 
 //    String<Id>    id;
 //    String<Pos>   pos;
     StringSet<String<Pos> > pos;
     StringSet<String<Score> > score;  
     StringSet<String<Strand> > strand;
-    Hits hits;
+    HitSet hits;
 
     PMRes(){};
     Id getId1(unsigned); 
@@ -480,10 +482,15 @@ int Mapper<TDna, TSpec>::createIndex()
 template <typename TDna, typename TSpec>
 void Mapper<TDna, TSpec>::printHits()
 {
+    std::cout << "Hits: " << lengthSum(res.hits) << " in sum " << std::endl;
     for (unsigned k = 0; k < length(res.hits); k++)
-    //for (unsigned j = 0; j < length(res.hits[k]); j++)
-        //std::cout << res.hits[k][j] << std::endl;
-        std::cout << length(res.hits[k]) << std::endl;
+    {
+        std::cout << "reads " << k << " : ";
+        for (unsigned j = 0; j < length(res.hits[k]); j++)
+            std::cout << (((res.hits[k][j] >> 20) + res.hits[k][j] & 0xfffff))<< " " << (res.hits[k][j] & 0xfffff) << ", ";
+        std::cout << std::endl;
+    }
+        //std::cout << length(res.hits[k]) << std::endl;
 }
 
 template <typename TDna, typename TSpec>

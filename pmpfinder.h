@@ -32,6 +32,7 @@
 // Author: cxpan <chenxu.pan@fu-berlin.de>
 // ==========================================================================
 
+#include "base.h"
 
 using namespace seqan;
 
@@ -82,7 +83,7 @@ inline unsigned getIndexMatch(typename PMCore<TDna, TSpec>::Index  & index,
     return time;
 }
 
-inline unsigned getAnchorMatch(Anchors & anchors, MapParm & mapParm, PMRes::Hit & hit, double & time )
+inline unsigned getAnchorMatch(Anchors & anchors, MapParm & mapParm, PMRes::HitString & hit, double & time )
 {
     double t=sysTime();
     uint64_t ak;
@@ -131,7 +132,7 @@ inline unsigned mnMapRead(typename PMCore<TDna, TSpec>::Index  & index,
                           typename PMRecord<TDna>::RecSeq & read,
                           Anchors & anchors,
                           MapParm & mapParm,
-                          PMRes::Hit & hit,  
+                          PMRes::HitString & hit,  
                             double & time,
                             double & time2 
                          )
@@ -145,7 +146,7 @@ template <typename TDna, typename TSpec>
 void mnMap(typename PMCore<TDna, TSpec>::Index   & index,
            typename PMRecord<TDna>::RecSeqs      & reads,
            MapParm                      & mapParm,
-            typename PMRes::Hits & hits)
+            typename PMRes::HitSet & hits)
       //      Anchors & anchors)
            //PMResSet             & rs )
 {
@@ -187,8 +188,104 @@ void mnMap(typename PMCore<TDna, TSpec>::Index   & index,
     std::cerr << "count " << count << std::endl;
 }
 
+struct CordBase
+{
+    //Cord(C): coordinates of the vertext of sliding windows
+    //C := genomeCord [40] |readCord [20bits]
+    //cell [4] is the minimum length the window is allowed to slide in the alignment matrix.
+    //genomeCord(gC or xC): = position in the genome >> cell_bit << cell_bit. the last cell_bit bits maybe set to 0
+    //gC:= SA node = Seq num i1 [10] | Base num i2 [30]  
+    //readCord(rC or yC): ~= position in the read >> cell_bit << cell_bit. the last cell_bit bits maybe set to 0 during process.
+    //rC:= Base num [20]
+    
+    typedef unsigned Bit;
+    typedef uint64_t Mask;
+    typedef uint64_t CordType;
+    typedef uint64_t CellType;
+    typedef unsigned Size;
+    
+    Bit bit;
+    Mask mask;
+    Bit cell_bit;
+    Size cell_size;
+    
+    CordBase():
+        bit(20),    
+        mask(0xfffff),
+        cell_bit(4),
+        cell_size(16)
+        {}
+    
+}_DefaultCordBase;
+
+struct Cord
+{
+    typedef typename CordBase::CordType CordType;
+    typedef typename CordBase::CellType CellType;
+    
+    typedef String<CordType> CordString;
+    typedef StringSet<CordString> CordSet;
+    
+    CordType getCordX(CordType const &, typename CordBase::Bit const &) const;
+    CordType getCordY(CordType const &, typename CordBase::Mask const &) const;
+    CordType createCord(CordType const &, CordType const &, typename CordBase::Bit const &) const ;
+    CordType hit2Cord(PMRes::HitType const &, typename CordBase::Bit const &, typename CordBase::Mask const &) const;
+    CellType cord2Cell(CordType const &, typename CordBase::Bit const &) const;
+    CordType cell2Cord(CellType const &, typename CordBase::Bit const &) const;
+    
+    bool print (CordString const &, CordBase const & ) const;
+    bool print (CordSet const &, CordBase const & ) const;
+    
+}_DefaultCord; 
+
+inline typename Cord::CordType Cord::getCordX(typename Cord::CordType const & cord, typename CordBase::Bit const & bit  = _DefaultCordBase.bit) const
+{
+    return cord >> bit; 
+}
+
+inline typename Cord::CordType Cord::getCordY(typename Cord::CordType const & cord, typename CordBase::Mask const & mask = _DefaultCordBase.mask) const 
+{
+    return cord & mask;
+}
+
+inline typename Cord::CordType Cord::createCord(typename Cord::CordType const & x, Cord::CordType const & y, typename CordBase::Bit const & bit = _DefaultCordBase.bit) const
+{
+    return (x << bit) + y;
+}
+
+inline typename Cord::CordType Cord::hit2Cord(typename PMRes::HitType const & hit, typename CordBase::Bit const & bit = _DefaultCordBase.bit, typename CordBase::Mask const & mask = _DefaultCordBase.mask) const
+{
+    return hit + ((hit & mask) << bit);
+}
+
+inline typename Cord::CellType Cord::cord2Cell(typename Cord::CordType const & cord, typename CordBase::Bit const & bit = _DefaultCordBase.cell_bit) const
+{
+    return cord >> bit;
+}
+
+inline typename Cord::CordType Cord::cell2Cord(typename Cord::CellType const & cord, typename CordBase::Bit const & bit = _DefaultCordBase.cell_bit) const
+{
+    return cell << bit;
+}
+
+inline bool Cord::print(typename Cord::CordString const & cords, CordBase const & cordBase = _DefaultCordBase) const
+{
+    for (auto && j : cords)
+       std::cout << getCordX(j, cordBase.bit) << " " << getCordY(j, cordBase.mask); 
+    std::cout << std::endl;
+    return true;
+}
+
+inline bool Cord::print(typename Cord::CordSet const & cords, CordBase const & cordBase = _DefaultCordBase) const
+{
+    for (auto && k : cords)
+       print(k, cordBase);
+    return true;
+}
+
 static const float band_width = 0.25;
-static const unsigned cmask = ((uint64_t)1<<32) - 1;
+//static const unsigned cmask = ((uint64_t)1<<32) - 1;
+static const unsigned cmask = ((uint64_t)1<<20) - 1;
 static const unsigned cell_size = 16;
 static const unsigned cell_num = 12;
 static const unsigned window_size = cell_size * cell_num; //16*12
@@ -226,16 +323,18 @@ inline uint64_t getScript(TIter const & it)
 
 inline int _scriptDist(int const & s1, int const & s2)
 {
-    return std::abs((s1 & scriptMask)- (s2 & scriptMask)) + std::abs(((s1 & scriptMask2) - (s2 & scriptMask2)) >> scriptWindow) + 
-            std::abs((s1>>scriptWindow*2) - (s2>>scriptWindow*2));
+    return std::abs((s1 & scriptMask)- (s2 & scriptMask)) + std::abs(((s1 & scriptMask2) - (s2 & scriptMask2)) >> scriptWindow) + std::abs((s1>>scriptWindow*2) - (s2>>scriptWindow*2));
 }
+
 
 template<typename TIter> 
 inline void createFeatures(TIter const & itBegin, TIter const & itEnd, String<int> & f)
 {
     unsigned next = 1;
     unsigned window = 1 << scriptWindow;
+    resize (f, (itEnd - itBegin -window) / scriptStep);
     f[0] = 0;
+    
     for (unsigned k = 0; k < window; k++)
     {
         f[0] += scriptCount[ordValue(*(itBegin + k))];
@@ -247,12 +346,14 @@ inline void createFeatures(TIter const & itBegin, TIter const & itEnd, String<in
             f[next] += scriptCount[ordValue(*(itBegin + j + window))] - scriptCount[ordValue(*(itBegin + j))];
         next++;
     }
+    
 
 }
 
 template<typename TDna> 
 inline void createFeatures(StringSet<String<TDna> > & seq, StringSet<String<int> > & f)
 {
+    resize(f, length(seq));
     for (unsigned k = 0; k < length(seq); k++)
     createFeatures(begin(seq[k]), end(seq[k]), f[k]);
 }
@@ -263,10 +364,14 @@ inline unsigned _windowDist(TIter const & it1, TIter const & it2)
     return _scriptDist(*it1, *it2)+ _scriptDist(*(it1+4),*(it2+4)) + _scriptDist(*(it1+8), *(it2+8));
 }
 
+//inline bool previousWindow(String<int> & f1, String<int> & f2, typename Cord::Cord & cord)
+//{
+//}
 
+/*
 inline uint64_t nextWindow(String<int> &f1, String<int> & f2, String<uint64_t> & cord)
 {
-    uint64_t x_pre = *(end(cord) - 1) >> 32;
+    uint64_t x_pre = *(end(cord) - 1) >> 24;
     uint64_t y_pre = *(end(cord) - 1) & cmask;
     uint64_t y = y_pre + med;
     unsigned min = ~0;
@@ -284,70 +389,131 @@ inline uint64_t nextWindow(String<int> &f1, String<int> & f2, String<uint64_t> &
         return 1;
     else 
         if ( x_min - x_pre > med)
-            appendValue(cord, ((uint64_t)(x_pre + med) << 32) + x_pre + med - x_min + y);
+            appendValue(cord, ((uint64_t)(x_pre + med) << 24) + x_pre + med - x_min + y);
         else
-            appendValue(cord, ((uint64_t)x_min << 32) + y);
+            appendValue(cord, ((uint64_t)x_min << 24) + y);
     return 0;
 }
+*/
 
-
-inline uint64_t hitToCord(uint64_t & hit)
+inline bool nextWindow(String<int> &f1, String<int> & f2, typename Cord::CordString & cord)
 {
-    return (hit <<12) + ((hit & hmask) << 32) + (hit & cmask);
-}
-
-inline int nextHit(typename PMRes::Hit & hit, unsigned & currentIt, String<uint64_t> & cord)
-{
-    uint64_t cordLY = cord[length(cord)-1] & cmask;
-    while (++currentIt < length(hit)) 
+    typedef typename Cord::CordType CordType;
+    CordType x_pre = _DefaultCord.cord2Cell(_DefaultCord.getCordX(back(cord)));
+    CordType y_pre = _DefaultCord.cord2Cell(_DefaultCord.getCordY(back(cord)));
+    CordType y = y_pre + med;
+    
+    unsigned min = ~0;
+    unsigned x_min = 0;
+    //std::cout << "nextWindow() x_pre " << x_pre << std::endl;
+    for (CordType x = x_pre + inf; x < x_pre + sup; x += 1) 
     {
-        if((hit[currentIt] >> 20) > cordLY || currentIt == 0)
+        unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
+        if (tmp < min)
         {
-            appendValue(cord, hitToCord(hit[currentIt]));
-            return  0;
+            min = tmp;
+            x_min = x;
         }
     }
-    return 1;
+    std::cout << "nextWindow " << min << " windowThreshold " << windowThreshold << std::endl;
+    if (min > windowThreshold)
+        return false;
+    else 
+        if ( x_min - x_pre > med)
+            //appendValue(cord, ((uint64_t)(x_pre + med) << 24) + x_pre + med - x_min + y);
+            appendValue(cord, _DefaultCord.createCord(_DefaultCord.cell2Cord(x_pre + med),  _DefaultCord.cell2Cord(x_pre + med - x_min + y)));
+        else
+            appendValue(cord, _DefaultCord.createCord(_DefaultCord.cell2Cord(x_min), _DefaultCord.cell2Cord(y)));
+    return true;
+}
+
+//inline bool extendWindow()
+//{
+//    return previousWindow() && nextWindow();
+//}
+
+
+
+inline bool nextCord(typename PMRes::HitString & hit, unsigned & currentIt, String<uint64_t> & cord)
+{
+    std::cout << "nextCord\n";
+    std::cout << "length(hit) " << length(hit) << std::endl;
+    uint64_t cordLY = _DefaultCord.getCordY(back(cord));
+    while (++currentIt < length(hit)) 
+    {
+        uint64_t tmpCord = _DefaultCord.hit2Cord(hit[currentIt]);
+        if(_DefaultCord.getCordY(tmpCord) > cordLY)
+        {
+            appendValue(cord, tmpCord);
+            return true;
+        }
+    }
+    return false;
+}
+
+
+inline bool initCord(typename PMRes::HitString & hit, unsigned & currentIt, String<uint64_t> & cord)
+{
+    currentIt = 0;
+    if (empty(hit))
+        return false;
+    else
+        appendValue(cord, _DefaultCord.hit2Cord(hit[0]));
+    std::cerr << "init" << (cord[0] >> 20) << " " << (cord[0] & 0xfffff) << std::endl;
+    return true;
 }
 
 //inline bool endWindow (uint64_t cord, unsigned length)
 //{
-//    if ((cord & cmask) > length - windowSize)
+//    if ((cord & cmask) < length - windowSize)
 //        return true;
 //    else 
 //        return false;
 //}
 
-inline int path(String<Dna5> & read, typename PMRes::Hit hit, StringSet<String<int> > & f2, String<uint64_t> & cords)
+inline bool path(String<Dna5> & read, typename PMRes::HitString hit, StringSet<String<int> > & f2, String<uint64_t> & cords)
 {
     String<int> f1;
     unsigned currentIt = 0;
-    if(nextHit(hit, currentIt, cords))
-        return 1;
+    if(!initCord(hit, currentIt, cords))
+        return false;
     createFeatures(begin(read), end(read), f1);
-    unsigned genomeId = _getSA_i1(hit[0]);
-    while ((cords[length(cords) - 1] & cmask) > length(read) - window_size)
-        if (nextWindow(f1, f2[genomeId], cords)) // threshold = 30
-            if(nextHit(hit, currentIt, cords))
-            return 1;
-    return 0;
+    unsigned genomeId = _getSA_i1(_DefaultCord.getCordX(cords[0]));
+    std::cerr << "path() genomeId " << genomeId << std::endl;
+    while (_DefaultCord.getCordY(back(cords)) < length(read) - window_size)
+    {
+        
+    std::cout << "_DefaultCord.getCordY " << _DefaultCord.getCordY(back(cords)) << " " << length(read) - window_size << std::endl;
+        if (!nextWindow(f1, f2[genomeId], cords)) // threshold = 30
+        
+//==
+// need to do previousWindow
+//==
+//        if (extendWind(f1, f2[genomeId], cords))
+            if(!nextCord(hit, currentIt, cords))
+                return false;
+            
+    }
+    return true;
 }
 
-void path(typename PMRes::Hits & hits, StringSet<String<Dna5> > & reads, StringSet<String<Dna5> > & genomes, StringSet<String<uint64_t> > & cords)
+void path(typename PMRes::HitSet & hits, StringSet<String<Dna5> > & reads, StringSet<String<Dna5> > & genomes, StringSet<String<uint64_t> > & cords)
 {
     StringSet<String<int> > f2;
     createFeatures(genomes, f2);
     for (unsigned k = 0; k < length(reads); k++)
     {
+        std::cout << "k " << k << std::endl;
         path(reads[k], hits[k], f2, cords[k]);
     }
 }
 
 
+
 template <typename TDna, typename TSpec>
 void map(Mapper<TDna, TSpec> mapper)
 {
-//    map.printParm();
+    //map.printParm();
     std::cerr << "Encapsulated version " << std::endl;
     double time = sysTime();
     _DefaultMapParm.print();
@@ -357,6 +523,9 @@ void map(Mapper<TDna, TSpec> mapper)
     mnMap<TDna, TSpec>(mapper.index(), mapper.reads(), _DefaultMapParm, mapper.res.hits);//, map.result());
     //mapper.printHits();
     path(mapper.res.hits, mapper.reads(), mapper.genomes(), mapper.cords);
+    
+  //  _DefaultCord.print(mapper.cords);
+    
     std::cerr << "Time of mapping in sum [s] " << sysTime() - time << std::endl;
     mapper.printResult();
 }
