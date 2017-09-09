@@ -36,6 +36,18 @@
 #ifndef SEQAN_HEADER_BASE_H
 #define SEQAN_HEADER_BASE_H
 
+#include <seqan/seq_io.h>
+#include <seqan/stream.h>
+#include <seqan/index.h>
+#include <seqan/store.h>
+#include <iostream>
+#include <fstream>
+#include <math.h>
+#include <seqan/basic.h>
+#include <bitset>
+#include <climits>
+#include <seqan/arg_parse.h>
+
 #include "shape_extend.h"
 #include "index_extend.h"
 
@@ -300,8 +312,7 @@ struct MapperBase
     typedef typename PMRecord<TDna>::RecSeq MSeq; 
     typedef typename PMRecord<TDna>::RecSeqs MSeqs;
 };
-
-
+/*
 template <typename TDna = typename MapperBase<>::DefaultAlphabet, 
     typename TSpec = typename MapperBase<>::DefaultShape>
 struct Mapper {
@@ -339,7 +350,7 @@ struct Mapper {
     //    setMapParm(options);
     //};
 };
-
+*/
 int Options::print()
 {
     
@@ -462,7 +473,7 @@ void MapParm::print()
              << "shapeLen " << shapeLen << std::endl;
     
 }
-
+/*
 template <typename TDna, typename TSpec>
 Mapper<TDna, TSpec>::Mapper(Options & options):
     record(options),
@@ -502,6 +513,7 @@ void Mapper<TDna, TSpec>::printParm()
 {
     parm.print();
 }
+*/
 
 static String<Dna5> _complt = "tgcan";
 inline void _compltStr(String<Dna5> & str, String<Dna5> & res)

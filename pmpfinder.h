@@ -150,8 +150,9 @@ void mnMap(typename PMCore<TDna, TSpec>::Index   & index,
       //      Anchors & anchors)
            //PMResSet             & rs )
 {
-    typedef typename Mapper<TDna, TSpec>::Seq Seq;
-    typedef typename Mapper<TDna, TSpec>::Anchors Anchors;
+//    typedef typename Mapper<TDna, TSpec>::Seq Seq;
+    typedef typename PMRecord<TDna>::RecSeq Seq;
+    typedef typename PMCore<TDna, TSpec>::Anchors Anchors;
     double time=sysTime();
 
     std::cerr << "Filtering reads\n"; 
@@ -263,7 +264,7 @@ inline typename Cord::CellType Cord::cord2Cell(typename Cord::CordType const & c
     return cord >> bit;
 }
 
-inline typename Cord::CordType Cord::cell2Cord(typename Cord::CellType const & cord, typename CordBase::Bit const & bit = _DefaultCordBase.cell_bit) const
+inline typename Cord::CordType Cord::cell2Cord(typename Cord::CellType const & cell, typename CordBase::Bit const & bit = _DefaultCordBase.cell_bit) const
 {
     return cell << bit;
 }
@@ -510,22 +511,4 @@ void path(typename PMRes::HitSet & hits, StringSet<String<Dna5> > & reads, Strin
 
 
 
-template <typename TDna, typename TSpec>
-void map(Mapper<TDna, TSpec> mapper)
-{
-    //map.printParm();
-    std::cerr << "Encapsulated version " << std::endl;
-    double time = sysTime();
-    _DefaultMapParm.print();
-    mapper.createIndex();
-    resize(mapper.res.hits, length(mapper.reads()));
-    resize(mapper.cords, length(mapper.reads()));
-    mnMap<TDna, TSpec>(mapper.index(), mapper.reads(), _DefaultMapParm, mapper.res.hits);//, map.result());
-    //mapper.printHits();
-    path(mapper.res.hits, mapper.reads(), mapper.genomes(), mapper.cords);
-    
-  //  _DefaultCord.print(mapper.cords);
-    
-    std::cerr << "Time of mapping in sum [s] " << sysTime() - time << std::endl;
-    mapper.printResult();
-}
+
