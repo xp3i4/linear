@@ -32,21 +32,7 @@
 // Author: cxpan <chenxu.pan@fu-berlin.de>
 // ==========================================================================
 
-#include <seqan/seq_io.h>
-#include <seqan/stream.h>
-#include <seqan/index.h>
-#include <seqan/store.h>
-#include <iostream>
-#include <fstream>
-#include <math.h>
-#include <seqan/basic.h>
-#include <bitset>
-#include <climits>
-#include <seqan/arg_parse.h>
-
-
-#include "base.h"
-#include "pmpfinder.h"
+#include "mapper.h"
 
 using namespace seqan; 
 
@@ -111,80 +97,62 @@ using namespace seqan;
 
     }
 
-/*
-    typedef Iterator<String<Dna5> >::Type TIter;
-    typedef Shape<Dna5, Minimizer<30> > TShape;
-    typedef Shape<Dna5, UngappedShape<30> > TShape_u;
+ template <typename TDna, typename TSpec>
+Mapper<TDna, TSpec>::Mapper(Options & options):
+    record(options),
+    parm(options),
+    qIndex(genomes())
+{}
 
-
-typedef Index<StringSet<Dna5String>, IndexQGram<Minimizer<30>, OpenAddressing > > TIndex;
-typedef Index<StringSet<Dna5String>, IndexQGram<UngappedShape<30>, OpenAddressing > > TIndex_u;
-
-int uTest3(StringSet<Dna5String> & reads, StringSet<Dna5String> & genome)
+template <typename TDna, typename TSpec>
+int Mapper<TDna, TSpec>::createIndex()
 {
-    TShape_u t_shape;
-    TIndex_u index(genome);
-    unsigned kmerLength = t_shape.span;
-    uint64_t sum=0, count=0, p = 0;
-    double time = sysTime();
-    std::cout << "uTest3():\n";
-    std::cout << "    fullDirLength " << _fullDirLength(index) << std::endl; 
-
-    indexCreate(index, FibreSADir());
-    std::cout << "    getSA start sysTime(): " << sysTime() - time<< std::endl;
-    for(unsigned k = 0; k < length(reads); k++)
-    {
-        TIter it = begin(reads[k]);
-        hashInit(t_shape, it);
-        for (uint64_t j = 0; j < length(reads[k]) - kmerLength + 1; j++)
-        //for (uint64_t j = 0; j < 100; j++)
-        {
-            hashNext(t_shape, it + j);
-            p = getBucket(index.bucketMap, t_shape.hValue);
-            for (uint64_t k = index.dir[p]; k < index.dir[p+1]; k++)
-                sum ^= index.sa[k].i2;
-        }
-    }
-    std::cout << "    sum = " << sum << " count = " << count << std::endl;
-    std::cout << "    getSA end sysTime(): "<< sysTime() - time<< std::endl;
-    std::cout << "    End uTest()" << std::endl;
+    std::cerr << "Creating index \n";
+    _createQGramIndex(qIndex);
     return 0;
 }
 
-
-int mTest3(StringSet<Dna5String> & reads, StringSet<Dna5String> & genome)
+template <typename TDna, typename TSpec>
+void Mapper<TDna, TSpec>::printHits()
 {
-    TShape shape, shape1;
-    TIndex index(genome);
-    uint64_t sum = 0, p = 0;
-    double time = sysTime();
-    std::cout << "mTest3(): " << std::endl;
-    _createQGramIndex(index);
-    std::cout << "    getDir start sysTime(): " << sysTime() - time << std::endl;
-    std::cout << "    length Dir = " << length(index.dir) << std::endl;
-    std::cout << "    length Text = " << lengthSum(indexText(index)) << std::endl;
-    std::cout << "    length SA = " << length(index.sa) << std::endl;
-    for(uint64_t k = 0; k < length(reads); k++)
+    std::cout << "Hits: " << lengthSum(res.hits) << " in sum " << std::endl;
+    for (auto && hitStr : res.hits)
     {
-        TIter it = begin(reads[k]);
-        hashInit(shape, it);
-        for (uint64_t j = 0; j < length(reads[k]) - shape.span + 1; j++)
-        {
-            hashNext(shape, it + j);
-            p = getDir(index, shape);
-            for (uint64_t n = _getBodyCounth(index.dir[p]); n < _getBodyCounth(index.dir[p + 1]); n++)
-            {
-                sum ^= _getSA_i2(index.sa[n]);
-            }
-        }
+        for (auto && hit : hitStr)
+            std::cout << _DefaultCord.getCordX(_DefaultCord.hit2Cord(hit)) << " " << _DefaultCord.getCordY(_DefaultCord.hit2Cord(hit)) << ", ";
+        std::cout << std::endl;
     }
-    std::cout << "    sum = " << sum << std::endl;
-    std::cout << "    getDir end sysTime(): " << sysTime() - time << std::endl;
-    std::cout << "    End mTest1()" << std::endl;
-
-    return 0;
 }
-*/
+
+template <typename TDna, typename TSpec>
+void Mapper<TDna, TSpec>::printResult()
+{}
+
+template <typename TDna, typename TSpec>
+void Mapper<TDna, TSpec>::printParm()
+{
+    parm.print();
+}
+
+template <typename TDna, typename TSpec>
+void map(Mapper<TDna, TSpec> mapper)
+{
+    //map.printParm();
+    std::cerr << "Encapsulated version " << std::endl;
+    double time = sysTime();
+    _DefaultMapParm.print();
+    mapper.createIndex();
+    resize(mapper.res.hits, length(mapper.reads()));
+    resize(mapper.cords(), length(mapper.reads()));
+    mnMap<TDna, TSpec>(mapper.index(), mapper.reads(), _DefaultMapParm, mapper.res.hits);//, map.result());
+    //mapper.printHits();
+    path(mapper.res.hits, mapper.reads(), mapper.genomes(), mapper.cords());
+    
+    //_DefaultCord.print(mapper.cords);
+    
+    std::cerr << "Time of mapping in sum [s] " << sysTime() - time << std::endl;
+    mapper.printResult();
+}   
 
 int main(int argc, char const ** argv)
 {

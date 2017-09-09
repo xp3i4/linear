@@ -82,63 +82,6 @@ struct Mapper {
 };
 
 
-template <typename TDna, typename TSpec>
-Mapper<TDna, TSpec>::Mapper(Options & options):
-    record(options),
-    parm(options),
-    qIndex(genomes())
-{}
 
-template <typename TDna, typename TSpec>
-int Mapper<TDna, TSpec>::createIndex()
-{
-    std::cerr << "Creating index \n";
-    _createQGramIndex(qIndex);
-    return 0;
-}
-
-template <typename TDna, typename TSpec>
-void Mapper<TDna, TSpec>::printHits()
-{
-    std::cout << "Hits: " << lengthSum(res.hits) << " in sum " << std::endl;
-    for (auto && hitStr : res.hits)
-    {
-        for (auto && hit : hitStr)
-            std::cout << _DefaultCord.getCordX(_DefaultCord.hit2Cord(hit)) << " " << _DefaultCord.getCordY(_DefaultCord.hit2Cord(hit)) << ", ";
-        std::cout << std::endl;
-    }
-}
-
-template <typename TDna, typename TSpec>
-void Mapper<TDna, TSpec>::printResult()
-{}
-
-template <typename TDna, typename TSpec>
-void Mapper<TDna, TSpec>::printParm()
-{
-    parm.print();
-}
-
-
-
-template <typename TDna, typename TSpec>
-void map(Mapper<TDna, TSpec> mapper)
-{
-    //map.printParm();
-    std::cerr << "Encapsulated version " << std::endl;
-    double time = sysTime();
-    _DefaultMapParm.print();
-    mapper.createIndex();
-    resize(mapper.res.hits, length(mapper.reads()));
-    resize(mapper.cords(), length(mapper.reads()));
-    mnMap<TDna, TSpec>(mapper.index(), mapper.reads(), _DefaultMapParm, mapper.res.hits);//, map.result());
-    //mapper.printHits();
-    //path(mapper.res.hits, mapper.reads(), mapper.genomes(), mapper.cords());
-    
-  //  _DefaultCord.print(mapper.cords);
-    
-    std::cerr << "Time of mapping in sum [s] " << sysTime() - time << std::endl;
-    mapper.printResult();
-}
 
 #endif
