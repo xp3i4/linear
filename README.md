@@ -8,11 +8,10 @@ Usage
 
  Use standalone app please clone the master branch to SeqAn2 master branch/apps/
 
-
 ::
 
-$ CMake -DCMAKE_BUILD_TYPE=Release [directory to SeqAn]
-$ make pacMapper
+  $ CMake -DCMAKE_BUILD_TYPE=Release [directory to SeqAn]
+  $ make pacMapper
 
 Use classes and functions please #include the mapper.h in the source.
  Filter
