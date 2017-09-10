@@ -1,5 +1,5 @@
-qbdnb
-======
+#qbdnb
+
  
 Prototype for mapping reads efficiently. 
 
