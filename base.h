@@ -32,7 +32,6 @@
 // Author: cxpan <chenxu.pan@fu-berlin.de>
 // ==========================================================================
 
-
 #ifndef SEQAN_HEADER_BASE_H
 #define SEQAN_HEADER_BASE_H
 
@@ -149,7 +148,7 @@ struct Anchors{
     Anchors(AnchorType val, unsigned range);
     void init(AnchorType val, unsigned k);
     void init();
-    AnchorType setAnchor(unsigned p, AnchorType pos1,  AnchorType pos2);
+    void setAnchor(unsigned p, AnchorType pos1,  AnchorType pos2);
     AnchorType getPos1(unsigned p) const;
     AnchorType getPos2(unsigned p) const;
     AnchorType deltaPos1(unsigned p1, unsigned p2);
@@ -275,11 +274,11 @@ struct MapParm{
     
     MapParm():
         blockSize(Const_::_BLOCKSIZE),
-        alpha(Const_::_ALPHA),
         delta(Const_::_DELAT),
         threshold(Const_::_THRESHOLD),
         kmerStep(Const_::_KMERSTEP),
-        shapeLen(Const_::_SHAPELEN)
+        shapeLen(Const_::_SHAPELEN),
+        alpha(Const_::_ALPHA)
         {}
 // ====
 //temp: need modify
@@ -360,6 +359,7 @@ int Options::print()
               << "genomes Path " << gPath << std::endl
               << "output path " << oPath << std::endl
               << "Sensitive " << Sensitive << std::endl;
+    return 0;
 }
 
 
@@ -401,7 +401,7 @@ inline void Anchors::init()
     init(AnchorType(0), size());
 }
 
-inline Anchors::AnchorType Anchors::setAnchor(unsigned p, 
+inline void Anchors::setAnchor(unsigned p, 
     Anchors::AnchorType pos1,  Anchors::AnchorType pos2)
 {
     set[p] = (pos1 << AnchorBase::bit) + pos2;

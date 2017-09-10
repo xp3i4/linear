@@ -189,6 +189,7 @@ void mnMap(typename PMCore<TDna, TSpec>::Index   & index,
     std::cerr << "count " << count << std::endl;
 }
 
+
 struct CordBase
 {
     //Cord(C): coordinates of the vertext of sliding windows
