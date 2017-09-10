@@ -1,33 +1,31 @@
-#qbdnb
-
+# qbdnb
  
-Prototype for mapping reads efficiently. 
+Tools for mapping reads efficiently. 
 
-Usage
---------
+## Usage
 
- Use standalone app please clone the master branch to SeqAn2 master branch/apps/
+* Use as standalone app please clone the master branch to SeqAn2 master branch/apps
 
-::
-
+```bash
   $ CMake -DCMAKE_BUILD_TYPE=Release [directory to SeqAn]
-  
   $ make pacMapper
+```
 
-Use classes and functions please #include the mapper.h in the source.
- Filter
-Using mapper.hits() to return the best hits of each read. 
-Using mapper.getHitX() and getHitY() to return the coordinates of hit
-Band estimation
-mapper.cords() returns the slidings windows of each read, Its return type is StringSet
-mapper getCordX() and getCordY return the coordinates of sliding window
+* Use as library please #include the mapper.h in the source.
 
-Notice
---------
-Uniform interface is defined as the class Mapper in mapper.h to make it easier for developing and integerating different modules.  
-Please add interfaces for other module in the Mapper class, so they can be called easilly. 
+## Interface 
+Classes and functions are encapsulated as the `class Mapper` in mapper.h so it can be easier for developing different modules. Other modules like the I/O will be add later. Please add interfaces for other module in the Mapper class so other modules can call them or I will encapsulated the them at last.
 
-The repository is to provide the pipeline so other moduls can be add in or movd out. While benchmark should be conducted later.  
+- Filter
+  - Using `Mapper::hits()` to return the best `hits` for each read. 
+  - Using `Mapper::getHitX(hit)` and `Mapper::getHitY(hit)` to return the coordinates of hit
+- Band estimation
+  - `Mapper::cords()` returns the coordinates `cords` of slidings windows for each read, Its return type is StringSet
+  - `Mapper::getCordX(cord)` and `Mapper::getCordY(cord)` return the coordinates of sliding window
+
+## Notice
+
+The current version is to complete the interface and the pipeline. While the benchmark should be conducted later after all the development and tunning are accomplished.  
 
 
 
