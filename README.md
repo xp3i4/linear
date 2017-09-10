@@ -14,7 +14,7 @@ Tools for mapping reads efficiently.
 * Use as library please #include the mapper.h in the source.
 
 ## Interface 
-Classes and functions are encapsulated as the `class Mapper` in mapper.h so it can be easier for developing different modules. Other modules like the I/O will be add later. Please add interfaces for other module in the Mapper class so other modules can call them or I will encapsulated the them at last.
+Classes and functions are encapsulated as the `class Mapper` in mapper.h so it can be easier for developing different modules. Other modules like the I/O will be add later. Please add interfaces for other module in the Mapper class so they can be called globally or I will encapsulated them at last.
 
 - Filter
   - Using `Mapper::hits()` to return the best `hits` for each read. 
