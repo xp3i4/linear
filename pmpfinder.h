@@ -366,19 +366,17 @@ inline unsigned _windowDist(TIter const & it1, TIter const & it2)
     return _scriptDist(*it1, *it2)+ _scriptDist(*(it1+4),*(it2+4)) + _scriptDist(*(it1+8), *(it2+8));
 }
 
-//inline bool previousWindow(String<int> & f1, String<int> & f2, typename Cord::Cord & cord)
-//{
-//}
-
-/*
-inline uint64_t nextWindow(String<int> &f1, String<int> & f2, String<uint64_t> & cord)
+inline bool previousWindow(String<int> & f1, String<int> & f2, typename Cord::CordString & cord)
 {
-    uint64_t x_pre = *(end(cord) - 1) >> 24;
-    uint64_t y_pre = *(end(cord) - 1) & cmask;
-    uint64_t y = y_pre + med;
+    typedef typename Cord::CordType CordType;
+    CordType x_suf = _DefaultCord.cord2Cell(_DefaultCord.getCordX(back(cord)));
+    CordType y_suf = _DefaultCord.cord2Cell(_DefaultCord.getCordY(back(cord)));
+    CordType y = y_suf - med;
+    
     unsigned min = ~0;
     unsigned x_min = 0;
-    for (uint64_t x = x_pre + inf; x < x_pre + sup; x += 1) 
+    //std::cout << "nextWindow() x_pre " << x_pre << std::endl;
+    for (CordType x = x_suf - sup; x < x_suf - inf; x += 1) 
     {
         unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
         if (tmp < min)
@@ -387,16 +385,18 @@ inline uint64_t nextWindow(String<int> &f1, String<int> & f2, String<uint64_t> &
             x_min = x;
         }
     }
+    std::cout << "nextWindow " << min << " windowThreshold " << windowThreshold << std::endl;
     if (min > windowThreshold)
-        return 1;
+        return false;
     else 
-        if ( x_min - x_pre > med)
-            appendValue(cord, ((uint64_t)(x_pre + med) << 24) + x_pre + med - x_min + y);
+        if ( x_min - x_suf > med)
+            appendValue(cord, _DefaultCord.createCord(_DefaultCord.cell2Cord(x_suf - med),  _DefaultCord.cell2Cord(x_suf - med - x_min + y)));
         else
-            appendValue(cord, ((uint64_t)x_min << 24) + y);
-    return 0;
+            appendValue(cord, _DefaultCord.createCord(_DefaultCord.cell2Cord(x_min), _DefaultCord.cell2Cord(y)));
+    return true;
 }
-*/
+
+
 
 inline bool nextWindow(String<int> &f1, String<int> & f2, typename Cord::CordString & cord)
 {
@@ -441,10 +441,12 @@ inline bool nextCord(typename PMRes::HitString & hit, unsigned & currentIt, Stri
     std::cout << "nextCord\n";
     std::cout << "length(hit) " << length(hit) << std::endl;
     uint64_t cordLY = _DefaultCord.getCordY(back(cord));
-    while (++currentIt < length(hit)) 
+    //while (++currentIt < length(hit)) 
+    while (--currentIt > 0) 
     {
         uint64_t tmpCord = _DefaultCord.hit2Cord(hit[currentIt]);
-        if(_DefaultCord.getCordY(tmpCord) > cordLY)
+        if(_DefaultCord.getCordY(tmpCord) < cordLY)
+        //if(_DefaultCord.getCordY(tmpCord) > cordLY)
         {
             appendValue(cord, tmpCord);
             return true;
@@ -456,11 +458,14 @@ inline bool nextCord(typename PMRes::HitString & hit, unsigned & currentIt, Stri
 
 inline bool initCord(typename PMRes::HitString & hit, unsigned & currentIt, String<uint64_t> & cord)
 {
-    currentIt = 0;
+    //currentIt = 0;
+    currentIt = length(hit);
+    //std::cout << "initCord " << back(cord)
     if (empty(hit))
         return false;
     else
-        appendValue(cord, _DefaultCord.hit2Cord(hit[0]));
+        //appendValue(cord, _DefaultCord.hit2Cord(hit[0]));
+        appendValue(cord, _DefaultCord.hit2Cord(back(hit)));
     std::cerr << "init" << (cord[0] >> 20) << " " << (cord[0] & 0xfffff) << std::endl;
     return true;
 }
@@ -476,7 +481,8 @@ inline bool initCord(typename PMRes::HitString & hit, unsigned & currentIt, Stri
 inline bool path(String<Dna5> & read, typename PMRes::HitString hit, StringSet<String<int> > & f2, String<uint64_t> & cords)
 {
     String<int> f1;
-    unsigned currentIt = 0;
+    //unsigned currentIt = 0;
+    unsigned currentIt = length(hit);
     if(!initCord(hit, currentIt, cords))
         return false;
     createFeatures(begin(read), end(read), f1);
@@ -486,7 +492,8 @@ inline bool path(String<Dna5> & read, typename PMRes::HitString hit, StringSet<S
     {
         
     std::cout << "_DefaultCord.getCordY " << _DefaultCord.getCordY(back(cords)) << " " << length(read) - window_size << std::endl;
-        if (!nextWindow(f1, f2[genomeId], cords)) // threshold = 30
+        //if (!nextWindow(f1, f2[genomeId], cords)) // threshold = 30
+        if (!previousWindow(f1, f2[genomeId], cords)) // threshold = 30
         
 //==
 // need to do previousWindow
