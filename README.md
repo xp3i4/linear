@@ -17,13 +17,13 @@ Tools for mapping reads efficiently.
 Major classes are encapsulated as the `class Mapper` in mapper.h as part of the pipline. 
 
 - Filter
-  - Using `Mapper::hits()` to return the StringSet of best `hits` for each read. 
+  - Using `Mapper::hits()` to return the StringSet of best `hits` for each read 
   - Using `Mapper::getHitX(hit)` and `Mapper::getHitY(hit)` to return the coordinates of hit
 - Band estimation
   - Using `Mapper::cords()` returns the StringSet of coordinates `cords` of slidings windows for each read.
   - Using `Mapper::getCordX(cord)` and `Mapper::getCordY(cord)` to return the coordinates of sliding window
 - map
-  - To add new module to the pipeline please provide interfaces in th `Mapper` class and call them in the `map()` function.
+  - To add new module to the pipeline please provide interfaces in th `Mapper` class and call them in the `map()` function 
   or I will encapsulated them at last.
   
 ## Notice
