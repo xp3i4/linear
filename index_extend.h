@@ -862,7 +862,6 @@ void _createValueArray2(StringSet<DnaString> & reads, String<Pair<uint64_t, uint
     }
     resize(tmp, q);
     *(end(tmp3)) |= (mask);
-
     std::cerr << "        loading time " << sysTime() - time << std::endl;
     c = tmp[0].i2;
     p = q = count = 0;
@@ -879,6 +878,7 @@ void _createValueArray2(StringSet<DnaString> & reads, String<Pair<uint64_t, uint
         hs[q].i1 = tmp[n].i1;
         hs[q].i2 = tmp3[c] & (~mask);
         c++;
+        //std::cerr << c << " " << length(tmp3) << " " << q << " " << length(hs) << std::endl;
     }
     std::cerr << "        xvalue expand " << sysTime() - time << std::endl;
     hs[length(hs)-1].i2 |= mask;
@@ -918,7 +918,7 @@ void _createValueArray2(StringSet<String<Dna5> > & reads, String<Pair<uint64_t, 
     std::cerr << "    _createValueArray() String<Dna5> " << std::endl;
     double time = sysTime();
     resize(tmp, lengthSum(reads) - length(reads) * (shape.span - 1));
-    resize(tmp3, lengthSum(reads) - length(reads) * (shape.span - 1));
+    resize(tmp3, lengthSum(reads) - length(reads) * (shape.span - 1)+1);
     for(uint64_t j = 0; j < length(reads); j++)
     {
         hashInit(shape, begin(reads[j]));
@@ -944,8 +944,10 @@ void _createValueArray2(StringSet<String<Dna5> > & reads, String<Pair<uint64_t, 
             p++;
         }
     }
+    //back(tmp3) |= mask;
     resize(tmp, q);
-    *(end(tmp3)) |= (mask);
+    //*(end(tmp3)) |= (mask);
+    back(tmp3) |= mask;
 
     std::cerr << "        loading time " << sysTime() - time << std::endl;
     c = tmp[0].i2;
@@ -963,6 +965,7 @@ void _createValueArray2(StringSet<String<Dna5> > & reads, String<Pair<uint64_t, 
         hs[q].i1 = tmp[n].i1;
         hs[q].i2 = tmp3[c] & (~mask);
         c++;
+    //std::cerr << " c " << c << " tmp " << length(tmp3) << " length " << length(hs) << " q " << q << std::endl;
     }
     std::cerr << "        xvalue expand " << sysTime() - time << std::endl;
     hs[length(hs)-1].i2 |= mask;

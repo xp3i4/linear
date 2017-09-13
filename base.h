@@ -559,7 +559,6 @@ inline void _compltStr(String<Dna5> & str, String<Dna5> & res)
 
 inline void _compltRvseStr(String<Dna5> & str, String<Dna5> & res)
 {
-    std::cerr << "_compltRvseStr() " << std::endl;
     resize(res, length(str));
     for (unsigned k = 0; k < length(str); k++)
      //   res[k]=_complt[str[k] - 'A'];

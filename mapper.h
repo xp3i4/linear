@@ -189,15 +189,15 @@ void map(Mapper<TDna, TSpec> mapper)
     resize(mapper.hits(), length(mapper.reads()));
     resize(mapper.cords(), length(mapper.reads()));
     mnMap<TDna, TSpec>(mapper.index(), mapper.reads(), _DefaultMapParm, mapper.hits());
-    path(mapper.hits(), mapper.reads(), mapper.genomes(), mapper.cords());
+    //path(mapper.hits(), mapper.reads(), mapper.genomes(), mapper.cords());
+    //checkPath(mapper.cords(), mapper.reads());
 
     //mapper.printParm();
     //mapper.printHits();
     //_DefaultCord.print(mapper.cords());
     //mapper.printCords();
     //mapper.printResult();
-    //mapper.printBestHitsStart();
-    checkPath(mapper.cords(), mapper.reads());
+    mapper.printBestHitsStart();
     std::cerr << "Time of mapping in sum [s] " << sysTime() - time << std::endl;
     std::cerr << (length(mapper.index().dir) + length(mapper.index().sa) >> 27) << "GB" << std::endl;
 }
