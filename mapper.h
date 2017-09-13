@@ -75,10 +75,13 @@ public:
     CordSet & cords() {return cordSet;}            //returns cord set 
     CordType getCordX(CordType const &) const;   // returns coordinates x,y of the vertex of sliding window
     CordType getCordY(CordType const &) const;   // type uint64_t 
+    
 
     void printHits();
+    void printBestHitsStart();
     void printResult();    
     void printParm();
+    void printCords();
     int createIndex();
      
     //Mapper(Options const & options)
@@ -135,13 +138,26 @@ Mapper<TDna, TSpec>::getCordY(typename Mapper<TDna, TSpec>::CordType const & cor
 template <typename TDna, typename TSpec>
 void Mapper<TDna, TSpec>::printHits()
 {
-    std::cout << "Hits: " << lengthSum(res.hits) << " in sum " << std::endl;
+    unsigned j = 0;
+    std::cout << "printHits: " << lengthSum(res.hits) << " in sum " << std::endl;
     for (auto && hitStr : res.hits)
     {
+        std::cout << j++ << std::endl;
         for (auto && hit : hitStr)
-            std::cout << getHitX(hit) << " " << getHiY(hit) << ", ";
+            std::cout << getHitX(hit) << " " << getHitY(hit) << std::endl;
         std::cout << std::endl;
     }
+}
+
+template <typename TDna, typename TSpec>
+void Mapper<TDna, TSpec>::printBestHitsStart()
+{
+    unsigned k = 0;
+    for (auto && hitStr : res.hits)
+        if (empty(hitStr))
+            std::cout << std::endl;
+        else
+            std::cout << k++ << " " << getHitX(hitStr[0]) - getHitY(hitStr[0]) << std::endl;
 }
 
 template <typename TDna, typename TSpec>
@@ -152,6 +168,16 @@ template <typename TDna, typename TSpec>
 void Mapper<TDna, TSpec>::printParm()
 {
     parm.print();
+}
+
+template <typename TDna, typename TSpec>
+void Mapper<TDna, TSpec>::printCords()
+{
+    for (unsigned k = 0; k < length(cordSet); k++)
+    {
+        std::cout << k << " length " << length(reads()[k]) << std::endl;
+        _DefaultCord.print(cordSet[k]);
+    }
 }
 
 template <typename TDna, typename TSpec>
@@ -167,9 +193,13 @@ void map(Mapper<TDna, TSpec> mapper)
 
     //mapper.printParm();
     //mapper.printHits();
-    //_DefaultCord.print(mapper.cords);
+    //_DefaultCord.print(mapper.cords());
+    mapper.printCords();
     //mapper.printResult();
+    //mapper.printBestHitsStart();
+    checkPath(mapper.cords(), mapper.reads());
     std::cerr << "Time of mapping in sum [s] " << sysTime() - time << std::endl;
+    std::cerr << (length(mapper.index().dir) + length(mapper.index().sa) >> 27) << "GB" << std::endl;
 }
 
 

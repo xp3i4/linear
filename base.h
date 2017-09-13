@@ -56,6 +56,37 @@ using namespace seqan;
 // variable and type def
 //===================================================================
 //template <typename TSpec = void>
+
+struct status
+{
+    double time;
+ 
+};
+
+//struct ConstBase{
+//    
+//    const unsigned _SHAPELEN;
+//    const unsigned _SHAPEWHT;
+//    const unsigned _BLOCKSIZE;
+//    const unsigned _DELAT; 
+//    const unsigned _THRESHOLD; 
+//    const float    _ALPHA ;     
+//    const unsigned _KMERSTEP;
+//    const uint64_t _LLTMax;
+//
+//    ConstBase()
+//        _SHAPELEN(25),
+//        _SHAPEWHT(18),
+//        _BLOCKSIZE(1000),
+//        _DELAT(32),
+//        _THRESHOLD(30),
+//        _ALPHA(0.8),
+//        _KMERSTEP(1000),
+//        _LLTMax(~0)
+//        {}
+//    
+//}_DefaultConstBase;
+
 struct Const_{
     
     typedef uint64_t    BIT_INT_;
@@ -77,7 +108,7 @@ struct Const_{
 const float Const_::_ALPHA = 0.8;
 const unsigned Const_::_SHAPELEN = 25;
 const unsigned Const_::_SHAPEWHT = 18;
-const unsigned Const_::_BLOCKSIZE = 1000;
+const unsigned Const_::_BLOCKSIZE = 100;
 const unsigned Const_::_DELAT = 32; 
 const unsigned Const_::_THRESHOLD = 30; 
 const unsigned Const_::_KMERSTEP = 1000;
@@ -366,6 +397,7 @@ int Options::print()
 template <typename TDna>
 int PMRecord<TDna>::loadRecord(Options & options)
 {
+    double time = sysTime();
     std::cerr << "loading sequences from files... " << std::endl;
     SeqFileIn rFile(toCString(options.rPath));
     SeqFileIn gFile(toCString(options.gPath));
@@ -376,6 +408,7 @@ int PMRecord<TDna>::loadRecord(Options & options)
         seqan::readRecords(id2, seq2, gFile);
     //   throw 
     //}
+    std::cerr << "loading [s] " << sysTime() - time << std::endl;
     return 0;
 }
 
