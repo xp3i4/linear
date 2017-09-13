@@ -275,7 +275,7 @@ inline bool Cord::print(typename Cord::CordString const & cords, CordBase const 
 {
     for (auto && j : cords)
        //std::cout << getCordX(j, cordBase.bit) << " , " << getCordY(j, cordBase.mask) << " ";
-        std::cout << getCordY(j, cordBase.mask) << " " <<  getCordX(j, cordBase.mask) - getCordY(j, cordBase.mask) << std::endl;
+        std::cout << getCordY(j, cordBase.mask) << " " <<  getCordX(j, cordBase.bit) - getCordY(j, cordBase.mask) << std::endl;
     std::cout << std::endl;
     return true;
 }
@@ -395,9 +395,44 @@ inline unsigned _windowDist(TIter const & it1, TIter const & it2)
     return _scriptDist(*it1, *it2)+ _scriptDist(*(it1+4),*(it2+4)) + _scriptDist(*(it1+8), *(it2+8));
 }
 
+
+
+inline bool nextCord(typename PMRes::HitString & hit, unsigned & currentIt, String<uint64_t> & cord)
+{
+    //std::cout << "nextCord\n";
+    //std::cout << "length(hit) " << length(hit) << std::endl;
+    uint64_t cordLY = _DefaultCord.getCordY(back(cord));
+    while (++currentIt < length(hit)) 
+    //while (--currentIt > 0) 
+    {
+        uint64_t tmpCord = _DefaultCord.hit2Cord(hit[currentIt]);
+        //if(_DefaultCord.getCordY(tmpCord) < cordLY)
+        if(_DefaultCord.getCordY(tmpCord) > cordLY + window_delta)
+        {
+            appendValue(cord, tmpCord);
+            return true;
+        }
+    }
+    return false;
+}
+
+
+inline bool initCord(typename PMRes::HitString & hit, unsigned & currentIt, String<uint64_t> & cord)
+{
+    currentIt = 0;
+    //currentIt = length(hit);
+    if (empty(hit))
+        return false;
+    else
+        appendValue(cord, _DefaultCord.hit2Cord(hit[0]));
+        //appendValue(cord, _DefaultCord.hit2Cord(back(hit)));
+    //std::cerr << "init" << (cord[0] >> 20) << " " << (cord[0] & 0xfffff) << std::endl;
+    return true;
+}
+
 inline bool previousWindow(String<int> & f1, String<int> & f2, typename Cord::CordString & cord)
 {
-    std::cout << "previous " << std::endl;
+//    std::cout << "previous " << std::endl;
     typedef typename Cord::CordType CordType;
     CordType x_suf = _DefaultCord.cord2Cell(_DefaultCord.getCordX(back(cord)));
     CordType y_suf = _DefaultCord.cord2Cell(_DefaultCord.getCordY(back(cord)));
@@ -405,6 +440,7 @@ inline bool previousWindow(String<int> & f1, String<int> & f2, typename Cord::Co
     
     unsigned min = ~0;
     unsigned x_min = 0;
+    //std::cerr << length(cord) << " " << x_suf << std::endl;
     //std::cout << "nextWindow() x_pre " << x_pre << std::endl;
     for (CordType x = x_suf - sup; x < x_suf - inf; x += 1) 
     {
@@ -461,60 +497,16 @@ inline bool nextWindow(String<int> &f1, String<int> & f2, typename Cord::CordStr
 
 
 
-inline bool nextCord(typename PMRes::HitString & hit, unsigned & currentIt, String<uint64_t> & cord)
-{
-    //std::cout << "nextCord\n";
-    //std::cout << "length(hit) " << length(hit) << std::endl;
-    uint64_t cordLY = _DefaultCord.getCordY(back(cord));
-    while (++currentIt < length(hit)) 
-    //while (--currentIt > 0) 
-    {
-        uint64_t tmpCord = _DefaultCord.hit2Cord(hit[currentIt]);
-        //if(_DefaultCord.getCordY(tmpCord) < cordLY)
-        if(_DefaultCord.getCordY(tmpCord) > cordLY + window_delta)
-        {
-            appendValue(cord, tmpCord);
-            return true;
-        }
-    }
-    return false;
-}
-
-
-inline bool initCord(typename PMRes::HitString & hit, unsigned & currentIt, String<uint64_t> & cord)
-{
-    currentIt = 0;
-    //currentIt = length(hit);
-    if (empty(hit))
-        return false;
-    else
-        appendValue(cord, _DefaultCord.hit2Cord(hit[0]));
-        //appendValue(cord, _DefaultCord.hit2Cord(back(hit)));
-    //std::cerr << "init" << (cord[0] >> 20) << " " << (cord[0] & 0xfffff) << std::endl;
-    return true;
-}
-
-/*
-inline bool endWindow (uint64_t cord, unsigned length)
-{
-    if ((cord & cmask) < length - windowSize)
-        return true;
-    else 
-        return false;
-}
-*/
-
-
 inline bool extendWindow(String<int> &f1, String<int> & f2, typename Cord::CordString & cord)
 {
     Cord::CordType preCord = (length(cord)==1)?0:back(cord);
     unsigned len = length(cord) - 1;
     //    std::cout << preCord << " pre back" << back(cord);
-//    while (preCord < back(cord) && previousWindow(f1, f2, cord)){}
-//    for (unsigned k = len; k < ((length(cord) + len) >> 1); k++) // when k < length(cord) - 1 - k + len -> swap  to keep cord in assend order
-//    {
-//        std::swap(cord[k], cord[length(cord) - k + len - 1]);
-//    }
+    while (preCord < back(cord) && previousWindow(f1, f2, cord)){}
+    for (unsigned k = len; k < ((length(cord) + len) >> 1); k++) // when k < length(cord) - 1 - k + len -> swap  to keep cord in assend order
+    {
+        std::swap(cord[k], cord[length(cord) - k + len - 1]);
+    }
     while (nextWindow(f1, f2, cord)){}
     return true;
 }
@@ -523,26 +515,11 @@ inline bool path(String<Dna5> & read, typename PMRes::HitString hit, StringSet<S
 {
     String<int> f1;
     unsigned currentIt = 0;
-    //unsigned currentIt = length(hit);
     if(!initCord(hit, currentIt, cords))
         return false;
     createFeatures(begin(read), end(read), f1);
     unsigned genomeId = _getSA_i1(_DefaultCord.getCordX(cords[0]));
-    //std::cerr << "path() genomeId " << genomeId << std::endl;
-    /*
-    while (_DefaultCord.getCordY(back(cords)) < length(read) - window_size)
-    {
-        
-    //std::cout << "_DefaultCord.getCordY " << _DefaultCord.getCordY(back(cords)) << " " << length(read) - window_size << std::endl;
-        if (!nextWindow(f1, f2[genomeId], cords)) // threshold = 30
-        //if (!previousWindow(f1, f2[genomeId], cords)) // threshold = 30
-        
-
-            if(!nextCord(hit, currentIt, cords))
-                return false;
-            
-    }
-    */
+  
     while (_DefaultCord.getCordY(back(cords)) < length(read) - window_size)
     {
         extendWindow(f1, f2[genomeId], cords);
@@ -557,10 +534,13 @@ void path(typename PMRes::HitSet & hits, StringSet<String<Dna5> > & reads, Strin
     StringSet<String<int> > f2;
     createFeatures(genomes, f2);
     std::cerr << "raw mapping... " << std::endl;
-    for (unsigned k = 0; k < length(reads); k++)
+    for (unsigned k = 1000; k < length(reads); k++)
+    //for (unsigned k = 0; k < 1000; k++)
     {
+        //std::cerr << k << " read" << std::endl;
         path(reads[k], hits[k], f2, cords[k]);
     }
+    std::cout << length(reads) << std::endl;
 //    _DefaultCord.print(cords);
 //    _DefaultCord.printAlignmentMatrix(cords);
 }

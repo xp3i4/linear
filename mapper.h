@@ -194,7 +194,7 @@ void map(Mapper<TDna, TSpec> mapper)
     //mapper.printParm();
     //mapper.printHits();
     //_DefaultCord.print(mapper.cords());
-    mapper.printCords();
+    //mapper.printCords();
     //mapper.printResult();
     //mapper.printBestHitsStart();
     checkPath(mapper.cords(), mapper.reads());

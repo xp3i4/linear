@@ -32,6 +32,7 @@
 // Author: cxpan <chenxu.pan@fu-berlin.de>
 // ==========================================================================
 
+#include <csignal>
 #include "mapper.h"
 
 using namespace seqan; 
