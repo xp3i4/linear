@@ -70,6 +70,7 @@ public:
     Res & result() {return res;}
     Index & index() {return qIndex;}
     HitSet & hits() {return res.hits;}             //returns hit set
+    Pair<HitType, HitType> getAliX(unsigned) const;
     HitType getHitX (HitType const &) const;     //returns coordinates x,y of the hits 
     HitType getHitY (HitType const &) const;     //type uint64_t
     CordSet & cords() {return cordSet;}            //returns cord set 
@@ -105,6 +106,19 @@ int Mapper<TDna, TSpec>::createIndex()
     std::cerr << "Creating index \n";
     _createQGramIndex(qIndex);
     return 0;
+}
+
+
+template <typename TDna, typename TSpec>
+Pair<typename Mapper<TDna,TSpec>::HitType, typename Mapper<TDna, TSpec>::HitType>
+Mapper<TDna, TSpec>::getAliX(unsigned k) const
+{
+    typedef typename Mapper<TDna,TSpec>::HitType HitType;
+    typedef Pair<HitType, HitType> Pair;
+    if (empty(res.hits[k]))
+        return Pair::Pair(~(HitType)0, ~(HitType)0);
+    else
+        return Pair::Pair(_getSA_i1(res.hits[k][0]), _getSA_i2(res.hits[k][0])) << std::endl;
 }
 
 template <typename TDna, typename TSpec>
