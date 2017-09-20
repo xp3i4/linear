@@ -100,6 +100,7 @@ using namespace seqan;
 
 int main(int argc, char const ** argv)
 {
+    std::cerr << "Encapsulated version: Mapping reads efficiently" << std::endl;
     (void)argc;
     // Parse the command line.
     Options options;
@@ -108,12 +109,8 @@ int main(int argc, char const ** argv)
         return res == seqan::ArgumentParser::PARSE_ERROR;
     double t=sysTime();
     Mapper<> mapper(options);
-    //options.print(); 
     map(mapper);
-    std::cerr << mapper.hits()[0][1] << std::endl;
-    std::cerr << "total time " << sysTime() - t << std::endl;
+    std::cerr << "results saved to " << options.getOutputPath() << "\n";
     
-    //mTest3(mapper.reads(), mapper.genomes());   
-    //uTest3(mapper.reads(), mapper.genomes());   
     return 0;
 }

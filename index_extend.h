@@ -450,10 +450,10 @@ void _qgramClearDir(Index<StringSet<String<TObj> >, IndexQGram<Minimizer<TSpan, 
     {
         index.dir[k] = _bitEmpty;
     }
-    std::cerr << "      _qgramClearDir():" << std::endl;
-    std::cerr << "          _fullDirLength(index) = " << _fullDirLength(index) << std::endl;
-    std::cerr << "          lengh(index.dir) = " << length(index.dir) << std::endl;
-    std::cerr << "          End _qgramClearDir()" << std::endl;
+    std::cerr << "    _qgramClearDir():" << std::endl;
+    std::cerr << "        _fullDirLength(index) = " << _fullDirLength(index) << std::endl;
+    std::cerr << "        lengh(index.dir) = " << length(index.dir) << std::endl;
+    std::cerr << "        End _qgramClearDir()" << std::endl;
 }
 /*
 template <unsigned TSpan, unsigned TWeight>
@@ -1086,7 +1086,7 @@ void _createQGramIndex(Index<StringSet<String<TObj> >, IndexQGram<Minimizer<TSpa
     _qgramClearDir(index);
     _qgramCountQGrams(index);
     //std::cerr << "        End createQGramIndexDirOnly() sysTime(): " << sysTime() - time << std::endl;
-    std::cerr << sysTime() - time << std::endl;
+    std::cerr << "    End creating index. Time[s] " << sysTime() - time << std::endl;
 }
 /*
 template <unsigned TSpan, unsigned TWeight>

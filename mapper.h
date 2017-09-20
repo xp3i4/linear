@@ -59,8 +59,8 @@ class Mapper {
     Res     res;
     Index   qIndex;
     CordSet cordSet;
+    std::ofstream of;
 
-    //StringSet<String<uint64_t> > cords;
 public:
     Mapper();
     Mapper(Options & options);
@@ -77,11 +77,11 @@ public:
     CordType getCordX(CordType const &) const;   // returns coordinates x,y of the vertex of sliding window
     CordType getCordY(CordType const &) const;   // type uint64_t 
     
-
     void printHits();
     void printBestHitsStart();
-    void printResult();    
+    void printResult();
     void printParm();
+    void printCords(std::ostream & );
     void printCords();
     int createIndex();
      
@@ -97,7 +97,8 @@ template <typename TDna, typename TSpec>
 Mapper<TDna, TSpec>::Mapper(Options & options):
     record(options),
     parm(options),
-    qIndex(genomes())
+    qIndex(genomes()),
+    of(toCString(options.getOutputPath()))
 {}
 
 template <typename TDna, typename TSpec>
@@ -156,9 +157,9 @@ void Mapper<TDna, TSpec>::printHits()
     std::cout << "printHits: " << lengthSum(res.hits) << " in sum " << std::endl;
     for (auto && hitStr : res.hits)
     {
-        std::cout << j++ << std::endl;
+        std::cout << j++ << "th hits"<< std::endl;
         for (auto && hit : hitStr)
-            std::cout << getHitX(hit) << " " << getHitY(hit) << std::endl;
+            std::cout << _getSA_i1(getHitX(hit)) << " " << _getSA_i2(getHitX(hit)) << " " << getHitY(hit) << std::endl;
         std::cout << std::endl;
     }
 }
@@ -185,35 +186,67 @@ void Mapper<TDna, TSpec>::printParm()
 }
 
 template <typename TDna, typename TSpec>
-void Mapper<TDna, TSpec>::printCords()
+void Mapper<TDna, TSpec>::printCords(std::ostream & of)
 {
+    double time = sysTime();
+    unsigned strand;
     for (unsigned k = 0; k < length(cordSet); k++)
     {
-        std::cout << k << " length " << length(reads()[k]) << std::endl;
-        _DefaultCord.print(cordSet[k]);
+        if (empty(cordSet))
+            of << k << "th Strand " << strand << " 2 " << length(reads()[k]) << "\n";
+        else
+        {
+            if (_DefaultCord.getCordStrand(back(cordSet[k]))) 
+                strand = 1;
+            else 
+                strand = 0;
+            of << k << " " << strand << " " << length(reads()[k]) << "\n";
+            _DefaultCord.print(cordSet[k],of);
+        }
     }
+    std::cerr << ">Write results to disk          " << std::endl;
+    std::cerr << "    End writing results. Time[s]" << sysTime() - time << std::endl;
 }
 
 template <typename TDna, typename TSpec>
-void map(Mapper<TDna, TSpec> mapper)
+void Mapper<TDna, TSpec>::printCords()
 {
-    std::cerr << "Encapsulated version " << std::endl;
+    std::cerr << "Writing results to disk \r";
+    double time = sysTime();
+    unsigned strand;
+    for (unsigned k = 0; k < length(cordSet); k++)
+    {
+        if (empty(cordSet[k]))
+            of << k << "th Strand " << "2 length " << length(reads()[k]) << "\n";
+        else
+        {
+            if (_DefaultCord.getCordStrand(back(cordSet[k]))) 
+                strand = 1;
+            else 
+                strand = 0;
+            of << k << "th Strand " << strand << " length " << length(reads()[k]) << "\n";
+            _DefaultCord.print(cordSet[k], of);
+        }
+    }
+    of.close();
+    std::cerr << ">Write results to disk        " << std::endl;
+    std::cerr << "    End writing results. Time[s]" << sysTime() - time << std::endl;
+}
+
+template <typename TDna, typename TSpec>
+void map(Mapper<TDna, TSpec> & mapper)
+{
+    //printStatus();
     double time = sysTime();
     mapper.createIndex();
     resize(mapper.hits(), length(mapper.reads()));
     resize(mapper.cords(), length(mapper.reads()));
-    mnMap<TDna, TSpec>(mapper.index(), mapper.reads(), _DefaultMapParm, mapper.hits());
-    //path(mapper.hits(), mapper.reads(), mapper.genomes(), mapper.cords());
-    //checkPath(mapper.cords(), mapper.reads());
-
-    //mapper.printParm();
-    //mapper.printHits();
-    //_DefaultCord.print(mapper.cords());
-    //mapper.printCords();
-    //mapper.printResult();
-    mapper.printBestHitsStart();
-    std::cerr << "Time of mapping in sum [s] " << sysTime() - time << std::endl;
-    std::cerr << (length(mapper.index().dir) + length(mapper.index().sa) >> 27) << "GB" << std::endl;
+//  mnMap<TDna, TSpec>(mapper.index(), mapper.reads(), _DefaultMapParm, mapper.hits());
+// path(mapper.hits(), mapper.reads(), mapper.genomes(), mapper.cords());
+    rawMap<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), _DefaultMapParm, mapper.hits(), mapper.cords());
+    mapper.printHits();
+    mapper.printCords();
+    std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
 }
 
 

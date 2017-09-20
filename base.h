@@ -46,6 +46,11 @@
 #include <bitset>
 #include <climits>
 #include <seqan/arg_parse.h>
+#include <thread>
+#include <chrono>
+#include <atomic>   
+#include <iomanip>
+#include <functional>   // for std::ref()
 
 #include "shape_extend.h"
 #include "index_extend.h"
@@ -127,12 +132,12 @@ struct Options{
         MiKmLen(Const_::_SHAPEWHT),
         rPath(""),
         gPath(""),
-        oPath(""),
+        oPath("mapper_result.txt"),
         Sensitive(false)
         {}
-    Const_::PATH_ getGenomePaht() const {return gPath;};
-    Const_::PATH_ getReadPaht() const {return rPath;};
-    Const_::PATH_ getOutPutPaht() const {return oPath;};
+    Const_::PATH_ getGenomePath() const {return gPath;};
+    Const_::PATH_ getReadPat() const {return rPath;};
+    Const_::PATH_ getOutputPath() const {return oPath;};
     int print();
 }; 
 
@@ -234,7 +239,8 @@ struct ResBase{
     static const Const_::BIT_INT_ mask = (1ULL << bit) - 1;
     static const unsigned hitBit = AnchorBase::bit;
     static const unsigned hitMask = AnchorBase::mask;
-    
+    //static const uint64_t hitStrandFlag = 0x8ffffffff;
+    //static const uint64_t hitEndFlag = 0x4ffffffff;
 };
 
 struct PMRes
@@ -264,6 +270,11 @@ struct PMRes
     Id createId(Id, Id);
     Pos createPos(Pos, Pos);
     void appendValue(unsigned, Pos, Score, Strand);
+    //void setHitStrand(HitType &);
+    //uint64_t getHitStrand(HitType const &) const;
+    //void setHitEnd(HitType &);
+    //uint64_t getHitEnd(HitType const &) const;
+
 
 };
 
@@ -294,6 +305,26 @@ inline void PMRes::appendValue(unsigned id, PMRes::Pos rpos, PMRes::Score rscore
     seqan::appendValue(score[id], rscore);
     seqan::appendValue(strand[id], rstrand);
 }
+
+//inline void PMRes::setHitStrand(typename PMRes::HitType & hit)
+//{
+//    hit |= ResBase::hitStrandFlag;
+//}
+//
+//inline uint64_t PMRes::getHitStrand(typename PMRes::HitType const & hit) const
+//{
+//    return hit & ResBase::hitStrandFlag;
+//}
+//
+//inline void PMRes::setHitEnd(typename PMRes::HitType & hit)
+//{
+//    hit |= ResBase::hitEndFlag;
+//}
+//
+//inline uint64_t PMRes::getHitEnd(typename PMRes::HitType const & hit) const
+//{
+//    return hit & ResBase::hitEndFlag;
+//}
 
 struct MapParm{
     unsigned    blockSize;
@@ -398,17 +429,35 @@ template <typename TDna>
 int PMRecord<TDna>::loadRecord(Options & options)
 {
     double time = sysTime();
-    std::cerr << "loading sequences from files... " << std::endl;
+    std::cerr <<"loading sequences from files \r";
+    //std::cerr << "loading sequences from files \r";
     SeqFileIn rFile(toCString(options.rPath));
     SeqFileIn gFile(toCString(options.gPath));
-    //try{
-        
-        seqan::readRecords(id1, seq1, rFile);
-            
-        seqan::readRecords(id2, seq2, gFile);
-    //   throw 
+    //while (!atEnd(rFile))
+    //{
+    //    try
+    //    {
+    //        readRecord(id1, seq1, rFile);
+    //    }
+    //    catch(IOError const & e)
+    //    {
+    //        std::cerr << "Can't open read files"
+    //   }
+    //    try
+    //    {
+    //        seqan::readRecord(id2, seq2, rFile);
+    //            
+    //    }
+    //    catch(IOError const & e)
+    //    {
+    //        std::cerr << "Can't open read files"
+    //    }
     //}
-    std::cerr << "loading [s] " << sysTime() - time << std::endl;
+    readRecords(id1, seq1, rFile);
+    readRecords(id2, seq2, gFile);
+    std::cerr << ">load sequences                     " << std::endl;
+    std::cerr << "    mapping " << length(seq1) << " reads to " << length(seq2) << " genomes" << std::endl;
+    std::cerr << "    End loading sequences. Time[s] " << sysTime() - time << std::endl;
     return 0;
 }
 
@@ -506,47 +555,6 @@ void MapParm::print()
              << "shapeLen " << shapeLen << std::endl;
     
 }
-/*
-template <typename TDna, typename TSpec>
-Mapper<TDna, TSpec>::Mapper(Options & options):
-    record(options),
-    parm(options),
-    qIndex(genomes())
-{}
-
-template <typename TDna, typename TSpec>
-int Mapper<TDna, TSpec>::createIndex()
-{
-    std::cerr << "Creating index \n";
-    _createQGramIndex(qIndex);
-    //std::cout << "Time[s]: " << sysTime() - time << std::endl;
-    return 0;
-}
-
-template <typename TDna, typename TSpec>
-void Mapper<TDna, TSpec>::printHits()
-{
-    std::cout << "Hits: " << lengthSum(res.hits) << " in sum " << std::endl;
-    for (unsigned k = 0; k < length(res.hits); k++)
-    {
-        std::cout << "reads " << k << " : ";
-        for (unsigned j = 0; j < length(res.hits[k]); j++)
-            std::cout << (((res.hits[k][j] >> 20) + res.hits[k][j] & 0xfffff))<< " " << (res.hits[k][j] & 0xfffff) << ", ";
-        std::cout << std::endl;
-    }
-        //std::cout << length(res.hits[k]) << std::endl;
-}
-
-template <typename TDna, typename TSpec>
-void Mapper<TDna, TSpec>::printResult()
-{}
-
-template <typename TDna, typename TSpec>
-void Mapper<TDna, TSpec>::printParm()
-{
-    parm.print();
-}
-*/
 
 static String<Dna5> _complt = "tgcan";
 inline void _compltStr(String<Dna5> & str, String<Dna5> & res)
@@ -568,6 +576,38 @@ inline void _compltRvseStr(String<Dna5> & str, String<Dna5> & res)
     }
 }
 
+//class Status
+//{
+//    atomic<bool> status_f;
+//public:
+//    Status();
+//    void start();
+//    void stop(); 
+//}
+//void start()
+//{
+//    status_f = true;
+//    while (status)
+//    {
+//        switch(k++)
+//        {
+//            case 0: std::cerr << ".   \r";
+//                    break;
+//            case 1: std::cerr << "..  \r";
+//                    break;
+//            case 2: std::cerr << "... \r";
+//                    k=0;
+//                    break;
+//        }
+//        std::this_thread::sleep_for(std::chrono::seconds(1));
+//    }
+//}
+//
+//void endPrintStatus()
+//{
+//    status_f = false;    
+//    if()
+//}
 
 #endif
 
