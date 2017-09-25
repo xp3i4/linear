@@ -99,61 +99,68 @@ struct Cord
     
 }_DefaultCord; 
 
-inline typename Cord::CordType Cord::getCordX(typename Cord::CordType const & cord, 
-                                              typename CordBase::Bit const & bit  = _DefaultCordBase.bit,
-                                              typename CordBase::Mask const & mask = _DefaultCordBase.maskx
-                                             ) const
+inline typename Cord::CordType 
+Cord::getCordX(typename Cord::CordType const & cord, 
+               typename CordBase::Bit const & bit  = _DefaultCordBase.bit,
+               typename CordBase::Mask const & mask = _DefaultCordBase.maskx) const
 {
     return cord >> bit & mask; 
 }
 
-inline typename Cord::CordType Cord::getCordY(typename Cord::CordType const & cord, 
-                                              typename CordBase::Mask const & mask = _DefaultCordBase.mask) const 
+inline typename Cord::CordType 
+Cord::getCordY(typename Cord::CordType const & cord, 
+               typename CordBase::Mask const & mask = _DefaultCordBase.mask) const 
 {
     return cord & mask;
 }
 
-inline typename Cord::CordType Cord::createCord(typename Cord::CordType const & x, 
-                                                Cord::CordType const & y, 
-                                                typename CordBase::Bit const & bit = _DefaultCordBase.bit) const
+inline typename Cord::CordType 
+Cord::createCord(typename Cord::CordType const & x, 
+                 typename Cord::CordType const & y, 
+                 typename CordBase::Bit const & bit = _DefaultCordBase.bit) const
 {
     return (x << bit) + y;
 }
 
-inline typename Cord::CordType Cord::hit2Cord(typename PMRes::HitType const & hit, 
-                                              typename CordBase::Bit const & bit = _DefaultCordBase.bit, 
-                                              typename CordBase::Mask const & mask = _DefaultCordBase.mask) const
+inline typename Cord::CordType 
+Cord::hit2Cord(typename PMRes::HitType const & hit, 
+               typename CordBase::Bit const & bit = _DefaultCordBase.bit, 
+               typename CordBase::Mask const & mask = _DefaultCordBase.mask) const
 {
     return hit + ((hit & mask) << bit);
 }
 
-inline typename Cord::CellType Cord::cord2Cell(typename Cord::CordType const & cord, 
-                                               typename CordBase::Bit const & bit = _DefaultCordBase.cell_bit) const
+inline typename Cord::CellType 
+Cord::cord2Cell(typename Cord::CordType const & cord, 
+                typename CordBase::Bit const & bit = _DefaultCordBase.cell_bit) const
 {
     return cord >> bit;
 }
 
-inline typename Cord::CordType Cord::cell2Cord(typename Cord::CellType const & cell, 
-                                               typename CordBase::Bit const & bit = _DefaultCordBase.cell_bit) const
+inline typename Cord::CordType 
+Cord::cell2Cord(typename Cord::CellType const & cell, 
+                typename CordBase::Bit const & bit = _DefaultCordBase.cell_bit) const
 {
     return cell << bit;
 }
 
 inline void Cord::setCordEnd(typename Cord::CordType & cord,
-                             typename CordBase::Flag const & strand = _DefaultCordBase.flag_strand,
-                             typename CordBase::Flag const & end = _DefaultCordBase.flag_end)
+            typename CordBase::Flag const & strand = _DefaultCordBase.flag_strand,
+            typename CordBase::Flag const & end = _DefaultCordBase.flag_end)
 {
     cord |= strand | end;
 }
 
-inline typename CordBase::Flag Cord::getCordStrand(typename Cord::CordType const & cord,
-                                typename CordBase::Flag const & strand = _DefaultCordBase.flag_strand) const
+inline typename CordBase::Flag 
+Cord::getCordStrand(typename Cord::CordType const & cord,
+            typename CordBase::Flag const & strand = _DefaultCordBase.flag_strand) const
 {
     return cord & strand;
 }
 
-inline typename CordBase::Flag Cord::AtCordEnd(typename Cord::CordType const & cord,
-                                typename CordBase::Flag const & end = _DefaultCordBase.flag_end) const
+inline typename CordBase::Flag 
+Cord::AtCordEnd(typename Cord::CordType const & cord,
+                typename CordBase::Flag const & end = _DefaultCordBase.flag_end) const
 {
     return cord & end;
 }
@@ -710,16 +717,16 @@ void rawMap(typename PMCore<TDna, TSpec>::Index   & index,
         mnMapRead<TDna, TSpec>(index, reads[j], anchors, mapParm, hits[j], tm, tm2);
         path(reads[j], hits[j], f2, cords[j]);            
         //_DefaultCord.print(cords[j]);
-        if (length(cords[j]) < 10)
+        if (length(cords[j]) < 20)
         {
-  //          anchors.len=1;
-            anchors.init(Const_::_LLTMax, AnchorBase::size);
+            anchors.len=1;
+            //anchors.init(Const_::_LLTMax, AnchorBase::size);
             count++;
             _compltRvseStr(reads[j], comStr);
             clear(crhit);
             clear(crcord);
             mnMapRead<TDna, TSpec>(index, comStr, anchors, mapParm, crhit, tm, tm2);
-            path(reads[j], crhit, f2, crcord);            
+            path(comStr, crhit, f2, crcord);            
            // for (unsigned k = 0; k < length(crhit); k++)
            //     std::cout << _getSA_i2(crhit[k] >> AnchorBase::bit ) << " " << (crhit[k]& AnchorBase::mask) << std::endl;
             if (length(crhit) > length(hits[j]))
@@ -728,7 +735,6 @@ void rawMap(typename PMCore<TDna, TSpec>::Index   & index,
                 clear(cords[j]);
                 hits[j] = crhit;
                 cords[j] = crcord;
-                std::cerr << "length " << length(hits[j]) << " " << length(crhit) << " " << length(cords[j]) << " " << length(crcord) << std::endl;
                 _DefaultCord.setCordEnd(back(cords[j]));
                 //_DefaultCord.print(cords[j]);
             }

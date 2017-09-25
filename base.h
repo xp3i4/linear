@@ -68,29 +68,7 @@ struct status
  
 };
 
-//struct ConstBase{
-//    
-//    const unsigned _SHAPELEN;
-//    const unsigned _SHAPEWHT;
-//    const unsigned _BLOCKSIZE;
-//    const unsigned _DELAT; 
-//    const unsigned _THRESHOLD; 
-//    const float    _ALPHA ;     
-//    const unsigned _KMERSTEP;
-//    const uint64_t _LLTMax;
-//
-//    ConstBase()
-//        _SHAPELEN(25),
-//        _SHAPEWHT(18),
-//        _BLOCKSIZE(1000),
-//        _DELAT(32),
-//        _THRESHOLD(30),
-//        _ALPHA(0.8),
-//        _KMERSTEP(1000),
-//        _LLTMax(~0)
-//        {}
-//    
-//}_DefaultConstBase;
+
 
 struct Const_{
     
@@ -110,7 +88,7 @@ struct Const_{
         
 };
 
-const float Const_::_ALPHA = 0.8;
+const float Const_::_ALPHA = 0.65;
 const unsigned Const_::_SHAPELEN = 25;
 const unsigned Const_::_SHAPEWHT = 18;
 const unsigned Const_::_BLOCKSIZE = 100;

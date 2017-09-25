@@ -244,8 +244,9 @@ void map(Mapper<TDna, TSpec> & mapper)
 //  mnMap<TDna, TSpec>(mapper.index(), mapper.reads(), _DefaultMapParm, mapper.hits());
 // path(mapper.hits(), mapper.reads(), mapper.genomes(), mapper.cords());
     rawMap<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), _DefaultMapParm, mapper.hits(), mapper.cords());
-    mapper.printHits();
+    //mapper.printHits();
     mapper.printCords();
+    std::cerr << (length(mapper.index().dir) >>27) << " " << (length(mapper.index().sa)>>27) << std::endl;
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
 }
 
