@@ -379,7 +379,6 @@ template <typename TObject, unsigned TSPAN, unsigned TWEIGHT>
         //h1 &= hlen;
 //#endif
         TSize delta = 0;
-        (void)delta;
         _setHeadNode(key,shape.XValue);
         while (index.dir[h1] | index.dir[h1+1])
         {
@@ -553,7 +552,7 @@ void _qgramCountQGrams2(Index<StringSet<DnaString>, IndexQGram<Minimizer<TSpan, 
 
 
 template <unsigned TSpan, unsigned TWeight>
-void _qgramCountQGrams3(Index<StringSet<DnaString>, IndexQGram<Minimizer<TSpan, TWeight>, OpenAddressing > > & index)
+void _qgramCountQGrams3(Index<StringSet<DnaString  >, IndexQGram<Minimizer<TSpan, TWeight>, OpenAddressing > > & index)
 {
     typedef Shape<Dna, Minimizer<TSpan, TWeight> > TM_Shape;
     typedef Iterator<String<Dna> >::Type TIter;
@@ -1086,8 +1085,604 @@ void _createQGramIndex(Index<StringSet<String<TObj> >, IndexQGram<Minimizer<TSpa
     _qgramClearDir(index);
     _qgramCountQGrams(index);
     //std::cerr << "        End createQGramIndexDirOnly() sysTime(): " << sysTime() - time << std::endl;
+    std::cerr << "        index.dir " << (float)length(index.dir) /1024/1024/1024 *8 << " GB index.sa " 
+                << (float) length(index.sa) /1024/1024/128 << " GB" << std::endl;
     std::cerr << "    End creating index. Time[s] " << sysTime() - time << std::endl;
 }
+//========================================================
+//Begin(P2):This section is to optimize 25mer for mapping
+//XNode = struct v1[64],v2[32]: .v1: hashvalue; .v2:pointer to YNode
+//.v1: value[60]|Node type[2]
+//Types of .v1 including: 1.empty node{00} 2.xvalue head{01} 3.hvalue{10} head 4 virtual head{11}
+//  0 empty
+//  1 xvalue head
+//  2 head 10
+//  3 virtual head 
+
+struct XNodeBase   //define dirNode
+{
+    typedef uint64_t NodeType;
+    uint64_t bit;
+    uint64_t mask;
+    
+    NodeType emptyNode;
+    NodeType xNode;
+    NodeType hNode;
+    NodeType virtualNode;
+    
+    XNodeBase():
+        bit(2),
+        mask((1<<bit) - 1),
+        emptyNode(0),
+        xNode(1),
+        hNode(2),
+        virtualNode(3),
+    {}
+}_DefaultXNodeBase;
+
+struct XNode
+{
+    typedef unsigned TypeV2;
+    typedef TypeV2 ADDY;
+    uint64_t val1;
+    TypeV2 val2;
+};
+
+struct XNodeFunc
+{
+    uint64_t getAddY();
+    uint64_t hash(uint64_t const &);
+}_DefaultXNodeFunc;
+
+
+
+struct XString
+{
+    String<XNode> xstring;
+    uint64_t hlen;
+}
+
+//Hs: String<uint64_t>
+//types of node in Hs including: 1.head node and 2.body node
+//head: Headflag[1] = 1|Pointer[19]| xvalue[44]
+//body: bodyflag[1] = 0|N/A[3]|yvalue[20] |typeCode[1]|sa[40]
+struct HsBase
+{
+    
+    const unsigned bit;
+    const unsigned bodyYBit; 
+    const unsigned bodyCodeBit;
+    const unsigned pointerBit;
+    
+    const unsigned pointerBitLen;
+    const uint64_t mask;
+    const uint64_t pointerMask;
+    const uint64_t maxPointer;
+    
+    const uint64_t headFlag;
+    const uint64_t bodyCodeFlag;
+    
+    HsBase(bool cerr):
+        bit(44),
+        bodyYBit(_BodyValue_bits),
+        bodyCodeBit(_BodyType_bits),
+        pointerBit(bit),
+        pointerBitLen(19),
+        mask((1ULL << bit) - 1),
+        pointerMask((1ULL << (pointerBitLen)) - 1),
+        maxPointer(1 << pointerBitLen),
+        headFlag(1ULL << 63),
+        bodyCodeFlag(1ULL << bodyCodeBit)
+        {
+            if (cerr)
+                std::cerr << "HsBase::pointerBit " << pointerBit << std::endl;
+        }
+        
+}_DefaultHsBase(false);
+
+struct Hs
+{
+    typedef uint64_t ValueType; 
+   
+    bool isHead(uint64_t const &, 
+                uint64_t const & = _DefaultHsBase.headFlag);
+    uint64_t MinusX(uint64_t const &, uint64_t const &, 
+                    uint64_t const & = _DefaultHsBase.mask);
+    void setHsHead(uint64_t &, uint64_t const &, uint64_t const &, 
+                   uint64_t const & bit = _DefaultHsBase.pointerBit, 
+                   uint64_t const & headFlag = _DefaultHsBase.headFlag);
+    uint64_t getHeadX(uint64_t const &, 
+                      uint64_t const & = _DefaultHsBase.mask);
+    uint64_t getHeadPtr(uint64_t const &, 
+                        uint64_t const & = _DefaultHsBase.pointerBit, 
+                        uint64_t const & = _DefaultHsBase.pointerMask);
+    void setHsBody(uint64_t &, uint64_t const &,  uint64_t const & id, uint64_t const & pos,
+                   uint64_t const & flag2 = _DefaultHsBase.bodyCodeFlag
+                  );
+    
+}_DefaultHs;
+
+inline bool Hs::isHead(uint64_t const & val, uint64_t const & flag)
+{
+    return val & flag;
+}
+
+inline void Hs::setHsHead(uint64_t & head, uint64_t const & ptr, uint64_t const & xval, uint64_t const & bit, uint64_t const & flag)
+{
+    head = ((ptr << bit) + xval) | flag;
+}
+
+inline uint64_t Hs::MinusX(uint64_t const & value1, uint64_t const & value2, uint64_t const & mask)
+{
+    return ((value1 - value2) & mask);
+}
+
+inline uint64_t Hs::getHeadX(uint64_t const & value, uint64_t const & mask)
+{
+    return value & mask;
+}  
+
+inline uint64_t Hs::getHeadPtr(uint64_t const & val, uint64_t const & bit, uint64_t const & mask)
+{
+    return (val >> bit) & mask;
+}
+
+inline void Hs::setHsBody(uint64_t & val, uint64_t const & yval, uint64_t const & id, uint64_t const & pos, uint64_t const & flag2)
+{
+    val = ((yval << _DefaultHsBase.bodyYBit) | flag2) + _createSANode(id, pos);
+}
+
+template <typename TIt>
+inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBitLen)
+{
+    if (xValBitLen <34 || xValBitLen > 42)
+    {
+        std::cerr << "[Error]: _dirSortX " << xValBitLen << "\n";
+        return false;
+    }
+    
+    unsigned bit[18] = {9,4,9,4,9,4,8,5,8,5,8,5,8,5,7,6,7,6}; //xValueBitLen 34 - 42;
+    
+    unsigned p_bit = bit[(xValBitLen - 34) << 1];
+    unsigned l =  bit[((xValBitLen - 34) << 1) + 1];
+    std::cerr << p_bit << " " << l << std::endl;
+    unsigned  l_move = 64, r_move = 64 - p_bit;
+    uint64_t count[512];
+    //int count[1024];
+    
+    String<uint64_t> output;
+    resize(output, end - begin);
+    std::cerr << "end - begin " <<end - begin << std::endl;
+    for (uint64_t j = 0; j < l; j++)
+    {
+        l_move -= p_bit;
+        for (int k = 0; k< (1<<p_bit); k++)
+            count[k]=0;
+        for (int64_t k = 0; k < end - begin; k += _DefaultHs.getHeadPtr(*(begin + k)))
+        {
+            count[*(begin + k) << l_move >> r_move] += _DefaultHs.getHeadPtr(*(begin + k));
+        }
+        for (int k = 1; k < (1 << p_bit); k++)
+        {
+            count[k] += count[k - 1];
+        }
+        for (int64_t k = end - begin - 1;  k >=0; k--)
+        {
+        
+            if (_DefaultHs.isHead(*(begin + k)))
+            {
+                
+                uint64_t x = *(begin + k) << l_move >> r_move;
+                uint64_t ptr = _DefaultHs.getHeadPtr(*(begin + k));
+                count[x] -= ptr;
+                for (uint64_t it = 0; it < ptr; it++)
+                {
+                    output[count[x] + it] = *(begin + k + it);
+                }
+            }
+            
+        }
+        for (int64_t k = 0; k < end - begin; k++)
+            *(begin + k) = output[k];
+    }
+    return true;
+}
+
+
+template <typename TIter>//, typename Comp>
+void insertSort(TIter const & begin, TIter const & end)//, Comp const & comp)
+{
+    typename Value<TIter>::Type key;
+    
+    for (int j = 1; j < end - begin; j++)
+    {
+        key = *(begin + j); 
+        int k = j - 1;
+        while (k >= 0)
+        {
+            if (*(begin + k) < key)
+                *(begin+k+1) = *(begin+k);
+            else
+            {   
+                break;
+            }   
+            k--;
+        }        
+        *(begin+k+1) = key;
+    }
+}
+
+template <typename TIt>
+inline bool _sort_YSA_Block(TIt const & begin, TIt const & end, unsigned const & sortModeThr = 20) // sort y and sa
+{
+    typedef typename Value<TIt>::Type ValueType;
+    if (end - begin< sortModeThr)
+        insertSort(begin, begin);
+    else
+        std::sort(begin, begin, std::greater<ValueType>());
+}
+
+template <typename TIt>
+inline bool _hsSortY_SA(TIt const & begin, TIt const & end) // sort y and sa
+{
+    typedef typename Value<TIt>::Type ValueType;
+    uint64_t k = 0, ptr;
+    unsigned sortModeThr = 20;
+    typedef typename Value<TIt>::Type Int;
+    while (k < end - begin)
+    {
+        ptr = _DefaultHs.getHeadPtr(*(begin + k));
+        if (ptr< sortModeThr)
+            insertSort(begin + k + 1, begin + k + ptr);
+        else
+            std::sort(begin + k + 1, begin + k + ptr, std::greater<ValueType>());
+        k += ptr;
+    }
+}
+
+template <typename TIter>
+inline void _hsSort(TIter const & begin, TIter const & end, unsigned const & shapeWeight)
+{
+    double time = sysTime();
+    _hsSortX(begin, end, shapeWeight << 1);
+    std::cerr << "_dirSortX " << sysTime() - time << std::endl;
+    //_hsSortY_SA(begin, end);
+    //std::cerr << " _dirSortY " << sysTime() - time << "\n";
+}
+
+
+template <unsigned SHAPELEN>
+bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<SHAPELEN> > & shape)
+{
+    double time = sysTime();
+    uint64_t preX = ~0;
+    int64_t ptr = 0, count = -1;
+    resize(hs, lengthSum(seq) << 1);
+    for(uint64_t j = 0; j < length(seq); j++)
+    {
+        hashInit(shape, begin(seq[j]));
+        for (uint64_t k =0; k < length(seq[j]) - shape.span + 1; k++)
+        {
+            if(ordValue(*(begin(seq[j]) + k + shape.span - 1)) == 4)
+            {
+                k += hashInit(shape, begin(seq[j]) + k);
+                if(k > length(seq[j]) - shape.span + 1)
+                    break;
+            }
+            
+            hashNext(shape, begin(seq[j]) + k);
+            
+            if (shape.XValue ^ preX)
+            {
+                _DefaultHs.setHsHead(hs[++count - ptr], ptr, preX);
+                ptr = 2;
+                preX = shape.XValue; 
+            }
+            
+            else
+            {
+                ++ptr;
+            }
+            _DefaultHs.setHsBody(hs[++count], shape.YValue, j, k); 
+        }
+    }
+    _DefaultHs.setHsHead(hs[++count - ptr], ptr, shape.XValue);
+    _DefaultHs.setHsHead(hs[count], 0, 0);
+    std::cerr << "init " << sysTime() - time << " " << std::endl;
+    
+    _hsSort(begin(hs), begin(hs) + count, shape.weight);
+    
+    std::cerr << ptr << " " << count << " " << " " <<  sysTime() - time << " "<< std::endl;
+    std::cerr << "createHsArray " << hs[count] << std::endl;
+    return true;
+}
+
+
+bool checkHsSort(String<uint64_t> const & hs)
+{
+    uint64_t preX = _DefaultHs.getHeadX(hs[0]);
+    uint64_t preY = hs[1];
+    uint64_t k = 0;
+    uint64_t count = 0;
+    uint64_t countT = 0;
+    double time = sysTime();
+    while (_DefaultHs.getHeadPtr(hs[k]))
+    {
+        if (_DefaultHs.getHeadX(hs[k]) < preX)
+        {
+            std::cerr << "sort x error " << k;
+            return false;
+        }
+        preY = hs[k + 1];
+        for (unsigned j = k + 1; j < k + _DefaultHs.getHeadPtr(hs[k]); j++)
+        {
+            //std::cout << "hs[j]" << hs[j] << std::endl;
+            if (hs[j] > preY)
+            {
+                std::cerr << "sort y error " << k << " " << j;
+                return false;
+            }
+            preY = hs[j];
+        }
+        //std::cout << std::endl;
+        preX = _DefaultHs.getHeadX(hs[k]);
+        k += _DefaultHs.getHeadPtr(hs[k]);
+    }
+    std::cerr << "last " << k << std::endl;
+    
+    k = 0;
+    time = sysTime();
+    preX = _DefaultHs.getHeadX(hs[0]);
+    while (_DefaultHs.getHeadPtr(hs[k]))
+    {
+        if (preX != _DefaultHs.getHeadX(hs[k]))
+        {
+            count++;
+            if (preX >= (3<<30))
+                countT++;
+        }
+        preX = _DefaultHs.getHeadX(hs[k]);
+        k += _DefaultHs.getHeadPtr(hs[k]);
+    }
+    std::cerr << "checkHsSort() " << count << " " << (float)countT / count << " " << sysTime() - time << std::endl;
+    return true;
+}
+
+inline typename XNode::ADDY XNodeFunc::getAddY(uint64_t const & bit);
+{
+    return val2;
+}
+
+inline uint64_t XNodeFunc::hash(uint64_t const & val)
+{
+    uint64_t key = val;
+    key = (~key) + (key << 21); // key = (key << 21) - key - 1;
+    key = key ^ (key >> 24);
+    key = (key + (key << 3)) + (key << 8); // key * 265
+    key = key ^ (key >> 14);
+    key = (key + (key << 2)) + (key << 4); // key * 21
+    key = key ^ (key >> 28);
+    key = key + (key << 31);
+    return key;        
+}
+
+inline void XNodeFunc::setXNode(XNode & val, XNode::V1 val1, XNode::V2 val2, 
+                            XNode::Type t, XNodeBase::Bit1 bit)
+{
+    val.val1 = (val1 << bit) + t;
+    val.val2 = val2;
+}
+
+inline bool XNodeFunc::collision(XNode const & val1, uint64_t const & key, XNodeBase::Bit1 bit)
+{
+    return val1 || val1 ^ (key << bit);
+}
+
+
+inline uint64_t requestXNode(xString & xstr, uint64_t const & xval, uint64_t const & val2, uint64_t const & nodeType)
+{
+    uint64_t h1 = _hashFunction1(key) & xstr.mask;
+    uint64_t delta = 0;
+    uint64_t val1 = _DefaultXNodeFunc.makeXNode(xhval, val1, nodeType);
+    while (_DefaultXNodeFunc.collision(xstr.xstring[h1].val1, val1)) //0 stands for empty
+    {
+        h1 = (h1 + delta +1) & xstr.mask;
+        delta++;
+    }
+    xstr.xstring[h1].val1 = val1;
+    xstr.xstring[h1].val2 = val2;
+    return h1;
+}
+
+inline uint64_t requestXNode(xString & xstr, uint64_t const & xval, uint64_t const & val2, uint64_t const & nodeType, bool noCollision)
+{
+    uint64_t h1 = _hashFunction1(key) & xstr.mask;
+    uint64_t delta = 0;
+    uint64_t val1 = _DefaultXNodeFunc.makeXNode(xhval, val1, nodeType);
+    while (xstr.xstring[h1].val1) //0 stands for empty
+    {
+        h1 = (h1 + delta +1) & xstr.mask;
+        delta++;
+    }
+    xstr.xstring[h1].val1 = val1;
+    xstr.xstring[h1].val2 = val2;
+    return h1;
+}
+
+template<TIter>
+inline uint64_t processBlock(xString & xstr, uint64_t const & key, TIter const & yBegin, TIter const & yEnd)
+{
+    _sort_YSA_Block(begin(sastr) + saEnd - block_size, begin(sastr) + saEnd);
+    if (block_size < blocklimit)
+    {
+        requestXNode(xstr, preX, addY, true);
+        //!!! set y
+    }
+    else
+    {
+        requestXNodexstr, key, xNodeBase.emptyPointer, xNodeBase.virtualNode, true);
+        for (uint64_t k = 0; k < end - begin; k++)
+        {
+            requestXNode(xstr, xy2h(key, *(yBegin + k)), ypointer++, xNodeBase.hNode);
+            _defaultYNode.setTypeBegin(hstr[addy]);
+            
+        }
+    }
+}
+/*
+template <unsigned TSpan, typename TSpec>
+inline uint64_t getDir(XString const & xstr, YString const & ystr, Shape<Dna5, Minimizer<TSpan> >)
+{
+        uint64_t key, it, delta = 0;
+        h1 = _DefaultXNodeFunc._hashFunction1(shape.XValue) & xstr.hlen;
+        
+        _setHeadNode(key, shape.XValue);
+        while (xstr[h1])
+        {
+            switch (xstr[h1].val1 ^ key) 
+            {
+                case 0:
+                    it = xstr[h1].val2;
+                    do{
+                        if (shape.YValue ==  _DefaultYNodeFunc.getValue(ystr[it]))
+                        {    
+                            return it;
+                        } 
+                    }while(_DefaultYNodeFunc.inBlock(ystr[++it])); //until the begin of next block
+                    return _DefaultXNodeBase._Empty_Dir_ ;
+                case 1:
+                    _setHVlHeadNode(key, shape.hValue);
+                    h1 = _DefaultxNodeFunc._hashFunction1(shape.hValue) & hlen;
+                    delta = 0;
+                    break;
+                default:
+                    h1 = (h1 + delta + 1) & hlen;
+                    delta++;
+            }
+        }
+        return _DefaultXNodeBase._Empty_Dir_;
+}
+*/
+/*
+bool _createYSA(String<uint64_t> & hs, xString & xstr, String<uint64_t> & sastr)
+{
+    std::cerr << "_createYSA \n";
+    uint64_t k = 0;
+    uint64_t preX = _DefaultHs.getHeadX(hs[0]);
+    uint64_t ptr = 0;
+    uint64_t saEnd = 0;
+    uint64_t block_size = 0;
+    uint64_t countX = 0;
+    uint64_t addY = 0;
+//    resize(ystr, )
+    while(_DefaultHs.getHeadPtr(hs[k]))
+    {
+        ptr = _DefaultHs.getHeadPtr(hs[k]);
+        if (preX != _DefaultHs.getHeadX(hs[k]))
+        {
+            _sort_YSA_Block(begin(sastr) + saEnd - block_size, begin(sastr) + saEnd);
+#ifdef Debug_c_ysa            
+            for (uint64_t j = saEnd - block_size; j < saEnd; j++)
+                std::cout << j << " " << sastr[j] << "\n";
+            std::cout << "\n";
+#endif 
+            if (block_size < blocklimit)
+            {
+                _defaultYNode.setTypeBegin(hstr[addy]);
+                requestXNode(xstr, preX, addY, true);
+                addY += ptr - 1;
+            }
+            else
+            {
+                requestXNode(xstr, preX, begin(sastr) + saEnd - block_size, begin(sastr));
+                
+            }
+            countX++;
+            block_size = ptr - 1;
+            preX = _DefaultHs.getHeadX(hs[k]);
+        }
+        else
+            block_size += ptr - 1;
+        for (uint64_t j = k + 1; j < k + ptr; j++)
+        {
+            sastr[saEnd] = hs[j];
+            ++saEnd;
+        }
+#ifdef Debug_c_ysa
+        std::cerr << saEnd << " saEnd " << block_size << " " << preX << " " << _DefaultHs.getHeadX(hs[k]) << "\n";
+#endif
+        k += ptr;
+    }
+    _sort_YSA_Block(begin(sastr) + saEnd - block_size, begin(sastr) + saEnd);
+}
+*/
+
+bool _createYSA(String<uint64_t> & hs, xString & xstr, String<uint64_t> & sastr)
+{
+    std::cerr << "_createYSA \n";
+    uint64_t k = 0;
+    uint64_t preX = _DefaultHs.getHeadX(hs[0]);
+    uint64_t ptr = 0;
+    uint64_t saEnd = 0;
+    uint64_t block_size = 0;
+    uint64_t countX = 0;
+    uint64_t addY = 0;
+//    resize(ystr, )
+    while(_DefaultHs.getHeadPtr(hs[k]))
+    {
+        ptr = _DefaultHs.getHeadPtr(hs[k]);
+        if (preX != _DefaultHs.getHeadX(hs[k]))
+        {
+            processBlock(preX, begin(sastr) + saEnd - block_size, begin(sastr) + saEnd)
+            countX++;
+            block_size = ptr - 1;
+            preX = _DefaultHs.getHeadX(hs[k]);
+        }
+        else
+            block_size += ptr - 1;
+        for (uint64_t j = k + 1; j < k + ptr; j++)
+        {
+            sastr[saEnd] = hs[j];
+            ++saEnd;
+        }
+        k += ptr;
+    }
+    //_sort_YSA_Block(begin(sastr) + saEnd - block_size, begin(sastr) + saEnd);
+    processBlock(preX, begin(sastr) + saEnd - block_size, begin(sastr) + saEnd);
+}
+
+
+//Struct Time {
+//    double time;
+//    double startTime(){
+//        time = sysTime();
+//    }
+//    double stopTime(){
+//        
+//    } 
+//}
+
+template <unsigned SHAPELEN>
+void _createQGramIndexDirSA(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs, String<uint64_t> & ystr, String<uint64_t> & sastr, Shape<Dna5, Minimizer<SHAPELEN> > & shape, bool Efficient)    
+{
+    double time = sysTime();
+    if (Efficient)
+        _createHsArray(seq, hs, shape);
+#ifdef  DEBUG_M
+    if (checkHsSort(hs))
+        std::cerr << "[Debug]:sort success \n";
+#endif
+    time = sysTime();
+    resize(sastr, lengthSum(seq) - shape.span + 1);
+    _createYSA(hs, ystr, sastr);
+    std::cerr << "_createYSA " << sysTime() - time << " [s]\n";
+    //_createDir(Strings<uint64_t> & hs);
+}
+    
+//End(P2)
+//=========================================================================
+
+
 /*
 template <unsigned TSpan, unsigned TWeight>
 void createQGramIndexDirOnly2(Index<StringSet<DnaString>, IndexQGram<Minimizer<TSpan, TWeight>, OpenAddressing > >& index)
