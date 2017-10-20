@@ -45,9 +45,24 @@ const float _boundAlpha = 0.8;
 // Struct Minimizer
 // ----------------------------------------------------------------------------
 
+
+struct MiniValueBit
+{
+    enum{VALUEBIT = 64};
+};
+
+struct MiniHEX{              // = shape.len - shape.weight 
+    enum {HEX = 8 };
+};
+
 template <unsigned shapeLength>
 struct MiniWeight{
-    enum{ WEIGHT = shapeLength - 8};
+    enum{ WEIGHT = shapeLength - MiniHEX::HEX};
+};
+
+
+struct MiniYBit{
+    enum{ YBIT = (MiniHEX::HEX << 1) + Log2<1 + MiniHEX::HEX>::VALUE};
 };
 
 template <unsigned TSPAN, unsigned TWEIGHT = MiniWeight<TSPAN>::WEIGHT, typename TSpec = void>
@@ -109,6 +124,15 @@ struct LENGTH<Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >
 
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec>
 struct WEIGHT<Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >
+{
+    enum { VALUE = TWEIGHT - TSPAN};
+};
+
+template <typename T>
+struct WGHT;
+
+template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec>
+struct WGHT<Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >
 {
     enum { VALUE = TWEIGHT - TSPAN};
 };
@@ -389,6 +413,19 @@ inline uint64_t xy2h(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me,  uint
     
     return ((y &(~mask) & mask1)<< weight) + (x << (64 - t - weight)) + (y & mask);
 }
+
+template <unsigned TSPAN, unsigned TWEIGHT>
+inline uint64_t xy2h(uint64_t x, uint64_t y)
+{
+    
+    unsigned span = TSPAN << 1, weight = TWEIGHT << 1;
+    uint64_t t = y >> (span - weight);
+    uint64_t t1 = 64 - weight -t;
+    uint64_t mask = (1 << t1 ) - 1, mask1 = ((1 << (span - weight)) - 1);
+    
+    return ((y &(~mask) & mask1)<< weight) + (x << (64 - t - weight)) + (y & mask);
+}
+
 
 }
 // namespace seqan
