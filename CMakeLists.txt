@@ -42,9 +42,11 @@ add_definitions (-DSEQAN_DATE="${SEQAN_DATE}")
 
 # Update the list of file names below if you add source files to your application.
 add_executable (pacMapper mapper.cpp mapper.h base.h index_extend.h shape_extend.h)
+add_executable (testCasePacMapper testCase.cpp mapper.h base.h index_extend.h shape_extend.h)
 
 # Add dependencies found by find_package (SeqAn).
 target_link_libraries (pacMapper ${SEQAN_LIBRARIES})
+target_link_libraries (testCasePacMapper ${SEQAN_LIBRARIES})
 
 # Add CXX flags found by find_package (SeqAn).
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS} ${CXX11_CXX_FLAGS}")
@@ -56,12 +58,15 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS} ${CXX11_CXX_FLAGS}")
 # Set variables for installing, depending on the selected build type.
 if (NOT SEQAN_PREFIX_SHARE_DOC)
   seqan_setup_install_vars (pacMapper)
+  seqan_setup_install_vars (testCasePacMapper)
 endif (NOT SEQAN_PREFIX_SHARE_DOC)
 
 # Install pacMapper in ${PREFIX}/bin directory
 install (TARGETS pacMapper
          DESTINATION bin)
 
+install (TARGETS testCasePacMapper
+         DESTINATION bin)
 # Install non-binary files for the package to "." for app builds and
 # ${PREFIX}/share/doc/pacMapper
 install (FILES LICENSE
@@ -82,6 +87,7 @@ install (FILES example/small.fasta
 
 # Include executable seqan_tcoffee in CTD structure.
 set (SEQAN_CTD_EXECUTABLES ${SEQAN_CTD_EXECUTABLES} pacMapper CACHE INTERNAL "")
+set (SEQAN_CTD_EXECUTABLES ${SEQAN_CTD_EXECUTABLES} testCasePacMapper CACHE INTERNAL "")
 
 # ----------------------------------------------------------------------------
 # CPack Install
@@ -95,4 +101,13 @@ if (SEQAN_BUILD_SYSTEM STREQUAL "APP:pacMapper")
 
   seqan_configure_cpack_app (pacMapper "pacMapper")
 endif (SEQAN_BUILD_SYSTEM STREQUAL "APP:pacMapper")
+
+if (SEQAN_BUILD_SYSTEM STREQUAL "APP:testCasePacMapper")
+  set (CPACK_PACKAGE_NAME "testCasePacMapper")
+  set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "testCasePacMapper - Alignment Free Sequence Comparison")
+  set (CPACK_DEBIAN_PACKAGE_MAINTAINER "Chenxu Pan <chenxu.pan@fu-berlin.de>")
+  set (CPACK_PACKAGE_VENDOR "SeqAn Team, FU Berlin")
+
+  seqan_configure_cpack_app (pacMapper "testCasePacMapper")
+endif (SEQAN_BUILD_SYSTEM STREQUAL "APP:testCasePacMapper")
 

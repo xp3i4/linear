@@ -90,7 +90,7 @@ struct Const_{
 
 const float Const_::_ALPHA = 0.65;
 const unsigned Const_::_SHAPELEN = 25;
-const unsigned Const_::_SHAPEWHT = 18;
+const unsigned Const_::_SHAPEWHT = 17;
 const unsigned Const_::_BLOCKSIZE = 100;
 const unsigned Const_::_DELAT = 32; 
 const unsigned Const_::_THRESHOLD = 30; 
@@ -158,6 +158,7 @@ struct Anchors{
     AnchorType set[AnchorBase::size];
     unsigned len;
 
+    
     Anchors(){len = 1;};
     Anchors(AnchorType val, unsigned range);
     void init(AnchorType val, unsigned k);

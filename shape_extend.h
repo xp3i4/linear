@@ -344,10 +344,11 @@ hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
             if(me.XValue > v1)
             {
                 me.XValue=v1;
-                t=k;
+                //t=k;
+                t = k;
             }
         } 
-        me.YValue = (me.hValue >> (64-t) << (64-t-weight))+(me.hValue & (((uint64_t)1<<(64-t-weight)) - 1)) + (t<<(span - weight));
+        me.YValue = (me.hValue >> (64-t) << (64-t-weight))+(me.hValue & (((uint64_t)1<<(64-t-weight)) - 1)) + (t<<(span - weight - 1));
 
         return me.XValue; 
 }
@@ -398,7 +399,7 @@ inline uint64_t h2y(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me,  uint6
             t=k;
         }
     } 
-    return (h>> (64-t) << (64-t-(me.weight<<1)))+(h& (((uint64_t)1<<(64-t-(me.weight<<1))) - 1))+(t<<((me.span - me.weight) << 1));
+    return (h>> (64-t) << (64-t-(me.weight<<1)))+(h& (((uint64_t)1<<(64-t-(me.weight<<1))) - 1))+(t<<(((me.span - me.weight) << 1) - 1));
 
 }
 
@@ -407,7 +408,7 @@ inline uint64_t xy2h(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me,  uint
 {
     
     unsigned span = me.span << 1, weight = TWEIGHT << 1;
-    uint64_t t = y >> (span - weight);
+    uint64_t t = y >> (span - weight - 1);
     uint64_t t1 = 64 - weight -t;
     uint64_t mask = (1 << t1 ) - 1, mask1 = ((1 << (span - weight)) - 1);
     
@@ -419,7 +420,7 @@ inline uint64_t xy2h(uint64_t x, uint64_t y)
 {
     
     unsigned span = TSPAN << 1, weight = TWEIGHT << 1;
-    uint64_t t = y >> (span - weight);
+    uint64_t t = y >> (span - weight - 1);
     uint64_t t1 = 64 - weight -t;
     uint64_t mask = (1 << t1 ) - 1, mask1 = ((1 << (span - weight)) - 1);
     

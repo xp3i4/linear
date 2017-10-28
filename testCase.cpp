@@ -135,6 +135,33 @@ bool _testIndexGetDir(StringSet<String<TDna> > & seqs, StringSet<String<TDna> > 
     HIndex<25> index;
     createHIndex(seqs2, index);
     std::cerr << "time of creating index " << sysTime() - time << "\n";
+    unsigned m =0, ptr = 0,cb = 0; 
+    while(_DefaultHs.getHeadPtr(index.ysa[m]))
+    {
+        unsigned cc=0;
+        //if(cb++ < 100)
+        cb++;
+        ptr = _DefaultHs.getHeadPtr(index.ysa[m]);
+        uint64_t pre = _DefaultHs.getHsBodyY(index.ysa[m+1]);
+        for (uint64_t k =  m + 1; k < m + ptr; k++)
+            if(_DefaultHs.getHsBodyY(index.ysa[k]) == pre)
+            {
+                cc++; 
+                if (index.ysa[k] == index.ysa[k + 1])
+                    std::cerr << m << " " << length(index.ysa) << " error \n";
+            }
+            else
+            {
+                sum+= cc*cc;
+                pre = _DefaultHs.getHsBodyY(index.ysa[k]);
+                cc = 1;
+            }
+        sum += cc*cc;
+        m += ptr;
+    }
+    std::cerr << "sum = " << sum << " number of blocks " << cb << "\n";
+    sum = 0;
+    /*
     for(uint64_t j = 0; j < length(seqs); j++)
     {
         hashInit(index.shape, begin(seqs[j]));
@@ -177,6 +204,7 @@ bool _testIndexGetDir(StringSet<String<TDna> > & seqs, StringSet<String<TDna> > 
             //std::cerr << k << " " << length(seqs[j]) << std::endl;
         }
     }
+    */
     std::cout << "End testIndexGetDir time:" << sysTime() - time << " sum = " << sum << " " << sum / (float) lengthSum(seqs)<< " " << sum2 / (float) lengthSum(seqs) << std::endl;
    
     
@@ -214,7 +242,7 @@ bool _testIndexGetDir(StringSet<String<TDna> > & seqs, StringSet<String<TDna> > 
     return true;
 }
 
-void mTest3(StringSet<String<Dna5> > & reads, StringSet<String<Dna5> > & genome)
+bool mTest3(StringSet<String<Dna5> > & reads, StringSet<String<Dna5> > & genome)
 {
     const unsigned shapelength = 25;
     typedef Shape<Dna5, Minimizer<shapelength> > TShape;
@@ -228,10 +256,8 @@ void mTest3(StringSet<String<Dna5> > & reads, StringSet<String<Dna5> > & genome)
     std::cout << "mTest3(): " << std::endl;
     _createQGramIndex(index);
     std::cout << "    getDir start sysTime(): " << sysTime() - time << std::endl;
-    std::cout << "    length Dir = " << length(index.dir) << std::endl;
-    std::cout << "    length Text = " << lengthSum(indexText(index)) << std::endl;
-//    std::cout << "    length SA = " << length(index.sa) << std::endl << _getSortPara_i1(shape.weight) << " " << _getSortPara_i2(shape.weight);
      
+    unsigned occ = 0;
     for(uint64_t k = 0; k < length(genome); k++)
     {
         TIter it = begin(genome[k]);
@@ -240,19 +266,86 @@ void mTest3(StringSet<String<Dna5> > & reads, StringSet<String<Dna5> > & genome)
         {
             hashNext(shape, it + j);
             p = getDir(index, shape);
-            sum += _getBodyCounth(index.dir[p + 1]) - _getBodyCounth(index.dir[p]);
+            occ = _getBodyCounth(index.dir[p + 1]) - _getBodyCounth(index.dir[p]);
+            sum += occ;
+            
+            if (occ == 0)
+            {
+                std::cerr << "false \n";
+                return false;
+            }
             //for (uint64_t n = _getBodyCounth(index.dir[p]); n < _getBodyCounth(index.dir[p + 1]); n++)
             //{
             //    sum ^= _getSA_i2(index.sa[n]);
             //}
         }
     }
+    
     std::cout << "    sum = " << sum << std::endl;
+    sum = 0;
+    unsigned cd = 0;
+    for (unsigned k = index.start; k < index._Empty_Dir_ - 1; k++)
+    {
+        cd = _getBodyCounth(index.dir[k+1])-  _getBodyCounth(index.dir[k]);
+        sum += cd*cd;
+    }
+    std::cout << " sum cd = " << sum << "\n";
     std::cout << "    getDir end sysTime(): " << sysTime() - time << std::endl;
     std::cout << "    End mTest1()" << std::endl;
     
 }
+
+
+void uTest3(StringSet<String<Dna5> > & reads, StringSet<String<Dna5> > & genome)
+{
+    const unsigned shapelength = 25;
+    typedef Shape<Dna5, UngappedShape<shapelength> > TShape;
+    typedef Index<StringSet<String<Dna5> >, IndexQGram<UngappedShape<shapelength>, OpenAddressing > > TIndex;
+    typedef Iterator<String<Dna5> >::Type TIter;
+
+    TShape shape, shape1;
+    TIndex index(reads);
+    uint64_t sum = 0, p = 0;
+    double time = sysTime();
+    std::cout << "uTest3(): " << std::endl;
+    indexCreate(index, FibreDir());
+    std::cout << "    getDir start sysTime(): " << sysTime() - time << std::endl;
+    std::cout << "    length Dir = " << length(index.dir) << std::endl;
+    std::cout << "    length Text = " << lengthSum(indexText(index)) << std::endl;
+//    std::cout << "    length SA = " << length(index.sa) << std::endl << _getSortPara_i1(shape.weight) << " " << _getSortPara_i2(shape.weight);
+     
+    unsigned occ = 0;
+    for(uint64_t k = 0; k < length(genome); k++)
+    {
+        TIter it = begin(genome[k]);
+        hashInit(shape, it);
+        for (uint64_t j = 0; j < length(genome[k]) - shape.span + 1; j++)
+        {
+            hashNext(shape, it + j);
+            p = getBucket(index.bucketMap, shape.hValue);
+            occ = index.dir[p + 1] - index.dir[p];
+            sum += occ;
+            //for (uint64_t n = _getBodyCounth(index.dir[p]); n < _getBodyCounth(index.dir[p + 1]); n++)
+            //{
+            //    sum ^= _getSA_i2(index.sa[n]);
+            //}
+        }
+    }
     
+    std::cout << "    sum = " << sum << std::endl;
+    //sum = 0;
+    //unsigned cd = 0;
+    //for (unsigned k = index.start; k < index._Empty_Dir_ - 1; k++)
+    //{
+    //    cd = _getBodyCounth(index.dir[k+1])-  _getBodyCounth(index.dir[k]);
+    //    sum += cd*cd;
+    //}
+    //std::cout << " sum cd = " << sum << "\n";
+    std::cout << "    getDir end sysTime(): " << sysTime() - time << std::endl;
+    std::cout << "    End mTest1()" << std::endl;
+    
+}
+
 int main(int argc, char const ** argv)
 {
     std::cerr << "Encapsulated version: Mapping reads efficiently" << std::endl;
@@ -280,8 +373,10 @@ int main(int argc, char const ** argv)
    //         std::cerr << "0\n";
     //map(mapper);
     //_testIndexGetDir(mapper.reads(), mapper.index(), xstr, hs);
-    _testIndexGetDir(mapper.reads(), mapper.genomes());
+    //_testIndexGetDir(mapper.reads(), mapper.genomes());
     mTest3(mapper.genomes(), mapper.reads());
+    uTest3(mapper.genomes(), mapper.reads());
+
     std::cerr << mapper.index().shape.weight << std::endl;
     std::cerr << "results saved to " << options.getOutputPath() << "\n";
     
