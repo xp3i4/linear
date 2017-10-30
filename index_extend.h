@@ -1625,6 +1625,7 @@ inline uint64_t getXDir(XString const & xstr, uint64_t const & xval, uint64_t co
         //_setHeadNode(val, xval);
 //!!!!! need to modify;
         val = (xval << 2) + _DefaultXNodeBase.xHead;
+        vflag = false;
         while (xstr.xstring[h1].val1)
         {
             //switch (xstr.xstring[h1].val1 ^ val) 

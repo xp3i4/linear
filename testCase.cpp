@@ -127,6 +127,7 @@ bool test_0(StringSet<String<TDna> > & seqs, StringSet<String<TDna> > & seqs2)
     std::cerr << "test_0 \n";
     const unsigned shapelength = 25;
     uint64_t sum = 0, county, county2, preX = 0;
+    double time;
     bool vflag = false;
     HIndex<shapelength> index;
     typename HIndexBase<shapelength>::TShape shape;
@@ -159,6 +160,38 @@ bool test_0(StringSet<String<TDna> > & seqs, StringSet<String<TDna> > & seqs2)
         }
     }
     
+    
+    //=====MIndex
+    uint64_t sum3 = 0;
+    uint64_t mask_msa = (1ULL << 40) - 1;
+    typedef Index<StringSet<String<Dna5> >, IndexQGram<Minimizer<shapelength>, OpenAddressing > > TIndex_m;
+    TIndex_m index_m(seqs2);
+    Shape<Dna5, Minimizer<shapelength> > shape_m;
+    time = sysTime();
+    std::cerr << "  MIndex \n";
+    _createQGramIndex(index_m);
+    std::cerr << "  createing index time [s] " << sysTime() - time << "\n";
+    time = sysTime();
+    for(uint64_t j = 0; j < length(seqs); j++)
+    {
+        hashInit(shape_m, begin(seqs[j]));
+        for (uint64_t k =0; k < length(seqs[j]) - shape_m.span + 1; k++)
+        {
+            //std::cout << " k = " << k << "\n";
+            if(ordValue(*(begin(seqs[j]) + k + shape_m.span - 1)) == 4)
+            {
+                k += hashInit(shape_m, begin(seqs[j]) + k);
+            }
+            hashNext(shape_m, begin(seqs[j]) + k);
+            uint64_t pos = getDir(index_m, shape_m);
+            for (uint64_t m =  _getBodyCounth(index_m.dir[pos]); m <  _getBodyCounth(index_m.dir[pos + 1]); m++)
+            {
+                sum3 ^= (index_m.sa[m] & mask_msa);
+            }
+        }
+    }
+    std::cerr << "      sum3 = " << sum3 << " [s]" << sysTime() - time << "\n";
+    
     //=====OpenAddressing index
     typedef Shape<Dna5, UngappedShape<shapelength> > TShape_u;
     typedef Index<StringSet<String<Dna5> >, IndexQGram<UngappedShape<shapelength>, OpenAddressing > > TIndex_u;
@@ -188,7 +221,7 @@ bool test_0(StringSet<String<TDna> > & seqs, StringSet<String<TDna> > & seqs2)
     if (sum != sum2)
         std::cerr << "      false\n";
     std::cout << "    sum = " << (sum & ((1ULL << 30) - 1))<< " sum2 = " << sum2<< std::endl;
-    std::cerr << "    End test_0()" << std::endl;
+    std::cerr << "    End test_0()\n\n";
     
 
     return true;
@@ -269,12 +302,110 @@ bool test_1(StringSet<String<TDna> > & seqs, StringSet<String<TDna> > & seqs2)
     if (sum != sum2)
         std::cerr << "      false\n";
     std::cout << "    sum = " << (sum & ((1ULL << 30) - 1))<< " sum2 = " << sum2<< std::endl;
-    std::cerr << "    End test_0()" << std::endl;
+    std::cerr << "    End test_1()\n\n" << std::endl;
     
 
     return true;
 }
 
+template <typename TDna>   
+bool test_1_2(StringSet<String<TDna> > & seqs, StringSet<String<TDna> > & seqs2)
+{
+    std::cerr << "test_1_2: performance test\n";
+    const unsigned shapelength = 25;
+    uint64_t sum = 0, county, county2, preX = 0, pos;
+    bool vflag = false;
+    HIndex<shapelength> index;
+    typename HIndexBase<shapelength>::TShape shape;
+    
+    double time = sysTime();
+    //=====HIndex
+    createHIndex(seqs2, index);
+    std::cerr << "      create hindex time: " << sysTime() - time << "\n";
+    time = sysTime();
+    uint64_t c=0, c1=0, c2=0;
+    for(uint64_t j = 0; j < length(seqs); j++)
+    {
+        hashInit(shape, begin(seqs[j]));
+        for (uint64_t k =0; k < length(seqs[j]) - shape.span + 1; k++)
+        {
+            if(ordValue(*(begin(seqs[j]) + k + shape.span - 1)) == 4)
+            {
+                k += hashInit(shape, begin(seqs[j]) + k);
+                
+            }
+            c++;
+            hashNext(shape, begin(seqs[j]) + k);
+            
+            if (preX ^ shape.XValue)
+            {
+                pos = getXDir(index.xstr, shape.XValue, shape.YValue, vflag);
+                preX = shape.XValue;
+                c1++;
+            }
+            else 
+            {
+                if(vflag)
+                {
+                    
+                    pos = getXDir(index.xstr, shape.XValue, shape.YValue, vflag);
+                    c2++;
+                }
+             //       pos = getXDir(index.xstr, shape.XValue + (shape.YValue << 40), 0, vflag);
+            }
+            uint64_t m = pos;
+            do
+            {
+                if(_DefaultHs.getHsBodyY(index.ysa[m]) == shape.YValue)
+                {
+                    sum ^= _DefaultHs.getHsBodyS(index.ysa[m]);
+                    continue;
+                }
+                if (_DefaultHs.getHsBodyY(index.ysa[m]) < shape.YValue)
+                    break;
+            }
+            while (_DefaultHs.isBody(index.ysa[++m]));
+        }
+    }
+    std::cerr << "      hindex getsa: " << sysTime() - time << " " << sum << " " << (float) (c1+c2)/c<<"\n";
+    //=====OpenAddressing index
+    typedef Shape<Dna5, UngappedShape<shapelength> > TShape_u;
+    typedef Index<StringSet<String<Dna5> >, IndexQGram<UngappedShape<shapelength>, OpenAddressing > > TIndex_u;
+    typedef Iterator<String<Dna5> >::Type TIter;
+
+    TShape_u shape2;
+    TIndex_u index2(seqs2);
+    uint64_t sum2 = 0, p = 0;
+
+    time = sysTime();
+    indexCreate(index2, FibreSADir());
+    std::cerr << "      create OpenAddressing  time: " << sysTime() - time << "\n";
+    time = sysTime();
+    unsigned occ = 0;
+    for(uint64_t k = 0; k < length(seqs); k++)
+    {
+        TIter it = begin(seqs[k]);
+        hashInit(shape2, it);
+        for (uint64_t j = 0; j < length(seqs[k]) - shape2.span + 1; j++)
+        {
+            hashNext(shape2, it + j);
+            p = getBucket(index2.bucketMap, shape2.hValue);
+            for (uint64_t n = index2.dir[p]; n < index2.dir[p + 1]; n++)
+            {
+                sum2 ^= index2.sa[n].i2;
+            }
+        }
+    }
+    std::cerr << "      OpenAddressing getsa time: " << sysTime() - time << "\n";
+    
+    if (sum != sum2)
+        std::cerr << "      false\n";
+    std::cout << "    sum = " << (sum & ((1ULL << 30) - 1))<< " sum2 = " << sum2<< std::endl;
+    std::cerr << "    End test_1_2()\n\n";
+    
+
+    return true;
+}
 
 template <typename TDna>   
 bool _testIndexGetDir(StringSet<String<TDna> > & seqs, StringSet<String<TDna> > & seqs2)
@@ -566,6 +697,7 @@ int main(int argc, char const ** argv)
     //uTest3(mapper.genomes(), mapper.reads());
     //test_0(mapper.reads(), mapper.genomes());
     test_1(mapper.reads(), mapper.genomes());
+    //test_1_2(mapper.reads(), mapper.genomes());
 
     std::cerr << mapper.index().shape.weight << std::endl;
     std::cerr << "results saved to " << options.getOutputPath() << "\n";
