@@ -1822,7 +1822,7 @@ bool _createQGramIndexDirSA(StringSet<String<Dna5> > const & seq, XString & xstr
         _createHsArray(seq, hs, shape);
     time = sysTime();
     _createYSA<LENGTH<ShapeType>::VALUE, WGHT<ShapeType>::VALUE>(hs, xstr);
-    std::cerr << "_createYSA " << sysTime() - time << " [s]\n";
+    std::cerr << "      _createYSA " << sysTime() - time << " [s]\n";
    return true; 
     
 }
