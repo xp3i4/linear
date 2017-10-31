@@ -1265,6 +1265,37 @@ struct XString
     uint64_t _fullSize(uint64_t const & seqlen, float const & xtimes = 0.3, float const & alpha = 1.6);
 };
 
+template <unsigned TSPAN>
+struct HIndexBase
+{
+    typedef String<typename Hs::ValueType> YSA;
+    typedef XString XStr;
+    typedef Shape<Dna5, Minimizer<TSPAN> > TShape;
+    
+    static const double defaultAlpha;
+};
+
+template <unsigned TSPAN> 
+const double HIndexBase<TSPAN>::defaultAlpha(1.6);
+ 
+template <unsigned TSPAN>
+class HIndex
+{
+
+    public:
+
+        typename HIndexBase<TSPAN>::YSA             ysa;        
+        typename HIndexBase<TSPAN>::XStr            xstr;       
+        typename HIndexBase<TSPAN>::TShape          shape;
+        double   alpha;    
+        uint64_t emptyDir;
+        
+        HIndex():
+            alpha(HIndexBase<TSPAN>::defaultAlpha) 
+            {}
+};
+
+
 XString::XString(uint64_t const & seqlen)
 {
     std::cout << "1";
@@ -1656,6 +1687,46 @@ inline uint64_t getXDir(XString const & xstr, uint64_t const & xval, uint64_t co
     return 0;
 }
 
+
+template <unsigned span>
+inline uint64_t getXDir(HIndex<span> const & index, uint64_t const & xval, uint64_t const & yval, bool & vflag)
+{
+        uint64_t val, delta = 0;
+        uint64_t h1 = _DefaultXNodeFunc.hash(xval) & index.xstr.mask;
+        
+        //_setHeadNode(val, val);
+//!!!!! need to modify;
+        val = (xval << 2) + _DefaultXNodeBase.xHead;
+        vflag = false;
+        while (index.xstr.xstring[h1].val1)
+        {
+            //switch (index.xstr.xstring[h1].val1 ^ val) 
+            switch(_DefaultXNodeFunc.collision(index.xstr.xstring[h1].val1, val))
+            {
+                case 0:
+                    //std::cerr << "case1\n";
+                    //return _DefaultXNodeFunc.makeReturnVal(index.xstr.xstring[h1]);
+                    return index.xstr.xstring[h1].val2;
+                case 2:
+//!!!!! need to modify;
+                    vflag = true;
+                    val = (yval << 42) + (xval << 2) + _DefaultXNodeBase.xHead;
+                    h1 = _DefaultXNodeFunc.hash((yval << 40) + xval) & index.xstr.mask;
+                    delta = 0;
+                    //std::cerr << "case2\n" ;
+                    break;
+                //case 3:
+                //    return ( ^ shape.yvalue)?index.xstr[h1].val2:_DefaultXNodeBase._Empty_Dir_;
+                default:
+                    //std::cerr << "case4\n" ;
+                    h1 = (h1 + delta + 1) & index.xstr.mask;
+                    delta++;
+            }
+        }
+    return index.emptyDir;
+}
+
+
 /*
 inline uint64_t getXDir(XString const & xstr, String<uint64_t> & ystr, uint64_t const & xval, uint64_t const & yval)
 {
@@ -1697,10 +1768,10 @@ inline uint64_t getXDir(XString const & xstr, String<uint64_t> & ystr, uint64_t 
         return _DefaultXNodeBase._Empty_Dir_;
 }
 */        
-inline uint64_t gethDir(XString const & xstr, uint64_t const & xval, uint64_t const & yval)
+inline uint64_t gethDir(XString const & xstr, uint64_t const & hval)
 {        
-        uint64_t  val = (yval << 42) + (xval << 2) + _DefaultXNodeBase.xHead;
-        uint64_t  h1 = _DefaultXNodeFunc.hash((yval << 40) + xval) & xstr.mask;
+        uint64_t  val = (hval << 2) + _DefaultXNodeBase.xHead;
+        uint64_t  h1 = _DefaultXNodeFunc.hash(hval) & xstr.mask;
         uint64_t delta = 0;
         
 //!!!!! need to modify;
@@ -1722,7 +1793,7 @@ inline uint64_t gethDir(XString const & xstr, uint64_t const & xval, uint64_t co
 
 //#define debug_c_ysa
 template <unsigned TSPAN, unsigned TWEIGHT>
-bool _createYSA(String<uint64_t> & hs, XString & xstr)
+bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir)
 {
 //-k
     uint64_t k = _DefaultHs.getHeadPtr(hs[0]);
@@ -1758,10 +1829,16 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr)
         k += ptr;
     }
     _DefaultHs.setHsHeadPtr(hs[prek], block_size);
-    hs[k - countMove] = 0;
-    hs[k - countMove + 1] = 0;
+    //hs[k - countMove] = 0;
+    //hs[k - countMove + 1] = 0;
+    _DefaultHs.setHsHead(hs[k - countMove], 0, 0);
+    _DefaultHs.setHsHead(hs[k - countMove + 1], 0, 0);
+
+
+
     resize(hs, k + 2 - countMove);
     shrinkToFit(hs);
+    indexEmptyDir = k - countMove;
 //-k 
     k=0;
     preX = _DefaultHs.getHeadX(hs[0]);
@@ -1813,7 +1890,7 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr)
 
 
 template <unsigned SHAPELEN>
-bool _createQGramIndexDirSA(StringSet<String<Dna5> > const & seq, XString & xstr, String<uint64_t> & hs,  Shape<Dna5, Minimizer<SHAPELEN> > & shape, bool Efficient)    
+bool _createQGramIndexDirSA(StringSet<String<Dna5> > const & seq, XString & xstr, String<uint64_t> & hs,  Shape<Dna5, Minimizer<SHAPELEN> > & shape, uint64_t & indexEmptyDir, bool Efficient)    
 {
     
     typedef Shape<Dna5, Minimizer<SHAPELEN> > ShapeType;
@@ -1821,50 +1898,77 @@ bool _createQGramIndexDirSA(StringSet<String<Dna5> > const & seq, XString & xstr
     if (Efficient)
         _createHsArray(seq, hs, shape);
     time = sysTime();
-    _createYSA<LENGTH<ShapeType>::VALUE, WGHT<ShapeType>::VALUE>(hs, xstr);
+    _createYSA<LENGTH<ShapeType>::VALUE, WGHT<ShapeType>::VALUE>(hs, xstr, indexEmptyDir);
     std::cerr << "      _createYSA " << sysTime() - time << " [s]\n";
-   return true; 
+    return true; 
     
 }
  
-template <unsigned TSPAN>
-struct HIndexBase
-{
-    typedef String<typename Hs::ValueType> YSA;
-    typedef XString XStr;
-    typedef Shape<Dna5, Minimizer<TSPAN> > TShape;
-    
-    static const double defaultAlpha;
-};
 
-template <unsigned TSPAN> 
-const double HIndexBase<TSPAN>::defaultAlpha(1.6);
- 
-template <unsigned TSPAN>
-class HIndex
-{
 
-    public:
-
-        typename HIndexBase<TSPAN>::YSA             ysa;        
-        typename HIndexBase<TSPAN>::XStr            xstr;       
-        typename HIndexBase<TSPAN>::TShape          shape;
-        double   alpha;    
-        uint64_t emptyDir;
-        
-        HIndex():
-            alpha(HIndexBase<TSPAN>::defaultAlpha) 
-            {}
-};
 
 template <typename TDna, unsigned span>
 bool createHIndex(StringSet<String<TDna> > & seq, HIndex<span> & index)
 {
-    return _createQGramIndexDirSA(seq, index.xstr, index.ysa, index.shape, true);
+    return _createQGramIndexDirSA(seq, index.xstr, index.ysa, index.shape, index.emptyDir, true);
+}
+
+/*
+template <unsigned span, typename Result>
+bool streamSeq(HIndex<span> & index, StringSet<String<Dna5> > & seqs, Result & result, void (*call_back)(uint64_t const & , Result & ))    
+{
+    uint64_t preX = 0, pos = 0;
+    bool vflag;
+    
+        for(uint64_t j = 0; j < length(seqs); j++)
+        {
+            hashInit(index.shape, begin(seqs[j]));
+            for (uint64_t k =0; k < length(seqs[j]) - index.shape.span + 1; k++)
+            {
+                if(ordValue(*(begin(seqs[j]) + k + index.shape.span - 1)) == 4)
+                {
+                    k += hashInit(index.shape, begin(seqs[j]) + k);
+                    
+                }
+                hashNext(index.shape, begin(seqs[j]) + k);
+                
+                if (preX ^ index.shape.XValue)
+                {
+                    pos = getXDir(index.xstr, index.shape.XValue, index.shape.YValue, vflag);
+                    preX = index.shape.XValue;
+                }
+                else 
+                {
+                    if(vflag)
+                    {
+                //        pos = getXDir(index.xstr, index.shape.XValue, index.shape.YValue, vflag);
+                        pos = getXDir(index.xstr, index.shape.XValue + (index.shape.YValue << 40), 0, vflag);
+                        vflag = true;
+                    }
+                }
+                uint64_t m = pos;
+                do
+                {
+                    if(_DefaultHs.getHsBodyY(index.ysa[m]) == index.shape.YValue)
+                    {
+                        //sum ^= _DefaultHs.getHsBodyS(index.ysa[m]);
+                        call_back(_DefaultHs.getHsBodyS(index.ysa[m]), result);
+                        continue;
+                    }
+                    if (_DefaultHs.getHsBodyY(index.ysa[m]) < index.shape.YValue)
+                        break;
+                }
+                while (_DefaultHs.isBody(index.ysa[++m]));
+            }
+        }
 }
 
 
-
+inline void streamCall_back(uint64_t const & sa,  uint64_t & result)
+{
+    result ^= sa;
+}
+*/
 //End(P2)
 //=========================================================================
 
