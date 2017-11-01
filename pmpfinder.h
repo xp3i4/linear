@@ -211,13 +211,62 @@ inline bool Cord::print(typename Cord::CordSet const & cords, std::ostream & of,
 //
 
 
+//======HIndex getIndexMatch()
+
+//Note: length of read should be < 1MB;
 
 template <typename TDna, typename TSpec>
+inline unsigned getIndexMatch(typename PMCore<TDna, TSpec>::Index & index,
+                              typename PMRecord<TDna>::RecSeq const & read,
+                              uint64_t* const set,
+                              unsigned & len,
+                              MapParm & mapParm,
+                              double & time
+                             )
+{    
+    double t=sysTime();
+    unsigned block = (mapParm.blockSize < length(read))?mapParm.blockSize:length(read);
+    unsigned dt = block * (mapParm.alpha / (1 - mapParm.alpha));
+
+    hashInit(index.shape, begin(read));
+    for (unsigned h=0; h <= length(read) - block; h += dt)
+    {
+        hashInit(index.shape, begin(read) + h);
+        for (unsigned k = h; k < h + block; k++)
+        {
+            hashNext(index.shape, begin(read) + k);
+            uint64_t pre = ~0;
+            uint64_t pos = getXYDir(index, index.shape.XValue, index.shape.YValue);
+            if (_DefaultHs.getHsBodyY(index.ysa[pos + mapParm.delta]) ^ index.shape.YValue)
+            {
+                while (_DefaultHs.isBodyYEqual(index.ysa[pos], index.shape.YValue))
+                {
+//Note: needs change
+                    if (index.ysa[pos] - pre > mapParm.kmerStep)
+                    {
+                        set[len++] = (_DefaultHs.getHsBodyS(index.ysa[pos]-k) << 20)+k;
+                        pre = index.ysa[pos];
+                    }
+                    ++pos;
+                }
+            }
+        }
+    }
+    time += sysTime() - t;
+    return time;
+}
+//====End HIndex.getIndexMatch()
+
+//Generic index for getIndexMatch
+//to use it please the index type in PMCore to generic qgram index.
+/*
+ 
+template <typename TDna, unsigned TSpan,typename TSpec>
 inline unsigned getIndexMatch(typename PMCore<TDna, TSpec>::Index  & index,
                               typename PMRecord<TDna>::RecSeq & read,
 //                              Anchors & anchor,
-        uint64_t* const set,
-        unsigned & len,
+                                uint64_t* const set,
+                                unsigned & len,
                               MapParm & mapParm,
                             double & time
                              )
@@ -255,6 +304,8 @@ inline unsigned getIndexMatch(typename PMCore<TDna, TSpec>::Index  & index,
     time += sysTime() - t;
     return time;
 }
+*/
+
 
 inline unsigned getAnchorMatch(Anchors & anchors, MapParm & mapParm, float const & thrd, PMRes::HitString & hit, double & time )
 {

@@ -187,7 +187,11 @@ struct CoreBase{
     typedef Minimizer<Const_::_SHAPELEN> DefaultShape;
     typedef typename PMRecord<TDna>::RecSeqs RecSeqs; 
     typedef Shape<TDna, CoreMinimizer> CoreShape;
-    typedef Index<RecSeqs, IndexQGram<CoreMinimizer, OpenAddressing> > CoreIndex;
+    //typedef Index<RecSeqs, IndexQGram<CoreMinimizer, OpenAddressing> > CoreIndex;
+//==============
+//  This part is change the index from previous generic indx to 25-mer HIndex;
+    typedef HIndex<Const_::_SHAPELEN> CoreIndex;
+//==============   
     typedef Anchors AnchorSet;
 
 };

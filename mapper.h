@@ -105,7 +105,7 @@ template <typename TDna, typename TSpec>
 int Mapper<TDna, TSpec>::createIndex()
 {
     std::cerr << "Creating index \n";
-    _createQGramIndex(qIndex);
+    _createQGramIndex(qIndex, genomes());
     return 0;
 }
 
@@ -239,14 +239,15 @@ void map(Mapper<TDna, TSpec> & mapper)
     //printStatus();
     double time = sysTime();
     mapper.createIndex();
+    std::cerr << "done1\n";
     resize(mapper.hits(), length(mapper.reads()));
     resize(mapper.cords(), length(mapper.reads()));
+    std::cerr << "done2\n";
 //  mnMap<TDna, TSpec>(mapper.index(), mapper.reads(), _DefaultMapParm, mapper.hits());
 // path(mapper.hits(), mapper.reads(), mapper.genomes(), mapper.cords());
     rawMap<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), _DefaultMapParm, mapper.hits(), mapper.cords());
     //mapper.printHits();
     mapper.printCords();
-    std::cerr << (length(mapper.index().dir) >>27) << " " << (length(mapper.index().sa)>>27) << std::endl;
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
 }
 

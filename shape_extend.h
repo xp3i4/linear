@@ -427,9 +427,46 @@ inline uint64_t xy2h(uint64_t x, uint64_t y)
     return ((y &(~mask) & mask1)<< weight) + (x << (64 - t - weight)) + (y & mask);
 }
 
+/*
+//============================
+//This part is to optimize 25-mer index
+//============================
+struct HIndexTag;
+template <unsigned TSPAN, unsigned>
+struct Minimizer<TSPAN, WEIGHT, HIndexTag>
+{};
+
+template <typename TValue, unsigned TSPAN>
+class Shape<TValue, Minimizer<TSPAN, HIndexTag> >
+{
+public:
+    typedef typename seqan::Value<Shape>::Type THashValue;
+
+    unsigned span;
+    unsigned weight;
+    THashValue hValue;     //hash value 
+    THashValue XValue;     //minimizer 
+    THashValue YValue;     //Y(h,x)
+    bool vflag;
+
+    Shape():
+        span(TSPAN),
+        weight(TWEIGHT),
+        hValue(0),
+        XValue(0),
+        YValue(0),
+        vflag(false)
+    {}
+};
+
+*/
 
 }
 // namespace seqan
+
+
+
+
 
 
 

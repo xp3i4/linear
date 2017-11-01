@@ -98,64 +98,7 @@ using namespace seqan;
 
     }
 
-template <typename TDna>   
-void _testIndex(StringSet<String<TDna> > & seqs, typename Mapper<>::Index & index)   
-{
-    double time = sysTime();
-    uint64_t sum = 0;
-    for(uint64_t j = 0; j < length(seqs); j++)
-    {
-        hashInit(index.shape, begin(seqs[j]));
-        for (uint64_t k =0; k < length(seqs[j]) - index.shape.span + 1; k++)
-        {
-           // if(ordValue(*(begin(seqs[j]) + k + shape.span - 1)) == 4)
-           // {
-           //     k += hashInit(shape, begin(seqs[j]) + k);
-           //     if(k > length(seqs[j]) - shape.span + 1)
-           //         break;
-           // }
-            
-            hashNext(index.shape, begin(seqs[j]) + k);
-            sum += getDir(index, index.shape);
-        }
-    }
-    std::cout << sysTime() - time << " " << sum << std::endl;
-}
-/*
-template <typename TDna>   
-void _testIndexGetDir(StringSet<String<TDna> > & seqs, typename Mapper<>::Index & index, XString const & xstr, String<uint64_t> const & hs)
-{
-    std::cerr << "testIndexGetDir \n";
-    double time = sysTime();
-    uint64_t sum = 0;
-    String<uint64_t> sa;
-    for(uint64_t j = 0; j < length(seqs); j++)
-    {
-        hashInit(index.shape, begin(seqs[j]));
-        for (uint64_t k =0; k < length(seqs[j]) - index.shape.span + 1; k++)
-        {
-            if(ordValue(*(begin(seqs[j]) + k + index.shape.span - 1)) == 4)
-            {
-                k += hashInit(index.shape, begin(seqs[j]) + k);
-            }
-            
-            hashNext(index.shape, begin(seqs[j]) + k);
-            uint64_t pos = getXDir(xstr, index.shape.XValue, index.shape.YValue) & ((1ULL << 32) - 1);
-            //if (pos != _DefaultXNodeBase._Empty_Dir_)
-            if (pos <= length(hs))
-            {
-                uint64_t val = hs[pos];
-                //std::cerr << pos << " " << length(hs) << " \n";
-                uint64_t saval = (val & ((1ULL << 40) - 1) );
-                std::cout << ((val >> 40) & ((1ULL << 10) - 1 ))  << " " << k << " " << (saval >> 30) << " " << (val & ((1ULL << 30) - 1))<< std::endl;
-            }
-            else
-                std::cerr << pos << "error" << length(hs) << "\n";
-        }
-    }
-    std::cout << "End testIndexGetDir time:" << sysTime() - time << " sum = " << sum << std::endl;
-}
-*/    
+
 int main(int argc, char const ** argv)
 {
     std::cerr << "Encapsulated version: Mapping reads efficiently" << std::endl;
@@ -167,18 +110,7 @@ int main(int argc, char const ** argv)
         return res == seqan::ArgumentParser::PARSE_ERROR;
     double t=sysTime();
     Mapper<> mapper(options);
-    //_createIndexDir(mapper.genomes(), mapper.index().dir, mapper.index().shape);
-    //_createQGramIndexDirSA(mapper.genomes(), mapper.index().dir, mapper.index().bucketMap, mapper.index().sa, mapper.index().shape, true);
-    //mapper.createIndex();
-    //_testIndex(mapper.reads(), mapper.index());
-    String<uint64_t> dir, bucketMap, sa, hs;
-    XString xstr;
-    _createQGramIndexDirSA(mapper.genomes(), xstr, hs, mapper.index().shape, true);
-    
-    //for (unsigned k = 0 ; k < length(hs); k++)
-    //    std::cerr << "hs " << (hs[k] & ((1ULL<<30) - 1)) << std::endl;
-    //map(mapper);
-    //_testIndexGetDir(mapper.reads(), mapper.index(), xstr, hs);
+    map(mapper);
     std::cerr << mapper.index().shape.weight << std::endl;
     std::cerr << "results saved to " << options.getOutputPath() << "\n";
     
