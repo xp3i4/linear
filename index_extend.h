@@ -1090,6 +1090,20 @@ void _createQGramIndex(Index<StringSet<String<TObj> >, IndexQGram<Minimizer<TSpa
                 << (float) length(index.sa) /1024/1024/128 << " GB" << std::endl;
     std::cerr << "    End creating index. Time[s] " << sysTime() - time << std::endl;
 }
+
+template <typename TObj, unsigned TSpan, unsigned TWeight>
+void _createQGramIndex(Index<StringSet<String<TObj> >, IndexQGram<Minimizer<TSpan, TWeight>, OpenAddressing > >& index)
+{
+    double time = sysTime(); 
+    //std::cerr << "    createQGramIndexDirOnly() sysTime(): " << std::endl;
+    _qgramClearDir(index);
+    _qgramCountQGrams(index);
+    //std::cerr << "        End createQGramIndexDirOnly() sysTime(): " << sysTime() - time << std::endl;
+    std::cerr << "        index.dir " << (float)length(index.dir) /1024/1024/1024 *8 << " GB index.sa " 
+                << (float) length(index.sa) /1024/1024/128 << " GB" << std::endl;
+    std::cerr << "    End creating index. Time[s] " << sysTime() - time << std::endl;
+}
+
 //========================================================
 //Begin(P2):This section is to optimize 25mer for mapping
 

@@ -426,7 +426,12 @@ bool test_1_2(StringSet<String<TDna> > & seqs, StringSet<String<TDna> > & seqs2,
         uint64_t c=0, c1=0, c2=0;
         for(uint64_t j = 0; j < length(seqs); j++)
         {
+            
+            if (length(seqs[j]) < 25)
+                continue;
             hashInit(shape, begin(seqs[j]));
+            //std::cerr << j << " " << length(seqs[j])<< "\n";
+
             for (uint64_t k =0; k < length(seqs[j]) - shape.span + 1; k++)
             {
                 if(ordValue(*(begin(seqs[j]) + k + shape.span - 1)) == 4)
@@ -537,6 +542,8 @@ bool test_1_2(StringSet<String<TDna> > & seqs, StringSet<String<TDna> > & seqs2,
         unsigned occ = 0;
         for(uint64_t k = 0; k < length(seqs); k++)
         {
+            if (length(seqs[k]) < 25)
+                continue;
             TIter it = begin(seqs[k]);
             hashInit(shape2, it);
             for (uint64_t j = 0; j < length(seqs[k]) - shape2.span + 1; j++)

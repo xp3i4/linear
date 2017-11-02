@@ -145,7 +145,7 @@ struct PMRecord
 
 struct AnchorBase{
     typedef typename Const_::BIT_INT_ AnchorType; 
-    static const unsigned size = 131072;
+    static const unsigned size = 131072 * 2;
     static const unsigned bit = 20;
     static const uint64_t AnchorValue = 1000ULL << bit;
     static const typename Const_::BIT_INT_ mask = (1ULL<<bit) - 1;
@@ -157,7 +157,6 @@ struct Anchors{
 
     AnchorType set[AnchorBase::size];
     unsigned len;
-
     
     Anchors(){len = 1;};
     Anchors(AnchorType val, unsigned range);
