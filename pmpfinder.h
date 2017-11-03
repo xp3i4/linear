@@ -305,6 +305,82 @@ inline unsigned getIndexMatch(typename PMCore<TDna, TSpec>::Index  & index,
 }
 */
 
+//========================================
+//===thi part is for all map module
+
+
+//NodeType: 1 Head, 0 Body
+//Head: type[1]|NA[3]|anchor length[30]|ptr[30] #point to next head
+//Body: type[1]|NA[3]|Anchor value [60]
+/*
+struct HitBase
+{
+    uint64_t bit;
+    uint64_t mask;
+    
+    HitBase():
+        bit(63),
+        mask((1 << bit) - 1)
+        {}
+}_DefaultHitBase;
+
+struct Hit
+{
+    setHead(uint64_t & node, uint64_t const & ptr, uint64_t const & mask = _DefaultHitBase.mask)
+        {node = ptr | (~mask);}
+    setBody(uint64_t & node, uint64_t const & val, uint64_t const & mask = _DefaultHitBase.mask)
+        {node = val & mask;}
+    
+}_DefaultHit;
+
+//===!Note:Need to put this parameterin the mapper threshold
+static unsigned const anchorThr = 50;
+
+inline unsigned getAnchorMatchAll(Anchors & anchors, MapParm & mapParm, float const & thrd, PMRes::HitString & hit, double & time )
+{
+    double t=sysTime();
+    uint64_t ak;
+    unsigned maxLen = 0, c_b=mapParm.shapeLen, cbb=0, sb=0, end=0, start = 0;
+    anchors[0] = anchors[1];
+    ak=anchors[0];
+    anchors.sort(anchors.begin(), anchors.end());
+    for (unsigned k = 1; k <= anchors.length(); k++)
+    {
+        if (anchors[k] - ak >= AnchorBase::AnchorValue)
+        {
+            anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
+            for (uint64_t m = sb+1; m < k; m++)
+            {
+                if(anchors.deltaPos2(m, m-1) >  mapParm.shapeLen)
+                    c_b += mapParm.shapeLen;
+                else
+                    c_b += anchors.deltaPos2(m, m-1); 
+            }
+            std::cerr << "[DEBUG]" << (anchors[sb + 1] >> 20) << " " << c_b << " \n";
+            if (c_b > maxLen)
+            {
+                maxLen = c_b;
+                start = sb;
+                end = k;
+            }
+            for (unsigned m = sb; m < k; m++)
+                appendValue(hit, anchors[m]);
+            sb = k;
+            ak = anchors[k];
+            c_b = mapParm.shapeLen;
+        }
+    }
+
+//    std::cerr << start << " " << end << " " << anchors.len<< std::endl;
+    for (unsigned k = start; k < end; k++)
+        appendValue(hit, anchors[k]);
+
+    time += sysTime() - t;
+    return start + (maxLen << 20) ;
+}
+*/
+//End all mapper module
+//============================================
 
 inline unsigned getAnchorMatch(Anchors & anchors, MapParm & mapParm, float const & thrd, PMRes::HitString & hit, double & time )
 {
@@ -316,6 +392,7 @@ inline unsigned getAnchorMatch(Anchors & anchors, MapParm & mapParm, float const
     anchors.sort(anchors.begin(), anchors.end());
     for (unsigned k = 1; k <= anchors.length(); k++)
     {
+//        if (anchors[k] - ak < AnchorBase::AnchorValue)
         if (anchors[k] - ak < AnchorBase::AnchorValue)
             cbb++;
         else
@@ -328,7 +405,8 @@ inline unsigned getAnchorMatch(Anchors & anchors, MapParm & mapParm, float const
                 else
                     c_b += anchors.deltaPos2(m, m-1); 
             }
-            std::cerr << "[DEBUG]" << (anchors[sb + 1] >> 20) << " " << c_b << " \n";
+            if (c_b > 100)
+            //std::cout << "[DEBUG] " << (anchors[sb + 1] >> 20) << " " << c_b << " \n";
             if (c_b > maxLen)
             {
                 maxLen = c_b;
@@ -492,10 +570,10 @@ inline int _scriptDist(int const & s1, int const & s2)
 template<typename TIter> 
 inline void createFeatures(TIter const & itBegin, TIter const & itEnd, String<int> & f)
 {
- //   std::cerr << "createFeatures " << std::endl;
+//   std::cerr << "createFeatures " << std::endl;
     unsigned next = 1;
     unsigned window = 1 << scriptWindow;
- //   std::cerr << "length() " << itEnd - itBegin << " " << ((itEnd - itBegin -window) >> scriptBit) + 1 << std::endl;
+//   std::cerr << "length() " << itEnd - itBegin << " " << ((itEnd - itBegin -window) >> scriptBit) + 1 << std::endl;
     resize (f, ((itEnd - itBegin -window) >> scriptBit) + 1);
 //    std::cerr << length(f) << std::endl;
     f[0] = 0;
@@ -505,7 +583,7 @@ inline void createFeatures(TIter const & itBegin, TIter const & itEnd, String<in
     }
     for (unsigned k = scriptStep; k < itEnd - itBegin - window ; k+=scriptStep) 
     {
-//    std::cout << k << " " << next << " " << " " << length(f) << std::endl;
+//      std::cout << k << " " << next << " " << " " << length(f) << std::endl;
         f[next] = f[next - 1];
         for (unsigned j = k - scriptStep; j < k; j++)
         {
@@ -513,7 +591,7 @@ inline void createFeatures(TIter const & itBegin, TIter const & itEnd, String<in
         }
         next++;
     }
-//    std::cout << "createFeatures done " << std::endl;
+//  std::cout << "createFeatures done " << std::endl;
 
 }
 
@@ -768,6 +846,7 @@ std::cerr << "[Debug]done2\n";
 //need polishing: only mapping reads > length threshold 
 //==
         //std::cerr << j << "\n";
+       // std::cout << "[DEBUG] " << j << "\n";
         if(length(reads[j]) < 1000)
             continue;
         mnMapRead<TDna, TSpec>(index, reads[j], anchors, mapParm, hits[j], tm, tm2);
