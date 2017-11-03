@@ -193,14 +193,14 @@ void Mapper<TDna, TSpec>::printCords(std::ostream & of)
     for (unsigned k = 0; k < length(cordSet); k++)
     {
         if (empty(cordSet))
-            of << k << "th Strand " << strand << " 2 " << length(reads()[k]) << "\n";
+            of << k << " th Strand " << strand << " 2 " << length(reads()[k]) << "\n";
         else
         {
             if (_DefaultCord.getCordStrand(back(cordSet[k]))) 
                 strand = 1;
             else 
                 strand = 0;
-            of << k << " " << strand << " " << length(reads()[k]) << "\n";
+            of << k << " th Strand " << strand << " " << length(reads()[k]) << "\n";
             _DefaultCord.print(cordSet[k],of);
         }
     }
@@ -217,14 +217,14 @@ void Mapper<TDna, TSpec>::printCords()
     for (unsigned k = 0; k < length(cordSet); k++)
     {
         if (empty(cordSet[k]))
-            of << k << "th Strand " << "2 length " << length(reads()[k]) << "\n";
+            of << k << " th Strand " << "2 length " << length(reads()[k]) << "\n";
         else
         {
             if (_DefaultCord.getCordStrand(back(cordSet[k]))) 
                 strand = 1;
             else 
                 strand = 0;
-            of << k << "th Strand " << strand << " length " << length(reads()[k]) << "\n";
+            of << k << " th Strand " << strand << " length " << length(reads()[k]) << "\n";
             _DefaultCord.print(cordSet[k], of);
         }
     }
