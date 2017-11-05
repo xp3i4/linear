@@ -238,10 +238,15 @@ inline unsigned getIndexMatch(typename PMCore<TDna, TSpec>::Index & index,
             uint64_t pos = getXYDir(index, index.shape.XValue, index.shape.YValue);
             if (_DefaultHs.getHsBodyY(index.ysa[std::min(pos + mapParm.delta, length(index.ysa) - 1)]) ^ index.shape.YValue)
             {
-                while (_DefaultHs.isBodyYEqual(index.ysa[pos], index.shape.YValue))
+                //while (_DefaultHs.isBodyYEqual(index.ysa[pos], index.shape.YValue))
+                while (((index.ysa[pos] >> 41) & ((1ULL << 20) - 1)) == index.shape.YValue && _DefaultHs.isBody(index.ysa[pos]))
                 {
-//Note: needs change
-                    if (index.ysa[pos] - pre > mapParm.kmerStep)
+//!Note: needs change
+                    //std::cout << "[DEBUG] " << (_DefaultHs.getHsBodyS(index.ysa[pos]) >> 30) << " " << (_DefaultHs.getHsBodyS(index.ysa[pos]) & ((1ULL << 30) - 1)) << " " << _DefaultHs.getHsBodyS(index.ysa[pos]) - k << " " << ((_DefaultHs.getHsBodyS(index.ysa[pos]) - k ) & ((1ULL << 30) - 1)) << std::endl;
+                    //std::cout << "[DEBUG]" <<  " ref id " << (_DefaultHs.getHsBodyS(index.ysa[pos]) >>30)<< " ref pos " << (_DefaultHs.getHsBodyS(index.ysa[pos]) & ((1ULL << 30) - 1)) << " anchor " << _DefaultHs.getHsBodyS(index.ysa[pos] - k) << " y value "<< _DefaultHs.getHsBodyY(index.ysa[pos])<< " "<< pre - index.ysa[pos] << " pos " << mapParm.kmerStep << "\n";
+                    //std::cout << "[DEBUG]" << _DefaultHs.getHsBodyS(pre) << " " << _DefaultHs.getHsBodyY(pre) << " " << _DefaultHs.getHsBodyS(index.ysa[pos]) << " " << _DefaultHs.getHsBodyY(index.ysa[pos])<< " "<< pre - index.ysa[pos] << " pos " << mapParm.kmerStep << "\n";
+//!Note: the sa is in reverse order in hindex. this is different from the generic index
+                    if (pre - index.ysa[pos] > mapParm.kmerStep)
                     {
                         set[len++] = (_DefaultHs.getHsBodyS(index.ysa[pos]-k) << 20)+k;
                         pre = index.ysa[pos];
@@ -254,6 +259,52 @@ inline unsigned getIndexMatch(typename PMCore<TDna, TSpec>::Index & index,
     time += sysTime() - t;
     return time;
 }
+
+/*
+template <typename TDna, typename TSpec>
+inline unsigned getIndexMatch(typename PMCore<TDna, TSpec>::Index & index,
+                              typename PMRecord<TDna>::RecSeq const & read,
+                              uint64_t* const set,
+                              unsigned & len,
+                              MapParm & mapParm,
+                              double & time
+                             )
+{    
+    double t=sysTime();
+    unsigned block = (mapParm.blockSize < length(read))?mapParm.blockSize:length(read);
+    std::cerr << " block = " << block << "\n";
+    unsigned dt = block * (mapParm.alpha / (1 - mapParm.alpha));
+    hashInit(index.shape, begin(read));
+    for (unsigned h=0; h <= length(read) - block; h += dt)
+    {
+        hashInit(index.shape, begin(read) + h);
+        for (unsigned k = h; k < h +  block; k++)
+        {
+            //std::cout << "\n" << k << "\n";
+            hashNext(index.shape, begin(read) + k);
+            //std::cout << k << " " <<  length(read) << " " << index.shape.hValue << std::endl;
+            uint64_t pre = ~0;
+            uint64_t pos = getXYDir(index, index.shape.XValue, index.shape.YValue);
+                //while (_DefaultHs.isBodyYEqual(index.ysa[pos], index.shape.YValue))
+                while (((index.ysa[pos] >> 41) & ((1ULL << 20) - 1)) == index.shape.YValue && _DefaultHs.isBody(index.ysa[pos]))
+                {
+//!Note: needs change
+                    //std::cout << "[DEBUG] " << (_DefaultHs.getHsBodyS(index.ysa[pos]) >> 30) << " " << (_DefaultHs.getHsBodyS(index.ysa[pos]) & ((1ULL << 30) - 1)) << " " << _DefaultHs.getHsBodyS(index.ysa[pos]) - k << " " << ((_DefaultHs.getHsBodyS(index.ysa[pos]) - k ) & ((1ULL << 30) - 1)) << std::endl;
+//!Note: the sa is in reverse order in hindex. this is different from the generic index
+                    if (pre - index.ysa[pos] > mapParm.kmerStep)
+                    {
+                        set[len++] = (_DefaultHs.getHsBodyS(index.ysa[pos]-k) << 20)+k;
+                        pre = index.ysa[pos];
+                    }
+                    ++pos;
+                }
+        }
+    }
+    time += sysTime() - t;
+    return time;
+}
+*/
+
 //====End HIndex.getIndexMatch()
 
 //Generic index for getIndexMatch
@@ -405,7 +456,7 @@ inline unsigned getAnchorMatch(Anchors & anchors, MapParm & mapParm, float const
                 else
                     c_b += anchors.deltaPos2(m, m-1); 
             }
-            if (c_b > 100)
+            //if (c_b > 100)
             //std::cout << "[DEBUG] " << (anchors[sb + 1] >> 20) << " " << c_b << " \n";
             if (c_b > maxLen)
             {
@@ -420,8 +471,8 @@ inline unsigned getAnchorMatch(Anchors & anchors, MapParm & mapParm, float const
         }
 
     }
-
-//    std::cerr << start << " " << end << " " << anchors.len<< std::endl;
+    
+    //std::cerr << "[DEBUG] len" << maxLen << " "<< start << " " << end << " " << anchors.len<< std::endl;
     for (unsigned k = start; k < end; k++)
         appendValue(hit, anchors[k]);
 
@@ -854,7 +905,9 @@ std::cerr << "[Debug]done2\n";
         //_DefaultCord.print(cords[j]);
         if (anchors.len < 30)
             countl++;
-        if (length(cords[j]) < 20)
+//!Need modify
+//!influence speed
+        if (length(cords[j]) < (length(reads[j]) / 192 * 0.5))
         {
             anchors.len=1;
             //anchors.init(Const_::_LLTMax, AnchorBase::size);
