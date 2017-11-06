@@ -1079,6 +1079,19 @@ void _qgramCountQGrams(Index<StringSet<String<TObj> >, IndexQGram<Minimizer<TSpa
 }
 
 template <typename TObj, unsigned TSpan, unsigned TWeight>
+void _createQGramIndex(Index<StringSet<String<TObj> >, IndexQGram<Minimizer<TSpan, TWeight>, OpenAddressing > >& index, StringSet<String<TObj> > & seq)
+{
+    double time = sysTime(); 
+    //std::cerr << "    createQGramIndexDirOnly() sysTime(): " << std::endl;
+    _qgramClearDir(index);
+    _qgramCountQGrams(index);
+    //std::cerr << "        End createQGramIndexDirOnly() sysTime(): " << sysTime() - time << std::endl;
+    std::cerr << "        index.dir " << (float)length(index.dir) /1024/1024/1024 *8 << " GB index.sa " 
+                << (float) length(index.sa) /1024/1024/128 << " GB" << std::endl;
+    std::cerr << "    End creating index. Time[s] " << sysTime() - time << std::endl;
+}
+
+template <typename TObj, unsigned TSpan, unsigned TWeight>
 void _createQGramIndex(Index<StringSet<String<TObj> >, IndexQGram<Minimizer<TSpan, TWeight>, OpenAddressing > >& index)
 {
     double time = sysTime(); 
@@ -1090,6 +1103,7 @@ void _createQGramIndex(Index<StringSet<String<TObj> >, IndexQGram<Minimizer<TSpa
                 << (float) length(index.sa) /1024/1024/128 << " GB" << std::endl;
     std::cerr << "    End creating index. Time[s] " << sysTime() - time << std::endl;
 }
+
 //========================================================
 //Begin(P2):This section is to optimize 25mer for mapping
 
@@ -1115,6 +1129,7 @@ struct HsBase
     
     const uint64_t headTypeFlag;
     const uint64_t typeFlag;
+    const uint64_t typeFlag2;
     const uint64_t typeMask;
     const uint64_t bodyCodeFlag;
     
@@ -1131,6 +1146,7 @@ struct HsBase
         maxPointer(1 << pointerBitLen),
         headTypeFlag(0),
         typeFlag(1ULL << 63),
+        typeFlag2(1ULL << (63 - bodyYBit)),
         typeMask(typeFlag - 1),
         bodyCodeFlag(1ULL << bodyCodeBit)
 
@@ -1176,6 +1192,12 @@ struct Hs
                       uint64_t const & = _DefaultHsBase.mask);
     bool isBody(uint64_t const & val, uint64_t const & flag = _DefaultHsBase.typeFlag)
     {return val & flag;}
+    bool isBodyYEqual(uint64_t const & hval, uint64_t const & yval, 
+                    uint64_t const & bit = _DefaultHsBase.bodyYBit,
+                    uint64_t const & flag = _DefaultHsBase.typeFlag2
+    )
+    //return if hval is body and if yvalue of hval euqals to yval
+        {return ((hval >> bit) ^ yval) == flag;}
     
 }_DefaultHs;
 
@@ -1268,6 +1290,7 @@ struct XString
 template <unsigned TSPAN>
 struct HIndexBase
 {
+    typedef StringSet<String<Dna5> > Text;
     typedef String<typename Hs::ValueType> YSA;
     typedef XString XStr;
     typedef Shape<Dna5, Minimizer<TSPAN> > TShape;
@@ -1283,7 +1306,6 @@ class HIndex
 {
 
     public:
-
         typename HIndexBase<TSPAN>::YSA             ysa;        
         typename HIndexBase<TSPAN>::XStr            xstr;       
         typename HIndexBase<TSPAN>::TShape          shape;
@@ -1293,6 +1315,12 @@ class HIndex
         HIndex():
             alpha(HIndexBase<TSPAN>::defaultAlpha) 
             {}
+        HIndex(typename HIndexBase<TSPAN>::Text const & text):
+            alpha(HIndexBase<TSPAN>::defaultAlpha) 
+        {
+            (void) text;
+        }
+        
 };
 
 
@@ -1470,10 +1498,11 @@ inline bool _hsSortY_SA(TIt const & begin, TIt const & end) // sort y and sa
 template <typename TIter>
 inline void _hsSort(TIter const & begin, TIter const & end, unsigned const & shapeWeight)
 {
+    std::cerr << "      sorting xstr \n";
     double time = sysTime();
     _hsSortX(begin, end, shapeWeight << 1);
     //std::sort(begin, end);
-    std::cerr << "          _dirSortX " << sysTime() - time << std::endl;
+    std::cerr << "      _dirSortX Time[s]" << sysTime() - time << std::endl;
     //_hsSortY_SA(begin, end);
     //std::cerr << " _dirSortY " << sysTime() - time << "\n";
 }
@@ -1525,7 +1554,7 @@ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs,
     }
     _DefaultHs.setHsHead(hs[++count - ptr], ptr, shape.XValue);
     _DefaultHs.setHsHead(hs[count], 0, 0);
-    std::cerr << "      init " << sysTime() - time << " " << std::endl;
+    std::cerr << "      init Time[s]" << sysTime() - time << " " << std::endl;
 //-k
     _hsSort(begin(hs), begin(hs) + count, shape.weight);
     //_hsSort(begin(hs) + start, begin(hs) + count, shape.weight);
@@ -1691,83 +1720,112 @@ inline uint64_t getXDir(XString const & xstr, uint64_t const & xval, uint64_t co
 template <unsigned span>
 inline uint64_t getXDir(HIndex<span> const & index, uint64_t const & xval, uint64_t const & yval, bool & vflag)
 {
-        uint64_t val, delta = 0;
-        uint64_t h1 = _DefaultXNodeFunc.hash(xval) & index.xstr.mask;
-        
-        //_setHeadNode(val, val);
+    uint64_t val, delta = 0;
+    uint64_t h1 = _DefaultXNodeFunc.hash(xval) & index.xstr.mask;
+    
+    //_setHeadNode(val, val);
 //!!!!! need to modify;
-        val = (xval << 2) + _DefaultXNodeBase.xHead;
-        vflag = false;
-        while (index.xstr.xstring[h1].val1)
+    val = (xval << 2) + _DefaultXNodeBase.xHead;
+    vflag = false;
+    while (index.xstr.xstring[h1].val1)
+    {
+        //switch (index.xstr.xstring[h1].val1 ^ val) 
+        switch(_DefaultXNodeFunc.collision(index.xstr.xstring[h1].val1, val))
         {
-            //switch (index.xstr.xstring[h1].val1 ^ val) 
-            switch(_DefaultXNodeFunc.collision(index.xstr.xstring[h1].val1, val))
-            {
-                case 0:
-                    //std::cerr << "case1\n";
-                    //return _DefaultXNodeFunc.makeReturnVal(index.xstr.xstring[h1]);
-                    return index.xstr.xstring[h1].val2;
-                case 2:
+            case 0:
+                //std::cerr << "case1\n";
+                //return _DefaultXNodeFunc.makeReturnVal(index.xstr.xstring[h1]);
+                return index.xstr.xstring[h1].val2;
+            case 2:
 //!!!!! need to modify;
-                    vflag = true;
-                    val = (yval << 42) + (xval << 2) + _DefaultXNodeBase.xHead;
-                    h1 = _DefaultXNodeFunc.hash((yval << 40) + xval) & index.xstr.mask;
-                    delta = 0;
-                    //std::cerr << "case2\n" ;
-                    break;
-                //case 3:
-                //    return ( ^ shape.yvalue)?index.xstr[h1].val2:_DefaultXNodeBase._Empty_Dir_;
-                default:
-                    //std::cerr << "case4\n" ;
-                    h1 = (h1 + delta + 1) & index.xstr.mask;
-                    delta++;
-            }
+                vflag = true;
+                val = (yval << 42) + (xval << 2) + _DefaultXNodeBase.xHead;
+                h1 = _DefaultXNodeFunc.hash((yval << 40) + xval) & index.xstr.mask;
+                delta = 0;
+                //std::cerr << "case2\n" ;
+                break;
+            //case 3:
+            //    return ( ^ shape.yvalue)?index.xstr[h1].val2:_DefaultXNodeBase._Empty_Dir_;
+            default:
+                //std::cerr << "case4\n" ;
+                h1 = (h1 + delta + 1) & index.xstr.mask;
+                delta++;
         }
+    }
     return index.emptyDir;
 }
 
+template <unsigned span>
+inline uint64_t getXYDir(HIndex<span> const & index, uint64_t const & xval, uint64_t const & yval)
+{
+    uint64_t val, delta = 0;
+    uint64_t h1 = _DefaultXNodeFunc.hash(xval) & index.xstr.mask;
+    uint64_t pos;
+    
+    //_setHeadNode(val, xval);
+//!!!!! need to modify;
+    val = (xval << 2) + _DefaultXNodeBase.xHead;
+    while (index.xstr.xstring[h1].val1)
+    {
+        //switch (index.xstr.xstring[h1].val1 ^ val) 
+        switch(_DefaultXNodeFunc.collision(index.xstr.xstring[h1].val1, val))
+        {
+            case 0:
+                //std::cerr << "case1\n";
+                pos = index.xstr.xstring[h1].val2;
+                do{
+                    if (yval == _DefaultHs.getHsBodyY(index.ysa[pos]))
+                        return pos;
+                    if (yval > _DefaultHs.getHsBodyY(index.ysa[pos]))
+                        return index.emptyDir;
+                }while(_DefaultHs.isBody(index.ysa[++pos]));
+                //return _DefaultXNodeFunc.makeReturnVal(index.xstr.xstring[h1]);
+            case 2:
+//!!!!! need to modify;
+                val = (yval << 42) + (xval << 2) + _DefaultXNodeBase.xHead;
+                h1 = _DefaultXNodeFunc.hash((yval << 40) + xval) & index.xstr.mask;
+                delta = 0;
+                //std::cerr << "case2\n" ;
+                break;
+            //case 3:
+            //    return ( ^ shape.yvalue)?index.xstr[h1].val2:_DefaultXNodeBase._Empty_Dir_;
+            default:
+                //std::cerr << "case4\n" ;
+                h1 = (h1 + delta + 1) & index.xstr.mask;
+                delta++;
+        }
+    }
+    return index.emptyDir;
+}
 
 /*
-inline uint64_t getXDir(XString const & xstr, String<uint64_t> & ystr, uint64_t const & xval, uint64_t const & yval)
+template <unsigned span>
+inline uint64_t getNextXYDir(HIndex<span> const & index, HShape<span> const & shape)
 {
-        uint64_t val, it, delta = 0;
-        uint64_t h1 = _DefaultXNodeFunc.hash(xval) & xstr.mask;
-        uint64_t pos;
-        
-        //_setHeadNode(val, xval);
-//!!!!! need to modify;
-        val = (xval << 2) + _DefaultXNodeBase.xHead;
-        while (xstr.xstring[h1].val1)
+    if (shape.preX ^ shape.XValue)
+    {
+        pos = getXYDir(index, shape.XValue, shape.YValue, shape.vflag);
+        shape.preX = shape.XValue;
+    }
+    else 
+    {
+        if(shape.vflag)
         {
-            //switch (xstr.xstring[h1].val1 ^ val) 
-            switch(_DefaultXNodeFunc.collision(xstr.xstring[h1].val1, val))
-            {
-                case 0:
-                    //std::cerr << "case1\n";
-                    pos = xstr.xstring[h1].val2;
-                    do{
-                        if (yval == _DefaultHs.getHsBodyY(ystr[pos]))
-                            return pos;
-                    }while(_DefaultHs.isBody(ystr[++pos]));
-                    //return _DefaultXNodeFunc.makeReturnVal(xstr.xstring[h1]);
-                case 2:
-//!!!!! need to modify;
-                    val = (yval << 42) + (xval << 2) + _DefaultXNodeBase.xHead;
-                    h1 = _DefaultXNodeFunc.hash((yval << 40) + xval) & xstr.mask;
-                    delta = 0;
-                    //std::cerr << "case2\n" ;
-                    break;
-                //case 3:
-                //    return ( ^ shape.yvalue)?xstr[h1].val2:_DefaultXNodeBase._Empty_Dir_;
-                default:
-                    //std::cerr << "case4\n" ;
-                    h1 = (h1 + delta + 1) & xstr.mask;
-                    delta++;
-            }
+            pos = getXYDir(index, shape.XValue + (shape.YValue << 40), 0, shape.vflag);
+            shape.vflag = true;
         }
-        return _DefaultXNodeBase._Empty_Dir_;
+        else 
+            do{
+                if (shape.YValue == _DefaultHs.getHsBodyY(index.ystr[pos]))
+                    return pos;
+                if (shapeYValue > _DefaultHs.getHsBodyY(index.ystr[pos]))
+                    return index.emptyDir;
+            }while(_DefaultHs.isBody(index.ystr[++pos]));
+    }
+    return
 }
-*/        
+*/
+
 inline uint64_t gethDir(XString const & xstr, uint64_t const & hval)
 {        
         uint64_t  val = (hval << 2) + _DefaultXNodeBase.xHead;
@@ -1834,8 +1892,6 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir)
     _DefaultHs.setHsHead(hs[k - countMove], 0, 0);
     _DefaultHs.setHsHead(hs[k - countMove + 1], 0, 0);
 
-
-
     resize(hs, k + 2 - countMove);
     shrinkToFit(hs);
     indexEmptyDir = k - countMove;
@@ -1897,9 +1953,9 @@ bool _createQGramIndexDirSA(StringSet<String<Dna5> > const & seq, XString & xstr
     double time = sysTime();
     if (Efficient)
         _createHsArray(seq, hs, shape);
-    time = sysTime();
+    //time = sysTime();
     _createYSA<LENGTH<ShapeType>::VALUE, WGHT<ShapeType>::VALUE>(hs, xstr, indexEmptyDir);
-    std::cerr << "      _createYSA " << sysTime() - time << " [s]\n";
+    std::cerr << "  End creating Index Time[s]:" << sysTime() - time << " \n";
     return true; 
     
 }
@@ -1909,6 +1965,12 @@ bool _createQGramIndexDirSA(StringSet<String<Dna5> > const & seq, XString & xstr
 
 template <typename TDna, unsigned span>
 bool createHIndex(StringSet<String<TDna> > & seq, HIndex<span> & index)
+{
+    return _createQGramIndexDirSA(seq, index.xstr, index.ysa, index.shape, index.emptyDir, true);
+}
+
+template <typename TDna, unsigned TSpan>
+bool _createQGramIndex(HIndex<TSpan> & index, StringSet<String<TDna> > & seq)
 {
     return _createQGramIndexDirSA(seq, index.xstr, index.ysa, index.shape, index.emptyDir, true);
 }

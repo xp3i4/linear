@@ -145,7 +145,7 @@ struct PMRecord
 
 struct AnchorBase{
     typedef typename Const_::BIT_INT_ AnchorType; 
-    static const unsigned size = 131072;
+    static const unsigned size = 131072 * 2;
     static const unsigned bit = 20;
     static const uint64_t AnchorValue = 1000ULL << bit;
     static const typename Const_::BIT_INT_ mask = (1ULL<<bit) - 1;
@@ -157,7 +157,6 @@ struct Anchors{
 
     AnchorType set[AnchorBase::size];
     unsigned len;
-
     
     Anchors(){len = 1;};
     Anchors(AnchorType val, unsigned range);
@@ -187,7 +186,11 @@ struct CoreBase{
     typedef Minimizer<Const_::_SHAPELEN> DefaultShape;
     typedef typename PMRecord<TDna>::RecSeqs RecSeqs; 
     typedef Shape<TDna, CoreMinimizer> CoreShape;
-    typedef Index<RecSeqs, IndexQGram<CoreMinimizer, OpenAddressing> > CoreIndex;
+    //typedef Index<RecSeqs, IndexQGram<CoreMinimizer, OpenAddressing> > CoreIndex;
+//==============
+//  This part is change the index from previous generic indx to 25-mer HIndex;
+    typedef HIndex<Const_::_SHAPELEN> CoreIndex;
+//==============   
     typedef Anchors AnchorSet;
 
 };

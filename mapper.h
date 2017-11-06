@@ -105,7 +105,7 @@ template <typename TDna, typename TSpec>
 int Mapper<TDna, TSpec>::createIndex()
 {
     std::cerr << "Creating index \n";
-    _createQGramIndex(qIndex);
+    _createQGramIndex(qIndex, genomes());
     return 0;
 }
 
@@ -214,8 +214,10 @@ void Mapper<TDna, TSpec>::printCords()
     std::cerr << "Writing results to disk \r";
     double time = sysTime();
     unsigned strand;
+    unsigned count = 0;
     for (unsigned k = 0; k < length(cordSet); k++)
     {
+        count++;
         if (empty(cordSet[k]))
             of << k << " th Strand " << "2 length " << length(reads()[k]) << "\n";
         else
@@ -229,7 +231,7 @@ void Mapper<TDna, TSpec>::printCords()
         }
     }
     of.close();
-    std::cerr << ">Write results to disk        " << std::endl;
+    std::cerr << ">Write results to disk        " << count << std::endl;
     std::cerr << "    End writing results. Time[s]" << sysTime() - time << std::endl;
 }
 
@@ -239,14 +241,16 @@ void map(Mapper<TDna, TSpec> & mapper)
     //printStatus();
     double time = sysTime();
     mapper.createIndex();
+    std::cerr << "done1\n";
     resize(mapper.hits(), length(mapper.reads()));
     resize(mapper.cords(), length(mapper.reads()));
+    std::cerr << "done2\n";
 //  mnMap<TDna, TSpec>(mapper.index(), mapper.reads(), _DefaultMapParm, mapper.hits());
 // path(mapper.hits(), mapper.reads(), mapper.genomes(), mapper.cords());
     rawMap<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), _DefaultMapParm, mapper.hits(), mapper.cords());
     //mapper.printHits();
     mapper.printCords();
-    std::cerr << (length(mapper.index().dir) >>27) << " " << (length(mapper.index().sa)>>27) << std::endl;
+    std::cerr << length(mapper.cords()) << " " << length(mapper.reads()) << " \n";
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
 }
 
