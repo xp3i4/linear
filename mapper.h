@@ -84,6 +84,7 @@ public:
     void printCords(std::ostream & );
     void printCords();
     int createIndex();
+    unsigned sens();
      
     //Mapper(Options const & options)
     //{
@@ -236,6 +237,13 @@ void Mapper<TDna, TSpec>::printCords()
 }
 
 template <typename TDna, typename TSpec>
+unsigned Mapper<TDna, TSpec>::sens();
+{
+    return parm.senstivity
+}
+
+
+template <typename TDna, typename TSpec>
 void map(Mapper<TDna, TSpec> & mapper)
 {
     //printStatus();
@@ -247,8 +255,19 @@ void map(Mapper<TDna, TSpec> & mapper)
     std::cerr << "done2\n";
 //  mnMap<TDna, TSpec>(mapper.index(), mapper.reads(), _DefaultMapParm, mapper.hits());
 // path(mapper.hits(), mapper.reads(), mapper.genomes(), mapper.cords());
-    rawMap<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), _DefaultMapParm, mapper.hits(), mapper.cords());
-    //mapper.printHits();
+    switch (mapper.senstivity())
+    {
+        case 1:
+            rawMap<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(),
+                        _DefaultMapParm, mapper.hits(), mapper.cords());
+            break;
+            
+        case 4:
+            rawMapAll<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(),
+                         _DefaultMapParm, mapper.hits(), mapper.cords());
+        
+    }
+        //mapper.printHits();
     mapper.printCords();
     std::cerr << length(mapper.cords()) << " " << length(mapper.reads()) << " \n";
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;

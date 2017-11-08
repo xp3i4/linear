@@ -60,6 +60,7 @@ struct CordBase
     Flag flag_end;
     Bit cell_bit;
     Size cell_size;
+    Mask headFlag;
     
     CordBase():
         bit(20),    
@@ -68,7 +69,8 @@ struct CordBase
         flag_strand(0x2000000000000000),
         flag_end(0x1000000000000000),
         cell_bit(4),
-        cell_size(16)
+        cell_size(16),
+        headFlag((1ULL<<63))
         {}
     
 }_DefaultCordBase;
@@ -92,6 +94,12 @@ struct Cord
     Flag getCordStrand(CordType const &, CordBase::Flag const &) const;
     Flag AtCordEnd(CordType const &, CordBase::Flag const &)const;
     
+    void setHead(uint64_t & cord, uint64_t const & ptr, uint64_t const & flag = _DefaultCordBase.headFlag)
+    {
+        cord = ptr | flag;
+    }
+    
+
     
     bool print (CordString const &, std::ostream & = std::cout, CordBase const & = _DefaultCordBase) const;
     bool print (CordSet const &, std::ostream & = std::cout, CordBase const & = _DefaultCordBase) const;
@@ -356,82 +364,7 @@ inline unsigned getIndexMatch(typename PMCore<TDna, TSpec>::Index  & index,
 }
 */
 
-//========================================
-//===thi part is for all map module
 
-
-//NodeType: 1 Head, 0 Body
-//Head: type[1]|NA[3]|anchor length[30]|ptr[30] #point to next head
-//Body: type[1]|NA[3]|Anchor value [60]
-/*
-struct HitBase
-{
-    uint64_t bit;
-    uint64_t mask;
-    
-    HitBase():
-        bit(63),
-        mask((1 << bit) - 1)
-        {}
-}_DefaultHitBase;
-
-struct Hit
-{
-    setHead(uint64_t & node, uint64_t const & ptr, uint64_t const & mask = _DefaultHitBase.mask)
-        {node = ptr | (~mask);}
-    setBody(uint64_t & node, uint64_t const & val, uint64_t const & mask = _DefaultHitBase.mask)
-        {node = val & mask;}
-    
-}_DefaultHit;
-
-//===!Note:Need to put this parameterin the mapper threshold
-static unsigned const anchorThr = 50;
-
-inline unsigned getAnchorMatchAll(Anchors & anchors, MapParm & mapParm, float const & thrd, PMRes::HitString & hit, double & time )
-{
-    double t=sysTime();
-    uint64_t ak;
-    unsigned maxLen = 0, c_b=mapParm.shapeLen, cbb=0, sb=0, end=0, start = 0;
-    anchors[0] = anchors[1];
-    ak=anchors[0];
-    anchors.sort(anchors.begin(), anchors.end());
-    for (unsigned k = 1; k <= anchors.length(); k++)
-    {
-        if (anchors[k] - ak >= AnchorBase::AnchorValue)
-        {
-            anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
-            for (uint64_t m = sb+1; m < k; m++)
-            {
-                if(anchors.deltaPos2(m, m-1) >  mapParm.shapeLen)
-                    c_b += mapParm.shapeLen;
-                else
-                    c_b += anchors.deltaPos2(m, m-1); 
-            }
-            std::cerr << "[DEBUG]" << (anchors[sb + 1] >> 20) << " " << c_b << " \n";
-            if (c_b > maxLen)
-            {
-                maxLen = c_b;
-                start = sb;
-                end = k;
-            }
-            for (unsigned m = sb; m < k; m++)
-                appendValue(hit, anchors[m]);
-            sb = k;
-            ak = anchors[k];
-            c_b = mapParm.shapeLen;
-        }
-    }
-
-//    std::cerr << start << " " << end << " " << anchors.len<< std::endl;
-    for (unsigned k = start; k < end; k++)
-        appendValue(hit, anchors[k]);
-
-    time += sysTime() - t;
-    return start + (maxLen << 20) ;
-}
-*/
-//End all mapper module
-//============================================
 
 inline unsigned getAnchorMatch(Anchors & anchors, MapParm & mapParm, float const & thrd, PMRes::HitString & hit, double & time )
 {
@@ -908,6 +841,7 @@ std::cerr << "[Debug]done2\n";
 //!Need modify
 //!influence speed
         if (length(cords[j]) < (length(reads[j]) / 192 * 0.5))
+        //if (length(hits[j]) < 100)
         {
             anchors.len=1;
             //anchors.init(Const_::_LLTMax, AnchorBase::size);
@@ -970,6 +904,235 @@ void checkPath(typename Cord::CordSet const & cords, StringSet<String<Dna5> > co
     //std::cerr << "checkPath " << (float) count / length(reads) << std::endl;
 }
 
+//========================================
+//===thi part is for all map module
 
+
+//NodeType: 1 Head, 0 Body
+//Head: type[1]|NA[3]|anchor length[30]|ptr[30] #point to next head
+//Body: type[1]|NA[3]|Anchor value [60]
+
+
+struct HitBase
+{
+    uint64_t bit;
+    uint64_t mask;
+    
+    HitBase():
+        bit(63),
+        mask((1 << bit) - 1)
+        {}
+}_DefaultHitBase;
+
+struct Hit
+{
+    void setHead(uint64_t & node, uint64_t const & ptr, uint64_t const & mask = _DefaultHitBase.mask)
+        {node = ptr | (~mask);}
+    void setBody(uint64_t & node, uint64_t const & val, uint64_t const & mask = _DefaultHitBase.mask)
+        {node = val & mask;}
+    
+}_DefaultHit;
+
+//===!Note:Need to put this parameterin the mapper threshold
+
+template <typename TDna, typename TSpec>
+inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
+                              typename PMRecord<TDna>::RecSeq const & read,
+                              uint64_t* const set,
+                              unsigned & len,
+                              MapParm & mapParm
+                             )
+{    
+    unsigned block = (mapParm.blockSize < length(read))?mapParm.blockSize:length(read);
+    unsigned dt = block * (mapParm.alpha / (1 - mapParm.alpha));
+    hashInit(index.shape, begin(read));
+    for (unsigned h=0; h <= length(read) - block; h += dt)
+    {
+        hashInit(index.shape, begin(read) + h);
+        for (unsigned k = h; k < h + block; k++)
+        {
+            hashNext(index.shape, begin(read) + k);
+            uint64_t pre = ~0;
+            uint64_t pos = getXYDir(index, index.shape.XValue, index.shape.YValue);
+            if (_DefaultHs.getHsBodyY(index.ysa[std::min(pos + mapParm.delta, length(index.ysa) - 1)]) ^ index.shape.YValue)
+            {
+                while (_DefaultHs.isBodyYEqual(index.ysa[pos], index.shape.YValue))
+                {
+//!Note: needs change
+//!Note: the sa is in reverse order in hindex. this is different from the generic index
+                    if (pre - index.ysa[pos] > mapParm.kmerStep)
+                    {
+                        set[len++] = (_DefaultHs.getHsBodyS(index.ysa[pos]-k) << 20)+k;
+                        pre = index.ysa[pos];
+                    }
+                    ++pos;
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+inline uint64_t getAnchorMatchAll(Anchors & anchors, unsigned const & readLen, MapParm & mapParm, PMRes::HitString & hit)
+{
+    uint64_t ak, maxAnchor = 0, hitThr = mapParm.anchorThr * readLen;
+    unsigned c_b=mapParm.shapeLen, sb=0, n=0;
+    anchors[0] = anchors[1];
+    ak=anchors[0];
+    anchors.sort(anchors.begin(), anchors.end());
+
+    for (unsigned k = 1; k <= anchors.length(); k++)
+    {
+        if (anchors[k] - ak >= AnchorBase::AnchorValue)
+        {
+            if (c_b > mapParm.anchorThr * readLen)
+            {
+                _DefaultHit.setHead(hit[n], k - sb + 1);
+                anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
+                for (unsigned m = sb; m < k; m++)
+                {
+                    hit[++n] = anchors[m];
+                }
+                maxAnchor = (maxAnchor<c_b)?c_b:max_anchor;
+            }
+            sb = k;
+            ak = anchors[k];
+            c_b = mapParm.shapeLen;
+        }
+        else 
+        {
+            if(anchors.deltaPos2(k, k - 1) >  mapParm.shapeLen)
+                c_b += mapParm.shapeLen;
+            else
+                c_b += anchors.deltaPos2(k, k - 1); 
+        }
+    }
+    return maxAnchor;
+}
+
+template <typename TDna, typename TSpec>
+inline bool mnMapReadAll(typename PMCore<TDna, TSpec>::Index  & index,
+                          typename PMRecord<TDna>::RecSeq & read,
+                          Anchors & anchors,
+                          MapParm & mapParm,
+                          PMRes::HitString & hit,  
+                            double & time,
+                            double & time2 
+                         )
+{
+    getIndexMatch<TDna, TSpec>(index, read, anchors.set, anchors.len, mapParm, time);    
+    uint64_t maxAnchor =  getAnchorMatchAll(anchors, length(read), mapParm, hit, time2);
+    if (maxAnchor< mapParm.rcThr * length(read))
+    {
+        anchors(1);
+        clear(crhit);
+        clear(crcord);
+        _compltRvseStr(reads[j], comStr);
+        getIndexMatch<TDna, TSpec>(index, comStr, anchors, mapParm, crhit, tm, tm2);
+        uint64_t maxAnchorRC = getAnchorMatchAll(anchors, length(read), mapParm, crhit);
+        if (maxAnchorRC > maxAnchor)
+            
+        if (maxAnchorRC > maxAnchor)
+        {
+            hits[j] = crhit;
+            cords[j] = crcord;
+            _DefaultCord.setCordEnd(back(cords[j]));    //set reverse complement strand
+        }
+        else
+        {
+            if (!empty(cords[j]))
+                _DefaultCord.setCordEnd(back(cords[j]),0); //set strand
+        }
+    }
+}
+/*
+bool initCord(hitBegin, hitEnd, cords)
+{
+    if (hitEnd == hitBegin)
+        return false;
+    else
+        appendValue(cord, _DefaultCord.hit2Cord[*hitBegin]);
+    return true;
+}
+
+inline bool nextCord(typename Iterator<PMRes::HitString>::Type & it, 
+                     typename Iterator<PMRes::HitString>::Type const & hitEnd,
+                     String<uint64_t> & cord)
+{
+    uint64_t cordLY = _DefaultCord.getCordY(back(cord));
+    unsigned k = 0;
+    while (it < hitEnd)
+    {
+        uint64_t tmpCord = _DefaultCord.hit2Cord(*(it));
+        if(_DefaultCord.getCordY(tmpCord) > cordLY + window_delta)
+        {
+            appendValue(cord, tmpCord);
+            return true;
+        }
+        ++it;
+    }
+    return false;
+}
+
+inline bool path(String<Dna5> & read, typename Iterator<PMRes::HitString>::Type hitBegin, 
+                 typename Iterator<PMRes::HitString>::Type hitEnd, StringSet<String<int> > & f2, 
+                 String<uint64_t> & cords)
+{
+    String<int> f1;
+    typename Iterator<PMRes::HitString>::Type it = hitBegin;
+    if(!initCord(hitBeign, hitEnd, cords))
+        return false;
+    createFeatures(begin(read), end(read), f1);
+    unsigned genomeId = _getSA_i1((*hitBegin) >> 20);  
+    while (_DefaultCord.getCordY(back(cords)) < length(read) - window_size)
+    {
+        extendWindow(f1, f2[genomeId], cords);           //extend cord both forward and backward
+        if (!nextCord(it, hitEnd, cords))               //fetch next cords from hit
+                return false;
+    }
+    return true;
+}
+*/
+template <typename TDna, typename TSpec>
+void rawMapAll(typename PMCore<TDna, TSpec>::Index   & index,
+           typename PMRecord<TDna>::RecSeqs      & reads,
+            typename PMRecord<TDna>::RecSeqs & genomes,
+           MapParm                      & mapParm,
+            typename PMRes::HitSet & hits,
+            StringSet<String<uint64_t> > & cords)
+{
+    typedef typename PMRecord<TDna>::RecSeq Seq;
+    typedef typename PMCore<TDna, TSpec>::Anchors Anchors;
+    typename PMRes::HitString crhit;
+    String<uint64_t> crcord;
+    double time=sysTime();
+
+    std::cerr << "Raw mapping... \r"; 
+    
+    Anchors anchors(Const_::_LLTMax, AnchorBase::size);
+    Seq comStr;
+    
+    double tm=0;
+    double tm2=0;
+    StringSet<String<int> > f2;
+    createFeatures(genomes, f2);
+    for (unsigned j = 0; j < length(reads); j++)
+    {
+        anchors.init(1);
+        if (length(reads[j]) < 1000)
+            continue;
+        mnMapReadAll<TDna, TSpec>(index reads[j], anchors, mpParm, hits[j], tmp, tmp2);
+        //path(reads[j], hits[j], f2, cords[j]);
+    }
+
+    std::cerr << "Raw map reads:            " << std::endl;
+    std::cerr << "    rsc strand " << count << std::endl;
+    std::cerr << "    End raw mapping. Time[s]: " << sysTime() - time << std::endl;
+}
+
+
+
+//End all mapper module
+//============================================
 
 
