@@ -371,17 +371,23 @@ inline unsigned getAnchorMatch(Anchors & anchors, MapParm & mapParm, float const
     double t=sysTime();
     uint64_t ak;
     unsigned maxLen = 0, c_b=mapParm.shapeLen, cbb=0, sb=0, end=0, start = 0;
+    unsigned maxlen = 0, start2 = 0;
+    unsigned sum = 0;
     anchors[0] = anchors[1];
     ak=anchors[0];
     anchors.sort(anchors.begin(), anchors.end());
     for (unsigned k = 1; k <= anchors.length(); k++)
     {
+        //if(thrd == 2366)
+        //std::cout << k << " " << (anchors[k]>>20) << " " << (ak>>20)<< " " << start << " " << ((anchors[start])>>20) <<" "<< (anchors[start2] >>20) <<std::endl;
 //        if (anchors[k] - ak < AnchorBase::AnchorValue)
         if (anchors[k] - ak < AnchorBase::AnchorValue)
             cbb++;
         else
         {
             anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
+            //if(thrd == 2366)
+            //std::cout << "sb " << sb << " k " << k << std::endl;
             for (uint64_t m = sb+1; m < k; m++)
             {
                 if(anchors.deltaPos2(m, m-1) >  mapParm.shapeLen)
@@ -393,12 +399,19 @@ inline unsigned getAnchorMatch(Anchors & anchors, MapParm & mapParm, float const
             //std::cout << "[DEBUG] " << (anchors[sb + 1] >> 20) << " " << c_b << " \n";
             if (c_b > maxLen)
             {
+                maxlen = maxLen;
                 maxLen = c_b;
+                start2 = start;
                 start = sb;
                 end = k;
             }
+            if (c_b > 200)
+                sum++;
+                
             sb = k;
             ak = anchors[k];
+           // if (thrd==2366)
+           // std::cout << "ak " << (ak >> 20) << " " << k << "\n";
             cbb = 1;
             c_b = mapParm.shapeLen;
         }
@@ -408,7 +421,11 @@ inline unsigned getAnchorMatch(Anchors & anchors, MapParm & mapParm, float const
     //std::cerr << "[DEBUG] len" << maxLen << " "<< start << " " << end << " " << anchors.len<< std::endl;
     for (unsigned k = start; k < end; k++)
         appendValue(hit, anchors[k]);
-
+        uint64_t d =(anchors[start] > anchors[start2])?(anchors[start] - anchors[start2])>>20:(anchors[start2] - anchors[start])>>20;
+    //if (thrd == 2366)
+    if (sum==0)
+        sum=1;
+    std::cout << maxlen << " " << sum << " " << d << " " << thrd << " " << (anchors[start2] >> 20) << " " << maxLen << " " << (anchors[start] >> 20) << " "<< thrd * 4 << " " << (float)maxLen /thrd /4<< std::endl;
     time += sysTime() - t;
     return start + (maxLen << 20) ;
 }
@@ -843,6 +860,7 @@ std::cerr << "[Debug]done2\n";
         if (length(cords[j]) < (length(reads[j]) / 192 * 0.5))
         //if (length(hits[j]) < 100)
         {
+            std::cout << "reverse "<< std::endl;
             anchors.len=1;
             //anchors.init(Const_::_LLTMax, AnchorBase::size);
             count++;
