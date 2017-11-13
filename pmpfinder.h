@@ -1135,6 +1135,7 @@ inline bool endCord(typename Iterator<PMRes::HitString>::Type const & hitEnd,
                    )
 {
     _DefaultHit.setBlockEnd(back(cord));
+    std::cerr << "[DEBUG] cord " << length(cord) << " " << preCordStart << "\n";
     _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);
     return true;
 }
@@ -1162,6 +1163,8 @@ inline bool nextCord(typename Iterator<PMRes::HitString>::Type & it,
     _DefaultHit.setBlockEnd(back(cord));
     if(it < hitEnd)
     {
+        _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);
+        preCordStart = length(cord);
         appendValue(cord, _DefaultCord.hit2Cord(*(it)));
         ++it;
         return true;
@@ -1258,6 +1261,7 @@ void rawMapAll(typename PMCore<TDna, TSpec>::Index   & index,
             
         //path(reads[j], hits[j], f2, cords[j]);
         
+        std::cerr << "[debug] rc length " << rcThr * length(reads[j]) << "\n";
         if (_DefaultCord.getMaxLen(cords[j]) < rcThr * length(reads[j]))
         {
         
@@ -1267,7 +1271,8 @@ void rawMapAll(typename PMCore<TDna, TSpec>::Index   & index,
             clear(crhit);
             clear(crcord);
             mnMapReadAll<TDna, TSpec>(index, comStr, anchors, mapParm, crhit, tm, tm2);
-            path(comStr, crhit, f2, crcord);            
+            pathAll(comStr, begin(crhit), end(crhit), f2, crcord);            
+            std::cerr <<"[debug] length " << length(crcord) << " " << _DefaultCord.getMaxLen(crcord)<< std::endl;
             if (_DefaultCord.getMaxLen(crcord) > _DefaultCord.getMaxLen(cords[j]))
             {
                 //clear(hits[j]);

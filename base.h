@@ -163,7 +163,7 @@ struct Anchors{
     Anchors(){len = 1;};
     Anchors(AnchorType val, unsigned range);
     void init(AnchorType val, unsigned k);
-    void init(unsigned & length);
+    void init(int length);
     void init();
     void setAnchor(unsigned p, AnchorType pos1,  AnchorType pos2);
     AnchorType getPos1(unsigned p) const;
@@ -318,8 +318,10 @@ struct MapParm{
     unsigned    kmerStep;
     unsigned    shapeLen;
     unsigned    senstivity;
+    unsigned    anchorDeltaThr;
+    unsigned    minReadLen;
     float       alpha;
-    float       anchorThr;
+    float       anchorLenThr;
     float       rcThr;
       
     
@@ -330,9 +332,11 @@ struct MapParm{
         kmerStep(Const_::_KMERSTEP),
         shapeLen(Const_::_SHAPELEN),
         senstivity(0),
+        anchorDeltaThr(),
+        minReadLen(1000),
         alpha(Const_::_ALPHA),
-        anchorThr(50),                  // anchors with lenghth > this parameter is pushed into the queue
-        rcThr(100)                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
+        anchorLenThr(0.02),                  // anchors with lenghth > this parameter is pushed into the queue
+        rcThr(0.5)                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
         {}
 // ====
 //temp: need modify
@@ -345,6 +349,8 @@ struct MapParm{
         kmerStep(parm.kmerStep),
         shapeLen(parm.shapeLen),
         senstivity(parm.senstivity),
+        anchorLenThr(parm.anchorLenThr),
+        rcThr(parm.rcThr)
         {}
     void setMapParm(Options & options);
     void print ();
@@ -465,13 +471,14 @@ Anchors::Anchors(Anchors::AnchorType val, unsigned range)
     init(val, range);
 }
 
-inline void Anchors::init(AnchorType val, unsigned range){
+inline void Anchors::init(AnchorType val, unsigned range)
+{
     for (unsigned k = 0; k < range; k++)
         set[k] = val;
     len = 1;
 }
 
-inline void Anchors::init(unsigned & length)
+inline void Anchors::init(int length)
 {
     len = length;
 }
