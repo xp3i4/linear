@@ -200,6 +200,7 @@ inline bool Cord::print(typename Cord::CordString const & cords, std::ostream & 
     return true;
 }
 
+
 inline bool Cord::print(typename Cord::CordSet const & cords, std::ostream & of, CordBase const & cordBase) const
 {
     of << "Cord::print() " << std::endl;
@@ -1039,28 +1040,28 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
 inline uint64_t getAnchorMatchAll(Anchors & anchors, unsigned const & readLen, MapParm & mapParm, PMRes::HitString & hit)
 {
     uint64_t ak, maxAnchor = 0;
-    unsigned c_b=mapParm.shapeLen, sb=0, n=0, maxStart, maxEnd, blockStart;
+    unsigned c_b=mapParm.shapeLen, sb=0, n=0, maxStart=0, maxEnd=0, blockStart;
     anchors[0] = anchors[1];
     ak=anchors[0];
     anchors.sort(anchors.begin(), anchors.end());
-    std::cout << "[debug]anchorall " << mapParm.anchorLenThr * readLen << "\n";
+    std::cout << "[debug]anchorall " << mapParm.anchorLenThr * readLen << " " << anchors.length()<< "\n";
     for (unsigned k = 1; k <= anchors.length(); k++)
     {
-        std::cout <<"[debug] " << k << " " << c_b << " " << sb << " anchors[k] " << anchors[k] << " " << ak << " " << anchors[k] - ak << " " << AnchorBase::AnchorValue << "\n";
+        //std::cout <<"[debug] " << k << " " << c_b << " " << sb << " anchors[k] " << anchors[k] << " " << ak << " " << anchors[k] - ak << " " << AnchorBase::AnchorValue << " " << anchors.length() << "\n";
         if (anchors[k] - ak >= AnchorBase::AnchorValue)
         //if (anchors[k] - ak > mapParm.anchorDeltaThr)
         {
-            std::cout <<"[debug] done\n";
+            //std::cout <<"[debug] done\n";
             if (c_b > mapParm.anchorLenThr * readLen)
             {
                 anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
-                std::cout <<"[debug] done2\n";
+                //std::cout <<"[debug] done2\n";
                 blockStart = length(hit);
                 for (unsigned m = sb; m < k; m++)
                 {
 //to do: replace appendValue? since it's not efficient
                     appendValue(hit, anchors[m]);
-                    std::cout << "[DEBUG]anchors " << _DefaultCord.getCordY(anchors[m]) << "\n";
+                    //std::cout << "[DEBUG]anchors " << _DefaultCord.getCordY(anchors[m]) << "\n";
                 }
                 _DefaultHit.setBlockEnd(back(hit));
             }
@@ -1082,7 +1083,7 @@ inline uint64_t getAnchorMatchAll(Anchors & anchors, unsigned const & readLen, M
                 c_b += anchors.deltaPos2(k, k - 1); 
         }
     }
-    if (empty(hit))
+    if (empty(hit) && maxEnd ) // maxStart < maxEnd
     {
         for (unsigned k = maxStart; k < maxEnd; k++)
         {
@@ -1091,7 +1092,6 @@ inline uint64_t getAnchorMatchAll(Anchors & anchors, unsigned const & readLen, M
         _DefaultHit.setBlockEnd(back(hit));
 
     }
-        
     return maxAnchor;
 }
 
@@ -1135,7 +1135,7 @@ inline bool endCord(typename Iterator<PMRes::HitString>::Type const & hitEnd,
                    )
 {
     _DefaultHit.setBlockEnd(back(cord));
-    std::cerr << "[DEBUG] cord " << length(cord) << " " << preCordStart << "\n";
+    //std::cerr << "[DEBUG] cord " << length(cord) << " " << preCordStart << "\n";
     _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);
     return true;
 }
@@ -1261,7 +1261,7 @@ void rawMapAll(typename PMCore<TDna, TSpec>::Index   & index,
             
         //path(reads[j], hits[j], f2, cords[j]);
         
-        std::cerr << "[debug] rc length " << rcThr * length(reads[j]) << "\n";
+        //std::cerr << "[debug] rc length " << rcThr * length(reads[j]) << "\n";
         if (_DefaultCord.getMaxLen(cords[j]) < rcThr * length(reads[j]))
         {
         
@@ -1272,7 +1272,7 @@ void rawMapAll(typename PMCore<TDna, TSpec>::Index   & index,
             clear(crcord);
             mnMapReadAll<TDna, TSpec>(index, comStr, anchors, mapParm, crhit, tm, tm2);
             pathAll(comStr, begin(crhit), end(crhit), f2, crcord);            
-            std::cerr <<"[debug] length " << length(crcord) << " " << _DefaultCord.getMaxLen(crcord)<< std::endl;
+            //std::cerr <<"[debug] length " << length(crcord) << " " << _DefaultCord.getMaxLen(crcord)<< std::endl;
             if (_DefaultCord.getMaxLen(crcord) > _DefaultCord.getMaxLen(cords[j]))
             {
                 //clear(hits[j]);

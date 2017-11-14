@@ -336,7 +336,7 @@ struct MapParm{
         minReadLen(1000),
         alpha(Const_::_ALPHA),
         anchorLenThr(0.02),                  // anchors with lenghth > this parameter is pushed into the queue
-        rcThr(0.5)                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
+        rcThr(0.75)                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
         {}
 // ====
 //temp: need modify
