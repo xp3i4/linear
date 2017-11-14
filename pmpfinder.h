@@ -201,6 +201,7 @@ inline bool Cord::print(typename Cord::CordString const & cords, std::ostream & 
 }
 
 
+
 inline bool Cord::print(typename Cord::CordSet const & cords, std::ostream & of, CordBase const & cordBase) const
 {
     of << "Cord::print() " << std::endl;
