@@ -83,7 +83,9 @@ public:
     void printParm();
     void printCords(std::ostream & );
     void printCords();
+    void printCordsAll();
     int createIndex();
+    unsigned sens();
      
     //Mapper(Options const & options)
     //{
@@ -91,7 +93,6 @@ public:
     //    setMapParm(options);
     //};
 };
-
 
 template <typename TDna, typename TSpec>
 Mapper<TDna, TSpec>::Mapper(Options & options):
@@ -209,6 +210,43 @@ void Mapper<TDna, TSpec>::printCords(std::ostream & of)
 }
 
 template <typename TDna, typename TSpec>
+void Mapper<TDna, TSpec>::printCordsAll()
+{
+    double time = sysTime();
+    unsigned strand;
+    for (unsigned k = 0; k < length(cordSet); k++)
+    {
+        if (empty(cordSet))
+            of << k << " th Strand " << strand << " 2 " << length(reads()[k]) << "\n";
+        else
+        {
+            if (_DefaultCord.getCordStrand(back(cordSet[k]))) 
+                strand = 1;
+            else 
+                strand = 0;
+            of << k << " th Strand " << strand << " length " << length(reads()[k]) << "\nlength of cords " << "\n";
+
+            for (unsigned j = 1; j < length(cordSet[k]); j++)
+            {
+                of << _DefaultCord.getCordY(cordSet[k][j]) << " " 
+                    << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j])) << " "
+                    << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << std::endl;
+                    
+                if (_DefaultHit.isBlockEnd(cordSet[k][j]) && j < length(cordSet[k]) - 1)
+                {
+                    of << "\n" << k << " th Strand " << strand << " length " << length(reads()[k]) << "\nlength of cords " << "\n";
+                }
+ 
+            }
+            of << "\n";
+            //_DefaultCord.print(cordSet[k],of);
+        }
+    }
+    std::cerr << ">Write results to disk          " << std::endl;
+    std::cerr << "    End writing results. Time[s]" << sysTime() - time << std::endl;
+}
+
+template <typename TDna, typename TSpec>
 void Mapper<TDna, TSpec>::printCords()
 {
     std::cerr << "Writing results to disk \r";
@@ -236,6 +274,13 @@ void Mapper<TDna, TSpec>::printCords()
 }
 
 template <typename TDna, typename TSpec>
+unsigned Mapper<TDna, TSpec>::sens()
+{
+    return parm.senstivity;
+}
+
+
+template <typename TDna, typename TSpec>
 void map(Mapper<TDna, TSpec> & mapper)
 {
     //printStatus();
@@ -247,9 +292,23 @@ void map(Mapper<TDna, TSpec> & mapper)
     std::cerr << "done2\n";
 //  mnMap<TDna, TSpec>(mapper.index(), mapper.reads(), _DefaultMapParm, mapper.hits());
 // path(mapper.hits(), mapper.reads(), mapper.genomes(), mapper.cords());
-    rawMap<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), _DefaultMapParm, mapper.hits(), mapper.cords());
-    //mapper.printHits();
-    mapper.printCords();
+    //switch (mapper.sens())
+    //{
+    //    case 1:
+    //        rawMap<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(),
+    //                    _DefaultMapParm, mapper.hits(), mapper.cords());
+    //        break;
+    //        
+    //    case 4:
+    //        rawMapAll<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(),
+    //                     _DefaultMapParm, mapper.hits(), mapper.cords());
+    //        break;
+    //    
+    //}
+    rawMapAll<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(),
+                         _DefaultMapParm, mapper.hits(), mapper.cords());
+        //mapper.printHits();
+    mapper.printCordsAll();
     std::cerr << length(mapper.cords()) << " " << length(mapper.reads()) << " \n";
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
 }

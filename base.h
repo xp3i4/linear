@@ -105,13 +105,15 @@ struct Options{
     typename    Const_::PATH_ gPath;
     typename    Const_::PATH_ oPath;
     bool        Sensitive; 
+    unsigned    sensitivity;
     Options():
         kmerLen(Const_::_SHAPELEN),
         MiKmLen(Const_::_SHAPEWHT),
         rPath(""),
         gPath(""),
         oPath("mapper_result.txt"),
-        Sensitive(false)
+        Sensitive(false),
+        sensitivity(0)
         {}
     Const_::PATH_ getGenomePath() const {return gPath;};
     Const_::PATH_ getReadPat() const {return rPath;};
@@ -161,6 +163,7 @@ struct Anchors{
     Anchors(){len = 1;};
     Anchors(AnchorType val, unsigned range);
     void init(AnchorType val, unsigned k);
+    void init(int length);
     void init();
     void setAnchor(unsigned p, AnchorType pos1,  AnchorType pos2);
     AnchorType getPos1(unsigned p) const;
@@ -314,7 +317,13 @@ struct MapParm{
     unsigned    threshold;
     unsigned    kmerStep;
     unsigned    shapeLen;
-    float       alpha;  
+    unsigned    senstivity;
+    unsigned    anchorDeltaThr;
+    unsigned    minReadLen;
+    float       alpha;
+    float       anchorLenThr;
+    float       rcThr;
+      
     
     MapParm():
         blockSize(Const_::_BLOCKSIZE),
@@ -322,7 +331,12 @@ struct MapParm{
         threshold(Const_::_THRESHOLD),
         kmerStep(Const_::_KMERSTEP),
         shapeLen(Const_::_SHAPELEN),
-        alpha(Const_::_ALPHA)
+        senstivity(0),
+        anchorDeltaThr(),
+        minReadLen(1000),
+        alpha(Const_::_ALPHA),
+        anchorLenThr(0.02),                  // anchors with lenghth > this parameter is pushed into the queue
+        rcThr(0.75)                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
         {}
 // ====
 //temp: need modify
@@ -333,7 +347,10 @@ struct MapParm{
         delta(parm.delta),
         threshold(parm.threshold),
         kmerStep(parm.kmerStep),
-        shapeLen(parm.shapeLen)
+        shapeLen(parm.shapeLen),
+        senstivity(parm.senstivity),
+        anchorLenThr(parm.anchorLenThr),
+        rcThr(parm.rcThr)
         {}
     void setMapParm(Options & options);
     void print ();
@@ -454,10 +471,16 @@ Anchors::Anchors(Anchors::AnchorType val, unsigned range)
     init(val, range);
 }
 
-inline void Anchors::init(AnchorType val, unsigned range){
+inline void Anchors::init(AnchorType val, unsigned range)
+{
     for (unsigned k = 0; k < range; k++)
         set[k] = val;
     len = 1;
+}
+
+inline void Anchors::init(int length)
+{
+    len = length;
 }
 
 inline void Anchors::init()

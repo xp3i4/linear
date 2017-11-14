@@ -98,7 +98,7 @@ using namespace seqan;
 
     }
 
-
+    
 int main(int argc, char const ** argv)
 {
     std::cerr << "Encapsulated version: Mapping reads efficiently" << std::endl;
@@ -111,9 +111,6 @@ int main(int argc, char const ** argv)
     double t=sysTime();
     Mapper<> mapper(options);
     map(mapper);
-    std::cerr << mapper.index().shape.weight << std::endl;
-    std::cerr << "results saved to " << options.getOutputPath() << "\n";
-    
-    
+
     return 0;
 }
