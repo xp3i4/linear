@@ -216,16 +216,16 @@ void Mapper<TDna, TSpec>::printCordsAll()
     unsigned strand;
     for (unsigned k = 0; k < length(cordSet); k++)
     {
-        if (empty(cordSet))
-            of << k << " th Strand " << strand << " 2 " << length(reads()[k]) << "\n";
+        if (empty(cordSet[k]))
+            of << k << " th Strand " << " 2 length " << length(reads()[k]) << "\nlength of cords -\n\n";
         else
         {
             if (_DefaultCord.getCordStrand(back(cordSet[k]))) 
                 strand = 1;
             else 
                 strand = 0;
-            of << k << " th Strand " << strand << " length " << length(reads()[k]) << "\nlength of cords " << "\n";
-
+            of << k << " th Strand " << strand << " length " 
+            << length(reads()[k]) << "\nlength of cords " << "\n";
             for (unsigned j = 1; j < length(cordSet[k]); j++)
             {
                 of << _DefaultCord.getCordY(cordSet[k][j]) << " " 
@@ -234,7 +234,8 @@ void Mapper<TDna, TSpec>::printCordsAll()
                     
                 if (_DefaultHit.isBlockEnd(cordSet[k][j]) && j < length(cordSet[k]) - 1)
                 {
-                    of << "\n" << k << " th Strand " << strand << " length " << length(reads()[k]) << "\nlength of cords " << "\n";
+                    of << "\n" << k << " th Strand " << strand << " length " 
+                    << length(reads()[k]) << "\nlength of cords " << "\n";
                 }
  
             }

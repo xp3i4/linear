@@ -1045,10 +1045,12 @@ inline uint64_t getAnchorMatchAll(Anchors & anchors, unsigned const & readLen, M
     anchors[0] = anchors[1];
     ak=anchors[0];
     anchors.sort(anchors.begin(), anchors.end());
-    std::cout << "[debug]anchorall " << mapParm.anchorLenThr * readLen << " " << anchors.length()<< "\n";
     for (unsigned k = 1; k <= anchors.length(); k++)
     {
         //std::cout <<"[debug] " << k << " " << c_b << " " << sb << " anchors[k] " << anchors[k] << " " << ak << " " << anchors[k] - ak << " " << AnchorBase::AnchorValue << " " << anchors.length() << "\n";
+        //std::cout << "[DEBUG]anchors " << _getSA_i1(_DefaultCord.getCordX(anchors[k])) 
+        //<< " "<< _getSA_i2(_DefaultCord.getCordX(anchors[k])) << " "
+        //<< _DefaultCord.getCordY(anchors[k]) << "\n";
         if (anchors[k] - ak >= AnchorBase::AnchorValue)
         //if (anchors[k] - ak > mapParm.anchorDeltaThr)
         {
@@ -1123,7 +1125,6 @@ inline bool initCord(typename Iterator<PMRes::HitString>::Type & it,
     else
     {
         appendValue(cord, _DefaultCord.hit2Cord(*(it)));
-        std::cout <<"[DEBUG] hit2Cord " << _DefaultCord.getCordY(_DefaultCord.hit2Cord(*(it))) << "\n";
         ++it;
         preCordStart = 1;   
     }
@@ -1159,7 +1160,6 @@ inline bool nextCord(typename Iterator<PMRes::HitString>::Type & it,
             return true;
         }
         ++it;
-        std::cout << ++count << std::endl;
     }
     _DefaultHit.setBlockEnd(back(cord));
     if(it < hitEnd)
@@ -1187,8 +1187,7 @@ inline bool extendWindowAll(String<int> &f1, String<int> & f2, typename Cord::Co
         // when k < length(cord) - 1 - k + len -> swap, keeping cord in assending order
     }
     unsigned count=0;
-    while (nextWindow(f1, f2, cord)){count++;}
-    std::cout << "[DEBUG] " << count << "\n";
+    while (nextWindow(f1, f2, cord)){}
     return true;
 }
 
@@ -1202,20 +1201,14 @@ inline bool pathAll(String<Dna5> & read,
     typename Iterator<PMRes::HitString>::Type it = hitBegin;
     unsigned preBlockPtr;
     createFeatures(begin(read), end(read), f1);
-    std::cout << "1\n";
     if(initCord(it, hitEnd, preBlockPtr, cords))
     {
-        std::cout <<"2\n";
-        std::cout << "[DEBUG] " << _DefaultCord.getCordY(back(cords)) << "\n";
         do{
             extendWindowAll(f1, f2[_getSA_i1(_DefaultCord.getCordX(back(cords)))], cords);
-            std::cout << "[debug] hitEnd - it " << hitEnd - it << " " << preBlockPtr << " " << _DefaultCord.getCordY(back(cords)) << " " << length(cords) << "\n";
         }
         while (nextCord(it, hitEnd, preBlockPtr, cords));
-        std::cout <<"3\n";
         return endCord(hitEnd, preBlockPtr, cords);   
     }
-    std::cout <<"4\n";
     return false;
 }
 
@@ -1250,9 +1243,7 @@ void rawMapAll(typename PMCore<TDna, TSpec>::Index   & index,
         if (length(reads[j]) < mapParm.minReadLen) // skip reads length < 1000
             continue;
         mnMapReadAll<TDna, TSpec>(index, reads[j], anchors, mapParm, hits[j], tm, tm2);
-        std::cout << "[DEBUG] " << _DefaultCord.getMaxLen(cords[j]) << " " << rcThr * length(reads[j]) << "\n";
         pathAll(reads[j], begin(hits[j]), end(hits[j]), f2, cords[j]);
-        std::cout <<"[DEBUG]path all done\n";
        // for (unsigned k = 0; k < length(hits[j]); k++)
        //     if (_DefaultHit.isBlockStart(hits[j][k]))
        //         std::cerr << "[DEBUG] hit start" <<  k << " " << _DefaultCord.getCordY(hits[j][k]) << "\n";
