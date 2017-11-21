@@ -788,7 +788,7 @@ inline bool path(String<Dna5> & read, typename PMRes::HitString hit, StringSet<S
 //    std::cerr << "length " << length(read) << std::endl;
     createFeatures(begin(read), end(read), f1);
     unsigned genomeId = _getSA_i1(_DefaultCord.getCordX(cords[0]));
-    uint64_t pre = _getSA_i1(_DefaultCord.getCordX(cords[0]));
+   // uint64_t pre = _getSA_i1(_DefaultCord.getCordX(cords[0]));
    // for (unsigned k = 0; k<length(cords);k++)
    // {
    // 
@@ -1041,7 +1041,7 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
 inline uint64_t getAnchorMatchAll(Anchors & anchors, unsigned const & readLen, MapParm & mapParm, PMRes::HitString & hit)
 {
     uint64_t ak, maxAnchor = 0;
-    unsigned c_b=mapParm.shapeLen, sb=0, n=0, maxStart=0, maxEnd=0, blockStart;
+    unsigned c_b=mapParm.shapeLen, sb=0, maxStart=0, maxEnd=0;
     anchors[0] = anchors[1];
     ak=anchors[0];
     anchors.sort(anchors.begin(), anchors.end());
@@ -1059,7 +1059,6 @@ inline uint64_t getAnchorMatchAll(Anchors & anchors, unsigned const & readLen, M
             {
                 anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
                 //std::cout <<"[debug] done2\n";
-                blockStart = length(hit);
                 for (unsigned m = sb; m < k; m++)
                 {
 //to do: replace appendValue? since it's not efficient
@@ -1103,9 +1102,7 @@ inline uint64_t mnMapReadAll(typename PMCore<TDna, TSpec>::Index  & index,
                           typename PMRecord<TDna>::RecSeq & read,
                           Anchors & anchors,
                           MapParm & mapParm,
-                          PMRes::HitString & hit,  
-                            double & time,
-                            double & time2 
+                          PMRes::HitString & hit  
                          )
 {
     getIndexMatchAll<TDna, TSpec>(index, read, anchors.set, anchors.len, mapParm);    
@@ -1131,9 +1128,8 @@ inline bool initCord(typename Iterator<PMRes::HitString>::Type & it,
     return true;
 }
 
-inline bool endCord(typename Iterator<PMRes::HitString>::Type const & hitEnd,
-                     unsigned & preCordStart,
-                     String<uint64_t> & cord
+inline bool endCord( String<uint64_t> & cord,
+                     unsigned & preCordStart
                    )
 {
     _DefaultHit.setBlockEnd(back(cord));
@@ -1148,7 +1144,6 @@ inline bool nextCord(typename Iterator<PMRes::HitString>::Type & it,
                      String<uint64_t> & cord)
 {
 //TODO: add maxlen of anchor to the first node in cord;
-    unsigned count = 0;
     if (it >= hitEnd)
         return false;
     while(!_DefaultHit.isBlockEnd(*(it - 1)))
@@ -1186,7 +1181,6 @@ inline bool extendWindowAll(String<int> &f1, String<int> & f2, typename Cord::Co
         std::swap(cord[k], cord[length(cord) - k + len - 1]);
         // when k < length(cord) - 1 - k + len -> swap, keeping cord in assending order
     }
-    unsigned count=0;
     while (nextWindow(f1, f2, cord)){}
     return true;
 }
@@ -1207,7 +1201,7 @@ inline bool pathAll(String<Dna5> & read,
             extendWindowAll(f1, f2[_getSA_i1(_DefaultCord.getCordX(back(cords)))], cords);
         }
         while (nextCord(it, hitEnd, preBlockPtr, cords));
-        return endCord(hitEnd, preBlockPtr, cords);   
+        return endCord(cords, preBlockPtr);   
     }
     return false;
 }
@@ -1233,8 +1227,6 @@ void rawMapAll(typename PMCore<TDna, TSpec>::Index   & index,
     Anchors anchors(Const_::_LLTMax, AnchorBase::size);
     Seq comStr;
     
-    double tm=0;
-    double tm2=0;
     StringSet<String<int> > f2;
     createFeatures(genomes, f2);
     for (unsigned j = 0; j < length(reads); j++)
@@ -1242,7 +1234,7 @@ void rawMapAll(typename PMCore<TDna, TSpec>::Index   & index,
         anchors.init(1);
         if (length(reads[j]) < mapParm.minReadLen) // skip reads length < 1000
             continue;
-        mnMapReadAll<TDna, TSpec>(index, reads[j], anchors, mapParm, hits[j], tm, tm2);
+        mnMapReadAll<TDna, TSpec>(index, reads[j], anchors, mapParm, hits[j]);
         pathAll(reads[j], begin(hits[j]), end(hits[j]), f2, cords[j]);
        // for (unsigned k = 0; k < length(hits[j]); k++)
        //     if (_DefaultHit.isBlockStart(hits[j][k]))
@@ -1262,7 +1254,7 @@ void rawMapAll(typename PMCore<TDna, TSpec>::Index   & index,
             _compltRvseStr(reads[j], comStr);
             clear(crhit);
             clear(crcord);
-            mnMapReadAll<TDna, TSpec>(index, comStr, anchors, mapParm, crhit, tm, tm2);
+            mnMapReadAll<TDna, TSpec>(index, comStr, anchors, mapParm, crhit);
             pathAll(comStr, begin(crhit), end(crhit), f2, crcord);            
             //std::cerr <<"[debug] length " << length(crcord) << " " << _DefaultCord.getMaxLen(crcord)<< std::endl;
             if (_DefaultCord.getMaxLen(crcord) > _DefaultCord.getMaxLen(cords[j]))

@@ -110,7 +110,6 @@ int Mapper<TDna, TSpec>::createIndex()
     return 0;
 }
 
-
 template <typename TDna, typename TSpec>
 Pair<typename Mapper<TDna,TSpec>::HitType, typename Mapper<TDna, TSpec>::HitType>
 Mapper<TDna, TSpec>::getAliX(unsigned k) const
@@ -287,12 +286,8 @@ void map(Mapper<TDna, TSpec> & mapper)
     //printStatus();
     double time = sysTime();
     mapper.createIndex();
-    std::cerr << "done1\n";
     resize(mapper.hits(), length(mapper.reads()));
     resize(mapper.cords(), length(mapper.reads()));
-    std::cerr << "done2\n";
-//  mnMap<TDna, TSpec>(mapper.index(), mapper.reads(), _DefaultMapParm, mapper.hits());
-// path(mapper.hits(), mapper.reads(), mapper.genomes(), mapper.cords());
     //switch (mapper.sens())
     //{
     //    case 1:

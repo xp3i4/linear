@@ -1284,7 +1284,7 @@ struct XString
     
     XString(){};
     XString(uint64_t const & seqlen);
-    uint64_t _fullSize(uint64_t const & seqlen, float const & xtimes = 0.3, float const & alpha = 1.6);
+    uint64_t _fullSize(uint64_t const & seqlen, float const & alpha = 1.6);
 };
 
 template <unsigned TSPAN>
@@ -1331,10 +1331,10 @@ XString::XString(uint64_t const & seqlen)
     std::cout << "2";
 }
 
-uint64_t XString::_fullSize(uint64_t const & seqlen, float const & xtimes, float const & alpha)
+uint64_t XString::_fullSize(uint64_t const & seqlen, float const & alpha)
 {
     uint64_t len = 1ULL; 
-    while ((len) < seqlen * alpha * xtimes)
+    while ((len) < seqlen * alpha)
         len <<=1;
     resize(xstring, len);
     mask = len - 1;
@@ -1482,7 +1482,6 @@ inline bool _hsSortY_SA(TIt const & begin, TIt const & end) // sort y and sa
     typedef typename Value<TIt>::Type ValueType;
     uint64_t k = 0, ptr;
     unsigned sortModeThr = 20;
-    typedef typename Value<TIt>::Type Int;
     while (k < end - begin)
     {
         ptr = _DefaultHs.getHeadPtr(*(begin + k));
@@ -1533,8 +1532,8 @@ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs,
             }
             
             hashNext(shape, begin(seq[j]) + k);
-            //if (k % 3 != 0)
-            //{
+            if (k % 2 != 0)
+            {
                 if (shape.XValue ^ preX)
                 {
                     _DefaultHs.setHsHead(hs[++count - ptr], ptr, preX);
@@ -1548,7 +1547,7 @@ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs,
                 _DefaultHs.setHsBody(hs[++count], shape.YValue, j, k); 
                 //std::cout << "hs[count] " << (hs[count] & ((1ULL << 30) - 1))<< std::endl;
 
-            //}
+            }
             
         }
     }
@@ -1556,10 +1555,11 @@ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs,
     _DefaultHs.setHsHead(hs[count], 0, 0);
     std::cerr << "      init Time[s]" << sysTime() - time << " " << std::endl;
 //-k
+    resize(hs, count + 1);
+    shrinkToFit(hs);
     _hsSort(begin(hs), begin(hs) + count, shape.weight);
     //_hsSort(begin(hs) + start, begin(hs) + count, shape.weight);
-    //resize(hs, count + 1);
-    //shrinkToFit(hs);
+    
     std::cerr << "      End createHsArray " << std::endl;
     return true;
 }
@@ -1615,11 +1615,6 @@ bool checkHsSort(String<uint64_t> const & hs)
     return true;
 }
 
-//inline typename XNode::ADDY XNodeFunc::getAddY(uint64_t const & bit);
-//{
-//    return val2;
-//}
-
 inline uint64_t XNodeFunc::hash(uint64_t const & val)
 {
     uint64_t key = val;
@@ -1660,18 +1655,16 @@ inline XNode::TypeV2L XNodeFunc::makeReturnVal(XNode const & xnode, XNodeBase::M
 
 
 
-inline uint64_t requestXNode(XString & xstr, uint64_t const & xval, uint64_t const & val2, uint64_t const & nodeType, uint64_t const returnType, bool noCollision)
+inline uint64_t requestXNode_noCollision (XString & xstr, uint64_t const & xval, 
+                uint64_t const & val2,  uint64_t const & nodeType, uint64_t const returnType)
 {
     uint64_t h1 = _DefaultXNodeFunc.hash(xval) & xstr.mask;
     uint64_t delta = 0;
-    //std::cerr << "requestXNode " << length(xstr.xstring)<< "\n";
     while (xstr.xstring[h1].val1) //0 stands for empty
     {
-        //  std::cerr << h1 << " " << xstr.xstring[h1].val1 << "\n";
         h1 = (h1 + delta +1) & xstr.mask;
         delta++;
     }
-    //std::cerr << count << "\n";
     _DefaultXNodeFunc.setXNode(xstr.xstring[h1], xval, val2, nodeType, returnType);
     return h1;
 }
@@ -1679,7 +1672,7 @@ inline uint64_t requestXNode(XString & xstr, uint64_t const & xval, uint64_t con
 
 inline uint64_t getXDir(XString const & xstr, uint64_t const & xval, uint64_t const & yval, bool & vflag)
 {
-        uint64_t val, it, delta = 0;
+        uint64_t val, delta = 0;
         uint64_t h1 = _DefaultXNodeFunc.hash(xval) & xstr.mask;
         
         //_setHeadNode(val, xval);
@@ -1915,26 +1908,50 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir)
 //-k
     ptr = 0; k = 0;
 
+    uint64_t count = 0; 
+    
 //    ptr = 0; k = 2;
-    xstr._fullSize(length(hs));
-    std::cerr << "      size of xstr " << length(xstr.xstring) * 12/1024/1024/1024.0 << " GB\n";
     while(_DefaultHs.getHeadPtr(hs[k]))
     {
         ptr = _DefaultHs.getHeadPtr(hs[k]);
         if (ptr < blocklimit)
         {
-            requestXNode(xstr, _DefaultHs.getHeadX(hs[k]), k + 1, _DefaultXNodeBase.xHead, _DefaultXNodeBase.returnDir, true);
+            ++count;
         }
         else
-        {
-            uint64_t xval = _DefaultHs.getHeadX(hs[k]);
-            requestXNode(xstr, xval, ~1, _DefaultXNodeBase.virtualHead, _DefaultXNodeBase.returnDir, true);
+        {   
             for (unsigned j = k + 1; j < k + ptr; j++)
             {
                 if(_DefaultHs.getHsBodyY(hs[j] ^ hs[j - 1]))
                 {
-                     //requestXNode(xstr, xy2h<TSPAN, TWEIGHT>(_DefaultHs.getHsBodyY(hs[j]), xval), k, _DefaultXNodeBase.xHead, true);
-                    requestXNode(xstr, (xval + ((hs[j] & ((1ULL<<61) - (1ULL<<41))) >>1)), j, _DefaultXNodeBase.xHead, _DefaultXNodeBase.returnDir, true);
+                    ++count;
+                }
+            }
+            ++count;
+        }
+        k += ptr;
+    }
+    xstr._fullSize(count);
+    ptr = 0; k = 0;
+    while(_DefaultHs.getHeadPtr(hs[k]))
+    {
+        ptr = _DefaultHs.getHeadPtr(hs[k]);
+        if (ptr < blocklimit)
+        {
+            requestXNode_noCollision(xstr, _DefaultHs.getHeadX(hs[k]), 
+                    k + 1, _DefaultXNodeBase.xHead, _DefaultXNodeBase.returnDir);
+        }
+        else
+        {
+            uint64_t xval = _DefaultHs.getHeadX(hs[k]);
+            requestXNode_noCollision(xstr, xval, 
+                    ~1, _DefaultXNodeBase.virtualHead, _DefaultXNodeBase.returnDir);
+            for (unsigned j = k + 1; j < k + ptr; j++)
+            {
+                if(_DefaultHs.getHsBodyY(hs[j] ^ hs[j - 1]))
+                {
+                    requestXNode_noCollision(xstr, (xval + ((hs[j] & ((1ULL<<61) - (1ULL<<41))) >>1)), 
+                            j, _DefaultXNodeBase.xHead, _DefaultXNodeBase.returnDir);
                 }
                    
             }
@@ -1960,9 +1977,6 @@ bool _createQGramIndexDirSA(StringSet<String<Dna5> > const & seq, XString & xstr
     
 }
  
-
-
-
 template <typename TDna, unsigned span>
 bool createHIndex(StringSet<String<TDna> > & seq, HIndex<span> & index)
 {

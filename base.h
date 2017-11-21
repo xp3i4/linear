@@ -88,7 +88,7 @@ struct Const_{
         
 };
 
-const float Const_::_ALPHA = 0.65;
+const float Const_::_ALPHA = 0.7;
 const unsigned Const_::_SHAPELEN = 25;
 const unsigned Const_::_SHAPEWHT = 17;
 const unsigned Const_::_BLOCKSIZE = 100;
