@@ -80,7 +80,7 @@ struct Const_{
     static const unsigned _SHAPELEN;
     static const unsigned _SHAPEWHT;
     static const unsigned _BLOCKSIZE;
-    static const unsigned _DELAT; 
+    static const unsigned _DELTA; 
     static const unsigned _THRESHOLD; 
     static const float    _ALPHA ;
     static const unsigned _KMERSTEP;
@@ -92,7 +92,7 @@ const float Const_::_ALPHA = 0.7;
 const unsigned Const_::_SHAPELEN = 25;
 const unsigned Const_::_SHAPEWHT = 17;
 const unsigned Const_::_BLOCKSIZE = 100;
-const unsigned Const_::_DELAT = 32; 
+const unsigned Const_::_DELTA = 32; 
 const unsigned Const_::_THRESHOLD = 30; 
 const unsigned Const_::_KMERSTEP = 1000;
 const uint64_t Const_::_LLTMax = ~0;
@@ -317,7 +317,7 @@ struct MapParm{
     unsigned    threshold;
     unsigned    kmerStep;
     unsigned    shapeLen;
-    unsigned    senstivity;
+    //unsigned    sensitivity;
     unsigned    anchorDeltaThr;
     unsigned    minReadLen;
     float       alpha;
@@ -327,31 +327,50 @@ struct MapParm{
     
     MapParm():
         blockSize(Const_::_BLOCKSIZE),
-        delta(Const_::_DELAT),
+        delta(Const_::_DELTA),
         threshold(Const_::_THRESHOLD),
         kmerStep(Const_::_KMERSTEP),
         shapeLen(Const_::_SHAPELEN),
-        senstivity(0),
+        //sensitivity(0),
         anchorDeltaThr(),
         minReadLen(1000),
         alpha(Const_::_ALPHA),
         anchorLenThr(0.02),                  // anchors with lenghth > this parameter is pushed into the queue
         rcThr(0.75)                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
         {}
-// ====
-//temp: need modify
-    MapParm(Options & options){MapParm();}
+    MapParm(unsigned bs, unsigned dt, unsigned thr, 
+            unsigned ks, unsigned sl, /*unsigned st,*/ 
+            unsigned ad, unsigned mr, float ap, 
+            float alt, float rt):
+        blockSize(bs),
+        delta(dt),
+        threshold(thr),
+        kmerStep(ks),
+        shapeLen(sl),
+        //sensitivity(st),
+        anchorDeltaThr(ad),
+        minReadLen(mr),
+        alpha(ap),
+        anchorLenThr(alt),                  // anchors with lenghth > this parameter is pushed into the queue
+        rcThr(rt)                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
+        {} 
+
+
     MapParm(MapParm & parm):
         blockSize(parm.blockSize),
-        alpha(parm.alpha),
         delta(parm.delta),
         threshold(parm.threshold),
         kmerStep(parm.kmerStep),
         shapeLen(parm.shapeLen),
-        senstivity(parm.senstivity),
+        //sensitivity(parm.sensitivity),
+        anchorDeltaThr(),
+        minReadLen(parm.minReadLen),
+        alpha(parm.alpha),
         anchorLenThr(parm.anchorLenThr),
         rcThr(parm.rcThr)
         {}
+        
+    MapParm(Options & options){}
     void setMapParm(Options & options);
     void print ();
     
@@ -553,12 +572,15 @@ inline void Anchors::appendValue(Anchors::AnchorType val1, Anchors::AnchorType v
 void MapParm::print()
 {
     std::cerr << "blockSize " << blockSize << std::endl
-             << "alpha " << alpha << std::endl
-             << "delta " << delta << std::endl
-             << "threshold " << threshold << std::endl
-             << "kmerStep " << kmerStep << std::endl
-             << "shapeLen " << shapeLen << std::endl;
-    
+            << "alpha " << alpha << std::endl
+            << "delta " << delta << std::endl
+            << "threshold " << threshold << std::endl
+            << "kmerStep " << kmerStep << std::endl
+            << "shapeLen " << shapeLen << std::endl
+            //<<  "sensitivity " << sensitivity << "\n"
+            << "anchorDeltaThr " << anchorDeltaThr << "\n"
+            << "minReadLen " << minReadLen << "\n"
+            << "anchorLenThr" << anchorLenThr << "\n";
 }
 
 static String<Dna5> _complt = "tgcan";
