@@ -1278,6 +1278,112 @@ void rawMapAll(typename PMCore<TDna, TSpec>::Index   & index,
     std::cerr << "    End raw mapping. Time[s]: " << sysTime() - time << std::endl;
 }
 
+template <typename TDna, typename TSpec>
+void rawMapAllComplex(typename PMCore<TDna, TSpec>::Index   & index,
+            typename PMRecord<TDna>::RecSeqs      & reads,
+            typename PMRecord<TDna>::RecSeqs & genomes,
+            MapParm & mapParm,
+            typename PMRes::HitSet & hits,
+            StringSet<String<uint64_t> > & cords)
+{
+    typedef typename PMRecord<TDna>::RecSeq Seq;
+    typedef typename PMCore<TDna, TSpec>::Anchors Anchors;
+    typename PMRes::HitString crhit;
+    String<uint64_t> crcord;
+    String<unsigned> missId;
+    double time=sysTime();
+    uint64_t count = 0;
+    float rcThr = mapParm.rcThr / window_size;
+    float senThr = window_size / 0.85;
+    MapParm complexParm = mapParm;
+    complexParm.alpha = 0.5;
+    std::cerr << "Raw mapping... \r"; 
+    
+    Anchors anchors(Const_::_LLTMax, AnchorBase::size);
+    Seq comStr;
+    
+    StringSet<String<int> > f2;
+    createFeatures(genomes, f2);
+    for (unsigned j = 0; j < length(reads); j++)
+    {
+        anchors.init(1);
+        if (length(reads[j]) < mapParm.minReadLen) // skip reads length < 1000
+            continue;
+        mnMapReadAll<TDna, TSpec>(index, reads[j], anchors, mapParm, hits[j]);
+        pathAll(reads[j], begin(hits[j]), end(hits[j]), f2, cords[j]);
+        if (_DefaultCord.getMaxLen(cords[j]) < rcThr * length(reads[j]))
+        {
+        
+            anchors.init(1);
+            count++;
+            _compltRvseStr(reads[j], comStr);
+            clear(crhit);
+            clear(crcord);
+            mnMapReadAll<TDna, TSpec>(index, comStr, anchors, mapParm, crhit);
+            pathAll(comStr, begin(crhit), end(crhit), f2, crcord);            
+            
+                if (_DefaultCord.getMaxLen(crcord) > _DefaultCord.getMaxLen(cords[j]))
+                {
+                    hits[j] = crhit;
+                    cords[j] = crcord;
+                    _DefaultCord.setCordEnd(back(cords[j]));
+                }
+                else
+                {
+                    if (!empty(cords[j]))
+                        _DefaultCord.setCordEnd(back(cords[j]),0);
+                }   
+            
+        }
+        //if (_DefaultCord.getMaxLen(crcord) < length(reads[j]) / senThr && 
+         //       _DefaultCord.getMaxLen(cords[j]) < length(reads[j]) / senThr) 
+         //std::cout << _DefaultCord.getMaxLen(cords[j]) << " " << length(reads[j]) / senThr << std::endl;
+         if (_DefaultCord.getMaxLen(cords[j]) < length(reads[j]) / senThr)
+            {
+                appendValue(missId, j);
+                clear(cords[j]);
+            }
+    }
+    std::cout << "welcome 2 complex " << senThr << " "<< length(missId) << " \n";
+    for (unsigned k = 0; k < length(missId); k++)
+    {
+        anchors.init(1);
+        if (length(reads[missId[k]]) < complexParm.minReadLen) // skip reads length < 1000
+            continue;
+        mnMapReadAll<TDna, TSpec>(index, reads[missId[k]], anchors, complexParm, hits[missId[k]]);
+        pathAll(reads[missId[k]], begin(hits[missId[k]]), end(hits[missId[k]]), f2, cords[missId[k]]);
+
+        if (_DefaultCord.getMaxLen(cords[missId[k]]) < rcThr * length(reads[missId[k]]))
+        {
+        
+            anchors.init(1);
+            count++;
+            _compltRvseStr(reads[missId[k]], comStr);
+            clear(crhit);
+            clear(crcord);
+            mnMapReadAll<TDna, TSpec>(index, comStr, anchors, complexParm, crhit);
+            pathAll(comStr, begin(crhit), end(crhit), f2, crcord);            
+            if (_DefaultCord.getMaxLen(crcord) > _DefaultCord.getMaxLen(cords[missId[k]]))
+            {
+                hits[missId[k]] = crhit;
+                cords[missId[k]] = crcord;
+                _DefaultCord.setCordEnd(back(cords[missId[k]]));
+            }
+            else
+            {
+                if (!empty(cords[missId[k]]))
+                    _DefaultCord.setCordEnd(back(cords[missId[k]]),0);
+            }   
+            
+        }
+    }
+        
+    
+    
+    std::cerr << "Raw map reads:            " << std::endl;
+    std::cerr << "    rsc strand " << count << std::endl;
+    std::cerr << "    End raw mapping. Time[s]: " << sysTime() - time << std::endl;
+}
 
 
 //End all mapper module

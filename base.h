@@ -88,7 +88,7 @@ struct Const_{
         
 };
 
-const float Const_::_ALPHA = 0.7;
+const float Const_::_ALPHA = 0.75;
 const unsigned Const_::_SHAPELEN = 25;
 const unsigned Const_::_SHAPEWHT = 17;
 const unsigned Const_::_BLOCKSIZE = 100;
@@ -336,7 +336,7 @@ struct MapParm{
         minReadLen(1000),
         alpha(Const_::_ALPHA),
         anchorLenThr(0.02),                  // anchors with lenghth > this parameter is pushed into the queue
-        rcThr(0.75)                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
+        rcThr(0.8)                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
         {}
     MapParm(unsigned bs, unsigned dt, unsigned thr, 
             unsigned ks, unsigned sl, /*unsigned st,*/ 
@@ -580,7 +580,8 @@ void MapParm::print()
             //<<  "sensitivity " << sensitivity << "\n"
             << "anchorDeltaThr " << anchorDeltaThr << "\n"
             << "minReadLen " << minReadLen << "\n"
-            << "anchorLenThr" << anchorLenThr << "\n";
+            << "anchorLenThr" << anchorLenThr << "\n"
+            << "rcThr " << rcThr << "\n";
 }
 
 static String<Dna5> _complt = "tgcan";

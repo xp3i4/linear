@@ -190,17 +190,34 @@ void Mapper<TDna, TSpec>::printCordsAll()
                 strand = 0;
             of << k << " th Strand " << strand << " length " 
             << length(reads()[k]) << "\nlength of cords " << "\n";
+            unsigned cordCount = 0;
+            unsigned first = 0;
+            unsigned cover = 0;
             for (unsigned j = 1; j < length(cordSet[k]); j++)
             {
                 of << _DefaultCord.getCordY(cordSet[k][j]) << " " 
                     << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j])) << " "
                     << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << std::endl;
-                    
-                if (_DefaultHit.isBlockEnd(cordSet[k][j]) && j < length(cordSet[k]) - 1)
+                if (_DefaultCord.getCordY(cordSet[k][j]) - first < 192)
+                    cover += _DefaultCord.getCordY(cordSet[k][j]) - first;
+                else
+                    cover += 192;
+                first = _DefaultCord.getCordY(cordSet[k][j]);
+                cordCount++;
+                if (_DefaultHit.isBlockEnd(cordSet[k][j]))
                 {
-                    of << "\n" << k << " th Strand " << strand << " length " 
-                    << length(reads()[k]) << "\nlength of cords " << "\n";
+                   
+                    of << "coverage " << (float)cover / (length(reads()[k])) << "\n";
+                    if (j < length(cordSet[k]) - 1)
+                    {
+                        of << "\n" << k << " th Strand " << strand << " length " 
+                        << length(reads()[k]) << "\nlength of cords " << "\n";
+                    }   
+                     cordCount =0;
+                    first = 0;
+                    cover = 0;
                 }
+                
  
             }
             of << "\n";
@@ -253,7 +270,9 @@ void map(Mapper<TDna, TSpec> & mapper)
     mapper.createIndex();
     resize(mapper.hits(), length(mapper.reads()));
     resize(mapper.cords(), length(mapper.reads()));
-    rawMapAll<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(),
+    //rawMap<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(),
+    //                     mapper.mapParm(), mapper.hits(), mapper.cords());
+    rawMapAllComplex<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(),
                          mapper.mapParm(), mapper.hits(), mapper.cords());
         //mapper.printHits();
     mapper.printCordsAll();
