@@ -1311,8 +1311,8 @@ void rawMapAllComplex(typename PMCore<TDna, TSpec>::Index   & index,
             continue;
         mnMapReadAll<TDna, TSpec>(index, reads[j], anchors, mapParm, hits[j]);
         pathAll(reads[j], begin(hits[j]), end(hits[j]), f2, cords[j]);
-        if (_DefaultCord.getMaxLen(cords[j]) < rcThr * length(reads[j]))
-        {
+        //if (_DefaultCord.getMaxLen(cords[j]) < rcThr * length(reads[j]))
+        //{
         
             anchors.init(1);
             count++;
@@ -1334,7 +1334,7 @@ void rawMapAllComplex(typename PMCore<TDna, TSpec>::Index   & index,
                         _DefaultCord.setCordEnd(back(cords[j]),0);
                 }   
             
-        }
+        //}
         //if (_DefaultCord.getMaxLen(crcord) < length(reads[j]) / senThr && 
          //       _DefaultCord.getMaxLen(cords[j]) < length(reads[j]) / senThr) 
          //std::cout << _DefaultCord.getMaxLen(cords[j]) << " " << length(reads[j]) / senThr << std::endl;

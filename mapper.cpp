@@ -50,7 +50,6 @@ Mapper<TDna, TSpec>::Mapper(Options & options):
             case 0: 
             {
                 parm = parm0; //normal
-                std::cerr << parm.alpha << "alpha \n";
                 break;
             }
             case 1:
@@ -63,8 +62,9 @@ Mapper<TDna, TSpec>::Mapper(Options & options):
                 parm = parm2; //sensitive
                 break;
             }
-            
         }
+        // parmt for test 
+        parm = parmt;
 }
 
 template <typename TDna, typename TSpec>

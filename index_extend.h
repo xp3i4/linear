@@ -1532,7 +1532,7 @@ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs,
             }
             
             hashNext(shape, begin(seq[j]) + k);
-            if (k % 2 == 0)
+            if (k % 3 != 0)
             {
                 if (shape.XValue ^ preX)
                 {
