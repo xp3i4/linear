@@ -188,14 +188,14 @@ void Mapper<TDna, TSpec>::printCordsAll()
                 strand = 1;
             else 
                 strand = 0;
-            of << k << " th Strand " << strand << " length " 
+            of << k << " th Strand " << _DefaultCord.getCordStrand(cordSet[k][1]) << " length " 
             << length(reads()[k]) << "\nlength of cords " << "\n";
             unsigned cordCount = 0;
             unsigned first = 0;
             unsigned cover = 0;
             for (unsigned j = 1; j < length(cordSet[k]); j++)
             {
-                of << _DefaultCord.getCordY(cordSet[k][j]) << " " 
+                of <<_DefaultCord.getCordY(cordSet[k][j]) << " " 
                     << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j])) << " "
                     << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << std::endl;
                 if (_DefaultCord.getCordY(cordSet[k][j]) - first < 192)
@@ -210,10 +210,10 @@ void Mapper<TDna, TSpec>::printCordsAll()
                     of << "coverage " << (float)cover / (length(reads()[k])) << "\n";
                     if (j < length(cordSet[k]) - 1)
                     {
-                        of << "\n" << k << " th Strand " << strand << " length " 
+                        of << "\n" << k << " th Strand " << _DefaultCord.getCordStrand(cordSet[k][j+1]) << " length " 
                         << length(reads()[k]) << "\nlength of cords " << "\n";
                     }   
-                     cordCount =0;
+                    cordCount =0;
                     first = 0;
                     cover = 0;
                 }
@@ -272,7 +272,7 @@ void map(Mapper<TDna, TSpec> & mapper)
     resize(mapper.cords(), length(mapper.reads()));
     //rawMap<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(),
     //                     mapper.mapParm(), mapper.hits(), mapper.cords());
-    rawMapAllComplex<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(),
+    rawMapAllComplex2<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(),
                          mapper.mapParm(), mapper.hits(), mapper.cords());
         //mapper.printHits();
     mapper.printCordsAll();
