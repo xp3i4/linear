@@ -256,6 +256,50 @@ void Mapper<TDna, TSpec>::printCords()
 }
 
 template <typename TDna, typename TSpec>
+void Mapper<TDna, TSpec>::printCordsRaw()
+{
+    double time = sysTime();
+    unsigned strand;
+    bool flag;
+    for (unsigned k = 0; k < length(cordSet); k++)
+    {
+        if (!empty(cordSet[k]))
+        {
+           flag = false; 
+           // if (_DefaultCord.getCordStrand(back(cordSet[k]))) 
+           //     strand = 1;
+           // else 
+           //     strand = 0;
+           // of << k << " " << _DefaultCord.getCordStrand(cordSet[k][1]) << " length " 
+           // << length(reads()[k]) << "\nlength of cords " << "\n";
+           // unsigned cordCount = 0;
+           // unsigned first = 0;
+           // unsigned cover = 0;
+            for (unsigned j = 1; j < length(cordSet[k]); j++)
+            {
+                if (flag && j+2 < length(cordSet[k]))
+                {
+                    of <<"@S1_"<<k+1 << " x "  << " " 
+                    << _DefaultCord.getCordY(cordSet[k][j+2]) << " x x " 
+                    << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j+2])) << " lenG "
+                    << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j+2]))  << "\n";   
+                    flag = false;
+                }
+                if (_DefaultHit.isBlockEnd(cordSet[k][j]))
+                {
+                    flag = true;
+                }
+                
+ 
+            }
+            //_DefaultCord.print(cordSet[k],of);
+        }
+    }
+    std::cerr << ">Write results to disk          " << std::endl;
+    std::cerr << "    End writing results. Time[s]" << sysTime() - time << std::endl; 
+}
+
+template <typename TDna, typename TSpec>
 unsigned Mapper<TDna, TSpec>::sens()
 {
     return parm.sensitivity;
@@ -275,7 +319,8 @@ void map(Mapper<TDna, TSpec> & mapper)
     rawMapAllComplex2<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(),
                          mapper.mapParm(), mapper.hits(), mapper.cords());
         //mapper.printHits();
-    mapper.printCordsAll();
+    //mapper.printCordsAll();
+    mapper.printCordsRaw();
     std::cerr << length(mapper.cords()) << " " << length(mapper.reads()) << " \n";
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
 }

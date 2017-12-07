@@ -1509,7 +1509,7 @@ void rawMapAllComplex2(typename PMCore<TDna, TSpec>::Index   & index,
     double time=sysTime();
     float rcThr = mapParm.rcThr / window_size;
     float senThr = window_size / 0.85;
-    mapParm.alpha = 0.65;
+    mapParm.alpha = 0.6;
     MapParm complexParm = mapParm;
     complexParm.alpha = 0.5;
     std::cerr << "complex 2\n";

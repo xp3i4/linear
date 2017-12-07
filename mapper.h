@@ -85,6 +85,7 @@ public:
     void printCords(std::ostream & );
     void printCords();
     void printCordsAll();
+    void printCordsRaw();
     int createIndex();
     unsigned sens();
 
