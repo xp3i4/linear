@@ -65,6 +65,7 @@ Mapper<TDna, TSpec>::Mapper(Options & options):
         }
         // parmt for test 
         parm = parmt;
+        std::cerr << "parm " << parm.alpha << "\n";
 }
 
 template <typename TDna, typename TSpec>
@@ -188,14 +189,21 @@ void Mapper<TDna, TSpec>::printCordsAll()
                 strand = 1;
             else 
                 strand = 0;
-            of << k << " th Strand " << _DefaultCord.getCordStrand(cordSet[k][1]) << " length " 
-            << length(reads()[k]) << "\nlength of cords " << "\n";
             unsigned cordCount = 0;
             unsigned first = 0;
             unsigned cover = 0;
+            unsigned firstCord = 1;
             for (unsigned j = 1; j < length(cordSet[k]); j++)
             {
-                of <<_DefaultCord.getCordY(cordSet[k][j]) << " " 
+                if (firstCord)
+                {
+                    firstCord = 0;
+                    if (j != 1)
+                        of << "\n";
+                    of << k << " th Strand " << _DefaultHit.getStrand(cordSet[k][j]) << " length " 
+                        << length(reads()[k]) << "\nlength of cords " << "\n";
+                }
+                of << j << " " << _DefaultCord.getCordY(cordSet[k][j]) << " " 
                     << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j])) << " "
                     << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << std::endl;
                 if (_DefaultCord.getCordY(cordSet[k][j]) - first < 192)
@@ -210,12 +218,12 @@ void Mapper<TDna, TSpec>::printCordsAll()
                     of << "coverage " << (float)cover / (length(reads()[k])) << "\n";
                     if (j < length(cordSet[k]) - 1)
                     {
-                        of << "\n" << k << " th Strand " << _DefaultCord.getCordStrand(cordSet[k][j+1]) << " length " 
-                        << length(reads()[k]) << "\nlength of cords " << "\n";
+                        
                     }   
                     cordCount =0;
                     first = 0;
                     cover = 0;
+                    firstCord = 1;
                 }
                 
  
@@ -260,37 +268,24 @@ void Mapper<TDna, TSpec>::printCordsRaw()
 {
     double time = sysTime();
     unsigned strand;
+    unsigned cordCount = 0;
     bool flag;
     for (unsigned k = 0; k < length(cordSet); k++)
     {
         if (!empty(cordSet[k]))
         {
-           flag = false; 
-           // if (_DefaultCord.getCordStrand(back(cordSet[k]))) 
-           //     strand = 1;
-           // else 
-           //     strand = 0;
-           // of << k << " " << _DefaultCord.getCordStrand(cordSet[k][1]) << " length " 
-           // << length(reads()[k]) << "\nlength of cords " << "\n";
-           // unsigned cordCount = 0;
-           // unsigned first = 0;
-           // unsigned cover = 0;
             for (unsigned j = 1; j < length(cordSet[k]); j++)
             {
-                if (flag && j+2 < length(cordSet[k]))
+                if (_DefaultHit.isBlockEnd(cordSet[k][j-1]))
                 {
-                    of <<"@S1_"<<k+1 << " x "  << " " 
-                    << _DefaultCord.getCordY(cordSet[k][j+2]) << " x x " 
-                    << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j+2])) << " lenG "
-                    << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j+2]))  << "\n";   
+                    of <<"@S1_"<< k+1 << " " << length(cordSet[k]) << " "
+                    << _DefaultCord.getCordY(cordSet[k][j]) << " x x " 
+                    << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j])) << " " << cordCount << " "
+                    << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << "\n";   
                     flag = false;
+                    cordCount = 0;
                 }
-                if (_DefaultHit.isBlockEnd(cordSet[k][j]))
-                {
-                    flag = true;
-                }
-                
- 
+                cordCount++;
             }
             //_DefaultCord.print(cordSet[k],of);
         }

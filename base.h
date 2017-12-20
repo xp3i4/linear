@@ -321,6 +321,7 @@ struct MapParm{
     unsigned    anchorDeltaThr;
     unsigned    minReadLen;
     float       alpha;
+    float       alpha2;
     float       anchorLenThr;
     float       rcThr;
       
@@ -335,12 +336,13 @@ struct MapParm{
         anchorDeltaThr(),
         minReadLen(1000),
         alpha(Const_::_ALPHA),
+        alpha2(0.5),
         anchorLenThr(0.02),                  // anchors with lenghth > this parameter is pushed into the queue
         rcThr(0.8)                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
         {}
     MapParm(unsigned bs, unsigned dt, unsigned thr, 
             unsigned ks, unsigned sl, /*unsigned st,*/ 
-            unsigned ad, unsigned mr, float ap, 
+            unsigned ad, unsigned mr, float ap, float ap2,
             float alt, float rt):
         blockSize(bs),
         delta(dt),
@@ -351,6 +353,7 @@ struct MapParm{
         anchorDeltaThr(ad),
         minReadLen(mr),
         alpha(ap),
+        alpha2(ap2),
         anchorLenThr(alt),                  // anchors with lenghth > this parameter is pushed into the queue
         rcThr(rt)                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
         {} 
@@ -366,6 +369,7 @@ struct MapParm{
         anchorDeltaThr(),
         minReadLen(parm.minReadLen),
         alpha(parm.alpha),
+        alpha2(parm.alpha2),
         anchorLenThr(parm.anchorLenThr),
         rcThr(parm.rcThr)
         {}
