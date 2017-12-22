@@ -578,13 +578,13 @@ inline uint64_t getScript(TIter const & it)
     }
     return script;
 }
-/*
+
 inline int _scriptDist(int const & s1, int const & s2)
 {
     return std::abs((s1 & scriptMask)- (s2 & scriptMask)) + std::abs(((s1 & scriptMask2) - (s2 & scriptMask2)) >> scriptWindow) + std::abs((s1>>scriptWindow*2) - (s2>>scriptWindow*2));
 }
-*/
 
+/*
 inline int _scriptDist(int const & s1, int const & s2)
 {
     int d1 = (s1 & scriptMask)- (s2 & scriptMask);
@@ -593,7 +593,7 @@ inline int _scriptDist(int const & s1, int const & s2)
     //return std::abs((s1 & scriptMask)- (s2 & scriptMask)) + std::abs(((s1 & scriptMask2) - (s2 & scriptMask2)) >> scriptWindow) + std::abs((s1>>scriptWindow*2) - (s2>>scriptWindow*2));
     return std::abs(d1) + std::abs(d2) + std::abs(d3) + std::abs(d2-d1) + std::abs(d3-d2);
 }
-
+*/
 template<typename TIter> 
 inline void createFeatures(TIter const & itBegin, TIter const & itEnd, String<int> & f)
 {
