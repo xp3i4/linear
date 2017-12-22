@@ -300,7 +300,6 @@ unsigned Mapper<TDna, TSpec>::sens()
     return parm.sensitivity;
 }
 
-
 template <typename TDna, typename TSpec>
 void map(Mapper<TDna, TSpec> & mapper)
 {
@@ -313,9 +312,9 @@ void map(Mapper<TDna, TSpec> & mapper)
     //                     mapper.mapParm(), mapper.hits(), mapper.cords());
     rawMapAllComplex2<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(),
                          mapper.mapParm(), mapper.hits(), mapper.cords());
-        //mapper.printHits();
-    //mapper.printCordsAll();
-    mapper.printCordsRaw();
+    //mapper.printHits();
+    mapper.printCordsAll();
+    //mapper.printCordsRaw();
     std::cerr << length(mapper.cords()) << " " << length(mapper.reads()) << " \n";
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
 }
