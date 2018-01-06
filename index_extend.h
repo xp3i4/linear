@@ -1304,8 +1304,9 @@ const double HIndexBase<TSPAN>::defaultAlpha(1.6);
 template <unsigned TSPAN>
 class HIndex
 {
-
+    
     public:
+        typedef typename HIndexBase<TSPAN>::TShape TShape;
         typename HIndexBase<TSPAN>::YSA             ysa;        
         typename HIndexBase<TSPAN>::XStr            xstr;       
         typename HIndexBase<TSPAN>::TShape          shape;
@@ -1384,7 +1385,7 @@ inline void Hs::setHsHeadPtr(uint64_t & val, uint64_t const & ptr,  uint64_t con
 {
     val = (val & mask) + (ptr << bit);
 }
-
+/*
 template <typename TIt>
 inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBitLen)
 {
@@ -1424,7 +1425,6 @@ inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBi
         
             if (_DefaultHs.isHead(*(begin + k)))
             {
-                
                 uint64_t x = *(begin + k) << l_move >> r_move;
                 uint64_t ptr = _DefaultHs.getHeadPtr(*(begin + k));
                 count[x] -= ptr;
@@ -1441,6 +1441,361 @@ inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBi
     return true;
 }
 
+*/
+static unsigned const maxThread = 4;
+static unsigned const maxBucket = 513;
+
+template <typename TIt>
+inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBitLen)
+{
+    if (xValBitLen <34 || xValBitLen > 42)
+    {
+        std::cerr << "[Error]: _dirSortX " << xValBitLen << "\n";
+        return false;
+    }
+    unsigned const bit[18] = {9,4,9,4,9,4,8,5,8,5,8,5,8,5,7,6,7,6}; //xValueBitLen 34 - 42;
+    unsigned const p_bit = bit[(xValBitLen - 34) << 1];
+    unsigned const l =  bit[((xValBitLen - 34) << 1) + 1];
+    unsigned const r_move = 64 - p_bit;
+    unsigned l_move = 64;
+    unsigned threads = 4;//omp_get_num_threads();
+    if (threads > maxThread)
+        threads = maxThread;
+    uint64_t const mask = (1 << p_bit) - 1;
+    uint64_t size = (end - begin) / threads;
+    unsigned thd1 = end - begin - size * threads;
+    uint64_t thd_n1 = (size + 1) * thd1;
+    omp_set_num_threads(threads);
+    std::cerr << "[hssort] " << threads << "\n";
+    std::vector<std::vector<uint64_t> > ctd(threads, std::vector<uint64_t>((1<<p_bit) + 1, 0));
+    std::vector<std::vector<std::vector<uint64_t> > > next(threads, 
+                    std::vector<std::vector<uint64_t> >(threads, std::vector<uint64_t>((1 << p_bit) + 1, 0)));
+    String<uint64_t> output;
+    resize(output, end - begin);
+    
+    //Initialize ctd[][] 
+    
+    //std::cerr << "[hssort2] " << threads << "\n";
+    #pragma omp parallel 
+    {
+        unsigned thd_id = omp_get_thread_num();
+        #pragma omp for
+        for (uint64_t k = 0; k < end - begin; k++)
+        {
+            if (_DefaultHs.isHead(*(begin + k)))
+            {
+                uint64_t x = *(begin + k) & mask;
+                uint64_t ptr = _DefaultHs.getHeadPtr(*(begin + k));
+                if (thd_id == threads - 1)
+                    ctd[0][x + 1] += ptr;    
+                    //ctd[x+1][0] += ptr;
+                else
+                    ctd[thd_id + 1][x] += ptr;
+                    //ctd[x][thd_id + 1] += ptr;
+                //printf("[originHs] %d %d %d %d %d\n", x, ptr, k, size ,end - begin);
+            }
+        }
+    }
+
+    //std::cerr << "[hssort3] " << threads << "\n";
+    for (uint64_t j = 0; j < l; j++)
+    {
+        //std::cerr << "[j] " << j << "\n";
+        l_move -= p_bit;
+        for (unsigned m = 1; m < threads; m++)
+            ctd[m][0] += ctd[m - 1][0];
+            //ctd[0][m] += ctd[0][m - 1];
+        for (unsigned n = 1; n < (1<<p_bit); n++)
+        {
+            ctd[0][n] += ctd[threads - 1][n - 1];
+            //ctd[n][0] += ctd[n-1][threads - 1];
+            for (unsigned m=1; m < threads; m++)
+            {
+                ctd[m][n] += ctd[m-1][n];
+                //ctd[n][m] += ctd[n][m-1];
+            }
+        }
+
+        #pragma omp parallel 
+        {
+            unsigned thd_id = omp_get_thread_num();
+
+            #pragma omp for
+            for (unsigned k = 0; k < end - begin; k++)
+            {
+                if (_DefaultHs.isHead(*(begin + k)))
+                {
+                    uint64_t x = *(begin + k) << l_move >> r_move;
+                    uint64_t ptr = _DefaultHs.getHeadPtr(*(begin + k));
+                    for (uint64_t it = 0; it < ptr; it++)
+                    {
+                        output[ctd[thd_id][x] + it] = *(begin + k + it);
+                        //output[ctd[x][thd_id] + it] = *(begin + k + it);
+                    }
+                    unsigned thd_num = (ctd[thd_id][x] < thd_n1)?ctd[thd_id][x]/(size + 1):(ctd[thd_id][x] - thd_n1) / size + thd1;
+                    //unsigned thd_num = (ctd[x][thd_id] < thd_n1)?ctd[x][thd_id]/(size + 1):(ctd[x][thd_id] - thd_n1) / size + thd1;
+                    //printf("[thd_num] %d %d %d\n", thd_id, x, ctd[thd_id][x]);
+                    ctd[thd_id][x] += ptr;
+                    //ctd[x][thd_id] += ptr;
+                    x = *(begin + k) << (l_move - p_bit)>> r_move;
+                    if (thd_num == threads - 1)
+                        next[thd_id][0][x + 1] += ptr;
+                    else
+                        next[thd_id][thd_num + 1][x] += ptr;
+                }
+            }
+        }
+        if (j < l - 1)
+        {       
+                    #pragma omp parallel for
+                for (unsigned k=0; k < threads; k++)
+                {
+                    //std::fill(ctd[k].begin(), ctd[k].end(), 0);
+                    for (unsigned n = 0; n < (1 << p_bit); n++)
+                    {
+                        ctd[k][n] = 0;
+                        //ctd[n][k] = 0;
+                        for (unsigned m = 0; m < threads; m++)
+                        {
+                            ctd[k][n] += next[m][k][n];
+                            //ctd[n][k] += next[m][k][n];
+                            next[m][k][n] = 0;
+                        }   
+                    }
+                        
+                }
+            
+           //     for (unsigned n = 0; n < (1 << p_bit); n++)
+           //     {
+           //         //std::fill(ctd[k].begin(), ctd[k].end(), 0);
+           //         #pragma omp parallel for
+           //         for (unsigned k=0; k < threads; k++)
+           //         {
+           //             ctd[n][k] = 0;
+           //             for (unsigned m = 0; m < threads; m++)
+           //             {
+           //                 //ctd[k][n] += next[m][k][n];
+           //                 ctd[n][k] += next[m][k][n];
+           //                 next[m][k][n] = 0;
+           //             }   
+           //         }
+           //             
+           //     }
+        
+        
+        }
+        #pragma omp parallel for
+        for(uint64_t k = 0; k < end - begin; k++)
+        {
+            *(begin + k) = output[k];
+        }
+        
+    }
+    //std::cerr << "[sort] done\n" << l;
+   // uint64_t mask2 = (1ULL<<(p_bit * l)) - 1;
+   // uint64_t count = 0;
+   // uint64_t ptr = 0;
+   // for (unsigned k = 0; k < end - begin; k++)
+   // {
+   //   
+   //     if (_DefaultHs.isHead(*(begin + k)))
+   //     {
+   //         std::cout << "[hsSort] " << (*(begin+k) & mask2) << std::endl;
+   //         if (ptr != count)
+   //             std::cerr << "[er] " << k << " " << (*(begin+k) & mask2) << " " << ptr << " " << count << std::endl;
+   //         ptr = _DefaultHs.getHeadPtr(*(begin + k));
+   //         count = 1;
+   //     }    
+   //     else
+   //     {
+   //         count++;
+   //     }
+   //         
+   // }
+    return true;
+}
+
+
+
+
+//template <typename TIt>
+//inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBitLen)
+//{
+//    if (xValBitLen <34 || xValBitLen > 42)
+//    {
+//        std::cerr << "[Error]: _dirSortX " << xValBitLen << "\n";
+//        return false;
+//    }
+//    unsigned const bit[18] = {9,4,9,4,9,4,8,5,8,5,8,5,8,5,7,6,7,6}; //xValueBitLen 34 - 42;
+//    unsigned const p_bit = bit[(xValBitLen - 34) << 1];
+//    unsigned const l =  bit[((xValBitLen - 34) << 1) + 1];
+//    unsigned const r_move = 64 - p_bit;
+//    unsigned l_move = 64;
+//    unsigned threads = omp_get_num_threads();
+//    if (threads > maxThread)
+//        threads = maxThread;
+//    uint64_t next[maxThread][maxBucket] = {0};
+//    uint64_t const mask = (1 << p_bit) - 1;
+//    uint64_t size = (end - begin) / threads;
+//    unsigned thd1 = end - begin - size * threads;
+//    uint64_t thd_n1 = (size + 1) * thd1;
+//    omp_set_num_threads(threads);
+//    String<uint64_t> output;
+//    resize(output, end - begin);
+////#pragma omp declare reduction(_joinNext: uint64_t[maxThread][maxBucket], unsigned, unsigned : omp_out = _joinSortNext(omp_out, omp_in, threads, (unsigned)(1 << p_bit)))
+//#pragma omp declare reduction(_joinNext: uint64_t[maxThread][maxBucket]: omp_out = _joinSortNext(omp_out, omp_in))
+//    /*
+//    * Initialize next[][] 
+//    */
+//    #pragma omp parallel reduction(_joinNext: next)
+//    {
+//        if (omp_get_thread_num() < thd1)
+//        {
+//            uint64_t part = size + 1;
+//            //uint64_t thd_partBegin = part * threads;
+//        }
+//        else
+//        {
+//            uint64_t part = size;
+//            //uint64_t thd_partBegin = thd1 + threads * part ;
+//        }
+//        //TIt thd_begin = begin + thd_partBegin;
+//        #pragma omp for 
+//        for (uint64_t k = 0; k < end - begin; k++)
+//        {
+//            if (_DefaultHs.isHead(*(begin + k))
+//            {
+//                uint64_t x = *(begin + k) & mask;
+//                uint64_t ptr = _DefaultHs.getHeadPtr(*(begin + k));
+//                unsigned thd_num = (ctd[x] <= thd_n1)?ctd[x]/(size + 1):(ctd[x] - thd_n1) / size + thd1;
+//                next[thd_num][x + 1] += ptr;    
+//            }
+//        }
+//    }
+//
+//    for (uint64_t j = 0; j < l; j++)
+//    {
+//        #pragma omp parallel private(part) reduction(_joinNext: next)
+//        {
+//            uint64_t ctd[maxBucket] =  {0};
+//            /*
+//             * Calculate the data range for each thread 
+//             * Each thread process the 'head Node' in the range 
+//             *      of [begin + thd_partBegin, begin + thd_partBegin + part)
+//             */
+//            if (threads < thd1)
+//            {
+//                uint64_t part = size + 1;
+//                //uint64_t thd_partBegin = part * threads;
+//            }
+//            else
+//            {
+//                uint64_t part = size;
+//                //uint64_t thd_partBegin = thd1 + threads * part ;
+//            }
+//            //TIt thd_begin = begin + thd_partBegin;
+//            /*
+//             * Calculate ctd[] from the next[]
+//             */
+//            for (unsigned k = 0; k <= threads; k++)
+//            {
+//                for (unsigned n = 1; n < (1<<p_bit); n++)
+//                {
+//                    ctd[n] += next[k][n];
+//                }
+//            }
+//            for (unsigned k = 1; k < (1<<p_bit); k++)
+//                ctd[k] += ctd[k-1];
+//            /*
+//             * Bucket sort and calculate the next[] for next round
+//             */
+//            #pragma omp for
+//            for (unsigned k = 0; k < end - begin; k++)
+//            {
+//                if (_DefaultHs.isHead(*(begin + k)))
+//                {
+//                    uint64_t x = *(begin + k) << l_move >> r_move;
+//                    uint64_t ptr = _DefaultHs.getHeadPtr(*(begin + k));
+//                    for (uint64_t it = 0; it < ptr; it++)
+//                    {
+//                        output[ctd[x] + it] = *(begin + k + it);
+//                    }
+//                    x = *(begin + k) << (l_move + p_bit)>> r_move;
+//                    unsigned thd_num = (ctd[x] <= thd_n1)?ctd[x]/(size + 1):(ctd[x] - thd_n1) / size + thd1;
+//                    next[thd_num][x + 1] += ptr;
+//                    ctd[x] += ptr;
+//                }
+//            }
+//            /*
+//             * Wait until all threads finished then copy
+//             */
+//            #pragma omp barrier
+//            #pragma omp for
+//            for(uint64_t k = 0; k < end - begin; k++)
+//            {
+//                *(begin + k) = output[k];
+//            }
+//        }
+//    }
+//    return true;
+//}
+
+/*
+template <typename TIt>
+inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBitLen)
+{
+    if (xValBitLen <34 || xValBitLen > 42)
+    {
+        std::cerr << "[Error]: _dirSortX " << xValBitLen << "\n";
+        return false;
+    }
+    
+    unsigned bit[18] = {9,4,9,4,9,4,8,5,8,5,8,5,8,5,7,6,7,6}; //xValueBitLen 34 - 42;
+    
+    unsigned p_bit = bit[(xValBitLen - 34) << 1];
+    unsigned l =  bit[((xValBitLen - 34) << 1) + 1];
+    //std::cerr << p_bit << " " << l << std::endl;
+    unsigned  l_move = 64, r_move = 64 - p_bit;
+    uint64_t count[513]; // 2^max(bit[18]) + 1
+    //int count[1024];
+    
+    String<uint64_t> output;
+    resize(output, end - begin);
+    //std::cerr << "end - begin " <<end - begin << std::endl;
+    for (uint64_t j = 0; j < l; j++)
+    {
+        l_move -= p_bit;
+        for (int k = 0; k < (1<<p_bit); k++)
+            count[k]=0;
+        for (int64_t k = 0; k < end - begin; k += _DefaultHs.getHeadPtr(*(begin + k)))
+        {
+            count[(*(begin + k) << l_move >> r_move) + 1] += _DefaultHs.getHeadPtr(*(begin + k));
+        }
+        for (int k = 1; k < (1 << p_bit); k++)
+        {
+            count[k] += count[k - 1];
+        }
+        for (int64_t k = 0; k < end - begin; k++)
+        {
+        
+            if (_DefaultHs.isHead(*(begin + k)))
+            {
+                uint64_t x = *(begin + k) << l_move >> r_move;
+                uint64_t ptr = _DefaultHs.getHeadPtr(*(begin + k));
+                for (uint64_t it = 0; it < ptr; it++)
+                {
+                    output[count[x] + it] = *(begin + k + it);
+                }
+                count[x] += ptr;
+            }
+            
+        }
+        for (int64_t k = 0; k < end - begin; k++)
+            *(begin + k) = output[k];
+    }
+    return true;
+}
+ */
 
 template <typename TIter>//, typename Comp>
 void insertSort(TIter const & begin, TIter const & end)//, Comp const & comp)
@@ -1499,6 +1854,7 @@ inline void _hsSort(TIter const & begin, TIter const & end, unsigned const & sha
 {
     std::cerr << "      sorting xstr \n";
     double time = sysTime();
+    uint64_t mask = (1ULL << 9) - 1;
     _hsSortX(begin, end, shapeWeight << 1);
     //std::sort(begin, end);
     std::cerr << "      _dirSortX Time[s]" << sysTime() - time << std::endl;
@@ -1854,7 +2210,7 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir)
     uint64_t ptr = k;
     uint64_t block_size = ptr;
     uint64_t countMove = 0, prek = 0;
-   
+    double time = sysTime();
     while(_DefaultHs.getHeadPtr(hs[k]))
     {
         ptr = _DefaultHs.getHeadPtr(hs[k]);
@@ -1897,7 +2253,8 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir)
     ptr = 0;
     block_size = 0;
 
-    double time = sysTime();
+    std::cerr << "      preprocess sort y " << sysTime() - time << std::endl;
+    time = sysTime();
     while(_DefaultHs.getHeadPtr(hs[k]))
     {
         ptr = _DefaultHs.getHeadPtr(hs[k]);

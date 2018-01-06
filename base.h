@@ -106,6 +106,8 @@ struct Options{
     typename    Const_::PATH_ oPath;
     bool        Sensitive; 
     unsigned    sensitivity;
+    unsigned    thread;
+    
     Options():
         kmerLen(Const_::_SHAPELEN),
         MiKmLen(Const_::_SHAPEWHT),
@@ -113,7 +115,8 @@ struct Options{
         gPath(""),
         oPath("mapper_result.txt"),
         Sensitive(false),
-        sensitivity(0)
+        sensitivity(0),
+        thread(4)
         {}
     Const_::PATH_ getGenomePath() const {return gPath;};
     Const_::PATH_ getReadPat() const {return rPath;};
@@ -139,6 +142,9 @@ struct PMRecord
 
     PMRecord(){}
     PMRecord(Options & options);
+    
+    Const_::PATH_ readPath;
+    Const_::PATH_ genomePath; 
     RecIds id1, id2;
     RecSeqs seq1, seq2; //seq1=read, seq2=ref
 
@@ -191,7 +197,7 @@ struct CoreBase{
     typedef Shape<TDna, CoreMinimizer> CoreShape;
     //typedef Index<RecSeqs, IndexQGram<CoreMinimizer, OpenAddressing> > CoreIndex;
 //==============
-//  This part is change the index from previous generic indx to 25-mer HIndex;
+//  change the type of index from generic indx to optimized 25-mer HIndex;
     typedef HIndex<Const_::_SHAPELEN> CoreIndex;
 //==============   
     typedef Anchors AnchorSet;
@@ -324,6 +330,7 @@ struct MapParm{
     float       alpha2;
     float       anchorLenThr;
     float       rcThr;
+    float       cordThr;
       
     
     MapParm():
@@ -338,12 +345,13 @@ struct MapParm{
         alpha(Const_::_ALPHA),
         alpha2(0.5),
         anchorLenThr(0.02),                  // anchors with lenghth > this parameter is pushed into the queue
-        rcThr(0.8)                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
+        rcThr(0.8),                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
+        cordThr(0.8)
         {}
     MapParm(unsigned bs, unsigned dt, unsigned thr, 
             unsigned ks, unsigned sl, /*unsigned st,*/ 
             unsigned ad, unsigned mr, float ap, float ap2,
-            float alt, float rt):
+            float alt, float rt, float ct):
         blockSize(bs),
         delta(dt),
         threshold(thr),
@@ -355,7 +363,8 @@ struct MapParm{
         alpha(ap),
         alpha2(ap2),
         anchorLenThr(alt),                  // anchors with lenghth > this parameter is pushed into the queue
-        rcThr(rt)                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
+        rcThr(rt),                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
+        cordThr(ct)
         {} 
 
 
@@ -371,7 +380,8 @@ struct MapParm{
         alpha(parm.alpha),
         alpha2(parm.alpha2),
         anchorLenThr(parm.anchorLenThr),
-        rcThr(parm.rcThr)
+        rcThr(parm.rcThr),
+        cordThr(parm.cordThr)
         {}
         
     MapParm(Options & options){}
@@ -486,7 +496,9 @@ int PMRecord<TDna>::loadRecord(Options & options)
 template <typename TDna>
 PMRecord<TDna>::PMRecord(Options & options)
 {
-   loadRecord(options);
+    readPath = options.rPath;
+    genomePath = options.gPath;
+    loadRecord(options);
 }
 
 Anchors::Anchors(Anchors::AnchorType val, unsigned range)
@@ -577,6 +589,7 @@ void MapParm::print()
 {
     std::cerr << "blockSize " << blockSize << std::endl
             << "alpha " << alpha << std::endl
+            << "alpha2 " << alpha2 << "\n"
             << "delta " << delta << std::endl
             << "threshold " << threshold << std::endl
             << "kmerStep " << kmerStep << std::endl
@@ -585,10 +598,11 @@ void MapParm::print()
             << "anchorDeltaThr " << anchorDeltaThr << "\n"
             << "minReadLen " << minReadLen << "\n"
             << "anchorLenThr" << anchorLenThr << "\n"
-            << "rcThr " << rcThr << "\n";
+            << "rcThr " << rcThr << "\n"
+            << "cordThr" << cordThr << "\n";
 }
 
-static String<Dna5> _complt = "tgcan";
+static const String<Dna5> _complt = "tgcan";
 inline void _compltStr(String<Dna5> & str, String<Dna5> & res)
 {
     resize(res, length(str));

@@ -556,7 +556,8 @@ static const unsigned inity = 5;
 //======================================================
 static const unsigned scriptStep=16;
 static const unsigned scriptBit=4;
-static const unsigned scriptWindow=6; //2^6
+static const unsigned scriptWindow=5; //script_length = 2^scriptWindow
+static const unsigned scriptWindow2 = scriptWindow << 1;
 //static const uint64_t scriptMask = (1-3*scriptWindow) -1;
 static const int scriptCount[5] = {1, 1<<scriptWindow, 1 <<(scriptWindow * 2), 0, 0};
 static const int scriptMask = (1 << scriptWindow) - 1;
@@ -564,7 +565,7 @@ static const int scriptMask2 = scriptMask << scriptWindow;
 
 static const uint64_t hmask = (1ULL << 20) - 1;
 
-static const unsigned windowThreshold = 25;
+static const unsigned windowThreshold = 35;
 
 
 template <typename TIter>
@@ -581,27 +582,19 @@ inline uint64_t getScript(TIter const & it)
 
 inline int _scriptDist(int const & s1, int const & s2)
 {
-    return std::abs((s1 & scriptMask)- (s2 & scriptMask)) + std::abs(((s1 & scriptMask2) - (s2 & scriptMask2)) >> scriptWindow) + std::abs((s1>>scriptWindow*2) - (s2>>scriptWindow*2));
+    //return std::abs((s1 & scriptMask)- (s2 & scriptMask)) + std::abs(((s1 & scriptMask2) - (s2 & scriptMask2)) >> scriptWindow) + std::abs((s1>>scriptWindow*2) - (s2>>scriptWindow*2));
+    int res = std::abs((s1 & scriptMask)- (s2 & scriptMask)) + std::abs(((s1 >> scriptWindow) & scriptMask) - ((s2 >> scriptWindow) & scriptMask)) + std::abs((s1>>scriptWindow2) - (s2>>scriptWindow2));
+    //printf("[sc] %d %d %d %d %d\n", res, (s1 & scriptMask), ((s1 >> scriptWindow)&scriptMask), (s1>>scriptWindow2), s1);
+    //printf ("[sc] %d %d\n", s1, s2);
+    return res;
 }
 
-/*
-inline int _scriptDist(int const & s1, int const & s2)
-{
-    int d1 = (s1 & scriptMask)- (s2 & scriptMask);
-    int d2 = ((s1 & scriptMask2) - (s2 & scriptMask2)) >> scriptWindow;
-    int d3 = (s1>>scriptWindow*2) - (s2>>scriptWindow*2);
-    //return std::abs((s1 & scriptMask)- (s2 & scriptMask)) + std::abs(((s1 & scriptMask2) - (s2 & scriptMask2)) >> scriptWindow) + std::abs((s1>>scriptWindow*2) - (s2>>scriptWindow*2));
-    return std::abs(d1) + std::abs(d2) + std::abs(d3) + std::abs(d2-d1) + std::abs(d3-d2);
-}
-*/
 template<typename TIter> 
 inline void createFeatures(TIter const & itBegin, TIter const & itEnd, String<int> & f)
 {
     unsigned next = 1;
     unsigned window = 1 << scriptWindow;
-//   std::cerr << "length() " << itEnd - itBegin << " " << ((itEnd - itBegin -window) >> scriptBit) + 1 << std::endl;
     resize (f, ((itEnd - itBegin -window) >> scriptBit) + 1);
-//    std::cerr << length(f) << std::endl;
     f[0] = 0;
     for (unsigned k = 0; k < window; k++)
     {
@@ -609,16 +602,14 @@ inline void createFeatures(TIter const & itBegin, TIter const & itEnd, String<in
     }
     for (unsigned k = scriptStep; k < itEnd - itBegin - window ; k+=scriptStep) 
     {
-//      std::cout << k << " " << next << " " << " " << length(f) << std::endl;
         f[next] = f[next - 1];
         for (unsigned j = k - scriptStep; j < k; j++)
         {
             f[next] += scriptCount[ordValue(*(itBegin + j + window))] - scriptCount[ordValue(*(itBegin + j))];
         }
+        //printf("[createFeatures] %d \n", f[next]);
         next++;
     }
-//  std::cout << "createFeatures done " << std::endl;
-
 }
 
 template<typename TDna> 
@@ -629,14 +620,11 @@ inline void createFeatures(StringSet<String<TDna> > & seq, StringSet<String<int>
         createFeatures(begin(seq[k]), end(seq[k]), f[k]);
 }
 
-
 template<typename TIter>
 inline unsigned _windowDist(TIter const & it1, TIter const & it2)
 {
-    return _scriptDist(*it1, *it2)+ _scriptDist(*(it1+4),*(it2+4)) + _scriptDist(*(it1+8), *(it2+8));
+    return _scriptDist(*it1, *it2)+ _scriptDist(*(it1 + 2), *(it2 + 2)) + _scriptDist(*(it1+4),*(it2+4)) + _scriptDist(*(it1 + 6), *(it2 + 6)) + _scriptDist(*(it1+8), *(it2+8)) + _scriptDist(*(it1 + 10), *(it2 + 10));
 }
-
-
 
 inline bool nextCord(typename PMRes::HitString & hit, unsigned & currentIt, String<uint64_t> & cord)
 {
@@ -673,12 +661,11 @@ inline bool initCord(typename PMRes::HitString & hit, unsigned & currentIt, Stri
 
 inline bool previousWindow(String<int> & f1, String<int> & f2, typename Cord::CordString & cord)
 {
-    //std::cerr << "previous " << std::endl;
     typedef typename Cord::CordType CordType;
     CordType genomeId = _getSA_i1(_DefaultCord.getCordX(back(cord)));
     CordType x_suf = _DefaultCord.cord2Cell(_getSA_i2(_DefaultCord.getCordX(back(cord))));
     CordType y_suf = _DefaultCord.cord2Cell(_DefaultCord.getCordY(back(cord)));
-    //std::cerr << _DefaultCord.getCordY(back(cord)) << " " << y_suf << " " << med << std::endl;
+    CordType x_min = 0;
     CordType y;
     if (y_suf < med || x_suf < sup)
         return false;
@@ -686,24 +673,16 @@ inline bool previousWindow(String<int> & f1, String<int> & f2, typename Cord::Co
        y = y_suf - med;
 
     unsigned min = ~0;
-    unsigned x_min = 0;
-    //std::cerr << length(cord) << " " << x_suf << std::endl;
-    //std::cerr << "nextWindow() x_pre " << x_pre << std::endl;
-    //std::cerr << "pre " << std::endl;
     for (CordType x = x_suf - sup; x < x_suf - inf; x += 1) 
     {
-//        std::cerr << "for " << y << " " << length(f1) << " " << length(f2) << " " << x << " " << x_suf - sup << " " << x_suf - inf<< std::endl;
         unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
         
-     //   std::cerr << tmp << " ";
         if (tmp < min)
         {
             min = tmp;
             x_min = x;
         }
     }
-    //std::cerr << std::endl;
-    //std::cerr << "previousWindow " << min << " windowThreshold " << windowThreshold << std::endl;
     if (min > windowThreshold)
         return false;
     else 
@@ -711,11 +690,9 @@ inline bool previousWindow(String<int> & f1, String<int> & f2, typename Cord::Co
         if ( x_suf - x_min > med)
         {
             appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y)));
-     //       std::cerr << "previous " << x_suf - x_min + y << std::endl;
         }
         else
             appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y)));
-      //      std::cerr << "previous y" << y << std::endl;
         //if (_DefaultCord.cord2Cell(_DefaultCord.getCordY(back(cord))) > length(f1))
         //std::cout <<_DefaultCord.cord2Cell(_DefaultCord.getCordY(back(cord))) << std::endl; 
     }
@@ -724,12 +701,11 @@ inline bool previousWindow(String<int> & f1, String<int> & f2, typename Cord::Co
 
 inline bool previousWindow(String<int> & f1, String<int> & f2, typename Cord::CordString & cord, float & score)
 {
-    //std::cerr << "previous " << std::endl;
     typedef typename Cord::CordType CordType;
     CordType genomeId = _getSA_i1(_DefaultCord.getCordX(back(cord)));
     CordType x_suf = _DefaultCord.cord2Cell(_getSA_i2(_DefaultCord.getCordX(back(cord))));
     CordType y_suf = _DefaultCord.cord2Cell(_DefaultCord.getCordY(back(cord)));
-    //std::cerr << _DefaultCord.getCordY(back(cord)) << " " << y_suf << " " << med << std::endl;
+    CordType x_min = 0;
     CordType y;
     if (y_suf < med || x_suf < sup)
         return false;
@@ -737,24 +713,15 @@ inline bool previousWindow(String<int> & f1, String<int> & f2, typename Cord::Co
        y = y_suf - med;
 
     unsigned min = ~0;
-    unsigned x_min = 0;
-    //std::cerr << length(cord) << " " << x_suf << std::endl;
-    //std::cerr << "nextWindow() x_pre " << x_pre << std::endl;
-    //std::cerr << "pre " << std::endl;
     for (CordType x = x_suf - sup; x < x_suf - inf; x += 1) 
     {
-//        std::cerr << "for " << y << " " << length(f1) << " " << length(f2) << " " << x << " " << x_suf - sup << " " << x_suf - inf<< std::endl;
         unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
-        
-     //   std::cerr << tmp << " ";
         if (tmp < min)
         {
             min = tmp;
             x_min = x;
         }
     }
-    //std::cerr << std::endl;
-    //std::cerr << "previousWindow " << min << " windowThreshold " << windowThreshold << std::endl;
     if (min > windowThreshold)
         return false;
     else 
@@ -762,16 +729,13 @@ inline bool previousWindow(String<int> & f1, String<int> & f2, typename Cord::Co
         if ( x_suf - x_min > med)
         {
             appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y)));
-     //       std::cerr << "previous " << x_suf - x_min + y << std::endl;
         }
         else
             appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y)));
-      //      std::cerr << "previous y" << y << std::endl;
         //if (_DefaultCord.cord2Cell(_DefaultCord.getCordY(back(cord))) > length(f1))
         //std::cout <<_DefaultCord.cord2Cell(_DefaultCord.getCordY(back(cord))) << std::endl; 
     }
     score += min;
-    std::cout <<"[pre] " << min << " " <<_getSA_i2(_DefaultCord.getCordX(back(cord))) << " " << _DefaultCord.getCordY(back(cord))<< "\n";
     return true;
 }
 
@@ -782,14 +746,14 @@ inline bool nextWindow(String<int> &f1, String<int> & f2, typename Cord::CordStr
     CordType genomeId = _getSA_i1(_DefaultCord.getCordX(back(cord)));
     CordType x_pre = _DefaultCord.cord2Cell(_getSA_i2(_DefaultCord.getCordX(back(cord))));
     CordType y_pre = _DefaultCord.cord2Cell(_DefaultCord.getCordY(back(cord)));
+    CordType x_min = 0;
     CordType y;
-    if (y_pre + sup > length(f1) || x_pre + sup > length(f2))
+    if (y_pre + sup * 2> length(f1) || x_pre + sup * 2 > length(f2))
         return false;
     else 
         y = y_pre + med;
     
     unsigned min = ~0;
-    unsigned x_min = 0;
     //std::cout << "nextWindow() x_pre " << x_pre << std::endl;
    // std::cerr << "next " ;
     for (CordType x = x_pre + inf; x < x_pre + sup; x += 1) 
@@ -826,16 +790,19 @@ inline bool nextWindow(String<int> &f1, String<int> & f2, typename Cord::CordStr
     CordType genomeId = _getSA_i1(_DefaultCord.getCordX(back(cord)));
     CordType x_pre = _DefaultCord.cord2Cell(_getSA_i2(_DefaultCord.getCordX(back(cord))));
     CordType y_pre = _DefaultCord.cord2Cell(_DefaultCord.getCordY(back(cord)));
+    CordType x_min = 0;
     CordType y;
-    if (y_pre + sup > length(f1) || x_pre + sup > length(f2))
+    unsigned min = ~0;
+    
+    if (y_pre + sup * 2 > length(f1) || x_pre + sup * 2> length(f2))
         return false;
     else 
         y = y_pre + med;
     
-    unsigned min = ~0;
-    unsigned x_min = 0;
     for (CordType x = x_pre + inf; x < x_pre + sup; x += 1) 
     {
+        if (y + 10 > length(f1))
+        printf ("[nwe] %d %d %d %d\n", x, y, length(f1), y_pre);
         unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
         if (tmp < min)
         {
@@ -843,15 +810,22 @@ inline bool nextWindow(String<int> &f1, String<int> & f2, typename Cord::CordStr
             x_min = x;
         }
     }
+    //printf("[nextCord] %" PRIu64 " %" PRIu64 " %d %d %d\n", x_pre, y_pre, min, x_min, windowThreshold);
     if (min > windowThreshold)
        return false;
     else 
         if ( x_min - x_pre > med)
+        {
+            //printf("[nextCord] %" PRIu64 " %d %d %d\n", x_pre + med, x_min - x_pre, min, windowThreshold);
             appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y)));
+        }
         else
+        {
+            //printf("[nextCord] %" PRIu64 " %d %d %d\n", x_pre + med, x_min - x_pre, min, windowThreshold);
             appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y)));
+        }
     score += min;
-    std::cout << "[nxt] " << min << "\n";
+    //std::cout << "[nxt] " << min << "\n";
     return true;
 }
 
@@ -1107,7 +1081,7 @@ inline unsigned Hit::getStrand(uint64_t const & val, uint64_t const & flag)
     return (val & flag)?1:0;
 }
 //===!Note:Need to put this parameterin the mapper threshold
-
+/*
 template <typename TDna, typename TSpec>
 inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
                               typename PMRecord<TDna>::RecSeq const & read,
@@ -1145,6 +1119,50 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
     }
     return 0;
 }
+*/
+
+template <typename TDna, typename TSpec>
+inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
+                              typename PMRecord<TDna>::RecSeq const & read,
+                              uint64_t* const set,
+                              unsigned & len,
+                              MapParm & mapParm
+                             )
+{   
+    typedef typename PMCore<TDna, TSpec>::Index TIndex;
+    typedef typename TIndex::TShape PShape;
+    
+    unsigned block = (mapParm.blockSize < length(read))?mapParm.blockSize:length(read);
+    unsigned dt = block * (mapParm.alpha / (1 - mapParm.alpha));
+    PShape shape;
+    hashInit(shape, begin(read));
+    for (unsigned h=0; h <= length(read) - block; h += dt)
+    {
+        hashInit(shape, begin(read) + h);
+        for (unsigned k = h; k < h + block; k++)
+        {
+            hashNext(shape, begin(read) + k);
+            uint64_t pre = ~0;
+            uint64_t pos = getXYDir(index, shape.XValue, shape.YValue);
+            if (_DefaultHs.getHsBodyY(index.ysa[std::min(pos + mapParm.delta, length(index.ysa) - 1)]) ^ shape.YValue)
+            {
+                while (_DefaultHs.isBodyYEqual(index.ysa[pos], shape.YValue))
+                {
+//!Note: needs change
+//!Note: the sa is in reverse order in hindex. this is different from the generic index
+                    if (pre - index.ysa[pos] > mapParm.kmerStep)
+                    {
+                        set[len++] = (_DefaultHs.getHsBodyS(index.ysa[pos]-k) << 20)+k;
+                        pre = index.ysa[pos];
+                    }
+                    ++pos;
+                }
+            }
+        }
+    }
+    return 0;
+}
+
 
 inline uint64_t getAnchorMatchAll(Anchors & anchors, unsigned const & readLen, MapParm & mapParm, PMRes::HitString & hit)
 {
@@ -1155,10 +1173,6 @@ inline uint64_t getAnchorMatchAll(Anchors & anchors, unsigned const & readLen, M
     anchors.sort(anchors.begin(), anchors.end());
     for (unsigned k = 1; k <= anchors.length(); k++)
     {
-        //std::cout <<"[debug] " << k << " " << c_b << " " << sb << " anchors[k] " << anchors[k] << " " << ak << " " << anchors[k] - ak << " " << AnchorBase::AnchorValue << " " << anchors.length() << "\n";
-        //std::cout << "[DEBUG]anchors " << _getSA_i1(_DefaultCord.getCordX(anchors[k])) 
-        //<< " "<< _getSA_i2(_DefaultCord.getCordX(anchors[k])) << " "
-        //<< _DefaultCord.getCordY(anchors[k]) << "\n";
         //if (anchors[k] - ak >= AnchorBase::AnchorValue)
         //if (anchors[k] - ak > mapParm.anchorDeltaThr)
         if (anchors[k] - ak > (((unsigned)(0.1 * readLen)) << 20))//mapParm.anchorDeltaThr)
@@ -1229,8 +1243,7 @@ inline bool initCord(typename Iterator<PMRes::HitString>::Type & it,
         appendValue(cord, 0);
         _DefaultHit.setBlockEnd(cord[0]);
     }
-if (!_DefaultHit.isBlockEnd(cord[0]))
-    std::cerr << "[debug] initCord " << cord[0] << "\n";
+
     if (it == hitEnd)
         return false;
     else
@@ -1258,6 +1271,7 @@ inline bool endCord( String<uint64_t> & cord,
                      float & score
                    )
 {
+    //std::cout << "[endCord] " << length(cord) - preCordStart << "\n";
     if (length(cord) - preCordStart > cordThr)
     {
 
@@ -1269,7 +1283,7 @@ inline bool endCord( String<uint64_t> & cord,
     {
         erase(cord, preCordStart, length(cord));
     }
-    std::cout <<"[nextCord] " << length(cord) - preCordStart << " " << score / (length(cord) - preCordStart) << "\n";
+    //std::cout <<"[nextCord] " << length(cord) - preCordStart << " " << score / (length(cord) - preCordStart) << "\n";
     score = 0;
     return true;
 }
@@ -1306,7 +1320,7 @@ inline bool nextCord(typename Iterator<PMRes::HitString>::Type & it,
 }
 
 inline bool nextCord(typename Iterator<PMRes::HitString>::Type & it, 
-                     typename Iterator<PMRes::HitString>::Type const & hitEnd,
+                     typename Iterator<PMRes::HitString>::Type const & hitEnd, 
                      unsigned & preCordStart,
                      String<uint64_t> & cord,
                      float const & cordThr,
@@ -1316,6 +1330,8 @@ inline bool nextCord(typename Iterator<PMRes::HitString>::Type & it,
 {
 //TODO: add maxlen of anchor to the first node in cord;
     //std::cout << "[debug] nextCord() " << length(cord) << "\n";
+    if (back(cord)==3390469883040592)
+        std::cerr << "[0000000000000000000000000000000000]\n";
     if (it >= hitEnd)
         return false;
     while(!_DefaultHit.isBlockEnd(*(it - 1)))
@@ -1332,17 +1348,23 @@ inline bool nextCord(typename Iterator<PMRes::HitString>::Type & it,
     _DefaultHit.setBlockStrand(cord[preCordStart], strand);
     if(it < hitEnd)
     {
-        if (length(cord) - preCordStart < cordThr)
+        //std::cout << "[Cord] " << length(cord) - preCordStart << "\n";
+        int64_t b1 = _DefaultCord.getCordX(back(cord)) - _DefaultCord.getCordY(back(cord));
+        int64_t b2 = _DefaultCord.getCordX(cord[preCordStart - 1]) - _DefaultCord.getCordY(cord[preCordStart - 1]);
+        //std::cout << "[last_delta] " << b1 - b2 << " " << _getSA_i2(_DefaultCord.getCordX(cord[preCordStart]))<<"\n";
+            
+        if (length(cord) - preCordStart < cordThr )//|| std::abs(b1 - b2) < 10)
         {
             erase(cord, preCordStart, length(cord));
         }
         else
         {
             
-            std::cout <<"[nextCord] " << length(cord) - preCordStart << " " << score / (length(cord) - preCordStart) << "\n";
+         //   for (unsigned k =preCordStart; k<length(cord);k++ )
+         //       std::cout << "cord " << score++ << _getSA_i2(_DefaultCord.getCordX(cord[k])) << " " << _DefaultCord.getCordY(cord[k]) << "\n";
+         //   std::cout <<"[nextCord] " << length(cord) - preCordStart << " " << score / (length(cord) - preCordStart) << "\n";
             _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);
         }
-        score = 10;
         preCordStart = length(cord);
         appendValue(cord, _DefaultCord.hit2Cord(*(it)));
         ++it;
@@ -1352,7 +1374,7 @@ inline bool nextCord(typename Iterator<PMRes::HitString>::Type & it,
         return false;
 }
 
-
+/*
 //extend the window for the last element in the cord.
 inline bool extendWindowAll(String<int> &f1, String<int> & f2, typename Cord::CordString & cord, float & score)
 {
@@ -1365,10 +1387,26 @@ inline bool extendWindowAll(String<int> &f1, String<int> & f2, typename Cord::Co
         std::swap(cord[k], cord[length(cord) - k + len - 1]);
         // when k < length(cord) - 1 - k + len -> swap, keeping cord in assending order
     }
+    //score = _getcord
+    while (nextWindow(f1, f2, cord, score)){}
+    return true;
+}*/
+inline bool extendWindowAll(String<int> &f1, String<int> & f2, typename Cord::CordString & cord, float & score)
+{
+    Cord::CordType preCordY = (_DefaultHit.isBlockEnd(cord[length(cord) - 2]))?0:_DefaultCord.getCordY(back(cord)) + window_delta;
+    unsigned len = length(cord) - 1;
+   
+    while (preCordY<= _DefaultCord.getCordY(back(cord)) && 
+        previousWindow(f1, f2, cord, score)){}
+    for (unsigned k = len; k < ((length(cord) + len) >> 1); k++) 
+    {
+        std::swap(cord[k], cord[length(cord) - k + len - 1]);
+        // when k < length(cord) - 1 - k + len -> swap, keeping cord in assending order
+    }
+    //score = _getcord
     while (nextWindow(f1, f2, cord, score)){}
     return true;
 }
-
 inline bool pathAll(String<Dna5> & read, 
                  typename Iterator<PMRes::HitString>::Type hitBegin, 
                  typename Iterator<PMRes::HitString>::Type hitEnd, 
@@ -1391,6 +1429,7 @@ inline bool pathAll(String<Dna5> & read,
     }
     return false;
 }
+/*
 
 inline bool pathAll(String<Dna5> & read, 
                  typename Iterator<PMRes::HitString>::Type hitBegin, 
@@ -1401,6 +1440,33 @@ inline bool pathAll(String<Dna5> & read,
                  uint64_t const & strand
                    )
 {
+    String<int> f1;
+    typename Iterator<PMRes::HitString>::Type it = hitBegin;
+    unsigned preBlockPtr;
+    float cordLenThr = length(read) * cordThr / window_size;
+    float score = 0;
+    createFeatures(begin(read), end(read), f1);
+    if(initCord(it, hitEnd, preBlockPtr, cords))
+    {
+        do{
+            extendWindowAll(f1, f2[_getSA_i1(_DefaultCord.getCordX(back(cords)))], cords, score);
+        }
+        while (nextCord(it, hitEnd, preBlockPtr, cords, cordLenThr, strand, score));
+        return endCord(cords, preBlockPtr, cordLenThr, strand, score);   
+    }
+    return false;
+}
+*/
+inline bool pathAll(String<Dna5> & read, 
+                 typename Iterator<PMRes::HitString>::Type hitBegin, 
+                 typename Iterator<PMRes::HitString>::Type hitEnd, 
+                 StringSet<String<int> > & f2, 
+                 String<uint64_t> & cords,
+                 float const & cordThr, 
+                 uint64_t const & strand
+                   )
+{
+    //std::cerr << "[pathall]\n";
     String<int> f1;
     typename Iterator<PMRes::HitString>::Type it = hitBegin;
     unsigned preBlockPtr;
@@ -1610,9 +1676,22 @@ void _printHit(String<uint64_t>  & hit)
 {
     for (unsigned k = 0; k < length(hit); k++)
     {
+    std::cout << "hit " << _getSA_i1(_DefaultCord.getCordX(_DefaultCord.hit2Cord(hit[k]))) << " " << _getSA_i2(_DefaultCord.getCordX(_DefaultCord.hit2Cord(hit[k]))) << " " << _DefaultCord.getCordY(hit[k]) << "\n";
         if (_DefaultHit.isBlockEnd(hit[k]))
             std::cout << "end\n";
-        std::cout << _getSA_i1(_DefaultCord.getCordX(hit[k])) << " " << _getSA_i2(_DefaultCord.getCordX(hit[k])) << " " << _DefaultCord.getCordY(hit[k]) << "\n";
+    }
+}
+
+void _printHit(unsigned j, unsigned id1, unsigned id2, String<uint64_t> & hit, unsigned len)
+{
+    unsigned end;
+    for (unsigned k = 0; k < length(hit); k++)
+    {
+        if (_DefaultHit.isBlockEnd(hit[k]))
+            end = 1;
+        else
+            end = 0;
+        printf("[printhit] %d %d %d % " PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %d %d\n", j, id1, id2, hit[k], _getSA_i1(_DefaultCord.getCordX(hit[k])), _getSA_i2(_DefaultCord.getCordX(hit[k])), _DefaultCord.getCordY(hit[k]), end, _DefaultCord.getMaxLen(hit), len);
     }
 }
 
@@ -1625,6 +1704,7 @@ void rawMapAllComplex2(typename PMCore<TDna, TSpec>::Index   & index,
             typename PMRes::HitSet & hits,
             StringSet<String<uint64_t> > & cords)
 {
+    std::cerr << "complex2 \n";
     typedef typename PMRecord<TDna>::RecSeq Seq;
     typedef typename PMCore<TDna, TSpec>::Anchors Anchors;
     typename PMRes::HitString hit, crhit;
@@ -1632,19 +1712,28 @@ void rawMapAllComplex2(typename PMCore<TDna, TSpec>::Index   & index,
     String<unsigned> missId;
     double time=sysTime();
     float rcThr = mapParm.rcThr / window_size;
-    float senThr = window_size / 0.85;
-    mapParm.alpha = 0.6;
+    float senThr = window_size /0.85;
+    //float senThr = window_size / 0.85;
+    //mapParm.alpha = 0.6;
     MapParm complexParm = mapParm;
-    complexParm.alpha = 0.5;
+    //complexParm.alpha = 0.5;
+    complexParm.alpha = complexParm.alpha2;
     std::cerr << "complex 2\n";
     std::cerr << "Raw mapping... \r"; 
-    float cordThr = 0.8;
+    //float cordThr = 0.9;
     
+    std::cerr << "mapParm \n";
+    mapParm.print();
+    std::cerr << "\ncompexParm \n";
+    complexParm.print();
     Anchors anchors(Const_::_LLTMax, AnchorBase::size);
     Seq comStr;
     
     StringSet<String<int> > f2;
     createFeatures(genomes, f2);
+//    SEQAN_OMP_PRAGMA(parallel for)
+
+    std::cerr << "complex2 \n";
     for (unsigned j = 0; j < length(reads); j++)
     {
         if (length(reads[j]) < mapParm.minReadLen) // skip reads length < 1000
@@ -1652,24 +1741,23 @@ void rawMapAllComplex2(typename PMCore<TDna, TSpec>::Index   & index,
         anchors.init(1);
         clear(crhit);
         mnMapReadAll<TDna, TSpec>(index, reads[j], anchors, mapParm, crhit);
-        pathAll(reads[j], begin(crhit), end(crhit), f2, cords[j], cordThr, 0);
-        //_printHit(crhit);
+        pathAll(reads[j], begin(crhit), end(crhit), f2, cords[j], mapParm.cordThr, 0);
+        _printHit(crhit);
         anchors.init(1);
         _compltRvseStr(reads[j], comStr);
+        std::cout << "[reverse]\n";
         clear(crhit);
         mnMapReadAll<TDna, TSpec>(index, comStr, anchors, mapParm, crhit);
-        pathAll(comStr, begin(crhit), end(crhit), f2, cords[j], cordThr, 1);            
+        pathAll(comStr, begin(crhit), end(crhit), f2, cords[j], mapParm.cordThr, 1);            
         shrinkToFit(cords[j]);
-        //_printHit(crhit);
+        _printHit(crhit);
         if (_DefaultCord.getMaxLen(cords[j]) < length(reads[j]) / senThr)
         {
             appendValue(missId, j);
             clear(cords[j]);
         }
-        
-        
     }
-    
+   
     for (unsigned k = 0; k < length(missId); k++)
     {
         anchors.init(1);
@@ -1678,20 +1766,159 @@ void rawMapAllComplex2(typename PMCore<TDna, TSpec>::Index   & index,
         clear(crhit);
         //mnMapReadAll<TDna, TSpec>(index, reads[missId[k]], anchors, complexParm, hits[missId[k]]);
         mnMapReadAll<TDna, TSpec>(index, reads[missId[k]], anchors, complexParm, crhit);
-        pathAll(reads[missId[k]], begin(crhit), end(crhit), f2, cords[missId[k]], cordThr, 0);
+        pathAll(reads[missId[k]], begin(crhit), end(crhit), f2, cords[missId[k]], mapParm.cordThr, 0);
 
-        
             anchors.init(1);
             _compltRvseStr(reads[missId[k]], comStr);
             clear(crhit);
             mnMapReadAll<TDna, TSpec>(index, comStr, anchors, complexParm, crhit);
-            pathAll(comStr, begin(crhit), end(crhit), f2, cords[missId[k]], cordThr, 1);            
+            pathAll(comStr, begin(crhit), end(crhit), f2, cords[missId[k]], mapParm.cordThr, 1);            
             shrinkToFit(cords[missId[k]]);
     }
     
     std::cerr << "Raw map reads:            " << std::endl;
     std::cerr << "    End raw mapping. Time[s]: " << sysTime() - time << std::endl;
 }
+
+inline StringSet<String<uint64_t> > & _join(StringSet<String<uint64_t> > & s1,
+            StringSet<String<uint64_t> >& s2)
+{
+        append(s1, s2);
+        return s1;
+}
+
+inline void _appendMissHit(String<unsigned> & missId, unsigned id, unsigned maxLen, float thr)
+{
+    if (maxLen < thr)
+    {
+        appendValue(missId, id);
+    }
+}
+
+template <typename TDna, typename TSpec>
+void rawMapAllComplex2Parallel(typename PMCore<TDna, TSpec>::Index   & index,
+            typename PMRecord<TDna>::RecSeqs      & reads,
+            typename PMRecord<TDna>::RecSeqs & genomes,
+            MapParm & mapParm,
+            typename PMRes::HitSet & hits,
+            StringSet<String<uint64_t> > & cords,
+            unsigned thread)
+{
+    typedef typename PMRecord<TDna>::RecSeq Seq;
+    typedef typename PMCore<TDna, TSpec>::Anchors Anchors;
+    typename PMRes::HitString hit;
+    String<uint64_t> crcord;
+    String<unsigned> missId;
+    double time=sysTime();
+    float rcThr = mapParm.rcThr / window_size;
+    float senThr = window_size /0.85;
+    //float senThr = window_size / 0.85;
+    //mapParm.alpha = 0.6;
+    MapParm complexParm = mapParm;
+    //complexParm.alpha = 0.5;
+    complexParm.alpha = complexParm.alpha2;
+    std::cerr << "Raw Mapping \n"; 
+    //float cordThr = 0.9;
+    
+    std::cerr << "mapParm \n";
+    mapParm.print();
+    std::cerr << "\ncompexParm \n";
+    complexParm.print();
+    Anchors anchors(Const_::_LLTMax, AnchorBase::size);
+    Seq comStr;
+    typename PMRes::HitString crhit;
+
+    StringSet<String<int> > f2;
+    createFeatures(genomes, f2);
+
+    omp_set_num_threads(thread);
+    
+//#pragma omp declare reduction(_joinCords : StringSet<String<uint64_t> > : omp_out = _join(omp_out, omp_in)) 
+    
+#pragma omp parallel//reduction(_joinCords: cords)
+{
+    unsigned size2 = length(reads) / omp_get_num_threads();
+    unsigned ChunkSize = size2;
+    Seq comStr;
+    Anchors anchors(Const_::_LLTMax, AnchorBase::size);
+    typename PMRes::HitString crhit;
+    StringSet<String<uint64_t> >  cordsTmp;
+    String<unsigned> missIdTmp;
+    if (omp_get_thread_num() < length(reads) - size2 * omp_get_num_threads())
+    {
+        ChunkSize = size2 + 1;
+    }
+    resize(cordsTmp, ChunkSize);
+    //printf("[threads] %d %d %d\n", omp_get_thread_num(), ChunkSize, length(cordsTmp));
+    
+    unsigned c = 0;
+
+    #pragma omp for
+    for (unsigned j = 0; j < length(reads); j++)
+    {
+        if (length(reads[j]) >= mapParm.minReadLen )
+        {
+            anchors.init(1);
+            clear(crhit);
+            mnMapReadAll<TDna, TSpec>(index, reads[j], anchors, mapParm, crhit);
+            pathAll(reads[j], begin(crhit), end(crhit), f2, cordsTmp[c], mapParm.cordThr, 0);
+            anchors.init(1);
+            _compltRvseStr(reads[j], comStr);
+            clear(crhit);
+            mnMapReadAll<TDna, TSpec>(index, comStr, anchors, mapParm, crhit);
+            pathAll(comStr, begin(crhit), end(crhit), f2, cordsTmp[c], mapParm.cordThr, 1);            
+            //shrinkToFit(cords[c]);
+            //_appendMissHit(missIdTmp, j, _DefaultCord.getMaxLen(cordsTmp[c]), length(reads[j]) / senThr);
+            //_printHit(j, omp_get_thread_num(), c, cordsTmp[c]);
+            //printf("[misshit] %d %f\n", _DefaultCord.getMaxLen(cordsTmp[c]), length(reads[j]) / senThr );
+            //appendValue(missIdTmp, j);
+           if (_DefaultCord.getMaxLen(cordsTmp[c]) < length(reads[j]) / senThr)
+           {
+               appendValue(missId, j);
+               clear(cordsTmp[c]);
+           }   
+        }
+        c += 1;
+    } 
+    #pragma omp for ordered
+    for (unsigned j = 0; j < omp_get_num_threads(); j++)
+        #pragma omp ordered
+        {
+            append(cords, cordsTmp);
+            append(missId, missIdTmp);
+        }
+}
+
+    
+
+    printf("[missId] %d\n", length(missId));
+
+   
+    for (unsigned k = 0; k < length(missId); k++)
+    {
+
+        anchors.init(1);
+        if (length(reads[missId[k]]) < complexParm.minReadLen) // skip reads length < minReadLen
+            continue;
+        clear(crhit);
+        clear(cords[missId[k]]);
+        //mnMapReadAll<TDna, TSpec>(index, reads[missId[k]], anchors, complexParm, hits[missId[k]]);
+        mnMapReadAll<TDna, TSpec>(index, reads[missId[k]], anchors, complexParm, crhit);
+        pathAll(reads[missId[k]], begin(crhit), end(crhit), f2, cords[missId[k]], mapParm.cordThr, 0);
+
+            anchors.init(1);
+            _compltRvseStr(reads[missId[k]], comStr);
+            clear(crhit);
+            mnMapReadAll<TDna, TSpec>(index, comStr, anchors, complexParm, crhit);
+            pathAll(comStr, begin(crhit), end(crhit), f2, cords[missId[k]], mapParm.cordThr, 1);            
+            shrinkToFit(cords[missId[k]]);
+    }
+    
+    std::cerr << "Raw map reads:            " << length(missId) << std::endl;
+    std::cerr << "    End raw mapping. Time[s]: " << sysTime() - time << std::endl;
+}
+
+
 
 //End all mapper module
 //============================================

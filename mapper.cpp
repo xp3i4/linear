@@ -44,7 +44,6 @@ Mapper<TDna, TSpec>::Mapper(Options & options):
     qIndex(genomes()),
     of(toCString(options.getOutputPath()))
 {
-        std::cerr << "parm init\n " << options.sensitivity << " \n" ;
         switch (options.sensitivity)
         {
             case 0: 
@@ -65,7 +64,8 @@ Mapper<TDna, TSpec>::Mapper(Options & options):
         }
         // parmt for test 
         parm = parmt;
-        std::cerr << "parm " << parm.alpha << "\n";
+        _thread = options.thread;
+        std::cerr << "[mapper thread] " << _thread << "\n";
 }
 
 template <typename TDna, typename TSpec>
@@ -178,11 +178,12 @@ template <typename TDna, typename TSpec>
 void Mapper<TDna, TSpec>::printCordsAll()
 {
     double time = sysTime();
+    std::ofstream of2("mapper_result2.txt");
     unsigned strand;
     for (unsigned k = 0; k < length(cordSet); k++)
     {
         if (empty(cordSet[k]))
-            of << k << " th Strand " << " 2 length " << length(reads()[k]) << "\nlength of cords -\n\n";
+            of2 << k << " th Strand " << " 2 length " << length(reads()[k]) << "\nlength of cords -\n\n";
         else
         {
             if (_DefaultCord.getCordStrand(back(cordSet[k]))) 
@@ -199,11 +200,11 @@ void Mapper<TDna, TSpec>::printCordsAll()
                 {
                     firstCord = 0;
                     if (j != 1)
-                        of << "\n";
-                    of << k << " th Strand " << _DefaultHit.getStrand(cordSet[k][j]) << " length " 
+                        of2 << "\n";
+                    of2 << k << " th Strand " << _DefaultHit.getStrand(cordSet[k][j]) << " length " 
                         << length(reads()[k]) << "\nlength of cords " << "\n";
                 }
-                of << j << " " << _DefaultCord.getCordY(cordSet[k][j]) << " " 
+                of2 << j << " " << _DefaultCord.getCordY(cordSet[k][j]) << " " 
                     << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j])) << " "
                     << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << std::endl;
                 if (_DefaultCord.getCordY(cordSet[k][j]) - first < 192)
@@ -215,7 +216,7 @@ void Mapper<TDna, TSpec>::printCordsAll()
                 if (_DefaultHit.isBlockEnd(cordSet[k][j]))
                 {
                    
-                    of << "coverage " << (float)cover / (length(reads()[k])) << "\n";
+                    of2 << "coverage " << (float)cover / (length(reads()[k])) << "\n";
                     if (j < length(cordSet[k]) - 1)
                     {
                         
@@ -228,7 +229,7 @@ void Mapper<TDna, TSpec>::printCordsAll()
                 
  
             }
-            of << "\n";
+            of2 << "\n";
             //_DefaultCord.print(cordSet[k],of);
         }
     }
@@ -281,7 +282,8 @@ void Mapper<TDna, TSpec>::printCordsRaw()
                     of <<"@S1_"<< k+1 << " " << length(cordSet[k]) << " "
                     << _DefaultCord.getCordY(cordSet[k][j]) << " x x " 
                     << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j])) << " " << cordCount << " "
-                    << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << "\n";   
+                    << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << " " 
+                    << length(reads()[k]) << "\n";   
                     flag = false;
                     cordCount = 0;
                 }
@@ -299,6 +301,26 @@ unsigned Mapper<TDna, TSpec>::sens()
 {
     return parm.sensitivity;
 }
+/*
+template <typename TDna, typename TSpec>
+void map(Mapper<TDna, TSpec> & mapper)
+{
+    //printStatus();
+    double time = sysTime();
+    mapper.createIndex();
+    resize(mapper.hits(), length(mapper.reads()));
+    resize(mapper.cords(), length(mapper.reads()));
+    //rawMap<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(),
+    //                     mapper.mapParm(), mapper.hits(), mapper.cords());
+    rawMapAllComplex2Parallel<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(),
+                         mapper.mapParm(), mapper.hits(), mapper.cords());
+    //mapper.printHits();
+    mapper.printCordsAll();
+    mapper.printCordsRaw();
+    std::cerr << length(mapper.cords()) << " " << length(mapper.reads()) << " \n";
+    std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
+}
+*/
 
 template <typename TDna, typename TSpec>
 void map(Mapper<TDna, TSpec> & mapper)
@@ -310,15 +332,25 @@ void map(Mapper<TDna, TSpec> & mapper)
     resize(mapper.cords(), length(mapper.reads()));
     //rawMap<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(),
     //                     mapper.mapParm(), mapper.hits(), mapper.cords());
-    rawMapAllComplex2<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(),
-                         mapper.mapParm(), mapper.hits(), mapper.cords());
+    uint64_t blockSize = 100000;
+    uint64_t lenSum;
+    SeqFileIn rFile(toCString(mapper.readPath()));
+    //while (!atEnd(rFile))
+    //{
+    //    readRecords(mapper.readsId(), mapper.reads(), rFile, blockSize);
+    //    std::cerr << ">mapping blocks of " << length(mapper.reads()) << "reads"<< std::endl;
+        rawMapAllComplex2<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), mapper.mapParm(), mapper.hits(), mapper.cords());
+    //   rawMapAllComplex2Parallel<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), mapper.mapParm(), mapper.hits(), mapper.cords(), mapper.thread());
+        clear (mapper.reads());
+    //}
+
+    //rawMapAllComplex2<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), mapper.mapParm(), mapper.hits(), mapper.cords());
     //mapper.printHits();
     mapper.printCordsAll();
-    //mapper.printCordsRaw();
+    mapper.printCordsRaw();
     std::cerr << length(mapper.cords()) << " " << length(mapper.reads()) << " \n";
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
 }
-
 
 seqan::ArgumentParser::ParseResult
 parseCommandLine(Options & options, int argc, char const ** argv)
@@ -352,7 +384,10 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     addOption(parser, seqan::ArgParseOption(
         "s", "sensitivity", "Sensitivity mode. -s 0 normal {DEFAULT} -s 1 fast  -s 2 sensitive",
             seqan::ArgParseArgument::INTEGER, "INT"));
-
+    addOption(parser, seqan::ArgParseOption(
+        "t", "thread", "Default -t 4",
+            seqan::ArgParseArgument::INTEGER, "INT"));
+        
     // Add Examples Section.
     addTextSection(parser, "Examples");
     addListItem(parser,
@@ -372,6 +407,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
 
     getOptionValue(options.oPath, parser, "output");
     getOptionValue(options.sensitivity, parser, "sensitivity");
+    getOptionValue(options.thread, parser, "thread");
 
     seqan::getArgumentValue(options.rPath, parser, 0);
     seqan::getArgumentValue(options.gPath, parser, 1);
@@ -391,7 +427,7 @@ int main(int argc, char const ** argv)
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res == seqan::ArgumentParser::PARSE_ERROR;
     Mapper<> mapper(options);
-    mapper.printParm();
+    //mapper.printParm();
     map(mapper);
 
     return 0;

@@ -35,6 +35,7 @@
 #ifndef MAPPARM_H
 #define MAPPARM_H
 
+//efficient 
 MapParm parm1 ( 
         Const_::_BLOCKSIZE,     //blockSize,
         Const_::_DELTA,          //delta(Const_::_DELTA),
@@ -45,11 +46,13 @@ MapParm parm1 (
         0,                      //anchorDeltaThr(),
         1000,                   //minReadLen(1000),
         0.8,                     //alpha(Const_::_ALPHA),
-        0.5,
+        0.5,                      //alpha2 for complex mapping 
         0.02,                    //anchorLenThr(0.02),    anchors with lenghth > this parameter is pushed into the queue
-        0.5                     //rcThr(0.75)
+        0.5,                     //rcThr(0.75)
+        0.8                     //cordThr length of cord < cordThr are abandoned
 ); 
 
+//normal
 MapParm parm0 ( 
         Const_::_BLOCKSIZE,     //blockSize,
         Const_::_DELTA,          //delta(Const_::_DELTA),
@@ -59,12 +62,14 @@ MapParm parm0 (
         //0,                      //senstivity(0),
         0,                      //anchorDeltaThr(),
         1000,                   //minReadLen(1000),
-        0.75,                     //alpha(Const_::_ALPHA),
-        0.5,
+        0.7,                     //alpha(Const_::_ALPHA),
+        0.6,                      //alpha2 for complex mapping
         0.02,                    //anchorLenThr(0.02),    anchors with lenghth > this parameter is pushed into the queue
-        0.8                     //rcThr(0.8)
+        0.8,                     //rcThr(0.8)
+        0.8                     //cordThr length of cord < cordThr are abandoned
 ); 
 
+//sensitive
 MapParm parm2 ( 
         Const_::_BLOCKSIZE,     //blockSize,
         Const_::_DELTA,          //delta(Const_::_DELTA),
@@ -74,10 +79,11 @@ MapParm parm2 (
         //0,                      //senstivity(0),
         0,                      //anchorDeltaThr(),
         1000,                   //minReadLen(1000),
-        0.65,                     //alpha(Const_::_ALPHA),
-        0.5,
+        0.6,                     //alpha(Const_::_ALPHA),
+        0.5,                      //alpha2 for complex mapping
         0.02,                    //anchorLenThr(0.02),    anchors with lenghth > this parameter is pushed into the queue
-        0.75                     //rcThr(0.75)
+        0.8,                     //rcThr(0.75)
+        0.8                      //cordThr length of cord < cordThr are abandoned
 ); 
 
 
@@ -91,9 +97,10 @@ MapParm parmt (
         0,                      //anchorDeltaThr(),
         1000,                   //minReadLen(1000),
         0.6,                     //alpha(Const_::_ALPHA),
-        0.5,                      //alph2
+        0.5,                      //alpha2 for complex mapping
         0.02,                    //anchorLenThr(0.02),    anchors with lenghth > this parameter is pushed into the queue
-        0.8                     //rcThr(0.8)
+        0.8,                     //rcThr(0.8)
+        0.8                       //cordThr length of cord < cordThr are abandoned
 ); 
 
 #endif

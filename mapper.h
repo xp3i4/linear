@@ -61,6 +61,7 @@ class Mapper {
     Index   qIndex;
     CordSet cordSet;
     std::ofstream of;
+    unsigned _thread;
 
 public:
     Mapper();
@@ -88,7 +89,12 @@ public:
     void printCordsRaw();
     int createIndex();
     unsigned sens();
-
+    unsigned & thread(){return _thread;}
+    CharString & readPath(){return record.readPath;}
+    CharString & genomePath(){return record.genomePath;}
+    StringSet<CharString> & readsId(){return record.id1;}
+    StringSet<CharString> & genomesId(){return record.id2;}
+    
 };
 
 
