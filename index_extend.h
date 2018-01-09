@@ -425,7 +425,7 @@ template <typename TObject, unsigned TSPAN, unsigned TWEIGHT>
         __int64 power2 = 1;
         while (power2 < qgrams)
             power2 <<= 1;
-            qgrams = power2;
+        qgrams = power2;
     #endif
             resize(const_cast<TIndex &>(index).bucketMap.qgramCode, qgrams + 1, Exact());
         return qgrams + 1;
@@ -1175,7 +1175,6 @@ struct Hs
                         uint64_t const & = _DefaultHsBase.pointerBit, 
                         uint64_t const & = _DefaultHsBase.pointerMask);
     void setHsBody(uint64_t &, uint64_t const &,  uint64_t const & id, uint64_t const & pos,
-                   uint64_t const & flag2 = _DefaultHsBase.bodyCodeFlag,
                    uint64_t const & typeFlag = _DefaultHsBase.typeFlag
                   );
     uint64_t getHsBodyY(uint64_t const &,
@@ -1370,10 +1369,10 @@ inline uint64_t Hs::getHeadPtr(uint64_t const & val, uint64_t const & bit, uint6
     return (val >> bit) & mask;
 }
 
-inline void Hs::setHsBody(uint64_t & val, uint64_t const & yval, uint64_t const & id, uint64_t const & pos, uint64_t const & flag2, uint64_t const & typeFlag)
+inline void Hs::setHsBody(uint64_t & val, uint64_t const & yval, uint64_t const & id, uint64_t const & pos, uint64_t const & typeFlag)
 {
-    //val = ((yval << _DefaultHsBase.bodyYBit) | flag2 | typeFlag) + _createSANode(id, pos);
-    val = ((yval << 41)|typeFlag) + (id << 30) + (pos);
+    val = ((yval << _BodyValue_bits)|typeFlag) + (id << _BaseNum_bits) + (pos);
+    
 }
 
 inline uint64_t Hs::getHsBodyY(uint64_t const & val, uint64_t const & bit, uint64_t const & mask)
@@ -1385,6 +1384,9 @@ inline void Hs::setHsHeadPtr(uint64_t & val, uint64_t const & ptr,  uint64_t con
 {
     val = (val & mask) + (ptr << bit);
 }
+/*
+ * bucket[]-
+ */
 /*
 template <typename TIt>
 inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBitLen)
@@ -1440,8 +1442,12 @@ inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBi
     }
     return true;
 }
-
 */
+
+/*
+ * parallel sort hs
+ * bucket[]+
+ */
 static unsigned const maxThread = 4;
 static unsigned const maxBucket = 513;
 
@@ -1480,7 +1486,7 @@ inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBi
     {
         unsigned thd_id = omp_get_thread_num();
         #pragma omp for
-        for (uint64_t k = 0; k < end - begin; k++)
+        for (int64_t k = 0; k < end - begin; k++)
         {
             if (_DefaultHs.isHead(*(begin + k)))
             {
@@ -1498,6 +1504,7 @@ inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBi
     }
 
     //std::cerr << "[hssort3] " << threads << "\n";
+    unsigned PBit = 1 << p_bit;
     for (uint64_t j = 0; j < l; j++)
     {
         //std::cerr << "[j] " << j << "\n";
@@ -1505,7 +1512,7 @@ inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBi
         for (unsigned m = 1; m < threads; m++)
             ctd[m][0] += ctd[m - 1][0];
             //ctd[0][m] += ctd[0][m - 1];
-        for (unsigned n = 1; n < (1<<p_bit); n++)
+        for (unsigned n = 1; n < PBit; n++)
         {
             ctd[0][n] += ctd[threads - 1][n - 1];
             //ctd[n][0] += ctd[n-1][threads - 1];
@@ -1521,7 +1528,7 @@ inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBi
             unsigned thd_id = omp_get_thread_num();
 
             #pragma omp for
-            for (unsigned k = 0; k < end - begin; k++)
+            for (int64_t k = 0; k < end - begin; k++)
             {
                 if (_DefaultHs.isHead(*(begin + k)))
                 {
@@ -1551,7 +1558,7 @@ inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBi
                 for (unsigned k=0; k < threads; k++)
                 {
                     //std::fill(ctd[k].begin(), ctd[k].end(), 0);
-                    for (unsigned n = 0; n < (1 << p_bit); n++)
+                    for (unsigned n = 0; n < PBit; n++)
                     {
                         ctd[k][n] = 0;
                         //ctd[n][k] = 0;
@@ -1585,161 +1592,20 @@ inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBi
         
         }
         #pragma omp parallel for
-        for(uint64_t k = 0; k < end - begin; k++)
+        for(int64_t k = 0; k < end - begin; k++)
         {
             *(begin + k) = output[k];
         }
         
     }
-    //std::cerr << "[sort] done\n" << l;
-   // uint64_t mask2 = (1ULL<<(p_bit * l)) - 1;
-   // uint64_t count = 0;
-   // uint64_t ptr = 0;
-   // for (unsigned k = 0; k < end - begin; k++)
-   // {
-   //   
-   //     if (_DefaultHs.isHead(*(begin + k)))
-   //     {
-   //         std::cout << "[hsSort] " << (*(begin+k) & mask2) << std::endl;
-   //         if (ptr != count)
-   //             std::cerr << "[er] " << k << " " << (*(begin+k) & mask2) << " " << ptr << " " << count << std::endl;
-   //         ptr = _DefaultHs.getHeadPtr(*(begin + k));
-   //         count = 1;
-   //     }    
-   //     else
-   //     {
-   //         count++;
-   //     }
-   //         
-   // }
+
     return true;
 }
 
-
-
-
-//template <typename TIt>
-//inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBitLen)
-//{
-//    if (xValBitLen <34 || xValBitLen > 42)
-//    {
-//        std::cerr << "[Error]: _dirSortX " << xValBitLen << "\n";
-//        return false;
-//    }
-//    unsigned const bit[18] = {9,4,9,4,9,4,8,5,8,5,8,5,8,5,7,6,7,6}; //xValueBitLen 34 - 42;
-//    unsigned const p_bit = bit[(xValBitLen - 34) << 1];
-//    unsigned const l =  bit[((xValBitLen - 34) << 1) + 1];
-//    unsigned const r_move = 64 - p_bit;
-//    unsigned l_move = 64;
-//    unsigned threads = omp_get_num_threads();
-//    if (threads > maxThread)
-//        threads = maxThread;
-//    uint64_t next[maxThread][maxBucket] = {0};
-//    uint64_t const mask = (1 << p_bit) - 1;
-//    uint64_t size = (end - begin) / threads;
-//    unsigned thd1 = end - begin - size * threads;
-//    uint64_t thd_n1 = (size + 1) * thd1;
-//    omp_set_num_threads(threads);
-//    String<uint64_t> output;
-//    resize(output, end - begin);
-////#pragma omp declare reduction(_joinNext: uint64_t[maxThread][maxBucket], unsigned, unsigned : omp_out = _joinSortNext(omp_out, omp_in, threads, (unsigned)(1 << p_bit)))
-//#pragma omp declare reduction(_joinNext: uint64_t[maxThread][maxBucket]: omp_out = _joinSortNext(omp_out, omp_in))
-//    /*
-//    * Initialize next[][] 
-//    */
-//    #pragma omp parallel reduction(_joinNext: next)
-//    {
-//        if (omp_get_thread_num() < thd1)
-//        {
-//            uint64_t part = size + 1;
-//            //uint64_t thd_partBegin = part * threads;
-//        }
-//        else
-//        {
-//            uint64_t part = size;
-//            //uint64_t thd_partBegin = thd1 + threads * part ;
-//        }
-//        //TIt thd_begin = begin + thd_partBegin;
-//        #pragma omp for 
-//        for (uint64_t k = 0; k < end - begin; k++)
-//        {
-//            if (_DefaultHs.isHead(*(begin + k))
-//            {
-//                uint64_t x = *(begin + k) & mask;
-//                uint64_t ptr = _DefaultHs.getHeadPtr(*(begin + k));
-//                unsigned thd_num = (ctd[x] <= thd_n1)?ctd[x]/(size + 1):(ctd[x] - thd_n1) / size + thd1;
-//                next[thd_num][x + 1] += ptr;    
-//            }
-//        }
-//    }
-//
-//    for (uint64_t j = 0; j < l; j++)
-//    {
-//        #pragma omp parallel private(part) reduction(_joinNext: next)
-//        {
-//            uint64_t ctd[maxBucket] =  {0};
-//            /*
-//             * Calculate the data range for each thread 
-//             * Each thread process the 'head Node' in the range 
-//             *      of [begin + thd_partBegin, begin + thd_partBegin + part)
-//             */
-//            if (threads < thd1)
-//            {
-//                uint64_t part = size + 1;
-//                //uint64_t thd_partBegin = part * threads;
-//            }
-//            else
-//            {
-//                uint64_t part = size;
-//                //uint64_t thd_partBegin = thd1 + threads * part ;
-//            }
-//            //TIt thd_begin = begin + thd_partBegin;
-//            /*
-//             * Calculate ctd[] from the next[]
-//             */
-//            for (unsigned k = 0; k <= threads; k++)
-//            {
-//                for (unsigned n = 1; n < (1<<p_bit); n++)
-//                {
-//                    ctd[n] += next[k][n];
-//                }
-//            }
-//            for (unsigned k = 1; k < (1<<p_bit); k++)
-//                ctd[k] += ctd[k-1];
-//            /*
-//             * Bucket sort and calculate the next[] for next round
-//             */
-//            #pragma omp for
-//            for (unsigned k = 0; k < end - begin; k++)
-//            {
-//                if (_DefaultHs.isHead(*(begin + k)))
-//                {
-//                    uint64_t x = *(begin + k) << l_move >> r_move;
-//                    uint64_t ptr = _DefaultHs.getHeadPtr(*(begin + k));
-//                    for (uint64_t it = 0; it < ptr; it++)
-//                    {
-//                        output[ctd[x] + it] = *(begin + k + it);
-//                    }
-//                    x = *(begin + k) << (l_move + p_bit)>> r_move;
-//                    unsigned thd_num = (ctd[x] <= thd_n1)?ctd[x]/(size + 1):(ctd[x] - thd_n1) / size + thd1;
-//                    next[thd_num][x + 1] += ptr;
-//                    ctd[x] += ptr;
-//                }
-//            }
-//            /*
-//             * Wait until all threads finished then copy
-//             */
-//            #pragma omp barrier
-//            #pragma omp for
-//            for(uint64_t k = 0; k < end - begin; k++)
-//            {
-//                *(begin + k) = output[k];
-//            }
-//        }
-//    }
-//    return true;
-//}
-
+/*
+ * serial sort hs
+ * bucket[]+
+ */
 /*
 template <typename TIt>
 inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBitLen)
@@ -1854,7 +1720,7 @@ inline void _hsSort(TIter const & begin, TIter const & end, unsigned const & sha
 {
     std::cerr << "      sorting xstr \n";
     double time = sysTime();
-    uint64_t mask = (1ULL << 9) - 1;
+    //uint64_t mask = (1ULL << 9) - 1;
     _hsSortX(begin, end, shapeWeight << 1);
     //std::sort(begin, end);
     std::cerr << "      _dirSortX Time[s]" << sysTime() - time << std::endl;
@@ -1862,7 +1728,9 @@ inline void _hsSort(TIter const & begin, TIter const & end, unsigned const & sha
     //std::cerr << " _dirSortY " << sysTime() - time << "\n";
 }
 
-
+/*
+ * serial creat hash array
+ */
 template <unsigned SHAPELEN>
 bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<SHAPELEN> > & shape)
 {
@@ -1920,7 +1788,88 @@ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs,
     return true;
 }
 
-
+/*
+ * parallel creat hash array
+ */
+/*
+template <unsigned SHAPELEN>
+bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<SHAPELEN> > & shape)
+{
+    double time = sysTime();
+    int64_t sum = 0;
+    unsigned const step = 3;
+    omp_set_num_threads(4);
+    for(uint64_t j = 0; j < length(seq); j++)
+    {
+        #pragma omp parallel reduction(+: sum)
+        {
+            uint64_t preX = ~0;
+            int64_t ptr = 0, count = -1;
+            uint64_t k;
+            unsigned size2 = length(seq[j]) / omp_get_num_threads();
+            unsigned ChunkSize = size2;
+            if (omp_get_thread_num() < length(seq[j]) - size2 * omp_get_num_threads())
+            {
+                ChunkSize = size2 + 1;
+            }
+            printf("createhs %d %d\n", ChunkSize, omp_get_thread_num());
+            Shape<Dna5, Minimizer<SHAPELEN> > tshape = shape; 
+            String<uint64_t> tmpHs;
+            resize(tmpHs, ChunkSize << 1);
+            tmpHs[0] = tmpHs[1] = 0;
+            hashInit(tshape, begin(seq[j]));
+            #pragma omp for
+            for (k = 0; k < length(seq[j]) - tshape.span + 1; k++)
+            {
+                if(ordValue(*(begin(seq[j]) + k + tshape.span - 1)) == 4)
+                {
+                    k += hashInit(tshape, begin(seq[j]) + k);
+                    if (k > ChunkSize - tshape.span + 1)
+                    {
+                        k = ChunkSize - ChunkSize % step + step;
+                    }
+                }
+                    
+                hashNext(tshape, begin(seq[j]) + k);
+                if (k % step != 0)
+                {
+                    if (tshape.XValue ^ preX)
+                    {
+                        _DefaultHs.setHsHead(tmpHs[++count - ptr], ptr, preX);
+                        ptr = 2;
+                        preX = tshape.XValue; 
+                    }
+                    else
+                    {
+                        ++ptr;
+                    }
+                    _DefaultHs.setHsBody(tmpHs[++count], tshape.YValue, j, k); 
+                    //std::cout << "hs[count] " << (hs[count] & ((1ULL << 30) - 1))<< std::endl;
+                }
+            }
+            _DefaultHs.setHsHead(tmpHs[++count - ptr], ptr, tshape.XValue);
+            resize(tmpHs, count);
+            sum += count;
+            #pragma omp for ordered
+            for (unsigned k = 0; k < omp_get_num_threads(); k++)
+                #pragma omp ordered
+                {
+                    append (hs, tmpHs);
+                }
+        }
+    }
+    _DefaultHs.setHsHead(hs[sum], 0, 0);
+    std::cerr << "      init Time[s]" << sysTime() - time << " " << std::endl;
+//-k
+    resize(hs, sum + 1);
+    shrinkToFit(hs);
+    _hsSort(begin(hs), begin(hs) + sum, shape.weight);
+    //_hsSort(begin(hs) + start, begin(hs) + count, shape.weight);
+    
+    std::cerr << "      End createHsArray " << std::endl;
+    return true;
+}
+*/
 bool checkHsSort(String<uint64_t> const & hs)
 {
     uint64_t preX = _DefaultHs.getHeadX(hs[0]);
@@ -2009,8 +1958,6 @@ inline XNode::TypeV2L XNodeFunc::makeReturnVal(XNode const & xnode, XNodeBase::M
     //return xnode.val2;
 }
 
-
-
 inline uint64_t requestXNode_noCollision (XString & xstr, uint64_t const & xval, 
                 uint64_t const & val2,  uint64_t const & nodeType, uint64_t const returnType)
 {
@@ -2025,6 +1972,20 @@ inline uint64_t requestXNode_noCollision (XString & xstr, uint64_t const & xval,
     return h1;
 }
 
+inline uint64_t requestXNode_noCollision_Atomic (XString & xstr, uint64_t const & xval, 
+                uint64_t const & val2,  uint64_t const & nodeType, uint64_t const returnType)
+{
+    uint64_t h1 = _DefaultXNodeFunc.hash(xval) & xstr.mask;
+    uint64_t delta = 0;
+    //while (xstr.xstring[h1].val1) //0 stands for empty
+    while (atomicCas<uint64_t>(xstr.xstring[h1].val1, 0, 1))
+    {
+        h1 = (h1 + delta +1) & xstr.mask;
+        delta++;
+    }
+    _DefaultXNodeFunc.setXNode(xstr.xstring[h1], xval, val2, nodeType, returnType);
+    return h1;
+}
 
 inline uint64_t getXDir(XString const & xstr, uint64_t const & xval, uint64_t const & yval, bool & vflag)
 {
@@ -2177,28 +2138,32 @@ inline uint64_t getNextXYDir(HIndex<span> const & index, HShape<span> const & sh
 
 inline uint64_t gethDir(XString const & xstr, uint64_t const & hval)
 {        
-        uint64_t  val = (hval << 2) + _DefaultXNodeBase.xHead;
-        uint64_t  h1 = _DefaultXNodeFunc.hash(hval) & xstr.mask;
-        uint64_t delta = 0;
+    uint64_t  val = (hval << 2) + _DefaultXNodeBase.xHead;
+    uint64_t  h1 = _DefaultXNodeFunc.hash(hval) & xstr.mask;
+    uint64_t delta = 0;
         
-//!!!!! need to modify;
-        while (xstr.xstring[h1].val1)
+    //!!!!! need to modify;
+    while (xstr.xstring[h1].val1)
+    {
+        switch(_DefaultXNodeFunc.collision(xstr.xstring[h1].val1, val))
         {
-            switch(_DefaultXNodeFunc.collision(xstr.xstring[h1].val1, val))
-            {
-                case 0:
-                    //return _DefaultXNodeFunc.makeReturnVal(xstr.xstring[h1]);
-                    return (uint64_t)xstr.xstring[h1].val2;
-                default:
-                    h1 = (h1 + delta + 1) & xstr.mask;
-                    delta++;
-            }
+            case 0:
+                //return _DefaultXNodeFunc.makeReturnVal(xstr.xstring[h1]);
+                return (uint64_t)xstr.xstring[h1].val2;
+            default:
+                h1 = (h1 + delta + 1) & xstr.mask;
+                delta++;
         }
-        //return _DefaultXNodeBase._Empty_Dir_;
-        return 0;
+    }
+    //return _DefaultXNodeBase._Empty_Dir_;
+    return 0;
 }
 
 //#define debug_c_ysa
+/*  
+ * serial sort ysa 
+ */
+/*
 template <unsigned TSPAN, unsigned TWEIGHT>
 bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir)
 {
@@ -2268,6 +2233,7 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir)
     uint64_t count = 0; 
     
 //    ptr = 0; k = 2;
+    time = sysTime();
     while(_DefaultHs.getHeadPtr(hs[k]))
     {
         ptr = _DefaultHs.getHeadPtr(hs[k]);
@@ -2290,6 +2256,8 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir)
     }
     xstr._fullSize(count);
     ptr = 0; k = 0;
+    std::cerr << "preprocess2 resize xstr " << sysTime() - time << std::endl;
+    time = sysTime();
     while(_DefaultHs.getHeadPtr(hs[k]))
     {
         ptr = _DefaultHs.getHeadPtr(hs[k]);
@@ -2315,6 +2283,157 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir)
         }
         k += ptr;
     }
+    std::cerr << "request dir " << sysTime() - time << std::endl;
+    return true;
+}
+
+*/
+/*
+ * parallel sort ysa
+ */
+
+template <unsigned TSPAN, unsigned TWEIGHT>
+bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir)
+{
+//-k
+    omp_set_num_threads(4);
+    uint64_t k = _DefaultHs.getHeadPtr(hs[0]);
+    uint64_t preX = _DefaultHs.getHeadX(hs[0]);
+    //uint64_t k = 2 + _DefaultHs.getHeadPtr(hs[2]);
+    //uint64_t preX = _DefaultHs.getHeadX(hs[2]);
+    uint64_t ptr = k;
+    uint64_t block_size = ptr;
+    uint64_t countMove = 0, prek = 0;
+    double time = sysTime();
+    while(_DefaultHs.getHeadPtr(hs[k]))
+    {
+        ptr = _DefaultHs.getHeadPtr(hs[k]);
+        if (preX != _DefaultHs.getHeadX(hs[k]))
+        {
+            
+            hs[k - countMove] = hs[k];
+            _DefaultHs.setHsHeadPtr(hs[prek], block_size);
+            prek = k - countMove;
+            block_size = ptr;
+            preX = _DefaultHs.getHeadX(hs[k]);
+        }
+        else
+        {
+            countMove++;
+            block_size += ptr - 1;
+        }
+        for (uint64_t j = k + 1; j < k + ptr; j++)
+        {
+            hs[j - countMove]= hs[j];       
+        }
+           
+        k += ptr;
+    }
+    _DefaultHs.setHsHeadPtr(hs[prek], block_size);
+    //hs[k - countMove] = 0;
+    //hs[k - countMove + 1] = 0;
+    _DefaultHs.setHsHead(hs[k - countMove], 0, 0);
+    _DefaultHs.setHsHead(hs[k - countMove + 1], 0, 0);
+
+    resize(hs, k + 2 - countMove);
+    shrinkToFit(hs);
+    indexEmptyDir = k - countMove;
+//-k 
+    k=0;
+    preX = _DefaultHs.getHeadX(hs[0]);
+    //k=2;
+    //preX = _DefaultHs.getHeadX(hs[2]);
+
+    ptr = 0;
+    block_size = 0;
+
+    std::cerr << "      preprocess sort y " << sysTime() - time << std::endl;
+    time = sysTime();
+#pragma omp parallel
+{
+    uint64_t ptr = 0;
+    #pragma omp for
+    for (uint64_t k = 0; k < length(hs) - 2; k++)
+    { 
+//        printf("[sorty] %d\n", k);
+        if(_DefaultHs.isHead(hs[k]))
+        {
+            ptr = _DefaultHs.getHeadPtr(hs[k]);
+            _sort_YSA_Block(begin(hs) + k + 1, begin(hs) + k + ptr);
+            k += ptr - 1;
+        }   
+    }
+    
+}
+    std::cerr << "      sort y " << sysTime() - time << std::endl;
+//-k
+    ptr = 0; k = 0;
+
+    uint64_t count = 0; 
+    
+//    ptr = 0; k = 2;
+    time = sysTime();
+    while(_DefaultHs.getHeadPtr(hs[k]))
+    {
+        ptr = _DefaultHs.getHeadPtr(hs[k]);
+        if (ptr < blocklimit)
+        {
+            ++count;
+        }
+        else
+        {   
+            for (unsigned j = k + 1; j < k + ptr; j++)
+            {
+                if(_DefaultHs.getHsBodyY(hs[j] ^ hs[j - 1]))
+                {
+                    ++count;
+                }
+            }
+            ++count;
+        }
+        k += ptr;
+    }
+    xstr._fullSize(count);
+    ptr = 0; k = 0;
+    std::cerr << "preprocess2 resize xstr " << sysTime() - time << std::endl;
+    time = sysTime();
+#pragma omp parallel 
+{
+    uint64_t ptr = 0;
+    #pragma omp for
+    for (k =0; k < length(hs); ++k)
+    {
+        //printf("[requestdir atomic] %d %d %d\n", omp_get_thread_num(), length(hs),k);
+        if (_DefaultHs.isHead(hs[k]) && _DefaultHs.getHeadPtr(hs[k]))
+        {
+            ptr = _DefaultHs.getHeadPtr(hs[k]);
+            if (ptr < blocklimit)
+           {
+               requestXNode_noCollision_Atomic(xstr, _DefaultHs.getHeadX(hs[k]), 
+                       k + 1, _DefaultXNodeBase.xHead, _DefaultXNodeBase.returnDir);
+           }
+            else
+            {
+                uint64_t xval = _DefaultHs.getHeadX(hs[k]);
+                requestXNode_noCollision_Atomic(xstr, xval, 
+                        ~1, _DefaultXNodeBase.virtualHead, _DefaultXNodeBase.returnDir);
+                for (unsigned j = k + 1; j < k + ptr; j++)
+                {
+                    if(_DefaultHs.getHsBodyY(hs[j] ^ hs[j - 1]))
+                    {
+                        requestXNode_noCollision_Atomic(xstr, (xval + ((hs[j] & ((1ULL<<61) - (1ULL<<41))) >>1)), 
+                                j, _DefaultXNodeBase.xHead, _DefaultXNodeBase.returnDir);
+                    }
+                    
+                }
+            }
+            k += ptr - 1;    
+        }
+    }
+
+}
+
+    std::cerr << "request dir " << sysTime() - time << std::endl;
     return true;
 }
 

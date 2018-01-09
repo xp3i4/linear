@@ -40,7 +40,6 @@ using namespace seqan;
 template <typename TDna, typename TSpec>
 Mapper<TDna, TSpec>::Mapper(Options & options):
     record(options),
-    parm(options),
     qIndex(genomes()),
     of(toCString(options.getOutputPath()))
 {
@@ -179,17 +178,17 @@ void Mapper<TDna, TSpec>::printCordsAll()
 {
     double time = sysTime();
     std::ofstream of2("mapper_result2.txt");
-    unsigned strand;
+    //unsigned strand;
     for (unsigned k = 0; k < length(cordSet); k++)
     {
         if (empty(cordSet[k]))
             of2 << k << " th Strand " << " 2 length " << length(reads()[k]) << "\nlength of cords -\n\n";
         else
         {
-            if (_DefaultCord.getCordStrand(back(cordSet[k]))) 
-                strand = 1;
-            else 
-                strand = 0;
+            //if (_DefaultCord.getCordStrand(back(cordSet[k]))) 
+            //    strand = 1;
+            //else 
+            //    strand = 0;
             unsigned cordCount = 0;
             unsigned first = 0;
             unsigned cover = 0;
@@ -268,9 +267,9 @@ template <typename TDna, typename TSpec>
 void Mapper<TDna, TSpec>::printCordsRaw()
 {
     double time = sysTime();
-    unsigned strand;
+    //unsigned strand;
     unsigned cordCount = 0;
-    bool flag;
+    //bool flag;
     for (unsigned k = 0; k < length(cordSet); k++)
     {
         if (!empty(cordSet[k]))
@@ -284,7 +283,7 @@ void Mapper<TDna, TSpec>::printCordsRaw()
                     << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j])) << " " << cordCount << " "
                     << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << " " 
                     << length(reads()[k]) << "\n";   
-                    flag = false;
+                    //flag = false;
                     cordCount = 0;
                 }
                 cordCount++;
@@ -329,18 +328,18 @@ void map(Mapper<TDna, TSpec> & mapper)
     double time = sysTime();
     mapper.createIndex();
     resize(mapper.hits(), length(mapper.reads()));
-    resize(mapper.cords(), length(mapper.reads()));
+    //resize(mapper.cords(), length(mapper.reads()));
     //rawMap<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(),
     //                     mapper.mapParm(), mapper.hits(), mapper.cords());
-    uint64_t blockSize = 100000;
-    uint64_t lenSum;
+    //uint64_t blockSize = 100000;
+    //uint64_t lenSum;
     SeqFileIn rFile(toCString(mapper.readPath()));
     //while (!atEnd(rFile))
     //{
     //    readRecords(mapper.readsId(), mapper.reads(), rFile, blockSize);
     //    std::cerr << ">mapping blocks of " << length(mapper.reads()) << "reads"<< std::endl;
-        rawMapAllComplex2<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), mapper.mapParm(), mapper.hits(), mapper.cords());
-    //   rawMapAllComplex2Parallel<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), mapper.mapParm(), mapper.hits(), mapper.cords(), mapper.thread());
+    //    rawMapAllComplex2<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), mapper.mapParm(), mapper.cords());
+       rawMapAllComplex2Parallel<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), mapper.mapParm(), mapper.cords(), mapper.thread());
         clear (mapper.reads());
     //}
 

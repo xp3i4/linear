@@ -384,7 +384,6 @@ struct MapParm{
         cordThr(parm.cordThr)
         {}
         
-    MapParm(Options & options){}
     void setMapParm(Options & options);
     void print ();
     
