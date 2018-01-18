@@ -462,7 +462,7 @@ int PMRecord<TDna>::loadRecord(Options & options)
     double time = sysTime();
     std::cerr <<"loading sequences from files \r";
     //std::cerr << "loading sequences from files \r";
-    SeqFileIn rFile(toCString(options.rPath));
+    //SeqFileIn rFile(toCString(options.rPath));
     SeqFileIn gFile(toCString(options.gPath));
     //while (!atEnd(rFile))
     //{
@@ -484,10 +484,10 @@ int PMRecord<TDna>::loadRecord(Options & options)
     //        std::cerr << "Can't open read files"
     //    }
     //}
-    readRecords(id1, seq1, rFile);
+    //readRecords(id1, seq1, rFile);
     readRecords(id2, seq2, gFile);
     std::cerr << ">load sequences                     " << std::endl;
-    std::cerr << "    mapping " << length(seq1) << " reads to " << length(seq2) << " genomes" << std::endl;
+    std::cerr << "    Read " <<  length(seq2) << " genomes from " << options.gPath << std::endl;
     std::cerr << "    End loading sequences. Time[s] " << sysTime() - time << std::endl;
     return 0;
 }

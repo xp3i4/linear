@@ -70,8 +70,8 @@ Mapper<TDna, TSpec>::Mapper(Options & options):
 template <typename TDna, typename TSpec>
 int Mapper<TDna, TSpec>::createIndex()
 {
-    std::cerr << "Creating index \n";
-    _createQGramIndex(qIndex, genomes());
+    std::cerr << ">[Creating index] \n";
+    createHIndex(genomes(), qIndex, _thread);
     return 0;
 }
 
@@ -325,26 +325,29 @@ template <typename TDna, typename TSpec>
 void map(Mapper<TDna, TSpec> & mapper)
 {
     //printStatus();
+    omp_set_num_threads(mapper.thread());
     double time = sysTime();
-    mapper.createIndex();
-    resize(mapper.hits(), length(mapper.reads()));
-    //resize(mapper.cords(), length(mapper.reads()));
-    //rawMap<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(),
-    //                     mapper.mapParm(), mapper.hits(), mapper.cords());
-    //uint64_t blockSize = 100000;
+    mapper.createIndex(); // true for parallel 
+    //uint64_t blockSize = 10000;
     //uint64_t lenSum;
     SeqFileIn rFile(toCString(mapper.readPath()));
     //while (!atEnd(rFile))
     //{
-    //    readRecords(mapper.readsId(), mapper.reads(), rFile, blockSize);
-    //    std::cerr << ">mapping blocks of " << length(mapper.reads()) << "reads"<< std::endl;
-    //    rawMapAllComplex2<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), mapper.mapParm(), mapper.cords());
-       rawMapAllComplex2Parallel<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), mapper.mapParm(), mapper.cords(), mapper.thread());
-        clear (mapper.reads());
+        std::cerr <<  ">reading reads from " << mapper.readPath() << "\r";
+        readRecords(mapper.readsId(), mapper.reads(), rFile);//, blockSize);
+        std::cerr << ">mapping " << length(mapper.reads()) << " reads to reference genomes"<< std::endl;
+        if (mapper.thread() < 2)
+        {
+            rawMapAllComplex2<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), mapper.mapParm(), mapper.cords());
+        }
+        else
+        {
+            rawMapAllComplex2<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), mapper.mapParm(), mapper.cords(), mapper.thread());
+        //clear (mapper.reads());   
+        }
+        
+        //clear (mapper.readsId());
     //}
-
-    //rawMapAllComplex2<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), mapper.mapParm(), mapper.hits(), mapper.cords());
-    //mapper.printHits();
     mapper.printCordsAll();
     mapper.printCordsRaw();
     std::cerr << length(mapper.cords()) << " " << length(mapper.reads()) << " \n";
