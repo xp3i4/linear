@@ -220,10 +220,12 @@ hash(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 // Function hashNext()
 // ----------------------------------------------------------------------------
 
-uint64_t hash_key;
-uint64_t hash_key1;
-uint64_t hash_key2;
-uint64_t hash_key3;
+
+template <unsigned span> 
+struct MASK
+{
+    static const uint64_t VALUE = (1ULL << span) - 1;
+};
 
 template <typename TValue>
 inline void phi(TValue & h)
@@ -241,11 +243,6 @@ inline void hashInit(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter
         me.leftChar = 0;
         //me.hValue = ordValue(*it);
         me.hValue = 0;
-        hash_key = ((uint64_t)1 << (me.span*2 -2 )) - 1;
-        hash_key1 = ((uint64_t)1 << me.span * 2) - ((uint64_t)1 << me.weight * 2);
-        hash_key2 = ((uint64_t) 1 << (me.weight*2)) - 1;
-        hash_key3 = ((uint64_t)1 << (me.span*2 )) - 1;
-
         //for(TSize i = 2; i < me.span; ++i) {
         //    //me.hValue = me.hValue * ValueSize<TValue>::VALUE + ordValue((TValue)*(it +i-2));
         //    me.hValue = (me.hValue << 2) + ordValue((TValue)*(it +i-2));
@@ -266,10 +263,8 @@ inline uint64_t hashInit(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIt
         me.leftChar = 0;
         //me.hValue = ordValue(*it);
         me.hValue = 0;
-        hash_key = ((uint64_t)1 << (me.span*2 -2 )) - 1;
-        hash_key1 = ((uint64_t)1 << me.span * 2) - ((uint64_t)1 << me.weight * 2);
-        hash_key2 = ((uint64_t) 1 << (me.weight*2)) - 1;
-        hash_key3 = ((uint64_t)1 << (me.span*2 )) - 1;
+        //hash_key = ((uint64_t)1 << (me.span*2 -2 )) - 1;
+        //hash_key3 = ((uint64_t)1 << (me.span*2 )) - 1;
         
         uint64_t k =0, count = 0;
         while (count < me.span)
@@ -282,10 +277,6 @@ inline uint64_t hashInit(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIt
             else
                 count++;
         }
-        //std::cout << k << std::endl;
-        //for(TSize i = 2; i < me.span; ++i) {
-        //    //me.hValue = me.hValue * ValueSize<TValue>::VALUE + ordValue((TValue)*(it +i-2));
-        //    me.hValue = (me.hValue << 2) + ordValue((TValue)*(it +i-2));
         for (unsigned i = 0; i < me.span - 1; ++i)
         {
             me.hValue = (me.hValue << 2) + ordValue(*(it + k + i));
@@ -334,9 +325,9 @@ hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
         uint64_t v1;
         unsigned t, span = TSPAN << 1, weight = TWEIGHT << 1;
  
-        me.hValue=((me.hValue & hash_key)<<2)+ordValue((TValue)*(it + ((TSize)me.span - 1)));
-        me.XValue = hash_key3;
-                
+        me.hValue=((me.hValue & MASK<TSPAN * 2 - 2>::VALUE)<<2)+ordValue((TValue)*(it + ((TSize)me.span - 1)));
+        me.XValue = MASK<TSPAN * 2>::VALUE; 
+
         //std::cout << "hash_key3" << hash_key3 << std::endl;
         for (unsigned k = 64-span; k <= 64 - weight; k+=2)
         {
