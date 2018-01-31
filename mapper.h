@@ -88,7 +88,7 @@ public:
     void printCordsAll();
     void printCordsRaw();
     int createIndex();
-    unsigned sens();
+    unsigned sens(){return parm.sensitivity;}
     unsigned & thread(){return _thread;}
     CharString & readPath(){return record.readPath;}
     CharString & genomePath(){return record.genomePath;}

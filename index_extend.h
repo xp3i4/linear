@@ -1767,10 +1767,10 @@ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs,
     double time = sysTime();
     uint64_t hsRealEnd = 0;
     unsigned const step = 3;
-    resize (hs, (lengthSum(seq) << 1)/step*(step - 1));
+    resize (hs, (lengthSum(seq) * 2)/step*(step - 1));
     std::vector<int64_t> hsRealSize(threads, 0);
-    //std::vector<int64_t> seqChunkSize(threads, 0);
-    uint64_t seqChunkSize[4] = {0};
+    std::vector<int64_t> seqChunkSize(threads, 0);
+    //uint64_t seqChunkSize[4] = {0};
 
     for(uint64_t j = 0; j < length(seq); j++)
     {
@@ -1784,7 +1784,7 @@ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs,
             uint64_t start;
             uint64_t hsStart; 
             unsigned thd_id = omp_get_thread_num();
-            unsigned ct_step = 2;
+            //unsigned ct_step = 2;
             if (thd_id < (length(seq[j]) - tshape.span + 1) - size2 * threads)
             {
                 seqChunkSize[thd_id] = size2 + 1;
@@ -1812,8 +1812,8 @@ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs,
                     }
                 }
                 hashNext(tshape, begin(seq[j]) + k);
-                if (++ct_step != step)
-                //if (k % step != 0)
+                //if (++ct_step != step)
+                if (k % step != 0)
                 {
                     if (tshape.XValue ^ preX)
                     {
@@ -1829,10 +1829,10 @@ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs,
                     _DefaultHs.setHsBody(hs[hsStart + thd_count], tshape.YValue, j, k); 
                     ++thd_count;
                 }
-                else 
-                {
-                    ct_step = 0;
-                }
+               // else 
+               // {
+               //     ct_step = 0;
+               // }
             }
             _DefaultHs.setHsHead(hs[hsStart + thd_count - ptr], ptr, tshape.XValue);
             hsRealSize[thd_id] = thd_count;
@@ -2331,7 +2331,7 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
 
     thd_hsStart[threads] = prek + 1;
     resize(hs, k + 2 - countMove);
-    shrinkToFit(hs);
+    //shrinkToFit(hs);
     indexEmptyDir = k - countMove;
     k=0;
     preX = _DefaultHs.getHeadX(hs[0]);
@@ -2368,7 +2368,8 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
         if (++thd_counths > thd_hsXstart)
         {
             thd_hsStart[++thd_idnum] = k;
-            thd_hsXstart += thd_countx / threads;
+            //std::cerr << "[count hs] " << threads << " " << thd_idnum << " " << k << std::endl;
+            thd_counths = 0 ;
         }
         ptr = _DefaultHs.getHeadPtr(hs[k]);
         if (ptr < blocklimit)
@@ -2391,16 +2392,15 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
     xstr._fullSize(count);
     ptr = 0; k = 0;
     std::cerr << "      preprocess2 resize xstr " << sysTime() - time << std::endl;
-    
     time = sysTime();
 
 #pragma omp parallel 
 {
-    uint64_t thd_id = omp_get_thread_num();
+    //uint64_t thd_id = omp_get_thread_num();
     uint64_t ptr = 0;
 
-
-    for (uint64_t m = thd_hsStart[thd_id]; m < thd_hsStart[thd_id + 1]; m++)
+#pragma omp for 
+    for (uint64_t m = 0; m < length(hs); m++)
     {
 
         if (_DefaultHs.isHead(hs[m]) && _DefaultHs.getHeadPtr(hs[m]))
@@ -2430,6 +2430,42 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
             
         }
     }
+    /*
+    printf("[debug] %d %d\n", thd_id, thd_hsStart[thd_id]);
+    
+    for (uint64_t m = thd_hsStart[thd_id]; m < thd_hsStart[thd_id + 1]; m++)
+    {
+        //printf ("[debug] %d %d\n", omp_get_thread_num(), thd_hsStart[thd_id]);
+
+        if (_DefaultHs.isHead(hs[m]) && _DefaultHs.getHeadPtr(hs[m]))
+        {
+            ptr = _DefaultHs.getHeadPtr(hs[m]);
+            if (ptr < blocklimit)
+           {
+               requestXNode_noCollision_Atomic(xstr, _DefaultHs.getHeadX(hs[m]), 
+                       m + 1, _DefaultXNodeBase.xHead, _DefaultXNodeBase.returnDir);
+           }
+            else
+            {
+                uint64_t xval = _DefaultHs.getHeadX(hs[m]);
+                requestXNode_noCollision_Atomic(xstr, xval, 
+                        ~1, _DefaultXNodeBase.virtualHead, _DefaultXNodeBase.returnDir);
+                for (unsigned j = m + 1; j < m + ptr; j++)
+                {
+                    if(_DefaultHs.getHsBodyY(hs[j] ^ hs[j - 1]))
+                    {
+                        requestXNode_noCollision_Atomic(xstr, (xval + ((hs[j] & ((1ULL<<61) - (1ULL<<41))) >>1)), 
+                                j, _DefaultXNodeBase.xHead, _DefaultXNodeBase.returnDir);
+                    }
+                    
+                }
+            }
+            m += ptr - 1;    
+            
+        }
+    }
+    */
+    
 }
     std::cerr << "      request dir " << sysTime() - time << std::endl;
     (void) threads;

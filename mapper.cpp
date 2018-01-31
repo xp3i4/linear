@@ -62,7 +62,7 @@ Mapper<TDna, TSpec>::Mapper(Options & options):
             }
         }
         // parmt for test 
-        parm = parmt;
+        //parm = parmt;
         _thread = options.thread;
         std::cerr << "[mapper thread] " << _thread << "\n";
 }
@@ -270,14 +270,37 @@ void Mapper<TDna, TSpec>::printCordsRaw()
     //unsigned strand;
     unsigned cordCount = 0;
     //bool flag;
+    /*
     for (unsigned k = 0; k < length(cordSet); k++)
     {
+        unsigned preK = 0;
+        
+        for (unsigned j = 1; j < length(cordSet[k]); j++)
+        {
+            if(_DefaultHit.isBlockEnd(cordSet[k][j-1]))
+            {
+                cordLen = k - preK;
+                cordSize[++cordCount] = (cordLen << 31) + preK;
+                preK = k;
+            }
+        }
+        if (cordCount > 3)
+        {
+            std::sort (cordSize, cordSize + cordCount);
+        }
+    }
+    */
+    cordCount = 0;
+    for (unsigned k = 0; k < length(cordSet); k++)
+    {
+        //unsigned recordCount = 0;
         if (!empty(cordSet[k]))
         {
             for (unsigned j = 1; j < length(cordSet[k]); j++)
             {
-                if (_DefaultHit.isBlockEnd(cordSet[k][j-1]))
+                if (_DefaultHit.isBlockEnd(cordSet[k][j-1]) )//&& ++recordCount < 10)
                 {
+                    //of << record.id1[k] << " " << length(cordSet[k]) << " "
                     of <<"@S1_"<< k+1 << " " << length(cordSet[k]) << " "
                     << _DefaultCord.getCordY(cordSet[k][j]) << " x x " 
                     << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j])) << " " << cordCount << " "
@@ -295,11 +318,6 @@ void Mapper<TDna, TSpec>::printCordsRaw()
     std::cerr << "    End writing results. Time[s]" << sysTime() - time << std::endl; 
 }
 
-template <typename TDna, typename TSpec>
-unsigned Mapper<TDna, TSpec>::sens()
-{
-    return parm.sensitivity;
-}
 /*
 template <typename TDna, typename TSpec>
 void map(Mapper<TDna, TSpec> & mapper)
@@ -326,15 +344,16 @@ void map(Mapper<TDna, TSpec> & mapper)
 {
     //printStatus();
     omp_set_num_threads(mapper.thread());
-    double time = sysTime();
     mapper.createIndex(); // true for parallel 
     //uint64_t blockSize = 10000;
     //uint64_t lenSum;
     SeqFileIn rFile(toCString(mapper.readPath()));
     //while (!atEnd(rFile))
     //{
+        double time = sysTime();
         std::cerr <<  ">reading reads from " << mapper.readPath() << "\r";
         readRecords(mapper.readsId(), mapper.reads(), rFile);//, blockSize);
+        std::cerr << ">end reading " <<sysTime() - time << "[s]" << std::endl;
         std::cerr << ">mapping " << length(mapper.reads()) << " reads to reference genomes"<< std::endl;
         if (mapper.thread() < 2)
         {
@@ -348,10 +367,9 @@ void map(Mapper<TDna, TSpec> & mapper)
         
         //clear (mapper.readsId());
     //}
-    mapper.printCordsAll();
+    //mapper.printCordsAll();
     mapper.printCordsRaw();
-    std::cerr << length(mapper.cords()) << " " << length(mapper.reads()) << " \n";
-    std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
+    //std::cerr << length(mapper.cords()) << " " << length(mapper.reads()) << " \n";
 }
 
 seqan::ArgumentParser::ParseResult
@@ -421,6 +439,8 @@ parseCommandLine(Options & options, int argc, char const ** argv)
 
 int main(int argc, char const ** argv)
 {
+    double time = sysTime();
+
     std::cerr << "Encapsulated version: Mapping reads efficiently" << std::endl;
     (void)argc;
     // Parse the command line.
@@ -431,6 +451,7 @@ int main(int argc, char const ** argv)
     Mapper<> mapper(options);
     //mapper.printParm();
     map(mapper);
+    std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
 
     return 0;
 }

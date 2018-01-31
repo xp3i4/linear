@@ -323,14 +323,17 @@ struct MapParm{
     unsigned    threshold;
     unsigned    kmerStep;
     unsigned    shapeLen;
-    //unsigned    sensitivity;
+    unsigned    sensitivity;
     unsigned    anchorDeltaThr;
     unsigned    minReadLen;
+    unsigned    listN;
+    unsigned    listN2;
     float       alpha;
     float       alpha2;
     float       anchorLenThr;
     float       rcThr;
     float       cordThr;
+    float       senThr;
       
     
     MapParm():
@@ -339,32 +342,40 @@ struct MapParm{
         threshold(Const_::_THRESHOLD),
         kmerStep(Const_::_KMERSTEP),
         shapeLen(Const_::_SHAPELEN),
-        //sensitivity(0),
+        sensitivity(0),
         anchorDeltaThr(),
         minReadLen(1000),
+        listN(1),
+        listN2(1),
         alpha(Const_::_ALPHA),
         alpha2(0.5),
         anchorLenThr(0.02),                  // anchors with lenghth > this parameter is pushed into the queue
         rcThr(0.8),                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
-        cordThr(0.8)
+        cordThr(0.8),
+        senThr(0.8)
         {}
+        
     MapParm(unsigned bs, unsigned dt, unsigned thr, 
-            unsigned ks, unsigned sl, /*unsigned st,*/ 
-            unsigned ad, unsigned mr, float ap, float ap2,
-            float alt, float rt, float ct):
+            unsigned ks, unsigned sl, unsigned st,
+            unsigned ad, unsigned mr, unsigned listn,
+            unsigned listn2,
+            float ap, float ap2, float alt, float rt, float ct, float sent):
         blockSize(bs),
         delta(dt),
         threshold(thr),
         kmerStep(ks),
         shapeLen(sl),
-        //sensitivity(st),
+        sensitivity(st),
         anchorDeltaThr(ad),
         minReadLen(mr),
+        listN(listn),
+        listN2(listn2),
         alpha(ap),
         alpha2(ap2),
         anchorLenThr(alt),                  // anchors with lenghth > this parameter is pushed into the queue
         rcThr(rt),                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
-        cordThr(ct)
+        cordThr(ct),
+        senThr(sent)
         {} 
 
 
@@ -374,14 +385,17 @@ struct MapParm{
         threshold(parm.threshold),
         kmerStep(parm.kmerStep),
         shapeLen(parm.shapeLen),
-        //sensitivity(parm.sensitivity),
+        sensitivity(parm.sensitivity),
         anchorDeltaThr(),
         minReadLen(parm.minReadLen),
+        listN(parm.listN),
+        listN2(parm.listN2),
         alpha(parm.alpha),
         alpha2(parm.alpha2),
         anchorLenThr(parm.anchorLenThr),
         rcThr(parm.rcThr),
-        cordThr(parm.cordThr)
+        cordThr(parm.cordThr),
+        senThr(parm.senThr)
         {}
         
     void setMapParm(Options & options);
