@@ -38,65 +38,70 @@
 using namespace seqan; 
 
 
-seqan::ArgumentParser::ParseResult parseCommandLine(Options & options, int argc, char const ** argv)
+seqan::ArgumentParser::ParseResult
+parseCommandLine(Options & options, int argc, char const ** argv)
 {
-        // Setup ArgumentParser.
-        seqan::ArgumentParser parser("pacMapper");
-        // Set short description, version, and date.
-        setShortDescription(parser, "Alignment of SMRT sequencing read");
-        setVersion(parser, "1.0");
-        setDate(parser, "May 2017");
+    // Setup ArgumentParser.
+    seqan::ArgumentParser parser("pacMapper");
+    // Set short description, version, and date.
+    setShortDescription(parser, "Alignment of SMRT sequencing read");
+    setVersion(parser, "1.0");
+    setDate(parser, "May 2017");
 
-        // Define usage line and long description.
-        addUsageLine(parser,
-                     "[\\fIOPTIONS\\fP] \"\\fIread.fa\\fP\" \"\\fIgnome.fa\\fP\"");
-        addDescription(parser,
-                       "Program for mapping raw SMRT sequencing reads to reference genome.");
+    // Define usage line and long description.
+    addUsageLine(parser,
+                    "[\\fIOPTIONS\\fP] \"\\fIread.fa\\fP\" \"\\fIgnome.fa\\fP\"");
+    addDescription(parser,
+                    "Program for mapping raw SMRT sequencing reads to reference genome.");
 
-        // Argument.
-        addArgument(parser, seqan::ArgParseArgument(
-            seqan::ArgParseArgument::INPUT_FILE, "read"));
-        setHelpText(parser, 0, "Reads file .fa, .fasta");
+    // Argument.
+    addArgument(parser, seqan::ArgParseArgument(
+        seqan::ArgParseArgument::INPUT_FILE, "read"));
+    setHelpText(parser, 0, "Reads file .fa, .fasta");
 
-        addArgument(parser, seqan::ArgParseArgument(
-            seqan::ArgParseArgument::INPUT_FILE, "genome", true));
-        setHelpText(parser, 1, "Reference file .fa, .fasta");
+    addArgument(parser, seqan::ArgParseArgument(
+        seqan::ArgParseArgument::INPUT_FILE, "genome", true));
+    setHelpText(parser, 1, "Reference file .fa, .fasta");
 
-        addSection(parser, "Mapping Options");
-        addOption(parser, seqan::ArgParseOption(
-            "o", "output", "choose output file.",
-             seqan::ArgParseArgument::STRING, "STR"));
-        addOption(parser, seqan::ArgParseOption(
-            "s", "sensitive", "Sensitive mode. Default closed",
-             seqan::ArgParseArgument::STRING, "STR"));
+    addSection(parser, "Mapping Options");
+    addOption(parser, seqan::ArgParseOption(
+        "o", "output", "choose output file.",
+            seqan::ArgParseArgument::STRING, "STR"));
+    addOption(parser, seqan::ArgParseOption(
+        "s", "sensitivity", "Sensitivity mode. -s 0 normal {DEFAULT} -s 1 fast  -s 2 sensitive",
+            seqan::ArgParseArgument::INTEGER, "INT"));
+    addOption(parser, seqan::ArgParseOption(
+        "t", "thread", "Default -t 4",
+            seqan::ArgParseArgument::INTEGER, "INT"));
+        
+    // Add Examples Section.
+    addTextSection(parser, "Examples");
+    addListItem(parser,
+                "\\fBpacMapper\\fP \\fB-U\\fP \\fIchr1.fa reads.fa\\fP",
+                "Print version of \"rd\"");
+    addListItem(parser,
+                "\\fBpacMapper\\fP \\fB-L\\fP \\fB-i\\fP \\fI3\\fP "
+                "\\fIchr1.fa reads.fa\\fP",
+                "Print \"\" with every third character "
+                "converted to upper case.");
 
-        // Add Examples Section.
-        addTextSection(parser, "Examples");
-        addListItem(parser,
-                    "\\fBpacMapper\\fP \\fB-U\\fP \\fIchr1.fa reads.fa\\fP",
-                    "Print version of \"rd\"");
-        addListItem(parser,
-                    "\\fBpacMapper\\fP \\fB-L\\fP \\fB-i\\fP \\fI3\\fP "
-                    "\\fIchr1.fa reads.fa\\fP",
-                    "Print \"\" with every third character "
-                    "converted to upper case.");
+    // Parse command line.
+    seqan::ArgumentParser::ParseResult res = seqan::parse(parser, argc, argv);
 
-        // Parse command line.
-        seqan::ArgumentParser::ParseResult res = seqan::parse(parser, argc, argv);
+    if (res != seqan::ArgumentParser::PARSE_OK)
+        return res;
 
-        if (res != seqan::ArgumentParser::PARSE_OK)
-            return res;
+    getOptionValue(options.oPath, parser, "output");
+    getOptionValue(options.sensitivity, parser, "sensitivity");
+    getOptionValue(options.thread, parser, "thread");
 
-        getOptionValue(options.oPath, parser, "output");
-
-        seqan::getArgumentValue(options.rPath, parser, 0);
-        seqan::getArgumentValue(options.gPath, parser, 1);
+    seqan::getArgumentValue(options.rPath, parser, 0);
+    seqan::getArgumentValue(options.gPath, parser, 1);
 
 
-        return seqan::ArgumentParser::PARSE_OK;
+    return seqan::ArgumentParser::PARSE_OK;
 
 }
-
 
 template <typename TDna>   
 bool test_0_1(StringSet<String<TDna> > & seqs, StringSet<String<TDna> > & seqs2, bool flag1 = true, bool flag2 = true, bool flag3 = true)
@@ -964,6 +969,56 @@ bool test2_0(StringSet<String<TDna> > & seqs, StringSet<String<TDna> > & seqs2, 
     return true;
 }
 
+template <typename TDna>   
+bool test_hashNext(StringSet<String<TDna> > & seqs, bool flag1 = true, bool flag2 = true, bool flag3 = true)
+{
+    std::cerr << "test_hashNext: performance of hashNext\n";
+    const unsigned shapelength = 25;
+    uint64_t sum = 0;
+    bool vflag = false;
+    typename HIndexBase<shapelength>::TShape shape;
+    double time = sysTime();
+    
+    if (flag1)
+    {
+        uint64_t c=0, c1=0, c2=0;
+
+//#pragma omp parallel 
+//{
+
+//#pragma omp for reduction(+:sum)
+        for(uint64_t j = 0; j < length(seqs); j++)
+        {
+            
+            if (length(seqs[j]) < 25)
+                continue;
+            hashInit(shape, begin(seqs[j]));
+            //std::cerr << j << " " << length(seqs[j])<< "\n";
+
+            for (uint64_t k =0; k < length(seqs[j]) - shape.span + 1; k++)
+            {
+                if(ordValue(*(begin(seqs[j]) + k + shape.span - 1)) == 4)
+                {
+                    k += hashInit(shape, begin(seqs[j]) + k);
+                    
+                }
+                sum += hashNext(shape, begin(seqs[j]) + k);
+            }
+        }
+//}
+    }
+    
+    std::cerr << "[end] sum = " << sum << " time:" << sysTime() - time << std::endl;
+}
+
+template<typename TDna, typename TSpec> 
+Mapper<TDna, TSpec>::Mapper(Options & options):
+    record(options),
+    of(toCString(options.getOutputPath()))
+{
+    std::cerr << "[mapper thread] " << _thread << "\n";
+}
+
 
 int main(int argc, char const ** argv)
 {
@@ -976,6 +1031,7 @@ int main(int argc, char const ** argv)
         return res == seqan::ArgumentParser::PARSE_ERROR;
     double t=sysTime();
     Mapper<> mapper(options);
+    //omp_set_num_threads(mapper.thread());
     //_createIndexDir(mapper.genomes(), mapper.index().dir, mapper.index().shape);
     //_createQGramIndexDirSA(mapper.genomes(), mapper.index().dir, mapper.index().bucketMap, mapper.index().sa, mapper.index().shape, true);
     //mapper.createIndex();
@@ -987,9 +1043,9 @@ int main(int argc, char const ** argv)
     //test_1(mapper.reads(), mapper.genomes());
     //test_1_2(mapper.reads(), mapper.genomes(), true, false, true);
     //test_1_3(mapper.reads(), mapper.genomes(), true, false, true);
-    test2_0(mapper.reads(), mapper.genomes(), true, false, false);
+    //test2_0(mapper.reads(), mapper.genomes(), true, false, false);
+    test_hashNext(mapper.genomes(), true, false, false);
 
-    std::cerr << mapper.index().shape.weight << std::endl;
     std::cerr << "results saved to " << options.getOutputPath() << "\n";
     
     return 0;

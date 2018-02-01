@@ -50,7 +50,7 @@ add_definitions (-DSEQAN_DATE="${SEQAN_DATE}")
 
 # Update the list of file names below if you add source files to your application.
 add_executable (pacMapper mapper.cpp mapper.h base.h index_extend.h shape_extend.h mapparm.h)
-add_executable (testCasePacMapper testCase.cpp mapper.h base.h index_extend.h shape_extend.h)
+add_executable (testCasePacMapper testCase.cpp mapper.h base.h index_extend.h shape_extend.h mapparm.h)
 
 # Add dependencies found by find_package (SeqAn).
 target_link_libraries (pacMapper ${SEQAN_LIBRARIES})

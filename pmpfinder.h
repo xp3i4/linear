@@ -1932,22 +1932,22 @@ int rawMapAllComplex2(typename PMCore<TDna, TSpec>::Index   & index,
             clear(crhit);
             mnMapReadList<TDna, TSpec>(index, comStr, anchors, mapParm, crhit);
             pathAll(comStr, begin(crhit), end(crhit), f2, cordsTmp[c], mapParm.cordThr, 1);            
-        //    if (_DefaultCord.getMaxLen(cordsTmp[c]) < length(reads[j]) / senThr)// && 
-        //       //_DefaultCord.getMaxLen(cordsTmp[c]) > 0)
-        //    {
-        //        clear(cordsTmp[c]);
-        //        
-        //        anchors.init(1);
-        //        clear(crhit);
-        //        mnMapReadList<TDna, TSpec>(index, reads[j], anchors, complexParm, crhit);
-        //        pathAll(reads[j], begin(crhit), end(crhit), f2, cordsTmp[c], complexParm.cordThr, 0);
-        //       
-        //        anchors.init(1);
-        //        clear(crhit);
-        //        mnMapReadList<TDna, TSpec>(index, comStr, anchors, complexParm, crhit);
-        //        pathAll(comStr, begin(crhit), end(crhit), f2, cordsTmp[c], complexParm.cordThr, 1);
-        //       
-        //    }   
+            if (_DefaultCord.getMaxLen(cordsTmp[c]) < length(reads[j]) / senThr)// && 
+               //_DefaultCord.getMaxLen(cordsTmp[c]) > 0)
+            {
+                clear(cordsTmp[c]);
+                
+                anchors.init(1);
+                clear(crhit);
+                mnMapReadList<TDna, TSpec>(index, reads[j], anchors, complexParm, crhit);
+                pathAll(reads[j], begin(crhit), end(crhit), f2, cordsTmp[c], complexParm.cordThr, 0);
+               
+                anchors.init(1);
+                clear(crhit);
+                mnMapReadList<TDna, TSpec>(index, comStr, anchors, complexParm, crhit);
+                pathAll(comStr, begin(crhit), end(crhit), f2, cordsTmp[c], complexParm.cordThr, 1);
+               
+            }   
         }
         c += 1;
     } 

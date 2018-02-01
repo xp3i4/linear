@@ -330,6 +330,7 @@ hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 
         //std::cout << "hash_key3" << hash_key3 << std::endl;
         for (unsigned k = 64-span; k <= 64 - weight; k+=2)
+        //for (unsigned k = 64-span; k <= 64 - span + 1; k+=2)
         {
             v1 = me.hValue << k >> (64-weight);
             if(me.XValue > v1)
