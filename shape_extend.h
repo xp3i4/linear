@@ -89,6 +89,7 @@ public:
     int first;
     int bound;
     THashValue hValue;     //hash value 
+    THashValue crhValue;    //ReverseComplement
     THashValue XValue;     //minimizer 
     THashValue YValue;     //Y(h,x)
     static const THashValue leftFactor = seqan::Power<seqan::ValueSize<TValue>::VALUE, TSPAN - 1>::VALUE;
@@ -263,6 +264,7 @@ inline uint64_t hashInit(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIt
         me.leftChar = 0;
         //me.hValue = ordValue(*it);
         me.hValue = 0;
+        me.crhValue = 0;
         //hash_key = ((uint64_t)1 << (me.span*2 -2 )) - 1;
         //hash_key3 = ((uint64_t)1 << (me.span*2 )) - 1;
         
@@ -277,9 +279,13 @@ inline uint64_t hashInit(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIt
             else
                 count++;
         }
+        unsigned bit = 0;
         for (unsigned i = 0; i < me.span - 1; ++i)
         {
-            me.hValue = (me.hValue << 2) + ordValue(*(it + k + i));
+            uint64_t val = ordValue (*(it + k + k));
+            me.hValue = (me.hValue << 2) + val;
+            me.crhValue += ((~val) << (bit));
+            bit += 2;
         }
         me.x = 0;
         //}
@@ -323,25 +329,42 @@ hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
         typedef typename Size< Shape<TValue, TSpec> >::Type        TSize;
         SEQAN_ASSERT_GT((unsigned)me.span, 0u);
         uint64_t v1;
-        unsigned t, span = TSPAN << 1, weight = TWEIGHT << 1;
- 
-        me.hValue=((me.hValue & MASK<TSPAN * 2 - 2>::VALUE)<<2)+ordValue((TValue)*(it + ((TSize)me.span - 1)));
+        unsigned t,t2 , span = TSPAN << 1, weight = TWEIGHT << 1;
+        uint64_t v2 = ordValue((TValue)*(it + ((TSize)me.span - 1)));
+        me.hValue=((me.hValue & MASK<TSPAN * 2 - 2>::VALUE)<<2)+ v2;
+        me.crhValue=((me.crhValue & MASK<TSPAN * 2 - 2>::VALUE)<<2)+((~v2) << (span - 2));
         me.XValue = MASK<TSPAN * 2>::VALUE; 
+        me.YValue = me.XValue;
 
-        //std::cout << "hash_key3" << hash_key3 << std::endl;
         for (unsigned k = 64-span; k <= 64 - weight; k+=2)
-        //for (unsigned k = 64-span; k <= 64 - span + 1; k+=2)
         {
             v1 = me.hValue << k >> (64-weight);
+            v2 = me.crhValue << k >> (64 - weight);
             if(me.XValue > v1)
             {
                 me.XValue=v1;
-                //t=k;
                 t = k;
             }
+            if (me.YValue > v2)
+            {
+                me.YValue = v2;
+                t2 = k;
+            }
         } 
-        me.YValue = (me.hValue >> (64-t) << (64-t-weight))+(me.hValue & (((uint64_t)1<<(64-t-weight)) - 1)) + (t<<(span - weight - 1));
-
+        if (me.XValue < me.YValue)
+        {
+            me.XValue = me.YValue;
+            t = t2;
+            me.YValue = (me.crhValue >> (64-t) << (64-t-weight)) +
+                    (me.crhValue & (((uint64_t)1 << (64-t-weight)) - 1)) + 
+                    (t<<(span - weight - 1));
+        }
+        else
+        {
+            me.YValue = (me.hValue >> (64-t) << (64-t-weight)) +
+                    (me.hValue & (((uint64_t)1<<(64-t-weight)) - 1)) + 
+                    (t<<(span - weight - 1));
+        }
         return me.XValue; 
 }
 /*

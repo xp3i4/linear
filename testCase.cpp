@@ -1002,6 +1002,7 @@ bool test_hashNext(StringSet<String<TDna> > & seqs, bool flag1 = true, bool flag
                     k += hashInit(shape, begin(seqs[j]) + k);
                     
                 }
+                std::cout << "[test_hashNext] " << shape.XValue << std::endl;
                 sum += hashNext(shape, begin(seqs[j]) + k);
             }
         }

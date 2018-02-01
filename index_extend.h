@@ -2406,6 +2406,7 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
         if (_DefaultHs.isHead(hs[m]) && _DefaultHs.getHeadPtr(hs[m]))
         {
             ptr = _DefaultHs.getHeadPtr(hs[m]);
+            printf("%d\n", ptr);
             if (ptr < blocklimit)
            {
                requestXNode_noCollision_Atomic(xstr, _DefaultHs.getHeadX(hs[m]), 
