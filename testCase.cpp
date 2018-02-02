@@ -978,7 +978,8 @@ bool test_hashNext(StringSet<String<TDna> > & seqs, bool flag1 = true, bool flag
     bool vflag = false;
     typename HIndexBase<shapelength>::TShape shape;
     double time = sysTime();
-    
+   // unsigned count[500] = {0}; c=0;
+    uint64_t pre = 0;
     if (flag1)
     {
         uint64_t c=0, c1=0, c2=0;
@@ -1002,7 +1003,13 @@ bool test_hashNext(StringSet<String<TDna> > & seqs, bool flag1 = true, bool flag
                     k += hashInit(shape, begin(seqs[j]) + k);
                     
                 }
-                std::cout << "[test_hashNext] " << shape.XValue << std::endl;
+              //  if (pre != shape.XValue)
+              //  {
+              //      pre = shape.XValue;
+              //      count[c]++;
+              //  }
+                 
+                //std::cout << "[test_hashNext] " << shape.hValue << " " << shape.crhValue << std::endl;
                 sum += hashNext(shape, begin(seqs[j]) + k);
             }
         }

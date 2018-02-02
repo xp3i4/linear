@@ -282,11 +282,12 @@ inline uint64_t hashInit(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIt
         unsigned bit = 0;
         for (unsigned i = 0; i < me.span - 1; ++i)
         {
-            uint64_t val = ordValue (*(it + k + k));
+            uint64_t val = ordValue (*(it + i));
             me.hValue = (me.hValue << 2) + val;
             me.crhValue += ((~val) << (bit));
             bit += 2;
         }
+        std::cout << me.hValue << " " << me.crhValue << " " << me.span << " " << bit << std::endl;
         me.x = 0;
         //}
         return k;
@@ -332,7 +333,7 @@ hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
         unsigned t,t2 , span = TSPAN << 1, weight = TWEIGHT << 1;
         uint64_t v2 = ordValue((TValue)*(it + ((TSize)me.span - 1)));
         me.hValue=((me.hValue & MASK<TSPAN * 2 - 2>::VALUE)<<2)+ v2;
-        me.crhValue=((me.crhValue & MASK<TSPAN * 2 - 2>::VALUE)<<2)+((~v2) << (span - 2));
+        me.crhValue=((me.crhValue & MASK<TSPAN * 2 - 2>::VALUE) >> 2)+((~v2) << (span - 2));
         me.XValue = MASK<TSPAN * 2>::VALUE; 
         me.YValue = me.XValue;
 
