@@ -85,8 +85,6 @@ public:
 
     unsigned span;
     unsigned weight;
-    unsigned x;
-    int first;
     int bound;
     THashValue hValue;     //hash value 
     THashValue crhValue;    //ReverseComplement
@@ -95,17 +93,18 @@ public:
     static const THashValue leftFactor = seqan::Power<seqan::ValueSize<TValue>::VALUE, TSPAN - 1>::VALUE;
     static const THashValue m_leftFactor = seqan::Power<seqan::ValueSize<TValue>::VALUE, TWEIGHT - 1>::VALUE;
     TValue  leftChar;
+    float x;
+    float first;
 
     Shape():
         span(TSPAN),
         weight(TWEIGHT),
-        x(0),
-        first(-1),
         bound((unsigned)(TWEIGHT * _boundAlpha)),
         hValue(0),
         XValue(0),
-        YValue(0)
-
+        YValue(0),
+        x(0),
+        first(0)
     {}
 };
 
@@ -228,6 +227,9 @@ struct MASK
     static const uint64_t VALUE = (1ULL << span) - 1;
 };
 
+static const uint64_t COMP4 = 3;
+static const float  ordC = 1.5;
+
 template <typename TValue>
 inline void phi(TValue & h)
 {
@@ -254,7 +256,7 @@ inline void hashInit(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter
         me.x = 0;
         //}
 }
-
+/*
 template <unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
 inline uint64_t hashInit(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 {
@@ -268,7 +270,8 @@ inline uint64_t hashInit(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIt
         //hash_key = ((uint64_t)1 << (me.span*2 -2 )) - 1;
         //hash_key3 = ((uint64_t)1 << (me.span*2 )) - 1;
         
-        uint64_t k =0, count = 0;
+        uint64_t k =0, count = 0; //COMP for complemnet value;
+    
         while (count < me.span)
         {
             if (ordValue(*(it + k + count)) == 4)
@@ -279,16 +282,57 @@ inline uint64_t hashInit(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIt
             else
                 count++;
         }
-        unsigned bit = 0;
+        unsigned bit = 2;
         for (unsigned i = 0; i < me.span - 1; ++i)
         {
-            uint64_t val = ordValue (*(it + i));
+            uint64_t val = ordValue (*(it + k + i));
             me.hValue = (me.hValue << 2) + val;
-            me.crhValue += ((~val) << (bit));
+            me.crhValue += ((COMP4 - val) << bit);
             bit += 2;
+            
         }
-        std::cout << me.hValue << " " << me.crhValue << " " << me.span << " " << bit << std::endl;
         me.x = 0;
+        //}
+        return k;
+}
+*/
+
+template <unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
+inline uint64_t hashInit(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
+{
+
+        SEQAN_ASSERT_GT((unsigned)me.span, 0u);
+
+        me.leftChar = 0;
+        //me.hValue = ordValue(*it);
+        me.hValue = 0;
+        me.crhValue = 0;
+        //hash_key = ((uint64_t)1 << (me.span*2 -2 )) - 1;
+        //hash_key3 = ((uint64_t)1 << (me.span*2 )) - 1;
+        me.first = 0;
+        me.x = me.first - ordC;
+        uint64_t k =0, count = 0; //COMP for complemnet value;
+    
+        while (count < me.span)
+        {
+            if (ordValue(*(it + k + count)) == 4)
+            {
+                k += count + 1;
+                count = 0;
+            }
+            else
+                count++;
+        }
+        unsigned bit = 2;
+        for (unsigned i = 0; i < me.span - 1; ++i)
+        {
+            uint64_t val = ordValue (*(it + k + i));
+            me.x += val - ordC;
+            me.hValue = (me.hValue << 2) + val;
+            me.crhValue += ((COMP4 - val) << bit);
+            bit += 2;
+            
+        }
         //}
         return k;
 }
@@ -322,7 +366,7 @@ inline uint64_t hashInit(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIt
 */
 
 
-
+/*
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
 inline typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
 hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
@@ -333,10 +377,12 @@ hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
         unsigned t,t2 , span = TSPAN << 1, weight = TWEIGHT << 1;
         uint64_t v2 = ordValue((TValue)*(it + ((TSize)me.span - 1)));
         me.hValue=((me.hValue & MASK<TSPAN * 2 - 2>::VALUE)<<2)+ v2;
-        me.crhValue=((me.crhValue & MASK<TSPAN * 2 - 2>::VALUE) >> 2)+((~v2) << (span - 2));
+        me.crhValue=((me.crhValue >> 2) & MASK<TSPAN * 2 - 2>::VALUE) + ((COMP4 - v2) << (span - 2));
         me.XValue = MASK<TSPAN * 2>::VALUE; 
         me.YValue = me.XValue;
+        //me.x += v2 - me.first;
 
+        //me.first = v2;
         for (unsigned k = 64-span; k <= 64 - weight; k+=2)
         {
             v1 = me.hValue << k >> (64-weight);
@@ -368,6 +414,41 @@ hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
         }
         return me.XValue; 
 }
+*/
+
+
+template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
+inline typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
+hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
+{
+    typedef typename Size< Shape<TValue, TSpec> >::Type  TSize;
+    SEQAN_ASSERT_GT((unsigned)me.span, 0u);
+    uint64_t v1;
+    unsigned t, t2 , span = TSPAN << 1, weight = TWEIGHT << 1;
+    uint64_t v2 = ordValue((TValue)*(it + ((TSize)me.span - 1)));
+    me.hValue=((me.hValue & MASK<TSPAN * 2 - 2>::VALUE)<<2)+ v2;
+    me.crhValue=((me.crhValue >> 2) & MASK<TSPAN * 2 - 2>::VALUE) + ((COMP4 - v2) << (span - 2));
+    me.XValue = MASK<TSPAN * 2>::VALUE; 
+    me.x += v2 - me.first;
+    me.first = v2;
+    v2 = (me.x > 0)?me.hValue:me.crhValue;
+    for (unsigned k = 64-span; k <= 64 - weight; k+=2)
+    {
+        v1 = v2 << k >> (64-weight);
+        if(me.XValue > v1)
+        {
+            me.XValue=v1;
+            t = k;
+        }
+    } 
+    me.YValue = (v2 >> (64-t) << (64-t-weight)) +
+                (v2 & ((1ULL<<(64-t-weight)) - 1)) + 
+                (t << (span - weight - 1));
+    return me.XValue; 
+}
+
+
+
 /*
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
 inline typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
