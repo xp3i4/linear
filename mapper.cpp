@@ -61,10 +61,17 @@ Mapper<TDna, TSpec>::Mapper(Options & options):
                 break;
             }
         }
-        // parmt for test 
-        //parm = parmt;
         _thread = options.thread;
         std::cerr << "[mapper thread] " << _thread << "\n";
+        /*
+//map tunning
+        parm.listN = options.listN;
+        parm.listN2 = options.listN2;
+        parm.alpha = options.alpha;
+        parm.alpha2 = options.alpha2;
+        parm.cordThr = options.cordThr;
+        parm.senThr = options.senThr;
+        */
 }
 
 template <typename TDna, typename TSpec>
@@ -348,6 +355,7 @@ void map(Mapper<TDna, TSpec> & mapper)
     //uint64_t blockSize = 10000;
     //uint64_t lenSum;
     SeqFileIn rFile(toCString(mapper.readPath()));
+    mapper.printParm();
     //while (!atEnd(rFile))
     //{
         double time = sysTime();
@@ -407,8 +415,29 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     addOption(parser, seqan::ArgParseOption(
         "t", "thread", "Default -t 4",
             seqan::ArgParseArgument::INTEGER, "INT"));
+    
+// mapping parameters for tunning 
+    addOption(parser, seqan::ArgParseOption(
+        "l1", "listn1", "mapping::listn1",
+            seqan::ArgParseArgument::INTEGER, "INT"));     
+    addOption(parser, seqan::ArgParseOption(
+        "l2", "listn2", "mapping::listn2",
+            seqan::ArgParseArgument::INTEGER, "INT"));   
+    addOption(parser, seqan::ArgParseOption(
+        "a1", "alpha1", "mapping::alpha1",
+            seqan::ArgParseArgument::DOUBLE, "DOUBLE"));        
+    addOption(parser, seqan::ArgParseOption(
+        "a2", "alpha2", "mapping::alpha2",
+            seqan::ArgParseArgument::DOUBLE, "DOUBLE"));  
+    addOption(parser, seqan::ArgParseOption(
+        "t1", "cordThr", "mapping::cordThr",
+            seqan::ArgParseArgument::DOUBLE, "DOUBLE"));
+    addOption(parser, seqan::ArgParseOption(
+        "t2", "senThr", "mapping::senThr",
+            seqan::ArgParseArgument::DOUBLE, "DOUBLE"));        
         
     // Add Examples Section.
+////////////////////////
     addTextSection(parser, "Examples");
     addListItem(parser,
                 "\\fBpacMapper\\fP \\fB-U\\fP \\fIchr1.fa reads.fa\\fP",
@@ -428,7 +457,14 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     getOptionValue(options.oPath, parser, "output");
     getOptionValue(options.sensitivity, parser, "sensitivity");
     getOptionValue(options.thread, parser, "thread");
-
+    
+    getOptionValue(options.listN, parser, "listn1");
+    getOptionValue(options.listN2, parser, "listn2");
+    getOptionValue(options.alpha, parser, "alpha1");
+    getOptionValue(options.alpha2, parser, "alpha2");
+    getOptionValue(options.cordThr, parser, "cordThr");
+    getOptionValue(options.senThr, parser, "senThr");
+    
     seqan::getArgumentValue(options.rPath, parser, 0);
     seqan::getArgumentValue(options.gPath, parser, 1);
 

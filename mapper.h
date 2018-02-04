@@ -87,6 +87,7 @@ public:
     void printCords();
     void printCordsAll();
     void printCordsRaw();
+    void printCordsRaw(std::ostream &);
     int createIndex();
     unsigned sens(){return parm.sensitivity;}
     unsigned & thread(){return _thread;}

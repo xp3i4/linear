@@ -51,8 +51,8 @@ MapParm parm1 (
         0.5,                      //alpha2 for complex mapping 
         0.02,                    //anchorLenThr(0.02),    anchors with lenghth > this parameter is pushed into the queue
         0.5,                     //rcThr(0.75)
-        0.2,                     //cordThr length of cord < cordThr are abandone
-        0.7                     //senthr: perfrom next filter on cords of length < senthr 
+        0.8,                     //cordThr length of cord < cordThr are abandone
+        0.8                     //senthr: perfrom next filter on cords of length < senthr 
 ); 
 
 //normal

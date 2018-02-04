@@ -103,6 +103,63 @@ parseCommandLine(Options & options, int argc, char const ** argv)
 
 }
 
+template <typename TDna, typename TSpec>
+void Mapper<TDna, TSpec>::printCordsRaw(std::ostream & of)
+{
+    double time = sysTime();
+    unsigned cordCount = 0;
+    cordCount = 0;
+    for (unsigned k = 0; k < length(cordSet); k++)
+    {
+        //unsigned recordCount = 0;
+        if (!empty(cordSet[k]))
+        {
+            for (unsigned j = 1; j < length(cordSet[k]); j++)
+            {
+                if (_DefaultHit.isBlockEnd(cordSet[k][j-1]) )//&& ++recordCount < 10)
+                {
+                    //of << record.id1[k] << " " << length(cordSet[k]) << " "
+                    of <<"@S1_"<< k+1 << " " << length(cordSet[k]) << " "
+                    << _DefaultCord.getCordY(cordSet[k][j]) << " x x " 
+                    << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j])) << " " << cordCount << " "
+                    << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << " " 
+                    << length(reads()[k]) << "\n";   
+                    //flag = false;
+                    cordCount = 0;
+                }
+                cordCount++;
+            }
+            //_DefaultCord.print(cordSet[k],of);
+        }
+    }
+    std::cerr << ">Write results to disk          " << std::endl;
+    std::cerr << "    End writing results. Time[s]" << sysTime() - time << std::endl; 
+}
+/*
+template <typename TDna, typename TSpec>
+void map(Mapper<TDna, TSpec> & mapper)
+{
+    omp_set_num_threads(mapper.thread());
+    mapper.createIndex(); // true for parallel 
+
+    SeqFileIn rFile(toCString(mapper.readPath()));
+        double time = sysTime();
+        std::cerr <<  ">reading reads from " << mapper.readPath() << "\r";
+        readRecords(mapper.readsId(), mapper.reads(), rFile);//, blockSize);
+        std::cerr << ">end reading " <<sysTime() - time << "[s]" << std::endl;
+        std::cerr << ">mapping " << length(mapper.reads()) << " reads to reference genomes"<< std::endl;
+        if (mapper.thread() < 2)
+        {
+            rawMapAllComplex2<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), mapper.mapParm(), mapper.cords());
+        }
+        else
+        {
+            rawMapAllComplex2<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), mapper.mapParm(), mapper.cords(), mapper.thread());
+        }
+    mapper.printCordsRaw(of);
+}
+
+*/
 template <typename TDna>   
 bool test_0_1(StringSet<String<TDna> > & seqs, StringSet<String<TDna> > & seqs2, bool flag1 = true, bool flag2 = true, bool flag3 = true)
 {
@@ -1011,13 +1068,7 @@ bool test_hashNext(StringSet<String<TDna> > & seqs, bool flag1 = true, bool flag
     std::cerr << "[end] sum = " << sum << " time:" << sysTime() - time << std::endl;
 }
 
-template<typename TDna, typename TSpec> 
-Mapper<TDna, TSpec>::Mapper(Options & options):
-    record(options),
-    of(toCString(options.getOutputPath()))
-{
-    std::cerr << "[mapper thread] " << _thread << "\n";
-}
+
 
 
 int main(int argc, char const ** argv)
@@ -1044,7 +1095,8 @@ int main(int argc, char const ** argv)
     //test_1_2(mapper.reads(), mapper.genomes(), true, false, true);
     //test_1_3(mapper.reads(), mapper.genomes(), true, false, true);
     //test2_0(mapper.reads(), mapper.genomes(), true, false, false);
-    test_hashNext(mapper.genomes(), true, false, false);
+    //test_hashNext(mapper.genomes(), true, false, false);
+    test_map(mapper);
 
     std::cerr << "results saved to " << options.getOutputPath() << "\n";
     

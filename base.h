@@ -107,6 +107,14 @@ struct Options{
     bool        Sensitive; 
     unsigned    sensitivity;
     unsigned    thread;
+//map tuning
+    unsigned listN;
+    unsigned listN2;
+    float alpha;
+    float alpha2;
+    float cordThr;
+    float senThr;
+//
     
     Options():
         kmerLen(Const_::_SHAPELEN),
@@ -603,6 +611,9 @@ void MapParm::print()
     std::cerr << "blockSize " << blockSize << std::endl
             << "alpha " << alpha << std::endl
             << "alpha2 " << alpha2 << "\n"
+            << "listN " << listN << "\n"
+            << "listN2 " << listN2 << "\n"
+            << "senThr " << senThr << "\n"
             << "delta " << delta << std::endl
             << "threshold " << threshold << std::endl
             << "kmerStep " << kmerStep << std::endl
