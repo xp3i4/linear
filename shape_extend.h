@@ -93,8 +93,8 @@ public:
     static const THashValue leftFactor = seqan::Power<seqan::ValueSize<TValue>::VALUE, TSPAN - 1>::VALUE;
     static const THashValue m_leftFactor = seqan::Power<seqan::ValueSize<TValue>::VALUE, TWEIGHT - 1>::VALUE;
     TValue  leftChar;
-    float x;
-    float first;
+    int x;
+    int first;
 
     Shape():
         span(TSPAN),
@@ -228,7 +228,7 @@ struct MASK
 };
 
 static const uint64_t COMP4 = 3;
-static const float  ordC = 1.5;
+static const int  ordC = 3;
 
 template <typename TValue>
 inline void phi(TValue & h)
@@ -327,7 +327,7 @@ inline uint64_t hashInit(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIt
         for (unsigned i = 0; i < me.span - 1; ++i)
         {
             uint64_t val = ordValue (*(it + k + i));
-            me.x += val - ordC;
+            me.x += (val << 1) - ordC;
             me.hValue = (me.hValue << 2) + val;
             me.crhValue += ((COMP4 - val) << bit);
             bit += 2;
@@ -417,6 +417,41 @@ hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 */
 
 
+//single strand hashNext
+/*
+template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
+inline typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
+hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
+{
+        typedef typename Size< Shape<TValue, TSpec> >::Type        TSize;
+        SEQAN_ASSERT_GT((unsigned)me.span, 0u);
+        uint64_t v1;
+        unsigned t, span = TSPAN << 1, weight = TWEIGHT << 1;
+ 
+        me.hValue=((me.hValue & MASK<TSPAN * 2 - 2>::VALUE)<<2)+ordValue((TValue)*(it + ((TSize)me.span - 1)));
+        me.XValue = MASK<TSPAN * 2>::VALUE; 
+
+        //std::cout << "hash_key3" << hash_key3 << std::endl;
+        for (unsigned k = 64-span; k <= 64 - weight; k+=2)
+        //for (unsigned k = 64-span; k <= 64 - span + 1; k+=2)
+        {
+            v1 = me.hValue << k >> (64-weight);
+            if(me.XValue > v1)
+            {
+                me.XValue=v1;
+                //t=k;
+                t = k;
+            }
+        } 
+        me.YValue = (me.hValue >> (64-t) << (64-t-weight))+(me.hValue & (((uint64_t)1<<(64-t-weight)) - 1)) + (t<<(span - weight - 1));
+
+        return me.XValue; 
+}
+*/
+
+/*
+ * double strand hashNext
+ */
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
 inline typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
 hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
@@ -424,13 +459,13 @@ hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
     typedef typename Size< Shape<TValue, TSpec> >::Type  TSize;
     SEQAN_ASSERT_GT((unsigned)me.span, 0u);
     uint64_t v1;
-    unsigned t, t2 , span = TSPAN << 1, weight = TWEIGHT << 1;
+    unsigned t, span = TSPAN << 1, weight = TWEIGHT << 1;
     uint64_t v2 = ordValue((TValue)*(it + ((TSize)me.span - 1)));
     me.hValue=((me.hValue & MASK<TSPAN * 2 - 2>::VALUE)<<2)+ v2;
     me.crhValue=((me.crhValue >> 2) & MASK<TSPAN * 2 - 2>::VALUE) + ((COMP4 - v2) << (span - 2));
     me.XValue = MASK<TSPAN * 2>::VALUE; 
-    me.x += v2 - me.first;
-    me.first = v2;
+    me.x += (v2 - me.first) << 1;
+    me.first = ordValue(*(it));
     v2 = (me.x > 0)?me.hValue:me.crhValue;
     for (unsigned k = 64-span; k <= 64 - weight; k+=2)
     {
@@ -448,7 +483,9 @@ hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 }
 
 
-
+/*
+ * bit twiddling hash , first 1
+ */
 /*
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
 inline typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type

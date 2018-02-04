@@ -2173,6 +2173,7 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir)
     uint64_t block_size = ptr;
     uint64_t countMove = 0, prek = 0;
     double time = sysTime();
+    //remove duplicate hs header
     while(_DefaultHs.getHeadPtr(hs[k]))
     {
         ptr = _DefaultHs.getHeadPtr(hs[k]);

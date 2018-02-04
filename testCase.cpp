@@ -976,11 +976,14 @@ bool test_hashNext(StringSet<String<TDna> > & seqs, bool flag1 = true, bool flag
     const unsigned shapelength = 25;
     uint64_t sum = 0;
     bool vflag = false;
-    typename HIndexBase<shapelength>::TShape shape;
+    typename HIndexBase<shapelength>::TShape shape, shape2;
     //Shape<Dna5, Minimizer<3,1> > shape;
     double time = sysTime();
    // unsigned count[500] = {0}; c=0;
     uint64_t pre = 0;
+    String<Dna5> cr;
+    std::vector<uint64_t> h;
+    std::vector<uint64_t> crh;
     if (flag1)
     {
         uint64_t c=0, c1=0, c2=0;
@@ -994,24 +997,23 @@ bool test_hashNext(StringSet<String<TDna> > & seqs, bool flag1 = true, bool flag
             
             if (length(seqs[j]) < 25)
                 continue;
+            clear(h);
+            clear(crh);
             hashInit(shape, begin(seqs[j]));
-            //std::cerr << j << " " << length(seqs[j])<< "\n";
-
+            _compltRvseStr(seqs[j], cr);
+            hashInit(shape2, begin(cr));
             for (uint64_t k =0; k < length(seqs[j]) - shape.span + 1; k++)
             {
-                if(ordValue(*(begin(seqs[j]) + k + shape.span - 1)) == 4)
-                {
-                    k += hashInit(shape, begin(seqs[j]) + k);
-                    
-                }
-              //  if (pre != shape.XValue)
-              //  {
-              //      pre = shape.XValue;
-              //      count[c]++;
-              //  }
-                 
-                sum += hashNext(shape, begin(seqs[j]) + k);
+
+                hashNext(shape, begin(seqs[j]) + k); 
+                hashNext(shape2, begin(cr) + k);
+                appendValue(h, shape.XValue);
+                appendValue(crh, shape2.XValue);
                 //std::cout << "[test_hashNext] " << shape.XValue<< std::endl;
+            }
+            for (unsigned k = 0; k < length(h); k++)
+            {
+                std::cout << "[test_hashNext] " << h[k] << " " << crh[length(crh) - 1 - k] << std::endl;
             }
         }
 //}
