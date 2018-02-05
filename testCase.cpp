@@ -997,24 +997,30 @@ bool test_hashNext(StringSet<String<TDna> > & seqs, bool flag1 = true, bool flag
             
             if (length(seqs[j]) < 25)
                 continue;
-            clear(h);
-            clear(crh);
+            //clear(h);
+            //clear(crh);
             hashInit(shape, begin(seqs[j]));
-            _compltRvseStr(seqs[j], cr);
-            hashInit(shape2, begin(cr));
+            //_compltRvseStr(seqs[j], cr);
+            //hashInit(shape2, begin(cr));
             for (uint64_t k =0; k < length(seqs[j]) - shape.span + 1; k++)
             {
 
                 hashNext(shape, begin(seqs[j]) + k); 
-                hashNext(shape2, begin(cr) + k);
-                appendValue(h, shape.XValue);
-                appendValue(crh, shape2.XValue);
+                sum += shape.XValue;
+            //    hashNext(shape2, begin(cr) + k);
+            //    appendValue(h, shape.XValue);
+            //    appendValue(crh, shape2.XValue);
                 //std::cout << "[test_hashNext] " << shape.XValue<< std::endl;
             }
-            for (unsigned k = 0; k < length(h); k++)
-            {
-                std::cout << "[test_hashNext] " << h[k] << " " << crh[length(crh) - 1 - k] << std::endl;
-            }
+         //   for (unsigned k = 0; k < length(h); k++)
+         //   {
+         //       //std::cout << "[test_hashNext] " << h[k] << " " << crh[length(crh) - 1 - k] << std::endl;
+         //       if (h[k] != crh[length(crh) - 1 - k])
+         //       {
+         //           std::cout << k << std::endl;
+         //           return false;
+         //       }
+         //   }
         }
 //}
     }
