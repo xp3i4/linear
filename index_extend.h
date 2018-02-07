@@ -1135,10 +1135,10 @@ struct HsBase
     
     HsBase(bool cerr):
         bit(XValueBit),
-        bodyYBit(_BodyValue_bits),
+        bodyYBit(_BodyValue_bits), // 41
         bodyYBitLen(20),
         bodyYMask((1ULL << bodyYBitLen) - 1),
-        bodyCodeBit(_BodyType_bits),
+        bodyCodeBit(_BodyType_bits), //40
         pointerBit(bit), 
         pointerBitLen(23),
         mask((1ULL << bit) - 1),
@@ -1148,7 +1148,7 @@ struct HsBase
         typeFlag(1ULL << 63),
         typeFlag2(1ULL << (63 - bodyYBit)),
         typeMask(typeFlag - 1),
-        bodyCodeFlag(1ULL << bodyCodeBit)
+        bodyCodeFlag(1ULL << bodyCodeBit)    // complement reverse strand flag
 
         {
             if (cerr)
@@ -1197,6 +1197,15 @@ struct Hs
     )
     //return if hval is body and if yvalue of hval euqals to yval
         {return ((hval >> bit) ^ yval) == flag;}
+    void setHsBodyReverseStrand(uint64_t & val)
+    {
+        val |= _DefaultHsBase.bodyCodeFlag;
+    }
+    
+    bool isHsBodyReverseStrand(uint64_t & val)
+    {
+        return val & (_DefaultHsBase.bodyCodeFlag);
+    }
     
 }_DefaultHs;
 
@@ -1827,6 +1836,11 @@ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs,
                         ++ptr;
                     }
                     _DefaultHs.setHsBody(hs[hsStart + thd_count], tshape.YValue, j, k); 
+                    if (shape.strand)
+                    {
+                        _DefaultHs.setHsBodyReverseStrand(hs[hsStart + thd_count]);
+                    }
+                    
                     ++thd_count;
                 }
                // else 

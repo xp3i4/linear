@@ -95,6 +95,7 @@ public:
     TValue  leftChar;
     int x;
     int first;
+    bool strand;
 
     Shape():
         span(TSPAN),
@@ -104,7 +105,8 @@ public:
         XValue(0),
         YValue(0),
         x(0),
-        first(0)
+        first(0),
+        strand(false)
     {}
 };
 
@@ -470,14 +472,13 @@ hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
     //v2 = (me.x > 0)?me.hValue:me.crhValue;
     if (me.x > 0)
     {
-       v2 =me.hValue; 
+        v2 =me.hValue; 
+        me.strand = false;
     }
     else 
     {
-        if (me.x == 0)
-            v2 = std::max(me.hValue, me.crhValue);
-        else
-            v2 = me.crhValue;
+        v2 = me.crhValue;
+        me.strand = true;
     }
     
     for (unsigned k = 64-span; k <= 64 - weight; k+=2)

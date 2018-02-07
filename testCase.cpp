@@ -968,7 +968,14 @@ bool test2_0(StringSet<String<TDna> > & seqs, StringSet<String<TDna> > & seqs2, 
 
     return true;
 }
-
+template <typename TDna>
+void printSeqs(String<TDna> & s, unsigned begin, unsigned end)
+{
+    for (unsigned k = begin; k < end; k++)
+    {
+        std::cout << s[k];
+    }
+}
 template <typename TDna>   
 bool test_hashNext(StringSet<String<TDna> > & seqs, bool flag1 = true, bool flag2 = true, bool flag3 = true)
 {
@@ -976,8 +983,8 @@ bool test_hashNext(StringSet<String<TDna> > & seqs, bool flag1 = true, bool flag
     const unsigned shapelength = 25;
     uint64_t sum = 0;
     bool vflag = false;
-    typename HIndexBase<shapelength>::TShape shape, shape2;
-    //Shape<Dna5, Minimizer<3,1> > shape;
+    //typename HIndexBase<shapelength>::TShape shape, shape2;
+    Shape<Dna5, Minimizer<11,5> > shape, shape2;
     double time = sysTime();
    // unsigned count[500] = {0}; c=0;
     uint64_t pre = 0;
@@ -997,30 +1004,34 @@ bool test_hashNext(StringSet<String<TDna> > & seqs, bool flag1 = true, bool flag
             
             if (length(seqs[j]) < 25)
                 continue;
-            //clear(h);
-            //clear(crh);
+            clear(h);
+            clear(crh);
             hashInit(shape, begin(seqs[j]));
-            //_compltRvseStr(seqs[j], cr);
-            //hashInit(shape2, begin(cr));
+            _compltRvseStr(seqs[j], cr);
+            hashInit(shape2, begin(cr));
             for (uint64_t k =0; k < length(seqs[j]) - shape.span + 1; k++)
             {
 
                 hashNext(shape, begin(seqs[j]) + k); 
-                sum += shape.XValue;
-            //    hashNext(shape2, begin(cr) + k);
-            //    appendValue(h, shape.XValue);
-            //    appendValue(crh, shape2.XValue);
+           //     sum += shape.XValue;
+                hashNext(shape2, begin(cr) + k);
+                appendValue(h, shape.XValue);
+                appendValue(crh, shape2.XValue);
                 //std::cout << "[test_hashNext] " << shape.XValue<< std::endl;
             }
-         //   for (unsigned k = 0; k < length(h); k++)
-         //   {
-         //       //std::cout << "[test_hashNext] " << h[k] << " " << crh[length(crh) - 1 - k] << std::endl;
+            for (unsigned k = 0; k < length(h); k++)
+            {
+                printf("%d & ", k + 1);
+                printSeqs(seqs[j],  k, k + shape.span);
+                printf(" & ");
+                printSeqs(cr,  length(cr) - k - shape.span, length(cr) - k);
+                std::cout << " & " << h[k] << " & " << crh[length(crh) - 1 - k] << " \\\\ " << std::endl;
          //       if (h[k] != crh[length(crh) - 1 - k])
          //       {
          //           std::cout << k << std::endl;
          //           return false;
          //       }
-         //   }
+            }
         }
 //}
     }

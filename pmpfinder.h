@@ -57,22 +57,26 @@ struct CordBase
     Mask mask;
     Mask maskx;
     Mask valueMask;
+    Bit flag_bit;
     Flag flag_strand;
     Flag flag_end;
     Bit cell_bit;
     Size cell_size;
     Mask headFlag;
+    Mask valueMask_dstr;
     
     CordBase():
         bit(20),    
         mask(0xfffff),
         maskx(0xffffffffff),
         valueMask((1ULL<< 60) - 1),
-        flag_strand(0x2000000000000000),
+        flag_bit(61),
+        flag_strand(1ULL << flag_bit),
         flag_end(0x1000000000000000),
         cell_bit(4),
         cell_size(16),
-        headFlag((1ULL<<63))
+        headFlag((1ULL<<63)),
+        valueMask_dstr(valueMask | flag_strand),
         {}
     
 }_DefaultCordBase;
@@ -90,10 +94,11 @@ struct Cord
     CordType getCordY(CordType const &, typename CordBase::Mask const &) const;
     CordType createCord(CordType const &, CordType const &, typename CordBase::Bit const &) const ;
     CordType hit2Cord(PMRes::HitType const &, typename CordBase::Bit const &, typename CordBase::Mask const &, typename CordBase::Mask const &) const;
+    CordType hit2Cord_dstr(PMRes::HitType const &, typename CordBase::Bit const &, typename CordBase::Mask const &, typename CordBase::Mask const &) const;
     CellType cord2Cell(CordType const &, typename CordBase::Bit const &) const;
     CordType cell2Cord(CellType const &, typename CordBase::Bit const &) const;
     void setCordEnd(CordType &, typename CordBase::Flag const &, typename CordBase::Flag const &);
-    Flag getCordStrand(CordType const &, CordBase::Flag const &) const;
+    Flag getCordStrand(CordType const &, CordBase::Bit const &) const;
     Flag AtCordEnd(CordType const &, CordBase::Flag const &)const;
     //void setHead(uint64_t &, uint64_t const &, uint64_t const & = _DefaultCordBase.headFlag);
     void setMaxLen(String<uint64_t> &, uint64_t const &, uint64_t const & = _DefaultCordBase.mask);
@@ -139,6 +144,16 @@ Cord::hit2Cord(typename PMRes::HitType const & hit,
     return (hit + ((hit & mask) << bit)) & mask2;
 }
 
+inline typename Cord::CordType 
+Cord::hit2Cord_dstr(typename PMRes::HitType const & hit, 
+               typename CordBase::Bit const & bit = _DefaultCordBase.bit, 
+               typename CordBase::Mask const & mask = _DefaultCordBase.mask,
+               typename CordBase::Mask const & mask2 = _DefaultCordBase.valueMask_dstr
+              ) const
+{
+    return (hit + ((hit & mask) << bit)) & mask2;
+}
+
 inline typename Cord::CellType 
 Cord::cord2Cell(typename Cord::CordType const & cord, 
                 typename CordBase::Bit const & bit = _DefaultCordBase.cell_bit) const
@@ -162,9 +177,9 @@ inline void Cord::setCordEnd(typename Cord::CordType & cord,
 
 inline typename CordBase::Flag 
 Cord::getCordStrand(typename Cord::CordType const & cord,
-            typename CordBase::Flag const & strand = _DefaultCordBase.flag_strand) const
+            typename CordBase::Flag const & strand = _DefaultCordBase.flag_bit) const
 {
-    return cord & strand;
+    return (cord >> strand) & 1ULL;
 }
 
 inline typename CordBase::Flag 
@@ -751,8 +766,6 @@ inline bool previousWindow(String<int> & f1, String<int> & f2, typename Cord::Co
         }
         else
             appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y)));
-        //if (_DefaultCord.cord2Cell(_DefaultCord.getCordY(back(cord))) > length(f1))
-        //std::cout <<_DefaultCord.cord2Cell(_DefaultCord.getCordY(back(cord))) << std::endl; 
     }
     return true;
 }
@@ -790,8 +803,6 @@ inline bool previousWindow(String<int> & f1, String<int> & f2, typename Cord::Co
         }
         else
             appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y)));
-        //if (_DefaultCord.cord2Cell(_DefaultCord.getCordY(back(cord))) > length(f1))
-        //std::cout <<_DefaultCord.cord2Cell(_DefaultCord.getCordY(back(cord))) << std::endl; 
     }
     score += min;
     return true;
@@ -812,33 +823,28 @@ inline bool nextWindow(String<int> &f1, String<int> & f2, typename Cord::CordStr
         y = y_pre + med;
     
     unsigned min = ~0;
-    //std::cout << "nextWindow() x_pre " << x_pre << std::endl;
-   // std::cerr << "next " ;
     for (CordType x = x_pre + inf; x < x_pre + sup; x += 1) 
-    //for (CordType x = x_pre ; x < x_pre + sup; x += 1) 
     {
 
-//if (y > length(f1)||x > length(f2))
-//{
-//    std::cerr << "fxy error " << y << " " << length(f1) << " " << x << " " << length(f2) << std::endl;
-//}
         unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
-//std::cerr << tmp << " ";
         if (tmp < min)
         {
             min = tmp;
             x_min = x;
         }
     }
-//    std::cerr << std::endl;
-    //std::cout << "nextWindow " << min << " windowThreshold " << _DefaultCord.getCordY(back(cord))<< std::endl;
+
     if (min > windowThreshold)
        return false;
     else 
         if ( x_min - x_pre > med)
+        {
             appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y)));
+        }
         else
+        {
             appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y)));
+        }
     return true;
 }
 
@@ -859,7 +865,6 @@ inline bool nextWindow(String<int> &f1, String<int> & f2, typename Cord::CordStr
     
     for (CordType x = x_pre + inf; x < x_pre + sup; x += 1) 
     {
-        //printf ("[nwe] %d %d %d %d\n", x, y, length(f1), y_pre);
         unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
         if (tmp < min)
         {
@@ -867,22 +872,18 @@ inline bool nextWindow(String<int> &f1, String<int> & f2, typename Cord::CordStr
             x_min = x;
         }
     }
-    //printf("[nextCord] %" PRIu64 " %" PRIu64 " %d %d %d\n", x_pre, y_pre, min, x_min, windowThreshold);
     if (min > windowThreshold)
        return false;
     else 
         if ( x_min - x_pre > med)
         {
-            //printf("[nextCord] %" PRIu64 " %d %d %d\n", x_pre + med, x_min - x_pre, min, windowThreshold);
             appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y)));
         }
         else
         {
-            //printf("[nextCord] %" PRIu64 " %d %d %d\n", x_pre + med, x_min - x_pre, min, windowThreshold);
             appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y)));
         }
     score += min;
-    //std::cout << "[nxt] " << min << "\n";
     return true;
 }
 
@@ -890,12 +891,10 @@ inline bool extendWindow(String<int> &f1, String<int> & f2, typename Cord::CordS
 {
     Cord::CordType preCord = (length(cord)==1)?0:back(cord);
     unsigned len = length(cord) - 1;
-    //std::cout << preCord << " " << _getSA_i1(_DefaultCord.getCordX(back(cord))) << " " << _getSA_i2(_DefaultCord.getCordX(back(cord))) << std::endl;
     while (preCord <= back(cord) && previousWindow(f1, f2, cord)){}
-    for (unsigned k = len; k < ((length(cord) + len) >> 1); k++) // when k < length(cord) - 1 - k + len -> swap  to keep cord in assend order
+    for (unsigned k = len; k < ((length(cord) + len) >> 1); k++) 
     {
         std::swap(cord[k], cord[length(cord) - k + len - 1]);
-       // std::cerr << "swap " << k << " cord[k] " << _getSA_i2(_DefaultCord.getCordY(cord[k])) << " " << length(cord) - k + len - 1 << " " << _getSA_i2(_DefaultCord.getCordY(cord[length(cord) - k + len - 1])) << std::endl;
     }
     while (nextWindow(f1, f2, cord)){}
     return true;
@@ -1068,7 +1067,7 @@ void checkPath(typename Cord::CordSet const & cords, StringSet<String<Dna5> > co
 *   this part is for different types of mapping
 *   struct hit:
 *   extend the structure Cord;
-*   NA[3]|head[1]|genome pos[40]|read pos[20]
+*   NA[2]|strand[1]|head[1]|genome pos[40]|read pos[20]
 *   NodeType: 1 Head, 0 Body
 */
 struct HitBase
@@ -1098,6 +1097,7 @@ struct Hit
                      uint64_t const & = _DefaultHitBase.flag2);
     bool isBlockEnd(uint64_t &, uint64_t const & = _DefaultHitBase.flag);
     unsigned getStrand(uint64_t const &, uint64_t const & = _DefaultHitBase.flag2);
+
 }_DefaultHit;
 
 inline void Hit::setBlockStart(uint64_t & val, uint64_t const & flag)
@@ -1138,6 +1138,10 @@ inline unsigned Hit::getStrand(uint64_t const & val, uint64_t const & flag)
 {
     return (val & flag)?1:0;
 }
+
+
+
+
 //===!Note:Need to put this parameterin the mapper threshold
 /*
 template <typename TDna, typename TSpec>
@@ -1178,7 +1182,7 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
     return 0;
 }
 */
-
+/*
 template <typename TDna, typename TSpec>
 inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
                               typename PMRecord<TDna>::RecSeq const & read,
@@ -1211,6 +1215,63 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
                     if (pre - index.ysa[pos] > mapParm.kmerStep)
                     {
                         set[len++] = (_DefaultHs.getHsBodyS(index.ysa[pos]-k) << 20)+k;
+                        pre = index.ysa[pos];
+                    }
+                    ++pos;
+                }
+            }
+        }
+    }
+    return 0;
+}
+*/
+
+/*
+ * search double strand in one round
+ */
+template <typename TDna, typename TSpec>
+inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
+                              typename PMRecord<TDna>::RecSeq const & read,
+                              uint64_t* const set,
+                              unsigned & len,
+                              MapParm & mapParm
+                             )
+{   
+    typedef typename PMCore<TDna, TSpec>::Index TIndex;
+    typedef typename TIndex::TShape PShape;
+    
+    unsigned block = (mapParm.blockSize < length(read))?mapParm.blockSize:length(read);
+    unsigned dt = block * (mapParm.alpha / (1 - mapParm.alpha));
+    PShape shape;
+    hashInit(shape, begin(read));
+    for (unsigned h=0; h <= length(read) - block; h += dt)
+    {
+        hashInit(shape, begin(read) + h);
+        for (unsigned k = h; k < h + block; k++)
+        {
+            hashNext(shape, begin(read) + k);
+            uint64_t pre = ~0;
+            uint64_t pos = getXYDir(index, shape.XValue, shape.YValue);
+            if (_DefaultHs.getHsBodyY(index.ysa[std::min(pos + mapParm.delta, length(index.ysa) - 1)]) ^ shape.YValue)
+            {
+                while (_DefaultHs.isBodyYEqual(index.ysa[pos], shape.YValue))
+                {
+//!Note: needs change
+//!Note: the sa is in reverse order in hindex. this is different from the generic index
+                    if (pre - index.ysa[pos] > mapParm.kmerStep)
+                    {
+                        //set[len] = (_DefaultHs.getHsBodyS(index.ysa[pos]-k) << 20) + k ;
+                        set[len] = (_DefaultHs.getHsBodyS(index.ysa[pos]-k) << 20) + k 
+                        
+                        if (index.ysa[pos] & _DefaultHsBase.bodyCodeFlag); // add strand flag to anchor;
+                        {
+                            set[len] = ((_DefaultHs.getHsBodyS(index.ysa[pos]) - length(read) + 1 + k) << 20) +  (length(read) - 1 - k)) | _DefaultHitBase.flag2;
+                        }
+                        else
+                        {
+                            set[len] = ((_DefaultHs.getHsBodyS(index.ysa[pos]) - k) << 20) | k;
+                        }
+                        len++;
                         pre = index.ysa[pos];
                     }
                     ++pos;
@@ -1406,7 +1467,8 @@ inline uint64_t mnMapReadList(typename PMCore<TDna, TSpec>::Index  & index,
     getIndexMatchAll<TDna, TSpec>(index, read, anchors.set, anchors.len, mapParm);    
     return getAnchorMatchList(anchors, length(read), mapParm, hit);
 }
-
+/*
+ * this is initCord for single strand (without strand flag)
 inline bool initCord(typename Iterator<PMRes::HitString>::Type & it, 
                      typename Iterator<PMRes::HitString>::Type & hitEnd,
                      unsigned & preCordStart,
@@ -1424,6 +1486,34 @@ inline bool initCord(typename Iterator<PMRes::HitString>::Type & it,
     else
     {
         appendValue(cord, _DefaultCord.hit2Cord(*(it)));
+        ++it;
+        preCordStart = length(cord) - 1;   
+    }
+    return true;
+}
+*/
+
+/*
+ * this is initCord for double strand (with flag in cord value)
+ */
+inline bool initCord(typename Iterator<PMRes::HitString>::Type & it, 
+                     typename Iterator<PMRes::HitString>::Type & hitEnd,
+                     unsigned & preCordStart,
+                     String<uint64_t> & cord)
+{
+        
+    if (empty(cord))
+    {
+        appendValue(cord, 0);
+        _DefaultHit.setBlockEnd(cord[0]);
+    }
+
+    if (it == hitEnd)
+        return false;
+    else
+    {
+        //hit2Cord_dstr keeps the strand flag in cord value
+        appendValue(cord, _DefaultCord.hit2Cord_dstr(*(it)));
         ++it;
         preCordStart = length(cord) - 1;   
     }
@@ -1494,6 +1584,9 @@ inline bool nextCord(typename Iterator<PMRes::HitString>::Type & it,
         return false;
 }
 
+/*
+ * nextCord for single strand sequence
+ *
 inline bool nextCord(typename Iterator<PMRes::HitString>::Type & it, 
                      typename Iterator<PMRes::HitString>::Type const & hitEnd, 
                      unsigned & preCordStart,
@@ -1521,19 +1614,12 @@ inline bool nextCord(typename Iterator<PMRes::HitString>::Type & it,
     _DefaultHit.setBlockStrand(cord[preCordStart], strand);
     if(it < hitEnd)
     {
-        //std::cout << "[Cord] " << length(cord) - preCordStart << "\n";
-        //std::cout << "[last_delta] " << b1 - b2 << " " << _getSA_i2(_DefaultCord.getCordX(cord[preCordStart]))<<"\n";
-            
         if (length(cord) - preCordStart < cordThr )//|| std::abs(b1 - b2) < 10)
         {
             erase(cord, preCordStart, length(cord));
         }
         else
         {
-            
-         //   for (unsigned k =preCordStart; k<length(cord);k++ )
-         //       std::cout << "cord " << score++ << _getSA_i2(_DefaultCord.getCordX(cord[k])) << " " << _DefaultCord.getCordY(cord[k]) << "\n";
-         //   std::cout <<"[nextCord] " << length(cord) - preCordStart << " " << score / (length(cord) - preCordStart) << "\n";
             _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);
         }
         preCordStart = length(cord);
@@ -1544,7 +1630,58 @@ inline bool nextCord(typename Iterator<PMRes::HitString>::Type & it,
     else
         return false;
     (void) score;
+}*/
+
+/*
+ * nextCord for double strand sequence
+ */
+inline bool nextCord(typename Iterator<PMRes::HitString>::Type & it, 
+                     typename Iterator<PMRes::HitString>::Type const & hitEnd, 
+                     unsigned & preCordStart,
+                     String<uint64_t> & cord,
+                     float const & cordThr,
+                     uint64_t const & strand,
+                     float & score
+                    )
+{
+//TODO: add maxlen of anchor to the first node in cord;
+    if (it >= hitEnd)
+        return false;
+    
+    while(!_DefaultHit.isBlockEnd(*(it - 1)))
+    {
+        if(_DefaultCord.getCordY(*(it))>_DefaultCord.getCordY(back(cord)) +  window_delta) 
+        {
+            appendValue(cord, _DefaultCord.hit2Cord(*(it)));
+            ++it;
+            return true;
+        }
+        ++it;
+    }
+    _DefaultHit.setBlockEnd(back(cord));
+    _DefaultHit.setBlockStrand(cord[preCordStart], strand);
+    if(it < hitEnd)
+    {
+        if (length(cord) - preCordStart < cordThr )//|| std::abs(b1 - b2) < 10)
+        {
+            erase(cord, preCordStart, length(cord));
+        }
+        else
+        {
+            _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);
+        }
+        preCordStart = length(cord);
+        appendValue(cord, _DefaultCord.hit2Cord(*(it)));
+        //set the strand for the new block
+        strand = _DefaultCord.getCordStrand(back(cord));
+        ++it;
+        return true;
+    }
+    else
+        return false;
+    (void) score;
 }
+
 
 /*
 //extend the window for the last element in the cord.
@@ -1563,6 +1700,7 @@ inline bool extendWindowAll(String<int> &f1, String<int> & f2, typename Cord::Co
     while (nextWindow(f1, f2, cord, score)){}
     return true;
 }*/
+
 inline bool extendWindowAll(String<int> &f1, String<int> & f2, typename Cord::CordString & cord, float & score)
 {
     Cord::CordType preCordY = (_DefaultHit.isBlockEnd(cord[length(cord) - 2]))?0:_DefaultCord.getCordY(back(cord)) + window_delta;
@@ -1573,12 +1711,11 @@ inline bool extendWindowAll(String<int> &f1, String<int> & f2, typename Cord::Co
     for (unsigned k = len; k < ((length(cord) + len) >> 1); k++) 
     {
         std::swap(cord[k], cord[length(cord) - k + len - 1]);
-        // when k < length(cord) - 1 - k + len -> swap, keeping cord in assending order
     }
-    //score = _getcord
     while (nextWindow(f1, f2, cord, score)){}
     return true;
 }
+
 inline bool pathAll(String<Dna5> & read, 
                  typename Iterator<PMRes::HitString>::Type hitBegin, 
                  typename Iterator<PMRes::HitString>::Type hitEnd, 
@@ -1602,7 +1739,6 @@ inline bool pathAll(String<Dna5> & read,
     return false;
 }
 /*
-
 inline bool pathAll(String<Dna5> & read, 
                  typename Iterator<PMRes::HitString>::Type hitBegin, 
                  typename Iterator<PMRes::HitString>::Type hitEnd, 
@@ -1629,6 +1765,9 @@ inline bool pathAll(String<Dna5> & read,
     return false;
 }
 */
+
+/*
+ * path functoin for single strand
 inline bool pathAll(String<Dna5> & read, 
                  typename Iterator<PMRes::HitString>::Type hitBegin, 
                  typename Iterator<PMRes::HitString>::Type hitEnd, 
@@ -1649,6 +1788,38 @@ inline bool pathAll(String<Dna5> & read,
     {
         do{
             extendWindowAll(f1, f2[_getSA_i1(_DefaultCord.getCordX(back(cords)))], cords, score);
+        }
+        while (nextCord(it, hitEnd, preBlockPtr, cords, cordLenThr, strand, score));
+        return endCord(cords, preBlockPtr, cordLenThr, strand, score);   
+    }
+    return false;
+}
+*/
+
+/*
+ * path for double strand 
+ */
+inline bool pathAll(String<Dna5> & read, 
+                 typename Iterator<PMRes::HitString>::Type hitBegin, 
+                 typename Iterator<PMRes::HitString>::Type hitEnd, 
+                 StringSet<String<int> > & f2, 
+                 String<uint64_t> & cords,
+                 float const & cordThr, 
+                 uint64_t & strand
+                   )
+{
+    //std::cerr << "[pathall]\n";
+    StringSet< String<int> > f1(2);
+    typename Iterator<PMRes::HitString>::Type it = hitBegin;
+    unsigned preBlockPtr;
+    float cordLenThr = length(read) * cordThr / window_size;
+    float score = 0;
+    createFeatures(begin(read), end(read), f1[0]);
+    createFeaturesReverseComplemnt(f[0], f1[1]);
+    if(initCord(it, hitEnd, preBlockPtr, cords))
+    {
+        do{
+            extendWindowAll(f1[strand], f2[_getSA_i1(_DefaultCord.getCordX(back(cords)))], cords, score);
         }
         while (nextCord(it, hitEnd, preBlockPtr, cords, cordLenThr, strand, score));
         return endCord(cords, preBlockPtr, cordLenThr, strand, score);   
@@ -1964,6 +2135,8 @@ int rawMapAllComplex2(typename PMCore<TDna, TSpec>::Index   & index,
 }
 
 
+
+
 template <typename TDna, typename TSpec>
 void rawMapFirstComplex2(typename PMCore<TDna, TSpec>::Index   & index,
             typename PMRecord<TDna>::RecSeqs      & reads,
@@ -2068,6 +2241,81 @@ void rawMapFirstComplex2(typename PMCore<TDna, TSpec>::Index   & index,
 
     std::cerr << "Raw map reads:            " << length(missId) << std::endl;
     std::cerr << "    End raw mapping. Time[s]: " << sysTime() - time << std::endl;
+}
+
+/*
+ * this mapping function use the hash value of double strand 
+ * that allow to stream the sequence of double strand for only once
+ */
+template <typename TDna, typename TSpec>
+int rawMap_dst(typename PMCore<TDna, TSpec>::Index   & index,
+            typename PMRecord<TDna>::RecSeqs      & reads,
+            typename PMRecord<TDna>::RecSeqs & genomes,
+            MapParm & mapParm,
+            StringSet<String<uint64_t> > & cords,
+            unsigned & threads)
+{
+    typedef typename PMRecord<TDna>::RecSeq Seq;
+ 
+    double time=sysTime();
+    float senThr = window_size / mapParm.senThr;
+    MapParm complexParm = mapParm;
+    complexParm.alpha = complexParm.alpha2;
+    complexParm.listN = complexParm.listN2;
+    std::cerr << "[rawMap_dst] Raw Mapping \n"; 
+
+    StringSet<String<int> > f2;
+    double time2 = sysTime();
+    createFeatures(genomes, f2, threads);
+    std::cerr << "init " << sysTime() - time2 << "\n";
+    double time1 = sysTime();
+    
+#pragma omp parallel
+{
+    unsigned size2 = length(reads) / threads;
+    unsigned ChunkSize = size2;
+    Seq comStr;
+    Anchors anchors(Const_::_LLTMax, AnchorBase::size);
+    typename PMRes::HitString crhit;
+    StringSet<String<uint64_t> >  cordsTmp;
+    unsigned thd_id =  omp_get_thread_num();
+    if (thd_id < length(reads) - size2 * threads)
+    {
+        ChunkSize = size2 + 1;
+    }
+    resize(cordsTmp, ChunkSize);
+    unsigned c = 0;
+
+    #pragma omp for
+    for (unsigned j = 0; j < length(reads); j++)
+    {
+        if (length(reads[j]) >= mapParm.minReadLen)
+        {
+            anchors.init(1);
+            clear(crhit);
+            mnMapReadList<TDna, TSpec>(index, reads[j], anchors, mapParm, crhit);
+            pathAll(reads[j], begin(crhit), end(crhit), f2, cordsTmp[c], mapParm.cordThr, 0);
+            if (_DefaultCord.getMaxLen(cordsTmp[c]) < length(reads[j]) / senThr)// && 
+               //_DefaultCord.getMaxLen(cordsTmp[c]) > 0)
+            {
+                clear(cordsTmp[c]);
+                anchors.init(1);
+                clear(crhit);
+                mnMapReadList<TDna, TSpec>(index, reads[j], anchors, complexParm, crhit);
+                pathAll(reads[j], begin(crhit), end(crhit), f2, cordsTmp[c], complexParm.cordThr, 0);
+            }   
+        }
+        c += 1;
+    } 
+    #pragma omp for ordered
+    for (unsigned j = 0; j < threads; j++)
+        #pragma omp ordered
+        {
+            append(cords, cordsTmp);
+        }
+}
+    std::cerr << "    End raw mapping. Time[s]: " << sysTime() - time << std::endl;
+    return 0;
 }
 
 
