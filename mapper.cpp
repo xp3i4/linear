@@ -355,15 +355,15 @@ void map(Mapper<TDna, TSpec> & mapper)
         readRecords(mapper.readsId(), mapper.reads(), rFile);//, blockSize);
         std::cerr << ">end reading " <<sysTime() - time << "[s]" << std::endl;
         std::cerr << ">mapping " << length(mapper.reads()) << " reads to reference genomes"<< std::endl;
-        if (mapper.thread() < 2)
-        {
-            rawMapAllComplex2<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), mapper.mapParm(), mapper.cords());
-        }
-        else
-        {
-            rawMapAllComplex2<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), mapper.mapParm(), mapper.cords(), mapper.thread());
+   //     if (mapper.thread() < 2)
+   //     {
+   //         rawMap_dst<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), mapper.mapParm(), mapper.cords());
+   //     }
+   //     else
+   //     {
+            rawMap_dst<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), mapper.mapParm(), mapper.cords(), mapper.thread());
         //clear (mapper.reads());   
-        }
+    //    }
         
         //clear (mapper.readsId());
     //}

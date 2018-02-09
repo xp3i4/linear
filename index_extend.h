@@ -1836,7 +1836,7 @@ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs,
                         ++ptr;
                     }
                     _DefaultHs.setHsBody(hs[hsStart + thd_count], tshape.YValue, j, k); 
-                    if (shape.strand)
+                    if (tshape.strand)
                     {
                         _DefaultHs.setHsBodyReverseStrand(hs[hsStart + thd_count]);
                     }
@@ -2445,42 +2445,6 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
             
         }
     }
-    /*
-    printf("[debug] %d %d\n", thd_id, thd_hsStart[thd_id]);
-    
-    for (uint64_t m = thd_hsStart[thd_id]; m < thd_hsStart[thd_id + 1]; m++)
-    {
-        //printf ("[debug] %d %d\n", omp_get_thread_num(), thd_hsStart[thd_id]);
-
-        if (_DefaultHs.isHead(hs[m]) && _DefaultHs.getHeadPtr(hs[m]))
-        {
-            ptr = _DefaultHs.getHeadPtr(hs[m]);
-            if (ptr < blocklimit)
-           {
-               requestXNode_noCollision_Atomic(xstr, _DefaultHs.getHeadX(hs[m]), 
-                       m + 1, _DefaultXNodeBase.xHead, _DefaultXNodeBase.returnDir);
-           }
-            else
-            {
-                uint64_t xval = _DefaultHs.getHeadX(hs[m]);
-                requestXNode_noCollision_Atomic(xstr, xval, 
-                        ~1, _DefaultXNodeBase.virtualHead, _DefaultXNodeBase.returnDir);
-                for (unsigned j = m + 1; j < m + ptr; j++)
-                {
-                    if(_DefaultHs.getHsBodyY(hs[j] ^ hs[j - 1]))
-                    {
-                        requestXNode_noCollision_Atomic(xstr, (xval + ((hs[j] & ((1ULL<<61) - (1ULL<<41))) >>1)), 
-                                j, _DefaultXNodeBase.xHead, _DefaultXNodeBase.returnDir);
-                    }
-                    
-                }
-            }
-            m += ptr - 1;    
-            
-        }
-    }
-    */
-    
 }
     std::cerr << "      request dir " << sysTime() - time << std::endl;
     (void) threads;
