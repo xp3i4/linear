@@ -38,14 +38,15 @@
 //efficient 
 MapParm parm1 ( 
         Const_::_BLOCKSIZE,     //blockSize,
-        Const_::_DELTA,          //delta(Const_::_DELTA),
+        //Const_::_DELTA,          //delta(Const_::_DELTA),
+        64,                          //delta
         Const_::_THRESHOLD,     //threshold(Const_::_THRESHOLD),
         Const_::_KMERSTEP,       //kmerStep(Const_::_KMERSTEP),
         Const_::_SHAPELEN,      //shapeLen(Const_::_SHAPELEN),
         1,                      //senstivity(0),
         0,                      //anchorDeltaThr(),
         1000,                   //minReadLen(1000),
-        2,                      //listN
+        6,                      //listN
         20,                      //listN2
         0.75,                     //alpha(Const_::_ALPHA),
         0.5,                      //alpha2 for complex mapping 

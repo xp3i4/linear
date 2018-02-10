@@ -1306,12 +1306,13 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
 //!Note: the sa is in reverse order in hindex. this is different from the generic index
                     if (pre - index.ysa[pos] > mapParm.kmerStep)
                     {
-                        //condition of complement reverse strand
-                        if (index.ysa[pos] & _DefaultHsBase.bodyCodeFlag)
+                        //[COMT]::condition of complement reverse strand
+                        if (((index.ysa[pos] & _DefaultHsBase.bodyCodeFlag) >>_DefaultHsBase.bodyCodeBit) ^ shape.strand)
                         {
                             set[len] = (((_DefaultHs.getHsBodyS(index.ysa[pos]) - length(read) + 1 + k) << 20) +  (length(read) - 1 - k)) | _DefaultHitBase.flag2;
+                            
                         }
-                        //condition of normal strand
+                        //[comt]::condition of normal strand
                         else
                         {
                             set[len] = ((_DefaultHs.getHsBodyS(index.ysa[pos]) - k) << 20) | k;
@@ -1430,8 +1431,10 @@ inline uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, 
     uint64_t mask = (1ULL << 20) - 1;
     int64_t list[2000]={0};
     unsigned lcount = 0;
+    //printf("[debug]::getAnchorMatchList length(anchors) %d\n", anchors.length());
     for (unsigned k = 1; k <= anchors.length(); k++)
     {
+//TODO 0.1 should be replaced by a cutoff in marpparm
         if (anchors[k] - ak > (((unsigned)(0.1 * readLen)) << 20))//mapParm.anchorDeltaThr)
         {
             if (c_b > mapParm.anchorLenThr * readLen)
@@ -1445,6 +1448,7 @@ inline uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, 
         }
         else 
         {
+            //cb += std::min(anchors.deltaPos2(k, k - 1), mapParm.shapeLen);
             if(anchors.deltaPos2(k, k - 1) >  mapParm.shapeLen)
                 c_b += mapParm.shapeLen;
             else

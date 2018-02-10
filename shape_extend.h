@@ -85,28 +85,25 @@ public:
 
     unsigned span;
     unsigned weight;
-    int bound;
     THashValue hValue;     //hash value 
     THashValue crhValue;    //ReverseComplement
     THashValue XValue;     //minimizer 
     THashValue YValue;     //Y(h,x)
-    static const THashValue leftFactor = seqan::Power<seqan::ValueSize<TValue>::VALUE, TSPAN - 1>::VALUE;
-    static const THashValue m_leftFactor = seqan::Power<seqan::ValueSize<TValue>::VALUE, TWEIGHT - 1>::VALUE;
-    TValue  leftChar;
+    THashValue strand;
+    int  leftChar;
     int x;
-    int first;
-    bool strand;
 
     Shape():
         span(TSPAN),
         weight(TWEIGHT),
-        bound((unsigned)(TWEIGHT * _boundAlpha)),
         hValue(0),
+        crhValue(0),
         XValue(0),
         YValue(0),
-        x(0),
-        first(0),
-        strand(false)
+        strand(0),
+        leftChar(0),
+        x(0)
+
     {}
 };
 
@@ -179,9 +176,9 @@ weight(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > const &me)
 template <typename TValue>
 inline void resize(Shape<TValue, SimpleMShape> & me, unsigned new_span, unsigned new_weight)
 {   
-    typedef typename Value< Shape<TValue, SimpleShape> >::Type    THValue;
-    me.leftFactor = _intPow((THValue)ValueSize<TValue>::VALUE, new_span - 1); 
-    me.leftFactor2 = (_intPow((THValue)ValueSize<TValue>::VALUE, new_span) - 1) / (ValueSize<TValue>::VALUE - 1); 
+    //typedef typename Value< Shape<TValue, SimpleShape> >::Type    THValue;
+    //me.leftFactor = _intPow((THValue)ValueSize<TValue>::VALUE, new_span - 1); 
+    //me.leftFactor2 = (_intPow((THValue)ValueSize<TValue>::VALUE, new_span) - 1) / (ValueSize<TValue>::VALUE - 1); 
     me.span = new_span;
     me.weight = new_weight;
 }   
@@ -189,9 +186,9 @@ inline void resize(Shape<TValue, SimpleMShape> & me, unsigned new_span, unsigned
 template <typename TValue, typename TSize, unsigned TSPAN, unsigned TWEIGHT>
 inline void resize(Shape<TValue, Minimizer<TSPAN, TWEIGHT> > & me, TSize new_span, TSize new_weight)
 {   
-    typedef typename Value< Shape<TValue, SimpleShape> >::Type    THValue;
-    me.leftFactor = _intPow((THValue)ValueSize<TValue>::VALUE, new_span - 1); 
-    me.leftFactor2 = (_intPow((THValue)ValueSize<TValue>::VALUE, new_span) - 1) / (ValueSize<TValue>::VALUE - 1); 
+    //typedef typename Value< Shape<TValue, SimpleShape> >::Type    THValue;
+    //me.leftFactor = _intPow((THValue)ValueSize<TValue>::VALUE, new_span - 1); 
+    //me.leftFactor2 = (_intPow((THValue)ValueSize<TValue>::VALUE, new_span) - 1) / (ValueSize<TValue>::VALUE - 1); 
     me.span = new_span;
     me.weight = new_weight;
 }
@@ -311,8 +308,8 @@ inline uint64_t hashInit(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIt
         me.crhValue = 0;
         //hash_key = ((uint64_t)1 << (me.span*2 -2 )) - 1;
         //hash_key3 = ((uint64_t)1 << (me.span*2 )) - 1;
-        me.first = 0;
-        me.x = me.first - ordC;
+        me.leftChar = 0;
+        me.x = me.leftChar- ordC;
         uint64_t k =0, count = 0; //COMP for complemnet value;
     
         while (count < me.span)
@@ -459,26 +456,27 @@ template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typ
 inline typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
 hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 {
-    typedef typename Size< Shape<TValue, TSpec> >::Type  TSize;
+    //typedef typename Size< Shape<TValue, TSpec> >::Type  TSize;
     SEQAN_ASSERT_GT((unsigned)me.span, 0u);
     uint64_t v1;
     unsigned t, span = TSPAN << 1, weight = TWEIGHT << 1;
-    uint64_t v2 = ordValue((TValue)*(it + ((TSize)me.span - 1)));
+    uint64_t v2 = ordValue((TValue)*(it + me.span - 1));
     me.hValue=((me.hValue & MASK<TSPAN * 2 - 2>::VALUE)<<2)+ v2;
-    me.crhValue=((me.crhValue >> 2) & MASK<TSPAN * 2 - 2>::VALUE) + ((COMP4 - v2) << (span - 2));
+    me.crhValue=((me.crhValue >> 2) & MASK<TSPAN * 2 - 2>::VALUE) + 
+                ((COMP4 - v2) << (span - 2));
     me.XValue = MASK<TSPAN * 2>::VALUE; 
-    me.x += (v2 - me.first) << 1;
-    me.first = ordValue(*(it));
+    me.x += (v2 - me.leftChar) << 1;
+    me.leftChar = ordValue(*(it));
     //v2 = (me.x > 0)?me.hValue:me.crhValue;
     if (me.x > 0)
     {
         v2 =me.hValue; 
-        me.strand = false;
+        me.strand = 0;
     }
     else 
     {
         v2 = me.crhValue;
-        me.strand = true;
+        me.strand = 1;
     }
     
     for (unsigned k = 64-span; k <= 64 - weight; k+=2)
