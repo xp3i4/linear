@@ -334,6 +334,7 @@ struct MapParm{
     float       rcThr;
     float       cordThr;
     float       senThr;
+    float       clsThr;
       
     
     MapParm():
@@ -352,14 +353,15 @@ struct MapParm{
         anchorLenThr(0.02),                  // anchors with lenghth > this parameter is pushed into the queue
         rcThr(0.8),                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
         cordThr(0.8),
-        senThr(0.8)
+        senThr(0.8),
+        clsThr(0.1)
         {}
         
     MapParm(unsigned bs, unsigned dt, unsigned thr, 
             unsigned ks, unsigned sl, unsigned st,
             unsigned ad, unsigned mr, unsigned listn,
             unsigned listn2,
-            float ap, float ap2, float alt, float rt, float ct, float sent):
+            float ap, float ap2, float alt, float rt, float ct, float sent, float clst):
         blockSize(bs),
         delta(dt),
         threshold(thr),
@@ -375,7 +377,8 @@ struct MapParm{
         anchorLenThr(alt),                  // anchors with lenghth > this parameter is pushed into the queue
         rcThr(rt),                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
         cordThr(ct),
-        senThr(sent)
+        senThr(sent),
+        clsThr(clst)
         {} 
 
 
@@ -395,7 +398,8 @@ struct MapParm{
         anchorLenThr(parm.anchorLenThr),
         rcThr(parm.rcThr),
         cordThr(parm.cordThr),
-        senThr(parm.senThr)
+        senThr(parm.senThr),
+        clsThr(parm.clsThr)
         {}
         
     void setMapParm(Options & options);

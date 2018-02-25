@@ -989,8 +989,8 @@ bool test_hashNext(StringSet<String<TDna> > & seqs, bool flag1 = true, bool flag
    // unsigned count[500] = {0}; c=0;
     uint64_t pre = 0;
     String<Dna5> cr;
-    std::vector<uint64_t> h;
-    std::vector<uint64_t> crh;
+    std::vector<int64_t> h;
+    std::vector<int64_t> crh;
     if (flag1)
     {
         uint64_t c=0, c1=0, c2=0;

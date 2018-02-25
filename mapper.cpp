@@ -269,27 +269,7 @@ void Mapper<TDna, TSpec>::printCordsRaw()
     double time = sysTime();
     //unsigned strand;
     unsigned cordCount = 0;
-    //bool flag;
-    /*
-    for (unsigned k = 0; k < length(cordSet); k++)
-    {
-        unsigned preK = 0;
-        
-        for (unsigned j = 1; j < length(cordSet[k]); j++)
-        {
-            if(_DefaultHit.isBlockEnd(cordSet[k][j-1]))
-            {
-                cordLen = k - preK;
-                cordSize[++cordCount] = (cordLen << 31) + preK;
-                preK = k;
-            }
-        }
-        if (cordCount > 3)
-        {
-            std::sort (cordSize, cordSize + cordCount);
-        }
-    }
-    */
+
     cordCount = 0;
     for (unsigned k = 0; k < length(cordSet); k++)
     {

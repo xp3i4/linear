@@ -1431,7 +1431,6 @@ inline uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, 
     uint64_t mask = (1ULL << 20) - 1;
     int64_t list[2000]={0};
     unsigned lcount = 0;
-    //printf("[debug]::getAnchorMatchList length(anchors) %d\n", anchors.length());
     for (unsigned k = 1; k <= anchors.length(); k++)
     {
 //TODO 0.1 should be replaced by a cutoff in marpparm
@@ -1460,7 +1459,8 @@ inline uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, 
         std::sort (list, list + lcount, std::greater<uint64_t>());
         for (unsigned k = 0; k < mapParm.listN; k++)
         {
-          if (list[k] != 0)
+          //if ((((list[0] >> 1) - list[k]) >> 63 )  && list[k])
+          if (((list[0] / 1.5) < list[k])  && list[k])
           {
               sb = ((list[k] >> 20) & mask);
               sc = list[k] & mask;
@@ -1468,11 +1468,13 @@ inline uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, 
               {
                   appendValue(hit, anchors[n]);
               }   
+            //printf("[debug] list_len %d %d \n", sc, (list[k] >> 40));
               _DefaultHit.setBlockEnd(back(hit));
           }
           else
               break;
         }
+        //printf("\n");
         return (list[0] >> 40);   
     }
     else
@@ -1903,7 +1905,6 @@ int rawMap_dst(typename PMCore<TDna, TSpec>::Index   & index,
     double time2 = sysTime();
     createFeatures(genomes, f2, threads);
     std::cerr << "init " << sysTime() - time2 << "\n";
-    double time1 = sysTime();
     
 #pragma omp parallel
 {
@@ -1926,6 +1927,7 @@ int rawMap_dst(typename PMCore<TDna, TSpec>::Index   & index,
 
     #pragma omp for
     for (unsigned j = 0; j < length(reads); j++)
+    //for (unsigned j = 412; j < 419; j++)
     {
         if (length(reads[j]) >= mapParm.minReadLen)
         {

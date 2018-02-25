@@ -467,6 +467,7 @@ hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
     me.XValue = MASK<TSPAN * 2>::VALUE; 
     me.x += (v2 - me.leftChar) << 1;
     me.leftChar = ordValue(*(it));
+    //printf("[debug]::hash %d\n", me.x);
     //v2 = (me.x > 0)?me.hValue:me.crhValue;
     if (me.x > 0)
     {

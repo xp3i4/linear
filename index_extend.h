@@ -2087,8 +2087,11 @@ inline uint64_t getXYDir(HIndex<span> const & index, uint64_t const & xval, uint
     //_setHeadNode(val, xval);
 //!!!!! need to modify;
     val = (xval << 2) + _DefaultXNodeBase.xHead;
+    //unsigned count = 0;
     while (index.xstr.xstring[h1].val1)
     {
+        //count++;
+        //printf("[debug]::getXYDir %d\n", count);
         //switch (index.xstr.xstring[h1].val1 ^ val) 
         switch(_DefaultXNodeFunc.collision(index.xstr.xstring[h1].val1, val))
         {
@@ -2375,17 +2378,8 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
     uint64_t count = 0; 
     
     time = sysTime();
-    uint64_t thd_hsXstart = thd_countx / threads;
-    uint64_t thd_counths = 0;
-    unsigned thd_idnum = 0; 
     while(_DefaultHs.getHeadPtr(hs[k]))
     {
-        if (++thd_counths > thd_hsXstart)
-        {
-            thd_hsStart[++thd_idnum] = k;
-            //std::cerr << "[count hs] " << threads << " " << thd_idnum << " " << k << std::endl;
-            thd_counths = 0 ;
-        }
         ptr = _DefaultHs.getHeadPtr(hs[k]);
         if (ptr < blocklimit)
         {
