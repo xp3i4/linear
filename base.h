@@ -153,21 +153,22 @@ struct PMRecord
 
 struct AnchorBase{
     typedef typename Const_::BIT_INT_ AnchorType; 
-    static const unsigned size = 131072 * 2;
+    static const unsigned size = 131072 * 1000;
     static const unsigned bit = 20;
     static const uint64_t AnchorValue = 1000ULL << bit;
     static const typename Const_::BIT_INT_ mask = (1ULL<<bit) - 1;
 };
 
 struct Anchors{
-    typedef typename AnchorBase::AnchorType AnchorType;
-    typedef typename AnchorBase::AnchorType * Iter;
-
-    AnchorType set[AnchorBase::size];
-    unsigned len;
     
-    Anchors(){len = 1;};
-    Anchors(AnchorType val, unsigned range);
+    typedef typename Iterator<String<uint64_t> >::Type Iter;
+    typedef AnchorBase::AnchorType AnchorType;
+    typedef String<AnchorType> AnchorString;
+    
+    AnchorString set;
+
+    
+
     void init(AnchorType val, unsigned k);
     void init(int length);
     void init();
@@ -179,12 +180,11 @@ struct Anchors{
     void sort(Iter begin, Iter end);
     void sortPos2(Iter begin, Iter end);
     void appendValue(AnchorType val);
-    void appendValue(AnchorType val1, AnchorType val2);
     unsigned size() const {return AnchorBase::size;};
     AnchorType & operator [](unsigned p){return set[p];};
     Iter begin(); 
     Iter end();
-    unsigned & length() {return len;};
+    unsigned length() {return seqan::length(set);};
 };
 
 
@@ -518,21 +518,16 @@ PMRecord<TDna>::PMRecord(Options & options)
     loadRecord(options);
 }
 
-Anchors::Anchors(Anchors::AnchorType val, unsigned range)
-{
-    init(val, range);
-}
-
 inline void Anchors::init(AnchorType val, unsigned range)
 {
     for (unsigned k = 0; k < range; k++)
-        set[k] = val;
-    len = 1;
+        seqan::appendValue(set,val);
 }
 
 inline void Anchors::init(int length)
 {
-    len = length;
+    clear(set);
+    seqan::appendValue(set, 0);
 }
 
 inline void Anchors::init()
@@ -568,12 +563,12 @@ inline Anchors::AnchorType Anchors::deltaPos2(unsigned p1, unsigned p2)
 
 inline Anchors::Iter Anchors::begin()
 {
-    return set;
+    return seqan::begin(set);
 }
 
 inline Anchors::Iter Anchors::end()
 {
-    return set + len;
+    return seqan::end(set);
 }
 
 inline void Anchors::sort(Anchors::Iter sortBegin, Anchors::Iter sortEnd)
@@ -593,14 +588,9 @@ inline void Anchors::sortPos2(Anchors::Iter sortBegin, Anchors::Iter sortEnd){
 
 inline void Anchors::appendValue(Anchors::AnchorType val)
 {
-    set[len++]=val;
+    seqan::appendValue(set,val);
 }
 
-inline void Anchors::appendValue(Anchors::AnchorType val1, Anchors::AnchorType val2)
-{
-    setAnchor(len++, val1, val2);
-    //std::cout << "len " << len << std::endl;
-}
 
 void MapParm::print()
 {
