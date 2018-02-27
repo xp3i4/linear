@@ -940,6 +940,8 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
             //{
                 //while (_DefaultHs.isBodyYEqual(index.ysa[pos], shape.YValue))
                 //printf ("[debug]::getIndexMatchAll:ptr %d\n", _DefaultHs.getHeadPtr(index.ysa[pos - 1]));
+                if (_DefaultHs.getHeadPtr(index.ysa[pos-1]) < 64)
+                {
                 while (_DefaultHs.isBody(index.ysa[pos]))
                 {
                     //printf("done\n");
@@ -966,6 +968,7 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
                         pre = index.ysa[pos];
                     }
                     ++pos;
+                }
                 }
             //}
         }
@@ -1598,7 +1601,7 @@ int rawMap_dst(typename PMCore<TDna, TSpec>::Index   & index,
     for (unsigned j = 0; j < length(reads); j++)
     //for (unsigned j = 14456; j < 14457; j++)
     {
-        printf ("[debug] id %d %d %d\n", thd_id, j, length(reads[j]));
+        //printf ("[debug] id %d %d %d\n", thd_id, j, length(reads[j]));
         if (length(reads[j]) >= mapParm.minReadLen)
         {
             float cordLenThr = length(reads[j]) * cordThr;
