@@ -51,7 +51,7 @@ struct MiniValueBit
     enum{VALUEBIT = 64};
 };
 
-struct MiniHEX{              // = shape.len - shape.weight 
+struct MiniHEX{               
     enum {HEX = 8 };
 };
 

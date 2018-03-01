@@ -76,6 +76,14 @@ int Mapper<TDna, TSpec>::createIndex()
 }
 
 template <typename TDna, typename TSpec>
+int Mapper<TDna, TSpec>::createIndex2_MF()
+{
+    std::cerr << ">[Creating index] \n";
+    createHIndex(genomes(), qIndex, _thread);
+    return 0;
+}
+
+template <typename TDna, typename TSpec>
 Pair<typename Mapper<TDna,TSpec>::HitType, typename Mapper<TDna, TSpec>::HitType>
 Mapper<TDna, TSpec>::getAliX(unsigned k) const
 {
@@ -263,6 +271,9 @@ void Mapper<TDna, TSpec>::printCords()
     std::cerr << "    End writing results. Time[s]" << sysTime() - time << std::endl;
 }
 
+/*
+ * print the cords without detailes 
+ */
 template <typename TDna, typename TSpec>
 void Mapper<TDna, TSpec>::printCordsRaw()
 {
@@ -282,13 +293,52 @@ void Mapper<TDna, TSpec>::printCordsRaw()
                 {
                     //of << record.id1[k] << " " << length(cordSet[k]) << " "
                     of <<"@S1_"<< k+1 << " " << length(cordSet[k]) << " "
-                    << _DefaultCord.getCordY(cordSet[k][j]) << " x x " 
+                    << _DefaultCord.getCordY(cordSet[k][j]) << " " << length(reads()[k]) << " x " 
                     << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j])) << " " << cordCount << " "
                     << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << " " 
-                    << length(reads()[k]) << "\n";   
+                    << "\n";   
                     //flag = false;
                     cordCount = 0;
                 }
+                cordCount++;
+            }
+            //_DefaultCord.print(cordSet[k],of);
+        }
+    }
+    std::cerr << ">Write results to disk          " << std::endl;
+    std::cerr << "    End writing results. Time[s]" << sysTime() - time << std::endl; 
+}
+/*
+ * print all cords with cordinates
+ */
+template <typename TDna, typename TSpec>
+void Mapper<TDna, TSpec>::printCordsRaw2()
+{
+    double time = sysTime();
+    //unsigned strand;
+    unsigned cordCount = 0;
+
+    cordCount = 0;
+    for (unsigned k = 0; k < length(cordSet); k++)
+    {
+        //unsigned recordCount = 0;
+        if (!empty(cordSet[k]))
+        {
+            for (unsigned j = 1; j < length(cordSet[k]); j++)
+            {
+                if (_DefaultHit.isBlockEnd(cordSet[k][j-1]) )//&& ++recordCount < 10)
+                {
+                    //of << record.id1[k] << " " << length(cordSet[k]) << " "
+                    of <<"\n@S1_"<< k+1 << " " << length(cordSet[k]) << " "
+                    << _DefaultCord.getCordY(cordSet[k][j]) << " " << length(reads()[k]) << " x " 
+                    << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j])) << " " << cordCount << " "
+                    << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << " " 
+                    ;  
+                    //flag = false;
+                    cordCount = 0;
+                }
+                of << _DefaultCord.getCordY(cordSet[k][j]) <<" " << 
+                _getSA_i2(_DefaultCord.getCordX(cordSet[k][j])) << " | ";
                 cordCount++;
             }
             //_DefaultCord.print(cordSet[k],of);
@@ -320,14 +370,20 @@ void map(Mapper<TDna, TSpec> & mapper)
 */
 
 template <typename TDna, typename TSpec>
-void map(Mapper<TDna, TSpec> & mapper)
+int map(Mapper<TDna, TSpec> & mapper)
 {
     //printStatus();
     omp_set_num_threads(mapper.thread());
-    mapper.createIndex(); // true for parallel 
+    StringSet<String<int> > f2;
+    createFeatures(mapper.genomes(), f2, mapper.thread());
+    
+    //mapper.createIndex(); // true for parallel 
+    mapper.createIndex2_MF(); // this function will destroy genomes string during the creation to reduce memory footprint
     //uint64_t blockSize = 10000;
     //uint64_t lenSum;
     SeqFileIn rFile(toCString(mapper.readPath()));
+    
+    
     //while (!atEnd(rFile))
     //{
         double time = sysTime();
@@ -341,7 +397,7 @@ void map(Mapper<TDna, TSpec> & mapper)
    //     }
    //     else
    //     {
-            rawMap_dst<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), mapper.mapParm(), mapper.cords(), mapper.thread());
+            rawMap_dst2_MF<TDna, TSpec>(mapper.index(), f2, mapper.reads(), mapper.mapParm(), mapper.cords(), mapper.thread());
         //clear (mapper.reads());   
     //    }
         
@@ -349,6 +405,7 @@ void map(Mapper<TDna, TSpec> & mapper)
     //}
     //mapper.printCordsAll();
     mapper.printCordsRaw();
+    return 0;
     //std::cerr << length(mapper.cords()) << " " << length(mapper.reads()) << " \n";
 }
 

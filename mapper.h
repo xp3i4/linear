@@ -87,7 +87,9 @@ public:
     void printCords();
     void printCordsAll();
     void printCordsRaw();
+    void printCordsRaw2();
     int createIndex();
+    int createIndex2_MF();//destruct genomes string during the creation to reduce memory footprint
     unsigned sens(){return parm.sensitivity;}
     unsigned & thread(){return _thread;}
     CharString & readPath(){return record.readPath;}

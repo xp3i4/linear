@@ -940,7 +940,7 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
             //{
                 //while (_DefaultHs.isBodyYEqual(index.ysa[pos], shape.YValue))
                 //printf ("[debug]::getIndexMatchAll:ptr %d\n", _DefaultHs.getHeadPtr(index.ysa[pos - 1]));
-                if (_DefaultHs.getHeadPtr(index.ysa[pos-1]) < 64)
+                if (_DefaultHs.getHeadPtr(index.ysa[pos-1]) < mapParm.delta)
                 {
                 while (_DefaultHs.isBody(index.ysa[pos]))
                 {
@@ -964,7 +964,7 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
 
                             appendValue(set, ((_DefaultHs.getHsBodyS(index.ysa[pos]) - k) << 20) | k);
                         }
-                        //std::cout << "[debug]::getIndexMatchAll " << ((set[len] >> 20)&((1ULL << 30) - 1)) << " " << (set[len] &((1ULL << 20) - 1)) << " " << shape.XValue << "\n";
+                        //std::cout << "[debug]::getIndexMatchAll " << ((back(set) >> 20)&((1ULL << 30) - 1)) << " " << (back(set) &((1ULL << 20) - 1)) << " " << shape.XValue << "\n";
                         pre = index.ysa[pos];
                     }
                     ++pos;
@@ -1122,7 +1122,7 @@ inline uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, 
               for (unsigned n = sb; n < sc; n++)
               {
                   appendValue(hit, anchors[n]);
-                   // std::cout << "[debug] " << ((anchors[n] >> 20)&((1ULL << 30) - 1)) << " " << (anchors[n] &((1ULL << 20) - 1)) << "\n";
+                    //std::cout << "[debug] " << ((anchors[n] >> 20)&((1ULL << 30) - 1)) << " " << (anchors[n] &((1ULL << 20) - 1)) << "\n";
               }   
             //printf("[debug] list_len %d %d \n", sc, (list[k] >> 40));
             //std::cout << "num block " << sc - sb << "\n";
@@ -1282,6 +1282,7 @@ inline bool endCord( String<uint64_t> & cord,
     if (length(cord) - preCordStart > cordThr)// > std::max(score/25, cordThr))
     {
         _DefaultHit.setBlockEnd(back(cord));
+        //printf("[debug]::nextcord new block %f %d %f\n", (float)score/(length(cord) - preCordStart), length(cord) - preCordStart, cordThr);
     }
     else
     {
@@ -1409,7 +1410,7 @@ inline bool nextCord(typename Iterator<PMRes::HitString>::Type & it,
         else
         {
             _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);
-    //printf("[debug]::nextcord new block %f %d %d\n", (float)score/(length(cord) - preCordStart), length(cord) - preCordStart, cordThr);
+    //printf("[debug]::nextcord new block %f %d %f\n", (float)score/(length(cord) - preCordStart), length(cord) - preCordStart, cordThr);
         }
         preCordStart = length(cord);
         appendValue(cord, _DefaultCord.hit2Cord_dstr(*(it)));
@@ -1561,7 +1562,7 @@ int rawMap_dst(typename PMCore<TDna, TSpec>::Index   & index,
             StringSet<String<uint64_t> > & cords,
             unsigned & threads)
 {
-    
+  
     typedef typename PMRecord<TDna>::RecSeq Seq;
     double time=sysTime();
     float senThr = mapParm.senThr / window_size;
@@ -1571,10 +1572,12 @@ int rawMap_dst(typename PMCore<TDna, TSpec>::Index   & index,
     complexParm.listN = complexParm.listN2;
     std::cerr << "[rawMap_dst] Raw Mapping \n"; 
 
+    
     StringSet<String<int> > f2;
     double time2 = sysTime();
     createFeatures(genomes, f2, threads);
     std::cerr << "init1 " << sysTime() - time2 << "\n";
+    
     
 #pragma omp parallel
 {
@@ -1637,7 +1640,91 @@ int rawMap_dst(typename PMCore<TDna, TSpec>::Index   & index,
     return 0;
 }
 
+/*
+ * this mapping function use the hash value of double strand 
+ * that allow to stream the sequence of double strand for only once
+ * pass feature instead of genomes to reduce memory footprint
+ */
+template <typename TDna, typename TSpec>
+int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
+            StringSet<String<int> > & f2,
+            typename PMRecord<TDna>::RecSeqs      & reads,
+            MapParm & mapParm,
+            StringSet<String<uint64_t> > & cords,
+            unsigned & threads)
+{
+  
+    typedef typename PMRecord<TDna>::RecSeq Seq;
+    double time=sysTime();
+    float senThr = mapParm.senThr / window_size;
+    float cordThr = mapParm.cordThr / window_size;
+    MapParm complexParm = mapParm;
+    complexParm.alpha = complexParm.alpha2;
+    complexParm.listN = complexParm.listN2;
+    std::cerr << "[rawMap_dst] Raw Mapping \n"; 
 
+    double time2 = sysTime();
+    
+#pragma omp parallel
+{
+    unsigned size2 = length(reads) / threads;
+    unsigned ChunkSize = size2;
+    Seq comStr;
+    //Anchors anchors(Const_::_LLTMax, AnchorBase::size);
+    Anchors anchors;
+    typename PMRes::HitString crhit;
+    StringSet<String<uint64_t> >  cordsTmp;
+    StringSet< String<int> > f1;
+    //printf ("done\n");
+    unsigned thd_id =  omp_get_thread_num();
+    if (thd_id < length(reads) - size2 * threads)
+    {
+        ChunkSize = size2 + 1;
+    }
+    resize(cordsTmp, ChunkSize);
+    resize(f1, 2);
+    unsigned c = 0;
+
+    //printf ("done\n");
+    #pragma omp for
+    for (unsigned j = 0; j < length(reads); j++)
+    //for (unsigned j = 14456; j < 14457; j++)
+    {
+        //printf ("[debug] id %d %d %d\n", thd_id, j, length(reads[j]));
+        if (length(reads[j]) >= mapParm.minReadLen)
+        {
+            float cordLenThr = length(reads[j]) * cordThr;
+            _compltRvseStr(reads[j], comStr);
+            createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
+            createFeatures(begin(comStr), end(comStr), f1[1]);
+            anchors.init(1);
+            clear(crhit);
+            mnMapReadList<TDna, TSpec>(index, reads[j], anchors, mapParm, crhit);
+            path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
+            //printf("done1\n");
+            if (_DefaultCord.getMaxLen(cordsTmp[c]) < length(reads[j]) * senThr)// && 
+               //_DefaultCord.getMaxLen(cordsTmp[c]) > 0)
+            {
+                clear(cordsTmp[c]);
+                anchors.init(1);
+                clear(crhit);
+                mnMapReadList<TDna, TSpec>(index, reads[j], anchors, complexParm, crhit);
+                path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
+            }   
+        }
+        //printf("#done\n");
+        c += 1;
+    } 
+    #pragma omp for ordered
+    for (unsigned j = 0; j < threads; j++)
+        #pragma omp ordered
+        {
+            append(cords, cordsTmp);
+        }
+}
+    std::cerr << "    End raw mapping. Time[s]: " << sysTime() - time << std::endl;
+    return 0;
+}
 //End all mapper module
 //============================================
 
