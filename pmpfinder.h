@@ -904,74 +904,76 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
     typedef typename TIndex::TShape PShape;
     
     //printf("[debug]\n");
-    unsigned block = (mapParm.blockSize < length(read))?mapParm.blockSize:length(read);
-    unsigned dt = block * (mapParm.alpha / (1 - mapParm.alpha));
+    //unsigned block = (mapParm.blockSize < length(read))?mapParm.blockSize:length(read);
+    //unsigned dt = block * (mapParm.alpha / (1 - mapParm.alpha));
+    unsigned dt = 0;
     PShape shape;
-    hashInit(shape, begin(read));
     uint64_t xpre = 0;
-    for (unsigned h=0; h <= length(read) - block; h += dt)
+    hashInit(shape, begin(read));
+    for (unsigned k = 0; k < length(read); k++)
     {
-        hashInit(shape, begin(read) + h);
-        for (unsigned k = h; k < h + block; k++)
+        //printf("[debug]\n");
+        unsigned count = 0;
+        //hashNext(shape, begin(read) + k);
+        hashNexth(shape, begin(read) + k);
+
+        uint64_t pre = ~0;
+        //uint64_t pos = getXYDir(index, shape.XValue, shape.YValue);
+        if (++dt == mapParm.alpha)
         {
-            //printf("[debug]\n");
-            unsigned count = 0;
-            hashNext(shape, begin(read) + k);
-            uint64_t pre = ~0;
-            //uint64_t pos = getXYDir(index, shape.XValue, shape.YValue);
-            if (shape.XValue ^ xpre)
+            if(hashNextX(shape, begin(read) + k) ^ xpre)
             {
-            xpre = shape.XValue;
-            uint64_t pos = getXDir(index, shape.XValue, shape.YValue);
+                xpre = shape.XValue;
+                uint64_t pos = getXDir(index, shape.XValue, shape.YValue);
             
             //printf("[debug]done %d \n");
-          //  if (pos > length(index.ysa))
-          //  {
-          //      std::cout << "[debug]::getIndexMatchAll::1 " << pos << " " << length(index.ysa) << "\n";
-          //      return 1;
-          //  }
+        //  if (pos > length(index.ysa))
+        //  {
+        //      std::cout << "[debug]::getIndexMatchAll::1 " << pos << " " << length(index.ysa) << "\n";
+        //      return 1;
+        //  }
             //printf("[debug]%d\n", pos);
 //!Note: This contition is different from single strand which will slightly 
 //changes the senstivity; In single strand index, if the length of ysa of given 
 //value of single strand is > mapParm.delta, this ysa will not be used. 
 //While in double strand index, the length of ysa of fixed value includes both + 
 //and - strands.
-           // if (_DefaultHs.getHsBodyY(index.ysa[std::min(pos + mapParm.delta, length(index.ysa) - 1)]) ^ shape.YValue)
+        // if (_DefaultHs.getHsBodyY(index.ysa[std::min(pos + mapParm.delta, length(index.ysa) - 1)]) ^ shape.YValue)
             //{
                 //while (_DefaultHs.isBodyYEqual(index.ysa[pos], shape.YValue))
                 //printf ("[debug]::getIndexMatchAll:ptr %d\n", _DefaultHs.getHeadPtr(index.ysa[pos - 1]));
                 if (_DefaultHs.getHeadPtr(index.ysa[pos-1]) < mapParm.delta)
                 {
-                while (_DefaultHs.isBody(index.ysa[pos]))
-                {
-                    //printf("done\n");
-//!Note: needs change
-//!Note: the sa is in reverse order in hindex. this is different from the generic index
-                    //if (pre - index.ysa[pos] > mapParm.kmerStep)
-                    //printf("[debug]::getIndexMatchAll %d\n", count++);
-                    if (_DefaultHs.getHsBodyS(pre - index.ysa[pos]) > mapParm.kmerStep)
+                    while (_DefaultHs.isBody(index.ysa[pos]))
                     {
-                        //[COMT]::condition of complement reverse strand
-                        if (((index.ysa[pos] & _DefaultHsBase.bodyCodeFlag) >>_DefaultHsBase.bodyCodeBit) ^ shape.strand)
+                        //printf("done\n");
+    //!Note: needs change
+    //!Note: the sa is in reverse order in hindex. this is different from the generic index
+                        //if (pre - index.ysa[pos] > mapParm.kmerStep)
+                        //printf("[debug]::getIndexMatchAll %d\n", count++);
+                        if (_DefaultHs.getHsBodyS(pre - index.ysa[pos]) > mapParm.kmerStep)
                         {
-                            
-                            appendValue(set, (((_DefaultHs.getHsBodyS(index.ysa[pos]) - length(read) + 1 + k) << 20) +  (length(read) - 1 - k)) | _DefaultHitBase.flag2);
-                            
-                        }
-                        //[comt]::condition of normal strand
-                        else
-                        {     
+                            //[COMT]::condition of complement reverse strand
+                            if (((index.ysa[pos] & _DefaultHsBase.bodyCodeFlag) >>_DefaultHsBase.bodyCodeBit) ^ shape.strand)
+                            {
+                                
+                                appendValue(set, (((_DefaultHs.getHsBodyS(index.ysa[pos]) - length(read) + 1 + k) << 20) +  (length(read) - 1 - k)) | _DefaultHitBase.flag2);
+                                
+                            }
+                            //[comt]::condition of normal strand
+                            else
+                            {     
 
-                            appendValue(set, ((_DefaultHs.getHsBodyS(index.ysa[pos]) - k) << 20) | k);
+                                appendValue(set, ((_DefaultHs.getHsBodyS(index.ysa[pos]) - k) << 20) | k);
+                            }
+                            //std::cout << "[debug]::getIndexMatchAll " << ((back(set) >> 20)&((1ULL << 30) - 1)) << " " << (back(set) &((1ULL << 20) - 1)) << " " << shape.XValue << "\n";
+                            pre = index.ysa[pos];
                         }
-                        //std::cout << "[debug]::getIndexMatchAll " << ((back(set) >> 20)&((1ULL << 30) - 1)) << " " << (back(set) &((1ULL << 20) - 1)) << " " << shape.XValue << "\n";
-                        pre = index.ysa[pos];
+                        ++pos;
                     }
-                    ++pos;
                 }
-                }
-            //}
-        }
+            }
+            dt = 0;
         }
     }
     return 0;
@@ -1685,7 +1687,7 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
     resize(f1, 2);
     unsigned c = 0;
 
-    //printf ("done\n");
+
     #pragma omp for
     for (unsigned j = 0; j < length(reads); j++)
     //for (unsigned j = 14456; j < 14457; j++)

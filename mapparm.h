@@ -48,8 +48,8 @@ MapParm parm1 (
         1000,                   //minReadLen(1000),
         10,                      //listN
         20,                      //listN2
-        0.75,                     //alpha(Const_::_ALPHA),
-        0.5,                      //alpha2 for complex mapping 
+        15,                     //alpha(Const_::_ALPHA),
+        5,                      //alpha2 for complex mapping 
         0.02,                    //anchorLenThr(0.02),    anchors with lenghth > this parameter is pushed into the queue
         0.5,                     //rcThr(0.75)
         0.7,                     //cordThr length of cord < cordThr are abandone

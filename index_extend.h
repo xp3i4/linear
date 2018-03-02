@@ -1345,6 +1345,7 @@ uint64_t XString::_fullSize(uint64_t const & seqlen, float const & alpha)
         len <<=1;
     resize(xstring, len);
     mask = len - 1;
+    std::cerr << "[debug]::XString::_fullSize() " << (float)len / 1024/1024 << "\n";
     for (uint64_t k = 0; k < len; k++)
         xstring[k].val1 = 0;
     return len;
@@ -1517,17 +1518,19 @@ inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBi
 template <typename TIt>
 inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBitLen, unsigned threads)
 {
-    if (xValBitLen <34 || xValBitLen > 42)
+    unsigned lowerBound = 20;
+    unsigned upperBound = 42;
+    if (xValBitLen < lowerBound || xValBitLen > upperBound)
     {
         std::cerr << "[Error]: _dirSortX " << xValBitLen << "\n";
        // return false;
     }
     
-    unsigned const bit[18] = {9,4,9,4,9,4,8,5,8,5,8,5,8,5,7,6,7,6}; //xValueBitLen 34 - 42;
-    unsigned const p_bit = bit[(xValBitLen - 34) << 1];
-    //unsigned const p_bit = 7;
-    unsigned const l =  bit[((xValBitLen - 34) << 1) + 1];
-    //unsigned const l = 4;
+    //unsigned const bit[18] = {9,4,9,4,9,4,8,5,8,5,8,5,8,5,7,6,7,6}; //xValueBitLen 34 - 42;
+    unsigned const bit[upperBound - lowerBound + 1] 
+        = {10,2,11,2,12,2,7,4,7,4,10,3,9,4,9,4,8,5,8,5,7,6}; //xValueBitLen 34 - 42;
+    unsigned const p_bit = bit[(xValBitLen - lowerBound + 1) >> 1 << 1];
+    unsigned const l =  bit[((xValBitLen - lowerBound + 1) >> 1 << 1) + 1];
     unsigned const r_move = 64 - p_bit;
     unsigned l_move = 64;
     uint64_t const mask = (1 << p_bit) - 1;
@@ -2009,7 +2012,7 @@ bool _createHsArray2_MF(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, 
     double time = sysTime();
     uint64_t hsRealEnd = 0;
     unsigned const step = 10;
-    resize (hs, lengthSum(seq) * 4/3);
+    resize (hs, lengthSum(seq) *2 / step);
     std::vector<int64_t> hsRealSize(threads, 0);
     std::vector<int64_t> seqChunkSize(threads, 0);
     //uint64_t seqChunkSize[4] = {0};
@@ -2059,8 +2062,6 @@ bool _createHsArray2_MF(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, 
                 {
                     if (tshape.XValue ^ preX)
                     {
-                        //if (ptr != 2)
-                        //    printf("[debug]::ptr\n");
                         _DefaultHs.setHsHead(hs[hsStart + thd_count - ptr], ptr, preX);
                         _DefaultHs.setHsBody(hs[hsStart + ++thd_count], tshape.YValue, j, k); 
                         if (tshape.strand)
@@ -2072,10 +2073,6 @@ bool _createHsArray2_MF(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, 
                         ptr = 2;
                     }
                 }
-               // else 
-               // {
-               //     ct_step = 0;
-               // }
             }
             _DefaultHs.setHsHead(hs[hsStart + thd_count - ptr], ptr, tshape.XValue);
             hsRealSize[thd_id] = thd_count;
@@ -2098,10 +2095,8 @@ bool _createHsArray2_MF(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, 
         hsRealEnd += thd_count;
     }
     resize (hs, hsRealEnd + 1);
-    std::cout << "shrint\n";
     clear(seq);
     shrinkToFit(seq);
-    std::cout << "done\n";
     //shrinkToFit(hs);
     _DefaultHs.setHsHead(hs[hsRealEnd], 0, 0);
     std::cerr << "[debug] length of hs " << length(hs) << " " << hsRealEnd << "\n";
@@ -2797,7 +2792,25 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
     (void) threads;
     return true;
 }
+/*
+ * create index and keep genome sequence, used for full alignment 
+template <unsigned SHAPELEN>
+bool _createQGramIndexDirSA_parallel(StringSet<String<Dna5> > & seq, 
+XString & xstr, String<uint64_t> & hs,  Shape<Dna5, Minimizer<SHAPELEN> > & shape, 
+uint64_t & indexEmptyDir, unsigned & threads)    
+{
+    typedef Shape<Dna5, Minimizer<SHAPELEN> > ShapeType;
+    double time = sysTime();
+    _createHsArray2(seq, hs, shape, threads);
+    _createYSA<LENGTH<ShapeType>::VALUE, WGHT<ShapeType>::VALUE>(hs, xstr, indexEmptyDir, threads);
+    std::cerr << "  End creating Index Time[s]:" << sysTime() - time << " \n";
+    return true; 
+}
+*/
 
+/*
+ * free geonme sequence during creating, for raw map
+ */
 template <unsigned SHAPELEN>
 bool _createQGramIndexDirSA_parallel(StringSet<String<Dna5> > & seq, 
 XString & xstr, String<uint64_t> & hs,  Shape<Dna5, Minimizer<SHAPELEN> > & shape, 
@@ -2823,7 +2836,6 @@ String<uint64_t> & hs,  Shape<Dna5, Minimizer<SHAPELEN> > & shape, uint64_t & in
     return true; 
 }
 
-
 template <typename TDna, unsigned span>
 bool createHIndex(StringSet<String<TDna> > & seq, HIndex<span> & index, unsigned & threads)
 {
@@ -2839,12 +2851,10 @@ bool createHIndex(StringSet<String<TDna> > & seq, HIndex<span> & index, unsigned
 }
 
 
-
 template <typename TDna, unsigned TSpan>
 bool _createQGramIndex(HIndex<TSpan> & index, StringSet<String<TDna> > & seq, unsigned threads = 1)
 {
-    
-        return _createQGramIndexDirSA(seq, index.xstr, index.ysa, index.shape, index.emptyDir);
+    return _createQGramIndexDirSA(seq, index.xstr, index.ysa, index.shape, index.emptyDir);
 }
 
 //End(P2)
