@@ -292,8 +292,8 @@ void Mapper<TDna, TSpec>::printCordsRaw()
                 if (_DefaultHit.isBlockEnd(cordSet[k][j-1]) )//&& ++recordCount < 10)
                 {
                     //of << record.id1[k] << " " << length(cordSet[k]) << " "
-                    of <<"@S1_"<< k+1 << " " << length(cordSet[k]) << " "
-                    << _DefaultCord.getCordY(cordSet[k][j]) << " " << length(reads()[k]) << " x " 
+                    of <<"@S1_"<< k+1 << " " << length(reads()[k]) << " "
+                    << _DefaultCord.getCordY(cordSet[k][j]) << " " << length(cordSet[k]) << " x " 
                     << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j])) << " " << cordCount << " "
                     << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << " " 
                     << "\n";   
@@ -328,8 +328,8 @@ void Mapper<TDna, TSpec>::printCordsRaw2()
             {
                 if (_DefaultHit.isBlockEnd(cordSet[k][j-1]) )//&& ++recordCount < 10)
                 {
-                    //of << record.id1[k] << " " << length(cordSet[k]) << " "
-                    of <<"\n@S1_"<< k+1 << " " << length(cordSet[k]) << " "
+                    of << "\n" << record.id1[k] << " " << length(cordSet[k]) << " "
+                    //of <<"\n@S1_"<< k+1 << " " << length(cordSet[k]) << " "
                     << _DefaultCord.getCordY(cordSet[k][j]) << " " << length(reads()[k]) << " x " 
                     << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j])) << " " << cordCount << " "
                     << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << " " 
@@ -468,7 +468,6 @@ parseCommandLine(Options & options, int argc, char const ** argv)
 
     seqan::getArgumentValue(options.rPath, parser, 0);
     seqan::getArgumentValue(options.gPath, parser, 1);
-
 
     return seqan::ArgumentParser::PARSE_OK;
 

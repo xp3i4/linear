@@ -68,14 +68,14 @@ MapParm parm0 (
         0,                      //senstivity(0),
         0,                      //anchorDeltaThr(),
         1000,                   //minReadLen(1000),
-        100,                      //listN
-        100,                      //listN2
-        0.75,                     //alpha(Const_::_ALPHA),
-        0.6,                      //alpha2 for complex mapping
+        10,                      //listN
+        20,                      //listN2
+        15,                     //alpha(Const_::_ALPHA),
+        5,                      //alpha2 for complex mapping
         0.02,                    //anchorLenThr(0.02),    anchors with lenghth > this parameter is pushed into the queue
-        0.8,                     //rcThr(0.8)
+        0.5,                     //rcThr(0.8)
         0.2,                     //cordThr length of cord < cordThr are abandoned
-        0.8,                     //senthr: length of cord < senthr are erased duing path
+        0.2,                     //senthr: length of cord < senthr are erased duing path
         0.1                      //clsthr: thread of cluster
 
 ); 

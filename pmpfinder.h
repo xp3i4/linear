@@ -1124,7 +1124,7 @@ inline uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, 
               for (unsigned n = sb; n < sc; n++)
               {
                   appendValue(hit, anchors[n]);
-                    //std::cout << "[debug] " << ((anchors[n] >> 20)&((1ULL << 30) - 1)) << " " << (anchors[n] &((1ULL << 20) - 1)) << "\n";
+                //std::cout << "[debug] " << ((anchors[n] >> 20)&((1ULL << 30) - 1)) << " " << (anchors[n] &((1ULL << 20) - 1)) << "\n";
               }   
             //printf("[debug] list_len %d %d \n", sc, (list[k] >> 40));
             //std::cout << "num block " << sc - sb << "\n";
