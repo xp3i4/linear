@@ -526,7 +526,6 @@ hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
         v2 = me.crhValue;
         me.strand = 1;
     }
-    
     for (unsigned k = 64-span; k <= 64 - weight; k+=2)
     {
         v1 = v2 << k >> (64-weight);

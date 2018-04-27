@@ -944,6 +944,7 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
                 //printf ("[debug]::getIndexMatchAll:ptr %d\n", _DefaultHs.getHeadPtr(index.ysa[pos - 1]));
                 if (_DefaultHs.getHeadPtr(index.ysa[pos-1]) < mapParm.delta)
                 {
+          //          unsigned pr = _DefaultHs.getHeadPtr(index.ysa[pos-1]);
                     while (_DefaultHs.isBody(index.ysa[pos]))
                     {
                         //printf("done\n");
@@ -966,7 +967,7 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
 
                                 appendValue(set, ((_DefaultHs.getHsBodyS(index.ysa[pos]) - k) << 20) | k);
                             }
-                            //std::cout << "[debug]::getIndexMatchAll " << ((back(set) >> 20)&((1ULL << 30) - 1)) << " " << (back(set) &((1ULL << 20) - 1)) << " " << shape.XValue << "\n";
+                            //std::cout << "[debug]::getIndexMatchAll " << ((back(set) >> 20)&((1ULL << 30) - 1)) << " " << (back(set) &((1ULL << 20) - 1)) << " " << shape.XValue << " " << pr << "\n";
                             pre = index.ysa[pos];
                         }
                         ++pos;
@@ -1703,7 +1704,6 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
             clear(crhit);
             mnMapReadList<TDna, TSpec>(index, reads[j], anchors, mapParm, crhit);
             path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
-            //printf("done1\n");
             if (_DefaultCord.getMaxLen(cordsTmp[c]) < length(reads[j]) * senThr)// && 
                //_DefaultCord.getMaxLen(cordsTmp[c]) > 0)
             {

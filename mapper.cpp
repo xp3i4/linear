@@ -75,13 +75,6 @@ int Mapper<TDna, TSpec>::createIndex()
     return 0;
 }
 
-template <typename TDna, typename TSpec>
-int Mapper<TDna, TSpec>::createIndex2_MF()
-{
-    std::cerr << ">[Creating index] \n";
-    createHIndex(genomes(), qIndex, _thread);
-    return 0;
-}
 
 template <typename TDna, typename TSpec>
 Pair<typename Mapper<TDna,TSpec>::HitType, typename Mapper<TDna, TSpec>::HitType>
@@ -296,6 +289,7 @@ void Mapper<TDna, TSpec>::printCordsRaw()
                     << _DefaultCord.getCordY(cordSet[k][j]) << " " << length(cordSet[k]) << " x " 
                     << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j])) << " " << cordCount << " "
                     << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << " " 
+                    //<< cordSet[k][j] 
                     << "\n";   
                     //flag = false;
                     cordCount = 0;
@@ -378,7 +372,7 @@ int map(Mapper<TDna, TSpec> & mapper)
     createFeatures(mapper.genomes(), f2, mapper.thread());
     
     //mapper.createIndex(); // true for parallel 
-    mapper.createIndex2_MF(); // this function will destroy genomes string during the creation to reduce memory footprint
+    mapper.createIndex(); // this function will destroy genomes string during the creation to reduce memory footprint
     //uint64_t blockSize = 10000;
     //uint64_t lenSum;
     SeqFileIn rFile(toCString(mapper.readPath()));
@@ -404,7 +398,7 @@ int map(Mapper<TDna, TSpec> & mapper)
         //clear (mapper.readsId());
     //}
     //mapper.printCordsAll();
-    mapper.printCordsRaw();
+    mapper.printCordsRaw2();
     return 0;
     //std::cerr << length(mapper.cords()) << " " << length(mapper.reads()) << " \n";
 }

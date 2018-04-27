@@ -2055,17 +2055,18 @@ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs,
  * state::warnning. for seq contains 'N', error. since the k in openmp doesn't change correctly
  */
 template <unsigned SHAPELEN>
-bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<SHAPELEN> > & shape, unsigned & threads)
+bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<SHAPELEN> > & shape, unsigned & threads, bool raw = true)
 {
     std::cerr << "[prallel createHsArray]\n";
     double time = sysTime();
     uint64_t hsRealEnd = 0;
     unsigned const step = 10;
-    resize (hs, lengthSum(seq) * 4/3);
+    resize (hs, lengthSum(seq) * 2/step + 1000);
     std::vector<int64_t> hsRealSize(threads, 0);
     std::vector<int64_t> seqChunkSize(threads, 0);
+    std::vector<int64_t> hss(threads, 0);
     //uint64_t seqChunkSize[4] = {0};
-
+    
     for(uint64_t j = 0; j < length(seq); j++)
     {
         uint64_t thd_count = 0; // count number of elements in hs[] for each thread
@@ -2083,13 +2084,15 @@ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs,
             {
                 seqChunkSize[thd_id] = size2 + 1;
                 start = (size2 + 1) * thd_id;
-                hsStart = hsRealEnd + (start << 1);
+                hsStart = hsRealEnd + (start << 1) / step + thd_id * 10;
+                hss[thd_id] = hsStart;
             }
             else
             {
                 seqChunkSize[thd_id] = size2;
                 start =  length(seq[j]) + 1 - tshape.span - size2 * (threads - thd_id);
-                hsStart = hsRealEnd + (start << 1);
+                hsStart = hsRealEnd + (start << 1) / step + thd_id * 10;
+                hss[thd_id] = hsStart;
             }
  
             hashInit(tshape, begin(seq[j]) + start);
@@ -2139,7 +2142,8 @@ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs,
         }
         for (unsigned j = 1; j < threads; j++)
         {
-            uint64_t it = hsRealEnd + (seqChunkSize[j - 1] << 1);
+            //uint64_t it = hsRealEnd + (seqChunkSize[j - 1] << 1);
+            uint64_t it = hss[j];
             for (uint64_t k = hsRealEnd + hsRealSize[j - 1]; k < hsRealEnd + hsRealSize[j]; k++)
             {
                 hs[k] = hs[it];
@@ -3062,7 +3066,8 @@ uint64_t & indexEmptyDir, unsigned & threads)
 {
     typedef Shape<Dna5, Minimizer<SHAPELEN> > ShapeType;
     double time = sysTime();
-    _createHsArray2_MF(seq, hs, shape, threads);
+    //_createHsArray2_MF(seq, hs, shape, threads);
+    _createHsArray(seq, hs, shape, threads);
     _createYSA<LENGTH<ShapeType>::VALUE, WGHT<ShapeType>::VALUE>(hs, xstr, indexEmptyDir, threads);
     std::cerr << "  End creating Index Time[s]:" << sysTime() - time << " \n";
     return true; 
