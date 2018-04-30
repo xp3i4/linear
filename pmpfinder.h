@@ -941,13 +941,13 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
         // if (_DefaultHs.getHsBodyY(index.ysa[std::min(pos + mapParm.delta, length(index.ysa) - 1)]) ^ shape.YValue)
             //{
                 //while (_DefaultHs.isBodyYEqual(index.ysa[pos], shape.YValue))
-                //printf ("[debug]::getIndexMatchAll:ptr %d\n", _DefaultHs.getHeadPtr(index.ysa[pos - 1]));
                 if (_DefaultHs.getHeadPtr(index.ysa[pos-1]) < mapParm.delta)
                 {
           //          unsigned pr = _DefaultHs.getHeadPtr(index.ysa[pos-1]);
-                    while (_DefaultHs.isBody(index.ysa[pos]))
+                    //while (_DefaultHs.isBody(index.ysa[pos]))
+                //std::cout << "[debug]::k " << k << std::endl;
+                    while (_DefaultHs.getHsBodyY(index.ysa[pos]) == shape.YValue || _DefaultHs.getHsBodyY(index.ysa[pos]) == 0)
                     {
-                        //printf("done\n");
     //!Note: needs change
     //!Note: the sa is in reverse order in hindex. this is different from the generic index
                         //if (pre - index.ysa[pos] > mapParm.kmerStep)

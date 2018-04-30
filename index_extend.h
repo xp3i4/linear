@@ -1213,6 +1213,11 @@ struct Hs
         return val & (_DefaultHsBase.bodyCodeFlag);
     }
     
+    void setHsBodyY(uint64_t & val, uint64_t y, uint64_t const & bit = _DefaultHsBase.bodyYBit, uint64_t const & mask = _DefaultHsBase.bodyYMask)
+    {
+       val = (val & (~(mask << bit))) | (y << bit);
+    }
+    
 }_DefaultHs;
 
 //XNode = struct v1[64],v2[32]: .v1: hashvalue; .v2:pointer to YNode
@@ -3030,8 +3035,29 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
         if (_DefaultHs.isHead(hs[m]) && _DefaultHs.getHeadPtr(hs[m]))
         {
             ptr = _DefaultHs.getHeadPtr(hs[m]);
-            requestXNode_noCollision_Atomic(xstr, _DefaultHs.getHeadX(hs[m]), 
-                       m + 1, _DefaultXNodeBase.xHead, _DefaultXNodeBase.returnDir);
+            if (ptr < blocklimit)
+            {
+                for (unsigned j = m + 1; j < m + ptr; j++)
+                {
+                    _DefaultHs.setHsBodyY(hs[j], 0);
+                }
+                requestXNode_noCollision_Atomic(xstr, _DefaultHs.getHeadX(hs[m]), 
+                       m + 1, _DefaultXNodeBase.xHead, _DefaultXNodeBase.returnDir);   
+            }
+            else
+            {
+                uint64_t xval = _DefaultHs.getHeadX(hs[m]);
+                requestXNode_noCollision(xstr, xval, 
+                    ~1, _DefaultXNodeBase.virtualHead, _DefaultXNodeBase.returnDir);
+                for (unsigned j = m + 1; j < m + ptr; j++)
+                {
+                    if(_DefaultHs.getHsBodyY(hs[j] ^ hs[j - 1]))
+                    {
+                        requestXNode_noCollision(xstr, (xval + ((hs[j] & ((1ULL<<61) - (1ULL<<41))) >>1)), 
+                            j, _DefaultXNodeBase.xHead, _DefaultXNodeBase.returnDir);
+                    }
+                }
+            }
         }
     }
 }
