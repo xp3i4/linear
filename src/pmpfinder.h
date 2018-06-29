@@ -942,6 +942,7 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
             //{
                 //while (_DefaultHs.isBodyYEqual(index.ysa[pos], shape.YValue))
                 if (_DefaultHs.getHeadPtr(index.ysa[pos-1]) < mapParm.delta)
+                //if (_DefaultHs.getHeadPtr(index.ysa[pos-1]) < 1000000)
                 {
           //          unsigned pr = _DefaultHs.getHeadPtr(index.ysa[pos-1]);
                     //while (_DefaultHs.isBody(index.ysa[pos]))
@@ -967,7 +968,7 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
 
                                 appendValue(set, ((_DefaultHs.getHsBodyS(index.ysa[pos]) - k) << 20) | k);
                             }
-                            //std::cout << "[debug]::getIndexMatchAll " << ((back(set) >> 20)&((1ULL << 30) - 1)) << " " << (back(set) &((1ULL << 20) - 1)) << " " << shape.XValue << " " << pr << "\n";
+                            //std::cout << "[debug]::getIndexMatchAll " << ((back(set) >> 20)&((1ULL << 30) - 1)) << " " << (back(set) &((1ULL << 20) - 1)) << " " << shape.XValue << " "  << "\n";
                             pre = index.ysa[pos];
                         }
                         ++pos;

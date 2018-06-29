@@ -3047,6 +3047,8 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
             else
             {
                 uint64_t xval = _DefaultHs.getHeadX(hs[m]);
+                //printf ("[debug]::hash %" PRIu64 " %d\n", xval, ptr);
+                
                 requestXNode_noCollision(xstr, xval, 
                     ~1, _DefaultXNodeBase.virtualHead, _DefaultXNodeBase.returnDir);
                 for (unsigned j = m + 1; j < m + ptr; j++)
