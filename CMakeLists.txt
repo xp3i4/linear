@@ -1,121 +1,27 @@
 # ===========================================================================
-#                  SeqAn - The Library for Sequence Analysis
-# ===========================================================================
-# File: /apps/pacMapper/CMakeLists.txt
-#
-# CMakeLists.txt file for INDEX_BENCH.
+# Linear
 # ===========================================================================
 
-cmake_minimum_required (VERSION 2.8.2)
-project (seqan_apps_pacMapper)
-message (STATUS "Configuring apps/pacMapper")
-
-set (SEQAN_APP_VERSION "1.1.1")
+cmake_minimum_required (VERSION 3.0.0)
+project (linear CXX)
 
 # ----------------------------------------------------------------------------
-# Dependencies
-# ----------------------------------------------------------------------------
-find_package(CXX11 REQUIRED)
-if (NOT CXX11_FOUND)
-    message (STATUS " C++11 compiler needed to build pacMapper")
-    return ()
-endif (NOT CXX11_FOUND)
-
-find_package(OpenMP)
-if (OPENMP_FOUND)
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-else()
-    message (STATUS "OpenMP needed to build pacMapper")
-endif()
-
-# Search SeqAn and select dependencies.
-set (SEQAN_FIND_DEPENDENCIES NONE)
-find_package (SeqAn REQUIRED)
-
-# ----------------------------------------------------------------------------
-# Build Setup
+# Begin of dependency detection
 # ----------------------------------------------------------------------------
 
-# Add include directories.
-include_directories (${SEQAN_INCLUDE_DIRS})
-
-# Add definitions set by find_package (SeqAn).
-add_definitions (${SEQAN_DEFINITIONS})
-
-# Add definitions set by the build system.
-add_definitions (-DSEQAN_APP_VERSION="${SEQAN_APP_VERSION}")
-add_definitions (-DSEQAN_REVISION="${SEQAN_REVISION}")
-add_definitions (-DSEQAN_DATE="${SEQAN_DATE}")
-
-# Update the list of file names below if you add source files to your application.
-add_executable (pacMapper mapper.cpp mapper.h base.h index_extend.h shape_extend.h mapparm.h)
-add_executable (testCasePacMapper testCase.cpp mapper.h base.h index_extend.h shape_extend.h mapparm.h)
-
-# Add dependencies found by find_package (SeqAn).
-target_link_libraries (pacMapper ${SEQAN_LIBRARIES})
-target_link_libraries (testCasePacMapper ${SEQAN_LIBRARIES})
-
-# Add CXX flags found by find_package (SeqAn).
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS} ${CXX11_CXX_FLAGS}")
+message (${CMAKE_CURRENT_SOURCE_DIR})
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/seqan/include/seqan/version.h")
+    set (CMAKE_INCLUDE_PATH
+        ${CMAKE_CURRENT_SOURCE_DIR}/seqan/include/
+        ${CMAKE_INCLUDE_PATH})
+    set (CMAKE_MODULE_PATH
+        ${CMAKE_CURRENT_SOURCE_DIR}/seqan/util/cmake
+        ${CMAKE_MODULE_PATH})
+endif ()
 
 # ----------------------------------------------------------------------------
-# Installation
+# Add linear targets
 # ----------------------------------------------------------------------------
 
-# Set variables for installing, depending on the selected build type.
-if (NOT SEQAN_PREFIX_SHARE_DOC)
-  seqan_setup_install_vars (pacMapper)
-  seqan_setup_install_vars (testCasePacMapper)
-endif (NOT SEQAN_PREFIX_SHARE_DOC)
-
-# Install pacMapper in ${PREFIX}/bin directory
-install (TARGETS pacMapper
-         DESTINATION bin)
-
-install (TARGETS testCasePacMapper
-         DESTINATION bin)
-# Install non-binary files for the package to "." for app builds and
-# ${PREFIX}/share/doc/pacMapper
-install (FILES LICENSE
-               README
-         DESTINATION ${SEQAN_PREFIX_SHARE_DOC})
-install (FILES example/small.fasta
-         DESTINATION ${SEQAN_PREFIX_SHARE_DOC}/example)
-
-# ----------------------------------------------------------------------------
-# App Test
-# ----------------------------------------------------------------------------
-
-#seqan_add_app_test (pacMapper)
-
-# ----------------------------------------------------------------------------
-# Setup Common Tool Description for Generic Workflow Nodes
-# ----------------------------------------------------------------------------
-
-# Include executable seqan_tcoffee in CTD structure.
-set (SEQAN_CTD_EXECUTABLES ${SEQAN_CTD_EXECUTABLES} pacMapper CACHE INTERNAL "")
-set (SEQAN_CTD_EXECUTABLES ${SEQAN_CTD_EXECUTABLES} testCasePacMapper CACHE INTERNAL "")
-
-# ----------------------------------------------------------------------------
-# CPack Install
-# ----------------------------------------------------------------------------
-
-if (SEQAN_BUILD_SYSTEM STREQUAL "APP:pacMapper")
-  set (CPACK_PACKAGE_NAME "pacMapper")
-  set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "pacMapper - Alignment Free Sequence Comparison")
-  set (CPACK_DEBIAN_PACKAGE_MAINTAINER "Chenxu Pan <chenxu.pan@fu-berlin.de>")
-  set (CPACK_PACKAGE_VENDOR "SeqAn Team, FU Berlin")
-
-  seqan_configure_cpack_app (pacMapper "pacMapper")
-endif (SEQAN_BUILD_SYSTEM STREQUAL "APP:pacMapper")
-
-if (SEQAN_BUILD_SYSTEM STREQUAL "APP:testCasePacMapper")
-  set (CPACK_PACKAGE_NAME "testCasePacMapper")
-  set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "testCasePacMapper - Alignment Free Sequence Comparison")
-  set (CPACK_DEBIAN_PACKAGE_MAINTAINER "Chenxu Pan <chenxu.pan@fu-berlin.de>")
-  set (CPACK_PACKAGE_VENDOR "SeqAn Team, FU Berlin")
-
-  seqan_configure_cpack_app (pacMapper "testCasePacMapper")
-endif (SEQAN_BUILD_SYSTEM STREQUAL "APP:testCasePacMapper")
+add_subdirectory(src)
 
