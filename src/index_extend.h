@@ -1796,7 +1796,7 @@ inline bool _hsSortX_2(TIt const & begin, TIt const & end, unsigned const & xVal
 */
 
 /*
- * interface for sorting x
+ * Interface to sort x
  */
 template <typename TIt>
 inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBitLen, unsigned threads)
@@ -2172,9 +2172,9 @@ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs,
 }
 
 /*
- * parallel creat hash array
+ * parallel create hash array
  * creating index only collecting mini hash value [minindex]
- * genomes will be detroyed during the functoin to reduce memory consumption
+ * genomes will be destroyed during the function to reduce memory consumption
  * state::debug
 template <unsigned SHAPELEN>
 bool _createHsArray2_MF(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<SHAPELEN> > & shape, unsigned & threads)

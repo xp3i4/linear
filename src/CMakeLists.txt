@@ -59,7 +59,7 @@ set (CMAKE_BUILD_TYPE Release)
 # ----------------------------------------------------------------------------
 
 # Install linear in ${PREFIX}/bin directory
-install (TARGETS linear RUNTIME DESTINATION "${CMAKE_HOME_DIRECTORY}/bin")
+install (TARGETS linear RUNTIME DESTINATION "${CMAKE_BINARY_DIR}/bin")
 
 
 
