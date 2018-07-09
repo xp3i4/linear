@@ -34,6 +34,7 @@
 
 #include "base.h"
 #include "pmpfinder.h"
+#include "gap.h"
 #include "mapparm.h"
 
 #ifndef SEQAN_HEADER_PACMAPPER_H

@@ -1,4 +1,4 @@
-# qbdnb
+# Linear
  
 Tools for mapping reads efficiently. 
 

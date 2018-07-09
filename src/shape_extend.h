@@ -573,8 +573,8 @@ hashNextX(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
     //typedef typename Size< Shape<TValue, TSpec> >::Type  TSize;
     SEQAN_ASSERT_GT((unsigned)me.span, 0u);
     uint64_t v1;
-    unsigned t, span = TSPAN << 1, weight = TWEIGHT << 1;
-    uint64_t v2;
+    unsigned span = TSPAN << 1, weight = TWEIGHT << 1;
+    uint64_t t, v2;
     if (me.x > 0)
     {
         v2 =me.hValue; 
@@ -601,7 +601,11 @@ hashNextX(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
     return me.XValue; 
 }
 
-
+template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec>
+inline uint64_t getT(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > & me)
+{
+    return (me.YValue >> ((TSPAN - TWEIGHT) << 1));
+}
 
 /*
  * bit twiddling hash , first 1
@@ -716,6 +720,8 @@ public:
 */
 
 }
+
+
 // namespace seqan
 
 

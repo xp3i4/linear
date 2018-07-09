@@ -262,31 +262,6 @@ int mergeGap(String <std::pair<uint64_t, uint64_t> > & gaps)
     resize (gaps, pt);
 }
 */
-//N/A[2]|strand[1]|N/A[1]|anchor[40]|coord[20]
-//strand = 1 or -1 
-struct ACoordBase
-{
-    unsigned const sBitLen = 1;
-    unsigned const aBitLen = 40;
-    unsigned const cBitlen = 20;
-    unsigned const sBit = 61;
-    
-    uint64_t const amask = (1ULL << aBitLen) - 1;
-    
-}_defaultACoordBase;
-
-struct ACoord
-{
-    makeValue(uint64_t strand, uint64_t anchor, uint64_t coord) 
-    {
-        return (((anchor * strand) & _defaultACoordBase.amask) << abit) + coord;
-    }
-    uint64_t reverseAnchor(uint64_t & anchor, uint64_t const & mask = _defaultACoordBase.amask)
-    {
-        return (-anchor) & mask
-    }
-    
-}_defaultACoord;
 
 /*
  * flip strand from 0, 1 to -1, 1;
@@ -297,6 +272,49 @@ inline uint64_t _nStrand(uint64_t strand)
 {
     return (strand << 1) - 1;
 }
+
+//N/A[2]|anchor[41]|coord[20]
+//strand = 1 or -1 
+//anchor = anchor' * strand
+//anchor = (~anchor') + 1 & ((1ULL << 41) - 1)
+struct ACoordBase
+{
+    //unsigned const sBitLen = 1;
+    unsigned const aBitLen = 41;
+    unsigned const cBitLen = 20;
+    //unsigned const sBit = 61;
+    
+    uint64_t const amask = (1ULL << aBitLen) - 1;
+    uint64_t const cmask = (1ULL << cBitLen) - 1;
+    
+}_defaultACoordBase;
+
+struct ACoord
+{
+    uint64_t makeValue(uint64_t cf, uint64_t cr,  uint64_t strand,
+                       uint64_t const & bit = _defaultACoordBase.cBitLen) 
+    {
+        return ((cf + _nStrand(strand) * cr) << bit) + _nStrand(strand) * cr;
+    }
+    uint64_t reverseAnchor(uint64_t & anchor, uint64_t const & mask = _defaultACoordBase.amask)
+    {
+        return (-anchor) & mask;
+    }
+    uint64_t getAnchor (uint64_t & val, 
+                        uint64_t const & mask = _defaultACoordBase.amask, 
+                        uint64_t const & bit = _defaultACoordBase.cBitLen) 
+    {
+        return (val << bit) & mask;
+    }
+    uint64_t getCoord (uint64_t & val, 
+                       uint64_t const & mask = _defaultACoordBase.cmask)
+    {
+        return val & mask;
+    }
+    
+}_defaultACoord;
+
+
 
 int mapGap_(GIndex & g_index, String <Dna5> & read,  uint64_t start2, uint64_t end2)
 {
@@ -318,9 +336,9 @@ int mapGap_(GIndex & g_index, String <Dna5> & read,  uint64_t start2, uint64_t e
                 while (_defaultGNode.getXValue(g_index.g_hs[hsStart]) == g_index.shape.XValue)
                 {
                     uint64_t strand = _defaultGNode.getStrand(g_index.g_hs[hsStart]) ^ g_index.shape.strand;
-                    //appendValue(anchor, ((_defaultGNode.getCoord(g_index.g_hs[hsStart]) + _nStrand(strand) * k) << 20) | k | (strand << 63));
-                    appendValue(anchor,  _defaultACoord.makeValue(_defaultGNode.getCoord(g_index.g_hs[hsStart]) +
-                                _nStrand(strand) * k, k, strand));
+                    appendValue(anchor, ((_defaultGNode.getCoord(g_index.g_hs[hsStart]) + _nStrand(strand) * k) << 20) | k | (strand << 63));
+                    //appendValue(anchor,  _defaultACoord.makeValue(_defaultGNode.getCoord(g_index.g_hs[hsStart]), 
+                    //                                              strand, k));
                     ++hsStart;
                     // if strand == 1, on different strands
                     // + k
@@ -339,38 +357,42 @@ int mapGap_(GIndex & g_index, String <Dna5> & read,  uint64_t start2, uint64_t e
     std::sort (begin(anchor), end(anchor));
     appendValue (anchor, ~0);
     uint64_t prek = 0;
+    /*
     for (unsigned k = 0; k < length(anchor); k++)
     {
         //TODO: handle thd_min_segment, anchor 
         //if (anchor[k] - anchor[prek] > thd_segment * anchor[] )
         if (anchor[k] - anchor[prek] > (thd_error_percent * std::max(thd_min_segment, anchor) << 20) )
+        if (_defaultACoord.getAnchor(anchor[k] - anchor[prek]) > 
+            thd_error_percent * std::max(thd_min_segment, _defaultACoord.getCoord(anchor[k] - anchor[prek]) ))
         {
             std::sort (begin(anchor) + prek, begin(anchor) + k, 
                        [](uint64_t & s1, uint64_t & s2){
-              //  return _defaultAnchorCoord.getCoord(s2 - s1) > 0;
-                return (s2 & ((1ULL << 20) - 1)) > (s1 & ((1ULL << 20) - 1)) ;
+                return _defaultACoord.getCoord(s2) > _defaultACoord.getCoord(s1);
             });
-            /*
+            
             for (unsigned j = prek; j < k; j++)
             {
                 if ()
             }
-            */
+            
             prek = k;
         //TODO:transform seed to tiles
         }
     }
+    
     for (unsigned k = 0; k < length (anchor); k++)
     {
-        std::cout << "[]::mapGap_ " << (anchor[k] >> 20) << " " << (anchor[k] & ((1 << 20) - 1)) << "\n";
+        std::cout << "[]::mapGap_ " << _defaultACoord.getAnchor(anchor[k]) << " " << _defaultACoord.getCoord(Anchor[k]) << "\n";
     }
+    */
 }
 
 int mapGap(String <Dna5> & seq, String <Dna5> & read, Gap & gap)
 {
     GIndex g_index;
     g_createDir(seq, gap.getStart1(), gap.getEnd1(), g_index);
-    mapGap_ (g_index, read, gap.getStart2(), gap.getEnd2());
+    //mapGap_ (g_index, read, gap.getStart2(), gap.getEnd2());
     //mapGap_ (g_index, _reverse(read), length(read) - end2 - 1, length(read) - start2 - 1);
     //optimizeGap();
     return 0;

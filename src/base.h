@@ -486,10 +486,33 @@ template <typename TDna>
 int PMRecord<TDna>::loadRecord(Options & options)
 {
     double time = sysTime();
-    std::cerr <<"loading sequences from files \r";
+    //std::cerr <<"Loading sequences from files \r";
+    std::fstream fin (toCString(options.gPath), std::fstream::in);
+    std::string buffer;
+    uint64_t sno = 0;
+    for (unsigned k = 0; getline(fin, buffer); k++)
+    {
+        if (buffer.compare(0, 1, ">") == 0)
+        {
+            sno++;
+        }
+    }
+    std::cerr << "[]::loadRecord " << sno << "\n";
     //std::cerr << "loading sequences from files \r";
     //SeqFileIn rFile(toCString(options.rPath));
     SeqFileIn gFile(toCString(options.gPath));
+    unsigned k = 0;
+    /*
+    resize (id2, sno);
+    resize (seq2, sno);
+    while (!atEnd(gFile))
+    {
+        std::cerr << "reading genomes " << (k + 1) << " of " << sno << "\r";
+        readRecord(id2[k], seq2[k], gFile);
+        ++k;
+    }
+    std::cerr << "                                    \r";
+    */
     //while (!atEnd(rFile))
     //{
     //    try
@@ -512,9 +535,10 @@ int PMRecord<TDna>::loadRecord(Options & options)
     //}
     //readRecords(id1, seq1, rFile);
     readRecords(id2, seq2, gFile);
-    std::cerr << ">load sequences                     " << std::endl;
-    std::cerr << "    Read " <<  length(seq2) << " genomes from " << options.gPath << std::endl;
-    std::cerr << "    End loading sequences. Time[s] " << sysTime() - time << std::endl;
+    std::cerr << ">Read reference genomes                     " << std::endl;
+    std::cerr << "    " << length(seq2) << " sequences loaded from " << options.gPath << std::endl;
+    //std::cerr << "    End loading sequences. Time[s] " << sysTime() - time << std::endl;
+    std::cerr << "    Elapsed time " << sysTime() - time << " [s]" << std::endl;
     return 0;
 }
 

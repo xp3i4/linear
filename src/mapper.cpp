@@ -513,7 +513,9 @@ int main(int argc, char const ** argv)
         return res == seqan::ArgumentParser::PARSE_ERROR;
     Mapper<> mapper(options);
     //mapper.printParm();
-    map(mapper);
+    //map(mapper);
+    // test gindex
+    g_test (mapper.genomes()[0]);
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
 
     return 0;

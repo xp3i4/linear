@@ -929,14 +929,6 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
                 tt1 = sysTime();
                 uint64_t pos = getXDir(index, shape.XValue, shape.YValue);
                 tt += sysTime() - tt1;
-            
-            //printf("[debug]done %d \n");
-        //  if (pos > length(index.ysa))
-        //  {
-        //      std::cout << "[debug]::getIndexMatchAll::1 " << pos << " " << length(index.ysa) << "\n";
-        //      return 1;
-        //  }
-            //printf("[debug]%d\n", pos);
 //!Note: This contition is different from single strand which will slightly 
 //changes the senstivity; In the single strand index, if the size of the block having the same
 //is > mapParm.delta, then the block of the ysa will not be used. 
@@ -955,8 +947,7 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
                     {
     //!Note: needs change
     //!Note: the sa is in reverse order in hindex. this is different from the generic index
-                        //if (pre - index.ysa[pos] > mapParm.kmerStep)
-                        //printf("[debug]::getIndexMatchAll %d\n", count++);
+                        
                         if (_DefaultHs.getHsBodyS(pre - index.ysa[pos]) > mapParm.kmerStep)
                         {
                             //[COMT]::condition of complement reverse strand
@@ -1097,7 +1088,6 @@ inline uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, 
             if (c_b > mapParm.anchorLenThr * readLen)
             {
                 anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
-                //printf("[debug]::getAnchorMatchList:2 %d \n", lcount);
                 list[lcount++] = (c_b << 40) + (sb << 20) + k;
             }
             sb = k;
@@ -1118,7 +1108,6 @@ inline uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, 
         std::sort (list, list + lcount, std::greater<uint64_t>());
         for (unsigned k = 0; k < mapParm.listN; k++)
         {
-          //if ((((list[0] >> 1) - list[k]) >> 63 )  && list[k])
           if (((list[0] / 10) < list[k])  && list[k])
           {
               sb = ((list[k] >> 20) & mask);
@@ -1126,21 +1115,12 @@ inline uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, 
               for (unsigned n = sb; n < sc; n++)
               {
                   appendValue(hit, anchors[n]);
-                //std::cout << "[debug] " << ((anchors[n] >> 20)&((1ULL << 30) - 1)) << " " << (anchors[n] &((1ULL << 20) - 1)) << "\n";
               }   
-            //printf("[debug] list_len %d %d \n", sc, (list[k] >> 40));
-            //std::cout << "num block " << sc - sb << "\n";
               _DefaultHit.setBlockEnd(back(hit));
           }
           else
               break;
         }
-     //   for (unsigned k = 0; k < length(hit); k++)
-     //   {
-     //       std::cout << hit[k] << "\n";
-     //   }
-        //printf("\n");
-    //printf("done\n");
         return (list[0] >> 40);   
     }
     else
