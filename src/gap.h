@@ -169,17 +169,26 @@ struct Gap_
 }_defaultGap_;
 */
 
-//gap start[40]|gap length[24]
+//gap id[10]|start[30]|gap length[24]
+
 struct gapbase_
 {
-    const unsigned cBitLen = 40;
+    const unsigned iBitLen = 10;
+    const unsigned cBitLen = 30;
     const unsigned bBitLen = 24;
+    const unsigned imask = (1ULL << iBitLen) - 1;
     const unsigned cmask = (1ULL << cBitLen) - 1;
     const unsigned bmask = (1ULL << bBitLen) - 1;
 } _defaultgapbase_;
 
 struct Gap_
 {
+    inline uint64_t getId (uint64_t & val, 
+                           uint64_t const & bit = _defaultgapbase_.cBitLen + _defaultgapbase_.bBitLen,
+                           uint64_t const & mask = _defaultgapbase_.bmask)
+    {
+        return (val >> bit) & mask;
+    }
     inline uint64_t getStart(uint64_t & val, 
                       uint64_t const & bit = _defaultgapbase_.bBitLen, 
                       uint64_t const & mask = _defaultgapbase_.cmask)
@@ -208,6 +217,14 @@ struct Gap
 {
     uint64_t gap1; //seq
     uint64_t gap2; //read
+    inline uint64_t getId1()
+    {
+        return _defaultGap_.getId(gap1);
+    }
+    inline uint64_t getId2()
+    {
+        return _defaultGap_.getId(gap2);
+    }
     inline uint64_t getStart1 ()
     {
         return _defaultGap_.getStart (gap1);
@@ -224,7 +241,10 @@ struct Gap
     {
         return _defaultGap_.getEnd (gap2);
     }
-    
+    Gap()
+    {
+        
+    }
     Gap(uint64_t start1, uint64_t end1, uint64_t start2, uint64_t end2)
     {
         gap1 = _defaultGap_.makeValue (start1, end1 - start1);
@@ -236,6 +256,12 @@ struct Gap
         gap2 = _defaultGap_.makeValue (start2, end2 - start2);   
     }
 };
+
+inline Gap makeGap (uint64_t start1, uint64_t end1, uint64_t start2, uint64_t end2)
+{    
+    Gap gap (start1, end1, start2, end2);
+    return gap;
+}
 
 /*
  * Merge gaps in the reference  
@@ -273,16 +299,14 @@ inline uint64_t _nStrand(uint64_t strand)
     return (strand << 1) - 1;
 }
 
-//N/A[2]|anchor[41]|coord[20]
-//strand = 1 or -1 
-//anchor = anchor' * strand
-//anchor = (~anchor') + 1 & ((1ULL << 41) - 1)
+//N/A[2]strand[1]|N/A[1]|anchor[40]|coord[20]
+//strand = 1 or 0
 struct ACoordBase
 {
-    //unsigned const sBitLen = 1;
-    unsigned const aBitLen = 41;
+    unsigned const sBitLen = 1;
+    unsigned const aBitLen = 40;
     unsigned const cBitLen = 20;
-    //unsigned const sBit = 61;
+    unsigned const sBit = 61;
     
     uint64_t const amask = (1ULL << aBitLen) - 1;
     uint64_t const cmask = (1ULL << cBitLen) - 1;
@@ -291,40 +315,94 @@ struct ACoordBase
 
 struct ACoord
 {
-    uint64_t makeValue(uint64_t cf, uint64_t cr,  uint64_t strand,
+    inline uint64_t makeValue(uint64_t cf, uint64_t cr,  uint64_t strand,
+                       uint64_t const & sbit = _defaultACoordBase.sBit,
                        uint64_t const & bit = _defaultACoordBase.cBitLen) 
     {
-        return ((cf + _nStrand(strand) * cr) << bit) + _nStrand(strand) * cr;
+        return (strand << sbit) + ((cf + _nStrand(strand) * cr) << bit) + cr;
     }
-    uint64_t reverseAnchor(uint64_t & anchor, uint64_t const & mask = _defaultACoordBase.amask)
+    inline uint64_t reverseAnchor(uint64_t & anchor, uint64_t const & mask = _defaultACoordBase.amask)
     {
         return (-anchor) & mask;
     }
-    uint64_t getAnchor (uint64_t & val, 
+    inline uint64_t getAnchor (uint64_t val, 
                         uint64_t const & mask = _defaultACoordBase.amask, 
-                        uint64_t const & bit = _defaultACoordBase.cBitLen) 
+                        uint64_t const & bit = _defaultACoordBase.cBitLen,
+                        uint64_t const & mask2 = (1ULL << _defaultACoordBase.sBit)) 
     {
-        return (val << bit) & mask;
+        return (val & mask2) + ((val >> bit) & mask);
     }
-    uint64_t getCoord (uint64_t & val, 
+    inline uint64_t getCoord (uint64_t val, 
                        uint64_t const & mask = _defaultACoordBase.cmask)
     {
         return val & mask;
     }
+    inline uint64_t getX (uint64_t val, 
+                   uint64_t const & bit = _defaultACoordBase.cBitLen, 
+                   uint64_t const & mask = _defaultACoordBase.amask, 
+                   uint64_t const & bit2 = _defaultACoordBase.sBit,
+                   uint64_t const & mask3 = _defaultACoordBase.cmask
+                  )
+    {
+        return ((val >> bit) & mask) + _nStrand((val >> bit2) & 1) * (val & mask3);
+    }
+    inline uint64_t getY (uint64_t val)
+    {
+        return getCoord(val);
+    }
     
 }_defaultACoord;
 
-
-
-int mapGap_(GIndex & g_index, String <Dna5> & read,  uint64_t start2, uint64_t end2)
+//Tile N/A[2]|strand[1]|tileEnd[1]|x[40]|y[20]
+//same format as cord
+struct TileBase
 {
+    uint64_t const xBitLen = 40;
+    uint64_t const yBitLen = 20;
+    uint64_t const xmask = (1ULL << xBitLen) - 1;
+    uint64_t const ymask = (1ULL << yBitLen) - 1;
+}_defaultTileBase;
+
+struct Tile
+{
+    inline uint64_t getX (uint64_t val, 
+                   uint64_t const & bit = _defaultTileBase.yBitLen,  
+                   uint64_t const & mask = _defaultTileBase.xmask)
+    {
+        return (val >> bit) & mask;
+    }
+    inline uint64_t getY (uint64_t val, 
+                   uint64_t const & mask = _defaultTileBase.ymask)
+    {
+        return val & mask;
+    }
+    inline uint64_t makeValue(uint64_t x, uint64_t y, uint64_t const & bit = _defaultTileBase.yBitLen)
+    {
+        return (x << bit) + y;
+    }
+    
+}_defaultTile;
+
+inline uint64_t acoord2Tile(uint64_t val, 
+                         uint64_t const & bit = _defaultACoordBase.cBitLen,
+                         uint64_t const & bit2 = _defaultACoordBase.sBit,
+                         uint64_t const & mask = _defaultACoordBase.cmask)
+{
+    return val + ((_nStrand((val >> bit2) & 1) * (val & mask)) << bit);
+}
+
+int mapGap_(GIndex & g_index, String <Dna5> & read,  uint64_t start2, uint64_t end2, 
+            String<uint64_t> & tile, uint64_t const thd_tileSize)
+{
+    //TODO: this parameter needs discussion.
     float thd_error_percent = 0.2; 
-    unsigned thd_min_segment = 100;
+    uint64_t thd_min_segment = 100;
     double time = sysTime();
     unsigned count = 0, step = 5;
     uint64_t preX = 0;
     String <uint64_t> anchor;
     hashInit(g_index.shape, begin(read) + start2);
+    std::cout << "[]::mapGap_ " << start2 << " " << end2 << "\n";
     for (unsigned k = start2; k < end2; k++)
     {
         if (++count == step)
@@ -333,18 +411,23 @@ int mapGap_(GIndex & g_index, String <Dna5> & read,  uint64_t start2, uint64_t e
             if (g_index.shape.XValue != preX)
             {
                 uint64_t hsStart = g_index.g_dir[g_index.shape.XValue]; 
-                while (_defaultGNode.getXValue(g_index.g_hs[hsStart]) == g_index.shape.XValue)
+                //NOTE: For efficiency, the index.dir is uninitialized. 
+                //So it contains pointers point to the memory out of the boundary of index.hs. 
+                //So before searching the value, the boundary must be checked.
+                if (hsStart < length(g_index.g_hs) )
                 {
-                    uint64_t strand = _defaultGNode.getStrand(g_index.g_hs[hsStart]) ^ g_index.shape.strand;
-                    appendValue(anchor, ((_defaultGNode.getCoord(g_index.g_hs[hsStart]) + _nStrand(strand) * k) << 20) | k | (strand << 63));
-                    //appendValue(anchor,  _defaultACoord.makeValue(_defaultGNode.getCoord(g_index.g_hs[hsStart]), 
-                    //                                              strand, k));
-                    ++hsStart;
-                    // if strand == 1, on different strands
-                    // + k
-                    // if strand == 0,   on the same strand
-                    // - k
-                }   
+                    while (_defaultGNode.getXValue(g_index.g_hs[hsStart]) == g_index.shape.XValue)
+                    {
+                        uint64_t strand = _defaultGNode.getStrand(g_index.g_hs[hsStart]) ^ g_index.shape.strand;
+                        //appendValue(anchor, ((_defaultGNode.getCoord(g_index.g_hs[hsStart]) + _nStrand(strand) * k) << 20) | k | (strand << 63));
+                        appendValue(anchor, _defaultACoord.makeValue(_defaultGNode.getCoord(g_index.g_hs[hsStart]), k, strand));
+                        ++hsStart;
+                        // if strand == 1,  different strands
+                        // + k
+                        // if strand == 0,  the same strand
+                        // - k
+                    }   
+                }
                 preX = g_index.shape.XValue;
             }
             count = 0;
@@ -357,102 +440,99 @@ int mapGap_(GIndex & g_index, String <Dna5> & read,  uint64_t start2, uint64_t e
     std::sort (begin(anchor), end(anchor));
     appendValue (anchor, ~0);
     uint64_t prek = 0;
-    /*
     for (unsigned k = 0; k < length(anchor); k++)
     {
         //TODO: handle thd_min_segment, anchor 
-        //if (anchor[k] - anchor[prek] > thd_segment * anchor[] )
-        if (anchor[k] - anchor[prek] > (thd_error_percent * std::max(thd_min_segment, anchor) << 20) )
-        if (_defaultACoord.getAnchor(anchor[k] - anchor[prek]) > 
-            thd_error_percent * std::max(thd_min_segment, _defaultACoord.getCoord(anchor[k] - anchor[prek]) ))
+        if (_defaultACoord.getAnchor(anchor[k]) - _defaultACoord.getAnchor(anchor[prek]) > 
+            thd_error_percent * std::max(thd_min_segment, _defaultACoord.getCoord(anchor[k] - anchor[prek])))
         {
             std::sort (begin(anchor) + prek, begin(anchor) + k, 
                        [](uint64_t & s1, uint64_t & s2){
                 return _defaultACoord.getCoord(s2) > _defaultACoord.getCoord(s1);
             });
-            
-            for (unsigned j = prek; j < k; j++)
+            appendValue(tile, acoord2Tile(anchor[prek]));
+            for (unsigned j = prek + 1; j < k; j++)
             {
-                if ()
+                //add a tile if anchor[j] is not in the last tile
+                if (_defaultACoord.getX(anchor[j]) > _defaultTile.getX(back(tile)) + thd_tileSize
+                 || _defaultACoord.getY(anchor[j]) > _defaultTile.getY(back(tile)) + thd_tileSize)
+                {
+                    appendValue (tile, acoord2Tile(anchor[j - 1]));
+                }
             }
-            
             prek = k;
-        //TODO:transform seed to tiles
+        //TODO:anchor2Tile
         }
     }
-    
-    for (unsigned k = 0; k < length (anchor); k++)
-    {
-        std::cout << "[]::mapGap_ " << _defaultACoord.getAnchor(anchor[k]) << " " << _defaultACoord.getCoord(Anchor[k]) << "\n";
-    }
-    */
+    return 0;
 }
 
-int mapGap(String <Dna5> & seq, String <Dna5> & read, Gap & gap)
+int mapGap(String <Dna5> & seq, String <Dna5> & read, Gap & gap, 
+           String<uint64_t> & tile, uint64_t const thd_tileSize)
 {
     GIndex g_index;
     g_createDir(seq, gap.getStart1(), gap.getEnd1(), g_index);
-    //mapGap_ (g_index, read, gap.getStart2(), gap.getEnd2());
+    mapGap_ (g_index, read, gap.getStart2(), gap.getEnd2(), tile, thd_tileSize);
     //mapGap_ (g_index, _reverse(read), length(read) - end2 - 1, length(read) - start2 - 1);
     //optimizeGap();
+    //TODO: map _reverse and do optimiz
     return 0;
 }
 
-int mapGaps(String<Dna5> & seq, String<Dna5> & read, String <Gap> & gaps)
+/*
+ * Extract gaps from cords then re-map gaps.
+ * []::mg3
+ */
+int mapGaps(StringSet<String<Dna5> > & seqs, String<Dna5> & read, String<uint64_t> & cords, 
+            unsigned const thd_gap, unsigned const thd_tileSize)
 {
-    //collectGaps(cords, gaps);
-    //mergeGaps(gaps);
-    for (unsigned k = 0; k < length(gaps); k++)
+    String <uint64_t> tile;
+    Gap gap;
+    uint64_t thd_cordGap = _DefaultCord.createCord(thd_gap, thd_gap);
+    uint64_t delta = (uint64_t)thd_gap / 2;
+    for (unsigned k = 2; k < length(cords); k++)
     {
-        mapGap(seq, read, gaps[k]);
-    }
-    return 0;
-}
-
-int g_test1 (String<Dna5> & seq)
-{
-    double time = sysTime ();
-    GIndex g_index;
-    for (unsigned k = 0; k < 100000; k++)
-    {
-        g_createDir(seq, k, k+1000, g_index);
-        hashInit(g_index.shape, begin(seq) + k);
-        unsigned count = 0;
-        for (unsigned j = k; j < k + 1000; j++)
+        if (_DefaultCord.getCordX(cords[k] - cords[k - 1]) > thd_gap && 
+            _DefaultCord.getCordY(cords[k] - cords[k - 1]) > thd_gap &&
+            !_DefaultHit.isBlockEnd(cords[k - 1]))
         {
-            if (++count == 10)
-            {
-                hashNext(g_index.shape, begin(seq) + j);
-                if (_defaultGNode.getXValue(g_index.g_hs[g_index.g_dir[g_index.shape.XValue]]) != g_index.shape.XValue)
-                {
-                    std::cerr << "[]::g_test::error " << k << " " << j << "\n";
-                    return 1;
-                }
-                count = 0;
-            }
-            else
-            {
-                hashNexth(g_index.shape, begin(seq) + j);
-            }
+            std::cerr << "[]::mg3_1" << k << " " << _DefaultCord.getCordX(cords[k]) << " " << _DefaultCord.getCordX(cords[k - 1]) << " " << _DefaultCord.getCordY(cords[k]) << " " << _DefaultCord.getCordY(cords[k - 1])   <<"\n";
+            clear(tile);
+            gap = makeGap(_DefaultCord.getCordX(cords[k - 1]) + delta,
+                          _DefaultCord.getCordX(cords[k]) + delta,
+                          _DefaultCord.getCordY(cords[k - 1]) + delta, 
+                          _DefaultCord.getCordY(cords[k]) + delta);
+            mapGap(seqs[_getSA_i1(_DefaultCord.getCordX(cords[k - 1]))], read, gap, tile, thd_tileSize);
+            for (unsigned j = 0; j < length(tile); j++)
+                std::cerr << "[]::mg3_2 " << length(tile) << " " << k << " " <<  _DefaultCord.getCordX(tile[j]) << " " << _DefaultCord.getCordY(tile[j]) << "\n";
+            insert(cords, k, tile);
+            k += length(tile);
         }
     }
-    std::cerr << "[]::g_test " << sysTime () - time << "\n";
+ //   for (unsigned j = 1; j < length(cords); j++)
+ //       std::cout << "[]::mg3 " << length(tile) << " " << gap.getId2() << " " << gap.getStart2() << " " << gap.getEnd2() << " " << _DefaultCord.getCordY(cords[j])  << " " << _DefaultCord.getCordX(cords[j])<< "\n";
+    //TODO: tile -> cords
+
     return 0;
 }
 
-int g_test (String<Dna5> & seq)
+int mapGaps(StringSet<String<Dna5> > & seqs, StringSet<String<Dna5> > & reads, 
+            StringSet<String<uint64_t> > & cords, unsigned const thd_gap, unsigned const thd_tileSize)
 {
-    std::cerr << "[]::g_test \n";
-    double time = sysTime ();
-    Gap gap (100, 700, 200, 500);
-    for (unsigned k = 0; k <1; k++)
+    for (unsigned k = 0; k < length(reads); k++)
     {
-        gap.setValue(k, k + 1000, k, k + 1000);
-        mapGap(seq, seq, gap);
+        mapGaps(seqs, reads[k], cords[k], thd_gap, thd_tileSize);
     }
-    std::cerr << "[]::g_test " << sysTime () - time << "\n";
     return 0;
 }
+
+
+
+
+
+
+
+
 
 
 

@@ -481,6 +481,11 @@ int Options::print()
     return 0;
 }
 
+std::ifstream::pos_type _filesize(const char* filename)
+{
+    std::ifstream in(filename,  std::ifstream::binary | std::ifstream::ate);
+    return in.tellg(); 
+}
 
 template <typename TDna>
 int PMRecord<TDna>::loadRecord(Options & options)
@@ -489,6 +494,7 @@ int PMRecord<TDna>::loadRecord(Options & options)
     //std::cerr <<"Loading sequences from files \r";
     std::fstream fin (toCString(options.gPath), std::fstream::in);
     std::string buffer;
+    float filesize = _filesize (toCString(options.gPath));
     uint64_t sno = 0;
     for (unsigned k = 0; getline(fin, buffer); k++)
     {
@@ -497,48 +503,35 @@ int PMRecord<TDna>::loadRecord(Options & options)
             sno++;
         }
     }
-    std::cerr << "[]::loadRecord " << sno << "\n";
     //std::cerr << "loading sequences from files \r";
     //SeqFileIn rFile(toCString(options.rPath));
     SeqFileIn gFile(toCString(options.gPath));
     unsigned k = 0;
-    /*
     resize (id2, sno);
     resize (seq2, sno);
+    unsigned pre = 0;
+    float step = 1;
+    double rt = sysTime ();
+    float len = 0;
     while (!atEnd(gFile))
     {
-        std::cerr << "reading genomes " << (k + 1) << " of " << sno << "\r";
+        //if (k + 1 - pre > step / 100 * sno)
+        if (sysTime() - rt > 0.5)
+        {
+            std::cerr << std::fixed;
+            std::cerr << ">reading genomes " << std::setprecision(1) << (k + 1)/ (float) sno * 100 << "% " << "\r";
+            //pre = k + 1;
+            rt = sysTime();
+        }
+        //std::cerr << "reading genomes " << (k + 1) << " of " << sno << "\r";
         readRecord(id2[k], seq2[k], gFile);
         ++k;
     }
     std::cerr << "                                    \r";
-    */
-    //while (!atEnd(rFile))
-    //{
-    //    try
-    //    {
-    //        readRecord(id1, seq1, rFile);
-    //    }
-    //    catch(IOError const & e)
-    //    {
-    //        std::cerr << "Can't open read files"
-    //   }
-    //    try
-    //    {
-    //        seqan::readRecord(id2, seq2, rFile);
-    //            
-    //    }
-    //    catch(IOError const & e)
-    //    {
-    //        std::cerr << "Can't open read files"
-    //    }
-    //}
-    //readRecords(id1, seq1, rFile);
-    readRecords(id2, seq2, gFile);
-    std::cerr << ">Read reference genomes                     " << std::endl;
-    std::cerr << "    " << length(seq2) << " sequences loaded from " << options.gPath << std::endl;
-    //std::cerr << "    End loading sequences. Time[s] " << sysTime() - time << std::endl;
-    std::cerr << "    Elapsed time " << sysTime() - time << " [s]" << std::endl;
+    //readRecords(id2, seq2, gFile);
+    std::cerr << "--Read genomes 100%                     " << std::endl;
+    std::cerr << "  " << length(seq2) << " sequences loaded from " << options.gPath << std::endl;
+    std::cerr << "  Elapsed time [s] " << sysTime() - time << std::endl;
     return 0;
 }
 
@@ -663,6 +656,99 @@ inline void _compltRvseStr(String<Dna5> & str, String<Dna5> & res)
         //std::cout << (unsigned)ordValue(str[length(str) - k - 1]) << std::endl;
     }
 }
+
+seqan::ArgumentParser::ParseResult
+parseCommandLine(Options & options, int argc, char const ** argv)
+{
+    // Setup ArgumentParser.
+    seqan::ArgumentParser parser("pacMapper");
+    // Set short description, version, and date.
+    setShortDescription(parser, "Alignment of SMRT sequencing read");
+    setVersion(parser, "1.0");
+    setDate(parser, "May 2017");
+
+    // Define usage line and long description.
+    addUsageLine(parser,
+                    "[\\fIOPTIONS\\fP] \"\\fIread.fa\\fP\" \"\\fIgnome.fa\\fP\"");
+    addDescription(parser,
+                    "Program for mapping raw SMRT sequencing reads to reference genome.");
+
+    // Argument.
+    addArgument(parser, seqan::ArgParseArgument(
+        seqan::ArgParseArgument::INPUT_FILE, "read"));
+    setHelpText(parser, 0, "Reads file .fa, .fasta");
+
+    addArgument(parser, seqan::ArgParseArgument(
+        seqan::ArgParseArgument::INPUT_FILE, "genome", true));
+    setHelpText(parser, 1, "Reference file .fa, .fasta");
+
+    addSection(parser, "Mapping Options");
+    addOption(parser, seqan::ArgParseOption(
+        "o", "output", "choose output file.",
+            seqan::ArgParseArgument::STRING, "STR"));
+    addOption(parser, seqan::ArgParseOption(
+        "s", "sensitivity", "Sensitivity mode. -s 0 normal {DEFAULT} -s 1 fast  -s 2 sensitive",
+            seqan::ArgParseArgument::INTEGER, "INT"));
+    addOption(parser, seqan::ArgParseOption(
+        "t", "thread", "Default -t 4",
+            seqan::ArgParseArgument::INTEGER, "INT"));
+    
+// mapping parameters for tunning 
+    addOption(parser, seqan::ArgParseOption(
+        "l1", "listn1", "mapping::listn1",
+            seqan::ArgParseArgument::INTEGER, "INT"));     
+    addOption(parser, seqan::ArgParseOption(
+        "l2", "listn2", "mapping::listn2",
+            seqan::ArgParseArgument::INTEGER, "INT"));   
+    addOption(parser, seqan::ArgParseOption(
+        "a1", "alpha1", "mapping::alpha1",
+            seqan::ArgParseArgument::DOUBLE, "DOUBLE"));        
+    addOption(parser, seqan::ArgParseOption(
+        "a2", "alpha2", "mapping::alpha2",
+            seqan::ArgParseArgument::DOUBLE, "DOUBLE"));  
+    addOption(parser, seqan::ArgParseOption(
+        "t1", "cordThr", "mapping::cordThr",
+            seqan::ArgParseArgument::DOUBLE, "DOUBLE"));
+    addOption(parser, seqan::ArgParseOption(
+        "t2", "senThr", "mapping::senThr",
+            seqan::ArgParseArgument::DOUBLE, "DOUBLE"));        
+        
+    // Add Examples Section.
+////////////////////////
+    addTextSection(parser, "Examples");
+    addListItem(parser,
+                "\\fBpacMapper\\fP \\fB-U\\fP \\fIchr1.fa reads.fa\\fP",
+                "Print version of \"rd\"");
+    addListItem(parser,
+                "\\fBpacMapper\\fP \\fB-L\\fP \\fB-i\\fP \\fI3\\fP "
+                "\\fIchr1.fa reads.fa\\fP",
+                "Print \"\" with every third character "
+                "converted to upper case.");
+
+    // Parse command line.
+    seqan::ArgumentParser::ParseResult res = seqan::parse(parser, argc, argv);
+
+    if (res != seqan::ArgumentParser::PARSE_OK)
+        return res;
+
+    getOptionValue(options.oPath, parser, "output");
+    getOptionValue(options.sensitivity, parser, "sensitivity");
+    getOptionValue(options.thread, parser, "thread");
+    
+    getOptionValue(options.listN, parser, "listn1");
+    getOptionValue(options.listN2, parser, "listn2");
+    getOptionValue(options.alpha, parser, "alpha1");
+    getOptionValue(options.alpha2, parser, "alpha2");
+    getOptionValue(options.cordThr, parser, "cordThr");
+    getOptionValue(options.senThr, parser, "senThr");
+    
+    seqan::getArgumentValue(options.rPath, parser, 0);
+    seqan::getArgumentValue(options.gPath, parser, 1);
+
+    return seqan::ArgumentParser::PARSE_OK;
+
+}
+
 
 //class Status
 //{

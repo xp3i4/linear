@@ -330,7 +330,6 @@ void Mapper<TDna, TSpec>::printCordsRaw2()
                 if (_DefaultHit.isBlockEnd(cordSet[k][j-1]) )//&& ++recordCount < 10)
                 {
                     of << "\n" << record.id1[k] << " " << length(cordSet[k]) << " "
-                    //of <<"\n@S1_"<< k+1 << " " << length(cordSet[k]) << " "
                     << _DefaultCord.getCordY(cordSet[k][j]) << " " << length(reads()[k]) << " x " 
                     << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j])) << " " << cordCount << " "
                     << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << " " 
@@ -408,96 +407,29 @@ int map(Mapper<TDna, TSpec> & mapper)
     //std::cerr << length(mapper.cords()) << " " << length(mapper.reads()) << " \n";
 }
 
-seqan::ArgumentParser::ParseResult
-parseCommandLine(Options & options, int argc, char const ** argv)
+/*
+ * Mapping with extra processing of gaps
+ */
+template <typename TDna, typename TSpec>
+int map2(Mapper<TDna, TSpec> & mapper)
 {
-    // Setup ArgumentParser.
-    seqan::ArgumentParser parser("pacMapper");
-    // Set short description, version, and date.
-    setShortDescription(parser, "Alignment of SMRT sequencing read");
-    setVersion(parser, "1.0");
-    setDate(parser, "May 2017");
-
-    // Define usage line and long description.
-    addUsageLine(parser,
-                    "[\\fIOPTIONS\\fP] \"\\fIread.fa\\fP\" \"\\fIgnome.fa\\fP\"");
-    addDescription(parser,
-                    "Program for mapping raw SMRT sequencing reads to reference genome.");
-
-    // Argument.
-    addArgument(parser, seqan::ArgParseArgument(
-        seqan::ArgParseArgument::INPUT_FILE, "read"));
-    setHelpText(parser, 0, "Reads file .fa, .fasta");
-
-    addArgument(parser, seqan::ArgParseArgument(
-        seqan::ArgParseArgument::INPUT_FILE, "genome", true));
-    setHelpText(parser, 1, "Reference file .fa, .fasta");
-
-    addSection(parser, "Mapping Options");
-    addOption(parser, seqan::ArgParseOption(
-        "o", "output", "choose output file.",
-            seqan::ArgParseArgument::STRING, "STR"));
-    addOption(parser, seqan::ArgParseOption(
-        "s", "sensitivity", "Sensitivity mode. -s 0 normal {DEFAULT} -s 1 fast  -s 2 sensitive",
-            seqan::ArgParseArgument::INTEGER, "INT"));
-    addOption(parser, seqan::ArgParseOption(
-        "t", "thread", "Default -t 4",
-            seqan::ArgParseArgument::INTEGER, "INT"));
+    omp_set_num_threads(mapper.thread());
+    StringSet<String<int> > f2;
+    createFeatures(mapper.genomes(), f2, mapper.thread());
+    mapper.createIndex(); 
+    SeqFileIn rFile(toCString(mapper.readPath()));
+    double time = sysTime();
     
-// mapping parameters for tunning 
-    addOption(parser, seqan::ArgParseOption(
-        "l1", "listn1", "mapping::listn1",
-            seqan::ArgParseArgument::INTEGER, "INT"));     
-    addOption(parser, seqan::ArgParseOption(
-        "l2", "listn2", "mapping::listn2",
-            seqan::ArgParseArgument::INTEGER, "INT"));   
-    addOption(parser, seqan::ArgParseOption(
-        "a1", "alpha1", "mapping::alpha1",
-            seqan::ArgParseArgument::DOUBLE, "DOUBLE"));        
-    addOption(parser, seqan::ArgParseOption(
-        "a2", "alpha2", "mapping::alpha2",
-            seqan::ArgParseArgument::DOUBLE, "DOUBLE"));  
-    addOption(parser, seqan::ArgParseOption(
-        "t1", "cordThr", "mapping::cordThr",
-            seqan::ArgParseArgument::DOUBLE, "DOUBLE"));
-    addOption(parser, seqan::ArgParseOption(
-        "t2", "senThr", "mapping::senThr",
-            seqan::ArgParseArgument::DOUBLE, "DOUBLE"));        
-        
-    // Add Examples Section.
-////////////////////////
-    addTextSection(parser, "Examples");
-    addListItem(parser,
-                "\\fBpacMapper\\fP \\fB-U\\fP \\fIchr1.fa reads.fa\\fP",
-                "Print version of \"rd\"");
-    addListItem(parser,
-                "\\fBpacMapper\\fP \\fB-L\\fP \\fB-i\\fP \\fI3\\fP "
-                "\\fIchr1.fa reads.fa\\fP",
-                "Print \"\" with every third character "
-                "converted to upper case.");
-
-    // Parse command line.
-    seqan::ArgumentParser::ParseResult res = seqan::parse(parser, argc, argv);
-
-    if (res != seqan::ArgumentParser::PARSE_OK)
-        return res;
-
-    getOptionValue(options.oPath, parser, "output");
-    getOptionValue(options.sensitivity, parser, "sensitivity");
-    getOptionValue(options.thread, parser, "thread");
+    std::cerr <<  ">reading reads from " << mapper.readPath() << "\r";
+    readRecords(mapper.readsId(), mapper.reads(), rFile);//, blockSize);
+    std::cerr << ">end reading " <<sysTime() - time << "[s]" << std::endl;
     
-    getOptionValue(options.listN, parser, "listn1");
-    getOptionValue(options.listN2, parser, "listn2");
-    getOptionValue(options.alpha, parser, "alpha1");
-    getOptionValue(options.alpha2, parser, "alpha2");
-    getOptionValue(options.cordThr, parser, "cordThr");
-    getOptionValue(options.senThr, parser, "senThr");
+    std::cerr << ">mapping " << length(mapper.reads()) << " reads to reference genomes"<< std::endl;
+    rawMap_dst2_MF<TDna, TSpec>(mapper.index(), f2, mapper.reads(), mapper.mapParm(), mapper.cords(), mapper.thread());
+    mapGaps (mapper.genomes(), mapper.reads(), mapper.coords());
     
-    seqan::getArgumentValue(options.rPath, parser, 0);
-    seqan::getArgumentValue(options.gPath, parser, 1);
-
-    return seqan::ArgumentParser::PARSE_OK;
-
+    mapper.printCordsRaw2();
+    return 0;
 }
 
 int main(int argc, char const ** argv)
@@ -506,16 +438,13 @@ int main(int argc, char const ** argv)
 
     std::cerr << "Encapsulated version: Mapping reads efficiently" << std::endl;
     (void)argc;
-    // Parse the command line.
     Options options;
     seqan::ArgumentParser::ParseResult res = parseCommandLine(options, argc, argv);
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res == seqan::ArgumentParser::PARSE_ERROR;
     Mapper<> mapper(options);
     //mapper.printParm();
-    //map(mapper);
-    // test gindex
-    g_test (mapper.genomes()[0]);
+    map(mapper);
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
 
     return 0;

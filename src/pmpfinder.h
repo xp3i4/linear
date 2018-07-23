@@ -38,7 +38,7 @@ using namespace seqan;
 
 struct CordBase
 {
-    //Cord(C): coordinates of the vertext of sliding windows
+    //Cord(C): coordinates of the vertex of sliding windows
     //=|N/A[2]|strand[1]|cordEnd[1] genomeCord [40] |readCord [20bits]
     //cell [4] is the minimum length the window is allowed to slide in the alignment matrix.
     //genomeCord(gC or xC): = position in the genome >> cell_bit << cell_bit. the last cell_bit bits maybe set to 0

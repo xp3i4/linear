@@ -2060,7 +2060,7 @@ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs,
  * state::warnning. for seq contains 'N', error. since the k in openmp doesn't change correctly
  */
 template <unsigned SHAPELEN>
-bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<SHAPELEN> > & shape, unsigned & threads, bool raw = true)
+bool _createHsArray(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<SHAPELEN> > & shape, unsigned & threads, bool raw = true)
 {
     std::cerr << "[prallel createHsArray]\n";
     double time = sysTime();
@@ -2160,6 +2160,8 @@ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs,
     }
     resize (hs, hsRealEnd + 1);
     //shrinkToFit(hs);
+    //clear(seq);
+    //shrinkToFit(seq);
     _DefaultHs.setHsHead(hs[hsRealEnd], 0, 0);
     std::cerr << "[debug] length of hs " << length(hs) << " " << hsRealEnd << "\n";
     std::cerr << "      init Time[s]" << sysTime() - time << " " << std::endl;

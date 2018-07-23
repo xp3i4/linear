@@ -6,9 +6,14 @@ Tools for mapping reads efficiently.
 
 * Use as standalone app please clone the master branch to SeqAn2 master branch/apps
 
+## Prerequisites
+Linux:
+gcc  > 4.9 
+cmake > 3.0.0
+
 ```bash
-  $ CMake -DCMAKE_BUILD_TYPE=Release [directory to SeqAn]
-  $ make pacMapper
+  $ CMake .
+  $ make linear
 ```
 
 * Use as library please include the mapper.h in the source.
@@ -28,11 +33,6 @@ Major classes are encapsulated as the `class Mapper` in mapper.h as part of the 
   - To add new module to the pipeline please provide interfaces in th `Mapper` class and call them in the `map()` function 
   or I will encapsulate them at last.
   
-## Notice
-
-The current version is to complete the interface and the pipeline. While the benchmark should be conducted later after all the things are accomplished.  
-
-
 
 
 
