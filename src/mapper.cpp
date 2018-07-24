@@ -77,7 +77,7 @@ Mapper<TDna, TSpec>::Mapper(Options & options):
 template <typename TDna, typename TSpec>
 int Mapper<TDna, TSpec>::createIndex(bool efficient)
 {
-    std::cerr << ">[Creating index] \n";
+    std::cerr << ">>Create index \r";
     createHIndex(genomes(), qIndex, _thread, efficient);
     return 0;
 }
@@ -432,6 +432,28 @@ int map2(Mapper<TDna, TSpec> & mapper)
     
     mapper.printCordsRaw2();
     return 0;
+}
+
+template <typename TDna, typename TSpec>
+int map(Mapper<TDna, TSpec> & mapper, Status & status)
+{
+#pragma omp parallel 
+{
+    #pragma omp sections
+    {
+        #pragma omp section
+        {
+            while (!status.flag_map_end)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+        }
+        #pragma omp section
+        {
+            map(mapper);
+        }
+    }
+}
 }
 
 int main(int argc, char const ** argv)

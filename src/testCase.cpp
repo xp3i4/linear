@@ -219,7 +219,7 @@ int g_test3(StringSet<String<Dna5> > & seqs)
 
 /*
  * read genomes and read from files
- *  insert deletions to read[0]  
+ *  insert 'deletions' to read[0]  
  * map read
  * map gaps
  */
@@ -233,8 +233,8 @@ int g_test(Mapper<TDna, TSpec> & mapper)
     StringSet<String<TDna> > reads;
     unsigned thd_gap = 200;
     unsigned window_size = 192;
-    unsigned g_start = 3000; // gap start and end
-    unsigned g_end = 4000;
+    unsigned g_start = 4000; // gap start and end
+    unsigned g_end = 5000;
     omp_set_num_threads(mapper.thread());
     StringSet<String<int> > f2;
     createFeatures(mapper.genomes(), f2, mapper.thread());
@@ -246,7 +246,6 @@ int g_test(Mapper<TDna, TSpec> & mapper)
     {
         appendValue(reads[0], mapper.reads()[0][k]);
     }
-    
     for (unsigned k = g_end; k < length(mapper.reads()[0]); k++)
     {
         appendValue(reads[0], mapper.reads()[0][k]);

@@ -64,12 +64,18 @@ using namespace seqan;
 //===================================================================
 //template <typename TSpec = void>
 
-struct status
+/*
+struct Status
 {
-    double time;
- 
-};
-
+    seqCount;
+    String <int> step; 
+    String <double> time;
+    Status ()
+    {
+        
+    };
+}status;
+*/
 
 
 struct Const_{
@@ -550,6 +556,13 @@ int PMRecord<TDna>::loadRecord(Options & options)
     double fileSize = _filesize (toCString(options.gPath));
     bool flag = false;
     unsigned seqCount = 0;
+    double currentFileSize = 0;
+    std::fstream fin (toCString(options.gPath), std::fstream::in);
+    StringSet<String<char> > dotstatus;
+    resize(dotstatus, 3);
+    dotstatus[0] = ".   ";
+    dotstatus[1] = "..  ";
+    dotstatus[2] = "... ";
 #pragma omp parallel
 {
     #pragma omp sections
@@ -558,25 +571,27 @@ int PMRecord<TDna>::loadRecord(Options & options)
         {
             unsigned preSeqCount = 0;
             String <char> probar;
-            double currentFileSize = 0;
             float prepercent = 0, percent = 0, showpercent = 0, v = 0.87 ;
             unsigned k = 1;
             while (!flag)
             {
-                currentFileSize = 0;
-                for (unsigned j = 0; j < seqCount; j++)
-                {
-                    currentFileSize += length(seq2[j]);
-                }
                 prepercent = percent;
                 percent = currentFileSize / fileSize * 100;
                 percent = (percent > 100)?prepercent:percent;
                 showpercent += v;
                 showpercent = (showpercent > percent)?percent:showpercent;
+                
                 std::cerr << "                                                            \r";
-                std::cerr << ">>Read genomes " << seqCount << " " << std::setprecision(2) << std::fixed << showpercent << "%\r";
+                if (seqCount > 2)
+                {
+                    std::cerr << ">>Read genomes" << dotstatus[(k - 1)/10 %3] << seqCount << "/" << std::setprecision(2) << std::fixed << showpercent << "%\r";
+                }
+                else
+                {
+                    std::cerr << ">>Read genomes" << dotstatus[(k - 1)/10 %3] << "\r";
+                }
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
+                k++;
             }
         }
         #pragma omp section
@@ -588,6 +603,7 @@ int PMRecord<TDna>::loadRecord(Options & options)
                 clear (tmp_id);
                 clear (tmp_seq);
                 readRecord (tmp_id, tmp_seq, gFile);
+                currentFileSize += length(tmp_seq);
                 appendValue (id2, tmp_id);
                 appendValue (seq2, tmp_seq);
                 ++seqCount;
@@ -815,40 +831,6 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     return seqan::ArgumentParser::PARSE_OK;
 
 }
-
-
-//class Status
-//{
-//    atomic<bool> status_f;
-//public:
-//    Status();
-//    void start();
-//    void stop(); 
-//}
-//void start()
-//{
-//    status_f = true;
-//    while (status)
-//    {
-//        switch(k++)
-//        {
-//            case 0: std::cerr << ".   \r";
-//                    break;
-//            case 1: std::cerr << "..  \r";
-//                    break;
-//            case 2: std::cerr << "... \r";
-//                    k=0;
-//                    break;
-//        }
-//        std::this_thread::sleep_for(std::chrono::seconds(1));
-//    }
-//}
-//
-//void endPrintStatus()
-//{
-//    status_f = false;    
-//    if()
-//}
 
 #endif
 

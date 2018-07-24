@@ -388,7 +388,7 @@ inline uint64_t acoord2Tile(uint64_t val,
                          uint64_t const & bit2 = _defaultACoordBase.sBit,
                          uint64_t const & mask = _defaultACoordBase.cmask)
 {
-    return val + ((_nStrand((val >> bit2) & 1) * (val & mask)) << bit);
+    return val - ((_nStrand((val >> bit2) & 1) * (val & mask)) << bit);
 }
 
 int mapGap_(GIndex & g_index, String <Dna5> & read,  uint64_t start2, uint64_t end2, 
@@ -467,11 +467,15 @@ int mapGap_(GIndex & g_index, String <Dna5> & read,  uint64_t start2, uint64_t e
     return 0;
 }
 
+/*
+ * []::mg2 
+ */
 int mapGap(String <Dna5> & seq, String <Dna5> & read, Gap & gap, 
            String<uint64_t> & tile, uint64_t const thd_tileSize)
 {
     GIndex g_index;
     g_createDir(seq, gap.getStart1(), gap.getEnd1(), g_index);
+    std::cerr << "[]::mg2 " << gap.getStart1() << " " << gap.getEnd1() << "\n";
     mapGap_ (g_index, read, gap.getStart2(), gap.getEnd2(), tile, thd_tileSize);
     //mapGap_ (g_index, _reverse(read), length(read) - end2 - 1, length(read) - start2 - 1);
     //optimizeGap();
@@ -496,7 +500,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs, String<Dna5> & read, String<uint64_
             _DefaultCord.getCordY(cords[k] - cords[k - 1]) > thd_gap &&
             !_DefaultHit.isBlockEnd(cords[k - 1]))
         {
-            std::cerr << "[]::mg3_1" << k << " " << _DefaultCord.getCordX(cords[k]) << " " << _DefaultCord.getCordX(cords[k - 1]) << " " << _DefaultCord.getCordY(cords[k]) << " " << _DefaultCord.getCordY(cords[k - 1])   <<"\n";
+            std::cerr << "[]::mg3_1 " << k << " " << _DefaultCord.getCordX(cords[k]) << " " << _DefaultCord.getCordX(cords[k - 1]) << " " << _DefaultCord.getCordY(cords[k]) << " " << _DefaultCord.getCordY(cords[k - 1])   <<"\n";
             clear(tile);
             gap = makeGap(_DefaultCord.getCordX(cords[k - 1]) + delta,
                           _DefaultCord.getCordX(cords[k]) + delta,
