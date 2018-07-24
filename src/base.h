@@ -51,7 +51,9 @@
 #include <atomic>   
 #include <iomanip>
 #include <functional>   // for std::ref()
-
+#include <chrono>
+#include <thread>
+   
 #include "shape_extend.h"
 #include "index_extend.h"
 
@@ -487,11 +489,14 @@ std::ifstream::pos_type _filesize(const char* filename)
     return in.tellg(); 
 }
 
+/*
+ *[]::lr
+ *
 template <typename TDna>
 int PMRecord<TDna>::loadRecord(Options & options)
 {
     double time = sysTime();
-    //std::cerr <<"Loading sequences from files \r";
+    std::cerr <<"[]::lr_Loading sequences from files \r";
     std::fstream fin (toCString(options.gPath), std::fstream::in);
     std::string buffer;
     float filesize = _filesize (toCString(options.gPath));
@@ -503,8 +508,6 @@ int PMRecord<TDna>::loadRecord(Options & options)
             sno++;
         }
     }
-    //std::cerr << "loading sequences from files \r";
-    //SeqFileIn rFile(toCString(options.rPath));
     SeqFileIn gFile(toCString(options.gPath));
     unsigned k = 0;
     resize (id2, sno);
@@ -519,7 +522,7 @@ int PMRecord<TDna>::loadRecord(Options & options)
         if (sysTime() - rt > 0.5)
         {
             std::cerr << std::fixed;
-            std::cerr << ">reading genomes " << std::setprecision(1) << (k + 1)/ (float) sno * 100 << "% " << "\r";
+            std::cerr << ">>reading genomes " << std::setprecision(1) << (k + 1)/ (float) sno * 100 << "% " << "\r";
             //pre = k + 1;
             rt = sysTime();
         }
@@ -531,6 +534,70 @@ int PMRecord<TDna>::loadRecord(Options & options)
     //readRecords(id2, seq2, gFile);
     std::cerr << "--Read genomes 100%                     " << std::endl;
     std::cerr << "  " << length(seq2) << " sequences loaded from " << options.gPath << std::endl;
+    std::cerr << "  Elapsed time [s] " << sysTime() - time << std::endl;
+    return 0;
+}
+*/
+
+/*
+ *[]::lr
+ */
+template <typename TDna>
+int PMRecord<TDna>::loadRecord(Options & options)
+{
+    double time = sysTime();
+    SeqFileIn gFile(toCString(options.gPath));
+    double fileSize = _filesize (toCString(options.gPath));
+    bool flag = false;
+    unsigned seqCount = 0;
+#pragma omp parallel
+{
+    #pragma omp sections
+    {
+        #pragma omp section
+        {
+            unsigned preSeqCount = 0;
+            String <char> probar;
+            double currentFileSize = 0;
+            float prepercent = 0, percent = 0, showpercent = 0, v = 0.87 ;
+            unsigned k = 1;
+            while (!flag)
+            {
+                currentFileSize = 0;
+                for (unsigned j = 0; j < seqCount; j++)
+                {
+                    currentFileSize += length(seq2[j]);
+                }
+                prepercent = percent;
+                percent = currentFileSize / fileSize * 100;
+                percent = (percent > 100)?prepercent:percent;
+                showpercent += v;
+                showpercent = (showpercent > percent)?percent:showpercent;
+                std::cerr << "                                                            \r";
+                std::cerr << ">>Read genomes " << seqCount << " " << std::setprecision(2) << std::fixed << showpercent << "%\r";
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+            }
+        }
+        #pragma omp section
+        {
+            PMRecord<TDna>::RecId tmp_id;
+            PMRecord<TDna>::RecSeq tmp_seq;
+            while (!atEnd(gFile))
+            {
+                clear (tmp_id);
+                clear (tmp_seq);
+                readRecord (tmp_id, tmp_seq, gFile);
+                appendValue (id2, tmp_id);
+                appendValue (seq2, tmp_seq);
+                ++seqCount;
+            }
+            flag = true;
+        }
+    }
+}
+    std::cerr << "--Read genomes "<< length(seq2) <<" 100%                     " << std::endl;
+    std::cerr << "  File: " << options.gPath << std::endl;
     std::cerr << "  Elapsed time [s] " << sysTime() - time << std::endl;
     return 0;
 }

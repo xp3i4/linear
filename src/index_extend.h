@@ -2060,9 +2060,9 @@ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs,
  * state::warnning. for seq contains 'N', error. since the k in openmp doesn't change correctly
  */
 template <unsigned SHAPELEN>
-bool _createHsArray(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<SHAPELEN> > & shape, unsigned & threads, bool raw = true)
+bool _createHsArray(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<SHAPELEN> > & shape, unsigned & threads, bool efficient = true)
 {
-    std::cerr << "[prallel createHsArray]\n";
+    std::cerr << "[prallel createHsArray]\n" << efficient;
     double time = sysTime();
     uint64_t hsRealEnd = 0;
     unsigned const step = 10;
@@ -2160,8 +2160,11 @@ bool _createHsArray(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, Shap
     }
     resize (hs, hsRealEnd + 1);
     //shrinkToFit(hs);
-    //clear(seq);
-    //shrinkToFit(seq);
+    if (efficient)
+    {
+        clear(seq);
+        shrinkToFit(seq);   
+    }
     _DefaultHs.setHsHead(hs[hsRealEnd], 0, 0);
     std::cerr << "[debug] length of hs " << length(hs) << " " << hsRealEnd << "\n";
     std::cerr << "      init Time[s]" << sysTime() - time << " " << std::endl;
@@ -3092,12 +3095,12 @@ uint64_t & indexEmptyDir, unsigned & threads)
 template <unsigned SHAPELEN>
 bool _createQGramIndexDirSA_parallel(StringSet<String<Dna5> > & seq, 
 XString & xstr, String<uint64_t> & hs,  Shape<Dna5, Minimizer<SHAPELEN> > & shape, 
-uint64_t & indexEmptyDir, unsigned & threads)    
+uint64_t & indexEmptyDir, unsigned & threads, bool efficient)    
 {
     typedef Shape<Dna5, Minimizer<SHAPELEN> > ShapeType;
     double time = sysTime();
     //_createHsArray2_MF(seq, hs, shape, threads);
-    _createHsArray(seq, hs, shape, threads);
+    _createHsArray(seq, hs, shape, threads, efficient);
     _createYSA<LENGTH<ShapeType>::VALUE, WGHT<ShapeType>::VALUE>(hs, xstr, indexEmptyDir, threads);
     std::cerr << "  End creating Index Time[s]:" << sysTime() - time << " \n";
     return true; 
@@ -3116,11 +3119,11 @@ String<uint64_t> & hs,  Shape<Dna5, Minimizer<SHAPELEN> > & shape, uint64_t & in
 }
 
 template <typename TDna, unsigned span>
-bool createHIndex(StringSet<String<TDna> > & seq, HIndex<span> & index, unsigned & threads)
+bool createHIndex(StringSet<String<TDna> > & seq, HIndex<span> & index, unsigned & threads, bool efficient)
 {
   //  if (threads > 1)
   //  {
-        return _createQGramIndexDirSA_parallel(seq, index.xstr, index.ysa, index.shape, index.emptyDir, threads);
+        return _createQGramIndexDirSA_parallel(seq, index.xstr, index.ysa, index.shape, index.emptyDir, threads, efficient);
   //  }
   //  else 
   //  {

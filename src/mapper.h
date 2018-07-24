@@ -89,7 +89,7 @@ public:
     void printCordsAll();
     void printCordsRaw();
     void printCordsRaw2();
-    int createIndex();
+    int createIndex(bool = false);
     unsigned sens(){return parm.sensitivity;}
     unsigned & thread(){return _thread;}
     CharString & readPath(){return record.readPath;}

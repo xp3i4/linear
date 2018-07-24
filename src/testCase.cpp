@@ -75,10 +75,10 @@ Mapper<TDna, TSpec>::Mapper(Options & options):
 }
 
 template <typename TDna, typename TSpec>
-int Mapper<TDna, TSpec>::createIndex()
+int Mapper<TDna, TSpec>::createIndex(bool efficient)
 {
     std::cerr << ">[Creating index] \n";
-    createHIndex(genomes(), qIndex, _thread);
+    createHIndex(genomes(), qIndex, _thread, efficient);
     return 0;
 }
 
@@ -129,7 +129,7 @@ int map(Mapper<TDna, TSpec> & mapper)
     StringSet<String<int> > f2;
     createFeatures(mapper.genomes(), f2, mapper.thread());
     
-    mapper.createIndex(); // this function will destroy genomes string during the creation to reduce memory footprint
+    mapper.createIndex(false); // this function will destroy genomes string during the creation to reduce memory footprint
     SeqFileIn rFile(toCString(mapper.readPath()));
     double time = sysTime();
     std::cerr <<  ">reading reads from " << mapper.readPath() << "\r";
