@@ -434,27 +434,6 @@ int map2(Mapper<TDna, TSpec> & mapper)
     return 0;
 }
 
-template <typename TDna, typename TSpec>
-int map(Mapper<TDna, TSpec> & mapper, Status & status)
-{
-#pragma omp parallel 
-{
-    #pragma omp sections
-    {
-        #pragma omp section
-        {
-            while (!status.flag_map_end)
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            }
-        }
-        #pragma omp section
-        {
-            map(mapper);
-        }
-    }
-}
-}
 
 int main(int argc, char const ** argv)
 {
