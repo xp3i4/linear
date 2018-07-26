@@ -62,7 +62,6 @@ Mapper<TDna, TSpec>::Mapper(Options & options):
             }
         }
         _thread = options.thread;
-        std::cerr << "[mapper thread] " << _thread << "\n";
         /*
 //map tunning
         parm.listN = options.listN;
@@ -320,6 +319,7 @@ void Mapper<TDna, TSpec>::printCordsRaw2()
     unsigned cordCount = 0;
 
     cordCount = 0;
+    std::cerr << ">>Write results to disk\r";
     for (unsigned k = 0; k < length(cordSet); k++)
     {
         //unsigned recordCount = 0;
@@ -344,8 +344,8 @@ void Mapper<TDna, TSpec>::printCordsRaw2()
             //_DefaultCord.print(cordSet[k],of);
         }
     }
-    std::cerr << ">Write results to disk          " << std::endl;
-    std::cerr << "    End writing results. Time[s]" << sysTime() - time << std::endl; 
+    close(of);
+    std::cerr << "--Write results to disk       Elapsed Time[s] " << sysTime() - time << std::endl;
 }
 
 /*
@@ -375,35 +375,36 @@ void map(Mapper<TDna, TSpec> & mapper)
 template <typename TDna, typename TSpec>
 int map(Mapper<TDna, TSpec> & mapper)
 {
-    std::cerr << "[]::map_1\n";
     //printStatus();
-    omp_set_num_threads(mapper.thread());
     StringSet<String<int> > f2;
     mapper.createIndex(false); // true: destroy genomes string to reduce memory footprint
     createFeatures(mapper.genomes(), f2, mapper.thread());
-    //uint64_t blockSize = 10000;
-    //uint64_t lenSum;
     SeqFileIn rFile(toCString(mapper.readPath()));
-    //while (!atEnd(rFile))
-    //{
-        double time = sysTime();
-        std::cerr <<  ">reading reads from " << mapper.readPath() << "\r";
-        readRecords(mapper.readsId(), mapper.reads(), rFile);//, blockSize);
-        std::cerr << ">end reading " <<sysTime() - time << "[s]" << std::endl;
-        std::cerr << ">mapping " << length(mapper.reads()) << " reads to reference genomes"<< std::endl;
-   //     if (mapper.thread() < 2)
-   //     {
-   //         rawMap_dst<TDna, TSpec>(mapper.index(), mapper.reads(), mapper.genomes(), mapper.mapParm(), mapper.cords());
-   //     }
-   //     else
-   //     {
-            rawMap_dst2_MF<TDna, TSpec>(mapper.index(), f2, mapper.reads(), mapper.mapParm(), mapper.cords(), mapper.thread());
-        //clear (mapper.reads());   
-    //    }
-        
-        //clear (mapper.readsId());
-    //}
+    unsigned k = 1, j = 0;
+    unsigned blockSize = 50000;
+    StringSet<String<char> > dotstatus;
+    resize(dotstatus, 3);
+    dotstatus[0] = ".   ";
+    dotstatus[1] = "..  ";
+    dotstatus[2] = "... ";
+    while (!atEnd(rFile))
+    {
+        double time1 = sysTime();
+        clear (mapper.reads());
+        std::cerr <<  ">>Map::file_I/O  block " << k << dotstatus[j++ % length(dotstatus)] << "\r";
+        readRecords(mapper.readsId(), mapper.reads(), rFile, blockSize);
+        std::cerr << "                                    \r";
+        std::cerr <<  ">>Map::mapping  block "<< k << " Size " << length(mapper.reads()) << " " << dotstatus[j++ % length(dotstatus)] << "\r";
+        time1 = sysTime() - time1;
+        double time2 = sysTime();
+        rawMap_dst2_MF<TDna, TSpec>(mapper.index(), f2, mapper.reads(), mapper.mapParm(), mapper.cords(), mapper.thread());
+        time2 = sysTime() - time2;
+        std::cerr <<  "--Map::file_I/O+Map block "<< k << " Size " << length(mapper.reads()) << " Elapsed Time: file_I/O " << time1 << " map "<< time2 << "\n";
+        k++;
+    }
     //mapper.printCordsAll();
+    clear (mapper.genomes());
+    mapper.index().clear();
     mapper.printCordsRaw2();
     return 0;
     //std::cerr << length(mapper.cords()) << " " << length(mapper.reads()) << " \n";
@@ -439,15 +440,17 @@ int main(int argc, char const ** argv)
 {
     double time = sysTime();
 
-    std::cerr << "Encapsulated version: Mapping reads efficiently" << std::endl;
     (void)argc;
     Options options;
     seqan::ArgumentParser::ParseResult res = parseCommandLine(options, argc, argv);
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res == seqan::ArgumentParser::PARSE_ERROR;
+    std::cerr << "Encapsulated version: Mapping reads efficiently" << std::endl;
     Mapper<> mapper(options);
+    omp_set_num_threads(mapper.thread());
     //mapper.printParm();
     map(mapper);
+    std::cerr << "  Result File: \033[1;31m" << options.oPath << "\033[0m" << std::endl;
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
 
     return 0;

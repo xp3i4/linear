@@ -49,6 +49,7 @@ add_executable (testCase testCase.cpp mapper.h base.h index_extend.h shape_exten
 
 # Add dependencies found by find_package (SeqAn).
 target_link_libraries (linear ${SEQAN_LIBRARIES})
+target_link_libraries (testCase ${SEQAN_LIBRARIES})
 
 # Add CXX flags found by find_package (SeqAn).
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS} ${CXX11_CXX_FLAGS}")

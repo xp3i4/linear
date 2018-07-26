@@ -569,7 +569,7 @@ int PMRecord<TDna>::loadRecord(Options & options)
     {
         #pragma omp section
         {
-            unsigned preSeqCount = 0;
+            //unsigned preSeqCount = 0;
             String <char> probar;
             float prepercent = 0, percent = 0, showpercent = 0, v = 0.87 ;
             unsigned k = 1;
@@ -584,7 +584,7 @@ int PMRecord<TDna>::loadRecord(Options & options)
                 std::cerr << "                                                            \r";
                 if (seqCount > 2)
                 {
-                    std::cerr << ">>Read genomes" << dotstatus[(k - 1)/10 %3] << seqCount << "/" << std::setprecision(2) << std::fixed << showpercent << "%\r";
+                    std::cerr << ">>Read genomes" << dotstatus[(k - 1)/10 %3] << "            " << seqCount << "/" << std::setprecision(2) << std::fixed << showpercent << "%\r";
                 }
                 else
                 {
@@ -612,8 +612,8 @@ int PMRecord<TDna>::loadRecord(Options & options)
         }
     }
 }
-    std::cerr << "--Read genomes "<< length(seq2) <<" 100%                     " << std::endl;
-    std::cerr << "  File: " << options.gPath << std::endl;
+    std::cerr << "--Read genomes                "<< length(seq2) <<"/100%                   \n";
+    std::cerr << "  File: " << options.gPath ;
     std::cerr << "  Elapsed time [s] " << sysTime() - time << std::endl;
     return 0;
 }
@@ -636,6 +636,7 @@ inline void Anchors::init(int length)
 {
     clear(set);
     seqan::appendValue(set, 0);
+    (void)length;
 }
 
 inline void Anchors::init()
@@ -744,11 +745,11 @@ seqan::ArgumentParser::ParseResult
 parseCommandLine(Options & options, int argc, char const ** argv)
 {
     // Setup ArgumentParser.
-    seqan::ArgumentParser parser("pacMapper");
+    seqan::ArgumentParser parser("Linear");
     // Set short description, version, and date.
     setShortDescription(parser, "Alignment of SMRT sequencing read");
     setVersion(parser, "1.0");
-    setDate(parser, "May 2017");
+    setDate(parser, "May 2018");
 
     // Define usage line and long description.
     addUsageLine(parser,
@@ -800,13 +801,12 @@ parseCommandLine(Options & options, int argc, char const ** argv)
 ////////////////////////
     addTextSection(parser, "Examples");
     addListItem(parser,
-                "\\fBpacMapper\\fP \\fB-U\\fP \\fIchr1.fa reads.fa\\fP",
-                "Print version of \"rd\"");
+                "\\fBlinear \\fP \\fIreads.fa genomes.fa\\fP",
+                "raw map reads.fa to genomes.fa");
+    addTextSection(parser, "Examples");
     addListItem(parser,
-                "\\fBpacMapper\\fP \\fB-L\\fP \\fB-i\\fP \\fI3\\fP "
-                "\\fIchr1.fa reads.fa\\fP",
-                "Print \"\" with every third character "
-                "converted to upper case.");
+                "\\fBlinear\\fP \\fP-a \\fIreads.fa genomes.fa\\fP",
+                "align reads.fa to genomes.fa");
 
     // Parse command line.
     seqan::ArgumentParser::ParseResult res = seqan::parse(parser, argc, argv);

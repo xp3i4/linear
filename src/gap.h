@@ -397,7 +397,7 @@ int mapGap_(GIndex & g_index, String <Dna5> & read,  uint64_t start2, uint64_t e
     //TODO: this parameter needs discussion.
     float thd_error_percent = 0.2; 
     uint64_t thd_min_segment = 100;
-    double time = sysTime();
+    //double time = sysTime();
     unsigned count = 0, step = 5;
     uint64_t preX = 0;
     String <uint64_t> anchor;
@@ -492,7 +492,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs, String<Dna5> & read, String<uint64_
 {
     String <uint64_t> tile;
     Gap gap;
-    uint64_t thd_cordGap = _DefaultCord.createCord(thd_gap, thd_gap);
+    //uint64_t thd_cordGap = _DefaultCord.createCord(thd_gap, thd_gap);
     uint64_t delta = (uint64_t)thd_gap / 2;
     for (unsigned k = 2; k < length(cords); k++)
     {

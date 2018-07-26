@@ -598,6 +598,8 @@ hashNextX(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
     me.YValue = (v2 >> (64-t) << (64-t-weight)) +
                 (v2 & ((1ULL<<(64-t-weight)) - 1)) + 
                 (t << (span - weight - 1));
+                
+    (void)it;
     return me.XValue; 
 }
 

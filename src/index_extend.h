@@ -1304,7 +1304,31 @@ struct XString
     XString(){};
     XString(uint64_t const & seqlen);
     uint64_t _fullSize(uint64_t const & seqlen, float const & alpha = 1.6);
+    void clear();
 };
+
+XString::XString(uint64_t const & seqlen)
+{
+    _fullSize(seqlen);
+}
+
+uint64_t XString::_fullSize(uint64_t const & seqlen, float const & alpha)
+{
+    uint64_t len = 1ULL; 
+    while ((len) < seqlen * alpha)
+        len <<=1;
+    resize(xstring, len);
+    mask = len - 1;
+    for (uint64_t k = 0; k < len; k++)
+        xstring[k].val1 = 0;
+    return len;
+}
+
+void XString::clear()
+{
+    seqan::clear(xstring);
+    shrinkToFit(xstring);
+}
 
 template <unsigned TSPAN>
 struct HIndexBase
@@ -1340,28 +1364,13 @@ class HIndex
         {
             (void) text;
         }
-        
+        void clear()
+        {
+            seqan::clear(ysa);
+            shrinkToFit(ysa);
+            xstr.clear();
+        }
 };
-
-
-XString::XString(uint64_t const & seqlen)
-{
-    _fullSize(seqlen);
-}
-
-uint64_t XString::_fullSize(uint64_t const & seqlen, float const & alpha)
-{
-    uint64_t len = 1ULL; 
-    while ((len) < seqlen * alpha)
-        len <<=1;
-    resize(xstring, len);
-    mask = len - 1;
-    std::cerr << "[debug]::XString::_fullSize() " << (float)len / 1024/1024 << "\n";
-    for (uint64_t k = 0; k < len; k++)
-        xstring[k].val1 = 0;
-    return len;
-}
-
 
 inline bool Hs::isHead(uint64_t const & val, uint64_t const & flag)
 {
@@ -1589,6 +1598,7 @@ inline bool _hsSortX_1(TIt const & begin, TIt const & end, unsigned const & xVal
     unsigned PBit = 1 << p_bit;
     for (uint64_t j = 0; j < l; j++)
     {
+        std::cerr << ">>Index::sortHash             " << std::setprecision(1) << std::fixed << (float) j / l * 100 << "%\r";
         l_move -= p_bit;
         for (unsigned m = 1; m < threads; m++)
             ctd[m][0] += ctd[m - 1][0];
@@ -1603,7 +1613,6 @@ inline bool _hsSortX_1(TIt const & begin, TIt const & end, unsigned const & xVal
                 //ctd[n][m] += ctd[n][m-1];
             }
         }
-
         #pragma omp parallel 
         {
             unsigned thd_id = omp_get_thread_num();
@@ -1804,7 +1813,7 @@ inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBi
     //_hsSortX(begin, end, xValBitLen);
     _hsSortX_1(begin, end, xValBitLen, threads);
     //_hsSortX_2(begin, end, xValBitLen, threads);
-
+    return true;
 }
 
 template <typename TIter>//, typename Comp>
@@ -1862,19 +1871,13 @@ inline bool _hsSortY_SA(TIt const & begin, TIt const & end) // sort y and sa
 template <typename TIter>
 inline void _hsSort(TIter const & begin, TIter const & end, unsigned const & shapeWeight)
 {
-    std::cerr << "      sorting xstr \n";
-    double time = sysTime();
     _hsSortX(begin, end, shapeWeight << 1);
-    std::cerr << "      _dirSortX Time[s]" << sysTime() - time << std::endl;
 }
 
 template <typename TIter>
 inline void _hsSort(TIter const & begin, TIter const & end, unsigned const & shapeWeight, unsigned & threads)
 {
-    std::cerr << "      sorting xstr " << omp_get_num_threads() << "\n";
-    double time = sysTime();
     _hsSortX(begin, end, shapeWeight << 1, threads);
-    std::cerr << "      _dirSortX Time[s]" << sysTime() - time << std::endl;
 }
 
 /*
@@ -2062,7 +2065,6 @@ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs,
 template <unsigned SHAPELEN>
 bool _createHsArray(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<SHAPELEN> > & shape, unsigned & threads, bool efficient = true)
 {
-    std::cerr << "[prallel createHsArray]\n" << efficient;
     double time = sysTime();
     uint64_t hsRealEnd = 0;
     unsigned const step = 10;
@@ -2071,9 +2073,9 @@ bool _createHsArray(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, Shap
     std::vector<int64_t> seqChunkSize(threads, 0);
     std::vector<int64_t> hss(threads, 0);
     //uint64_t seqChunkSize[4] = {0};
-    
     for(uint64_t j = 0; j < length(seq); j++)
     {
+        std::cerr << ">>Index::Initiate             " << (float)j / length(seq) * 100<< "%           \r";
         uint64_t thd_count = 0; // count number of elements in hs[] for each thread
         #pragma omp parallel reduction(+: thd_count)
         {
@@ -2166,13 +2168,15 @@ bool _createHsArray(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, Shap
         shrinkToFit(seq);   
     }
     _DefaultHs.setHsHead(hs[hsRealEnd], 0, 0);
-    std::cerr << "[debug] length of hs " << length(hs) << " " << hsRealEnd << "\n";
-    std::cerr << "      init Time[s]" << sysTime() - time << " " << std::endl;
+    //std::cerr << "[debug] length of hs " << length(hs) << " " << hsRealEnd << "\n";
+    std::cerr << "--Index::Initiate             Elapsed Time[s] " << sysTime() - time << " " << std::endl;
 //-k
+    std::cerr << ">>Index::SortHash                                                   \r";
+    time = sysTime();
     _hsSort(begin(hs), begin(hs) + hsRealEnd, shape.weight, threads);
     //_hsSort(begin(hs) + start, begin(hs) + count, shape.weight);
     
-    std::cerr << "      End createHsArray " << std::endl;
+    std::cerr << "  Index::sortHash             Elapsed Time[s] " << sysTime() - time << std::endl;
     return true;
 }
 
@@ -2419,11 +2423,11 @@ bool checkHsSort(String<uint64_t> const & hs)
 inline uint64_t XNodeFunc::hash(uint64_t const & val)
 {
     uint64_t key = val;
-    key = (~key) + (key << 21); // key = (key << 21) - key - 1;
+    key = (~key) + (key << 21); 
     key = key ^ (key >> 24);
-    key = (key + (key << 3)) + (key << 8); // key * 265
+    key = (key + (key << 3)) + (key << 8);
     key = key ^ (key >> 14);
-    key = (key + (key << 2)) + (key << 4); // key * 21
+    key = (key + (key << 2)) + (key << 4); 
     key = key ^ (key >> 28);
     key = key + (key << 31);
     return key;        
@@ -2498,7 +2502,6 @@ inline uint64_t getXDir(XString const & xstr, uint64_t const & xval, uint64_t co
             switch(_DefaultXNodeFunc.collision(xstr.xstring[h1].val1, val))
             {
                 case 0:
-                    //std::cerr << "case1\n";
                     //return _DefaultXNodeFunc.makeReturnVal(xstr.xstring[h1]);
                     return xstr.xstring[h1].val2;
                 case 2:
@@ -2516,7 +2519,6 @@ inline uint64_t getXDir(XString const & xstr, uint64_t const & xval, uint64_t co
                     delta++;
             }
         }
-        //std::cout << xval << " " << yval << " error \n";
         //return _DefaultXNodeBase._Empty_Dir_;
     return 0;
 }
@@ -2527,12 +2529,13 @@ inline uint64_t getXDir(HIndex<span> const & index, uint64_t const & xval, uint6
 {
     uint64_t val, delta = 0;
     uint64_t h1 = _DefaultXNodeFunc.hash(xval) & index.xstr.mask;
-    
+    //unsigned count = 0;
     //_setHeadNode(val, val);
 //!!!!! need to modify;
     val = (xval << 2) + _DefaultXNodeBase.xHead;
     while (index.xstr.xstring[h1].val1)
     {
+     //   ++count;
         //switch (index.xstr.xstring[h1].val1 ^ val) 
         switch(_DefaultXNodeFunc.collision(index.xstr.xstring[h1].val1, val))
         {
@@ -2555,6 +2558,7 @@ inline uint64_t getXDir(HIndex<span> const & index, uint64_t const & xval, uint6
                 delta++;
         }
     }
+    //std::cout << count << "\n";
     return index.emptyDir;
 }
 
@@ -2941,8 +2945,8 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
     uint64_t countMove = 0, prek = 0;
     double time = sysTime();
     uint64_t thd_countx = 0;
-
     std::vector<uint64_t> thd_hsStart(threads + 1, 0);
+    std::cerr << ">>Index::SortYSA                                                  \r";
     while(_DefaultHs.getHeadPtr(hs[k]))
     {
         ptr = _DefaultHs.getHeadPtr(hs[k]);
@@ -2981,7 +2985,6 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
     ptr = 0;
     block_size = 0;
 
-    std::cerr << "      preprocess sort y " << sysTime() - time << std::endl;
     time = sysTime();
 #pragma omp parallel
 {
@@ -2997,8 +3000,8 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
     }
     
 }
-    std::cerr << "      sort y " << sysTime() - time << std::endl;
-
+    std::cerr << "  Index::SortYSA              Elapsed Time[s] " << sysTime() - time << std::endl;
+    std::cerr << ">>Index::resize xstr                                            \r" ;
     ptr = 0; k = 0;
     uint64_t count = 0; 
     
@@ -3025,7 +3028,8 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
     }
     xstr._fullSize(count);
     ptr = 0; k = 0;
-    std::cerr << "      preprocess2 resize xstr " << sysTime() - time << std::endl;
+    std::cerr << "  Index::resize xstr          Elapsed Time[s] " << sysTime() - time << std::endl;
+    std::cerr << ">>Index::request dir                                                  \r";
     time = sysTime();
 
 #pragma omp parallel 
@@ -3068,8 +3072,8 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
         }
     }
 }
-    std::cerr << "      request dir " << sysTime() - time << std::endl;
-    std::cerr << "[debug] " << (float)length(xstr.xstring) * 12 / 1024 / 1024 / 1024<< " GB " << (float)length(hs) * 8 / 1024 /1024/1024<< "\n";
+
+    std::cerr << "  Index::request dir          Elapsed Time[s] " << sysTime() - time << std::endl;
     (void) threads;
     return true;
 }

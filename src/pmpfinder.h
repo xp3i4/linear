@@ -897,9 +897,7 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
                               typename PMRecord<TDna>::RecSeq const & read,
                               //uint64_t* const set,
                               String<uint64_t> & set,
-                              MapParm & mapParm, 
-                              double & tt
-                             )
+                              MapParm & mapParm)
 {   
     typedef typename PMCore<TDna, TSpec>::Index TIndex;
     typedef typename TIndex::TShape PShape;
@@ -908,14 +906,13 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
     //unsigned block = (mapParm.blockSize < length(read))?mapParm.blockSize:length(read);
     //unsigned dt = block * (mapParm.alpha / (1 - mapParm.alpha));
     unsigned dt = 0;
-    double tt1 = 0;
     PShape shape;
     uint64_t xpre = 0;
     hashInit(shape, begin(read));
     for (unsigned k = 0; k < length(read); k++)
     {
         //printf("[debug]\n");
-        unsigned count = 0;
+        //unsigned count = 0;
         //hashNext(shape, begin(read) + k);
         hashNexth(shape, begin(read) + k);
 
@@ -926,9 +923,7 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
             if(hashNextX(shape, begin(read) + k) ^ xpre)
             {
                 xpre = shape.XValue;
-                tt1 = sysTime();
                 uint64_t pos = getXDir(index, shape.XValue, shape.YValue);
-                tt += sysTime() - tt1;
 //!Note: This contition is different from single strand which will slightly 
 //changes the senstivity; In the single strand index, if the size of the block having the same
 //is > mapParm.delta, then the block of the ysa will not be used. 
@@ -1158,11 +1153,9 @@ inline uint64_t mnMapReadList(typename PMCore<TDna, TSpec>::Index  & index,
                           typename PMRecord<TDna>::RecSeq & read,
                           Anchors & anchors,
                           MapParm & mapParm,
-                          PMRes::HitString & hit,
-                          double & tt
-                         )
+                          PMRes::HitString & hit)
 {
-    getIndexMatchAll<TDna, TSpec>(index, read, anchors.set, mapParm, tt);    
+    getIndexMatchAll<TDna, TSpec>(index, read, anchors.set, mapParm);    
     //printf("done getinxmatchall\n");
     return getAnchorMatchList(anchors, length(read), mapParm, hit);
 }
@@ -1260,8 +1253,7 @@ inline bool endCord( String<uint64_t> & cord,
 inline bool endCord( String<uint64_t> & cord,
                      unsigned & preCordStart,
                      float const & cordThr,
-                     float & score
-                   )
+                     float & score)
 {
     _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);   
     if (length(cord) - preCordStart > cordThr)// > std::max(score/25, cordThr))
@@ -1274,8 +1266,8 @@ inline bool endCord( String<uint64_t> & cord,
         erase(cord, preCordStart, length(cord));
     }
    //printf("[debug]::endcord done\n");
+    (void)score;
     return true;
-    //(void)score;
 }
 
 /*
@@ -1626,7 +1618,7 @@ int rawMap_dst(typename PMCore<TDna, TSpec>::Index   & index,
 }
 
 /*
- * this mapping function use the hash value of double strand 
+ * This mapping function use the hash value of double strand 
  * that allow to stream the sequence of double strand for only once
  * pass feature instead of genomes to reduce memory footprint
  */
@@ -1640,18 +1632,15 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
 {
   
     typedef typename PMRecord<TDna>::RecSeq Seq;
-    double time=sysTime();
+    //double time=sysTime();
     float senThr = mapParm.senThr / window_size;
     float cordThr = mapParm.cordThr / window_size;
     MapParm complexParm = mapParm;
     complexParm.alpha = complexParm.alpha2;
     complexParm.listN = complexParm.listN2;
-    std::cerr << "[rawMap_dst] Raw Mapping \n"; 
-
-    double time2 = sysTime();
+    //double time2 = sysTime();
 #pragma omp parallel
 {
-    double tt = 0;
     unsigned size2 = length(reads) / threads;
     unsigned ChunkSize = size2;
     Seq comStr;
@@ -1673,7 +1662,6 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
     #pragma omp for
     for (unsigned j = 0; j < length(reads); j++)
     {
-        //printf ("[debug] id %d %d %d\n", thd_id, j, length(reads[j]));
         if (length(reads[j]) >= mapParm.minReadLen)
         {
             float cordLenThr = length(reads[j]) * cordThr;
@@ -1682,7 +1670,7 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
             createFeatures(begin(comStr), end(comStr), f1[1]);
             anchors.init(1);
             clear(crhit);
-            mnMapReadList<TDna, TSpec>(index, reads[j], anchors, mapParm, crhit, tt);
+            mnMapReadList<TDna, TSpec>(index, reads[j], anchors, mapParm, crhit);
             path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
             if (_DefaultCord.getMaxLen(cordsTmp[c]) < length(reads[j]) * senThr)// && 
                //_DefaultCord.getMaxLen(cordsTmp[c]) > 0)
@@ -1690,9 +1678,10 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
                 clear(cordsTmp[c]);
                 anchors.init(1);
                 clear(crhit);
-                mnMapReadList<TDna, TSpec>(index, reads[j], anchors, complexParm, crhit,tt);
+                mnMapReadList<TDna, TSpec>(index, reads[j], anchors, complexParm, crhit);
                 path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
             }   
+            //mapGaps ()
         }
         c += 1;
     } 
@@ -1702,9 +1691,8 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
         {
             append(cords, cordsTmp);
         }
-    printf("tt = %f\n", tt);
 }
-    std::cerr << "    End raw mapping. Time[s]: " << sysTime() - time << std::endl;
+    //std::cerr << "    End raw mapping. Time[s]: " << sysTime() - time << std::flush << std::endl;
     return 0;
 }
 //End all mapper module
