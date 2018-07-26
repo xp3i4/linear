@@ -2978,14 +2978,13 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
 
     thd_hsStart[threads] = prek + 1;
     resize(hs, k + 2 - countMove);
-    //shrinkToFit(hs);
+    shrinkToFit(hs);
     indexEmptyDir = k - countMove;
     k=0;
     preX = _DefaultHs.getHeadX(hs[0]);
     ptr = 0;
     block_size = 0;
 
-    time = sysTime();
 #pragma omp parallel
 {
     uint64_t ptr = 0;

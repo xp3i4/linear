@@ -328,7 +328,7 @@ inline void _reverseComplementFeature(String<int> & f1, String<int> & f2)
 */
 
 template<typename TIter> 
-inline void createFeatures(TIter const & itBegin, TIter const & itEnd, String<int> & f)
+inline void createFeatures(TIter const & itBegin, TIter const & itEnd, String<short> & f)
 {
     unsigned next = 1;
     unsigned window = 1 << scriptWindow;
@@ -374,7 +374,7 @@ inline T parallelParm_Static(T range, unsigned threads, unsigned & thd_id,
  * parallel
  */
 template<typename TIter> 
-inline void createFeatures(TIter const & itBegin, TIter const & itEnd, String<int> & f, unsigned threads)
+inline void createFeatures(TIter const & itBegin, TIter const & itEnd, String<short> & f, unsigned threads)
 {
     unsigned window = 1 << scriptWindow;
     resize (f, ((itEnd - itBegin -window) >> scriptBit) + 1);
@@ -416,7 +416,7 @@ inline void createFeatures(TIter const & itBegin, TIter const & itEnd, String<in
  * parallel
  */
 template<typename TDna> 
-inline void createFeatures(StringSet<String<TDna> > & seq, StringSet<String<int> > & f, unsigned threads)
+inline void createFeatures(StringSet<String<TDna> > & seq, StringSet<String<short> > & f, unsigned threads)
 {
     resize(f, length(seq));
     for (unsigned k = 0; k < length(seq); k++)
@@ -424,7 +424,7 @@ inline void createFeatures(StringSet<String<TDna> > & seq, StringSet<String<int>
 }
 
 template<typename TDna> 
-inline void createFeatures(StringSet<String<TDna> > & seq, StringSet<String<int> > & f)
+inline void createFeatures(StringSet<String<TDna> > & seq, StringSet<String<short> > & f)
 {
     resize(f, length(seq));
     for (unsigned k = 0; k < length(seq); k++)
@@ -470,7 +470,7 @@ inline bool initCord(typename PMRes::HitString & hit, unsigned & currentIt, Stri
     return true;
 }
 
-inline bool previousWindow(String<int> & f1, String<int> & f2, typename Cord::CordString & cord)
+inline bool previousWindow(String<short> & f1, String<short> & f2, typename Cord::CordString & cord)
 {
     typedef typename Cord::CordType CordType;
     CordType genomeId = _getSA_i1(_DefaultCord.getCordX(back(cord)));
@@ -508,7 +508,7 @@ inline bool previousWindow(String<int> & f1, String<int> & f2, typename Cord::Co
     return true;
 }
 
-inline bool previousWindow(String<int> & f1, String<int> & f2, typename Cord::CordString & cord, float & score)
+inline bool previousWindow(String<short> & f1, String<short> & f2, typename Cord::CordString & cord, float & score)
 {
     typedef typename Cord::CordType CordType;
     CordType genomeId = _getSA_i1(_DefaultCord.getCordX(back(cord)));
@@ -548,7 +548,7 @@ inline bool previousWindow(String<int> & f1, String<int> & f2, typename Cord::Co
 }
 
 
-inline bool nextWindow(String<int> &f1, String<int> & f2, typename Cord::CordString & cord)
+inline bool nextWindow(String<short> &f1, String<short> & f2, typename Cord::CordString & cord)
 {
     typedef typename Cord::CordType CordType;
     CordType genomeId = _getSA_i1(_DefaultCord.getCordX(back(cord)));
@@ -587,7 +587,7 @@ inline bool nextWindow(String<int> &f1, String<int> & f2, typename Cord::CordStr
     return true;
 }
 
-inline bool nextWindow(String<int> &f1, String<int> & f2, typename Cord::CordString & cord, float & score)
+inline bool nextWindow(String<short> &f1, String<short> & f2, typename Cord::CordString & cord, float & score)
 {
     typedef typename Cord::CordType CordType;
     CordType genomeId = _getSA_i1(_DefaultCord.getCordX(back(cord)));
@@ -628,7 +628,7 @@ inline bool nextWindow(String<int> &f1, String<int> & f2, typename Cord::CordStr
     return true;
 }
 
-inline bool extendWindow(String<int> &f1, String<int> & f2, typename Cord::CordString & cord)
+inline bool extendWindow(String<short> &f1, String<short> & f2, typename Cord::CordString & cord)
 {
     Cord::CordType preCord = (length(cord)==1)?0:back(cord);
     unsigned len = length(cord) - 1;
@@ -641,9 +641,9 @@ inline bool extendWindow(String<int> &f1, String<int> & f2, typename Cord::CordS
     return true;
 }
 
-inline bool path(String<Dna5> & read, typename PMRes::HitString hit, StringSet<String<int> > & f2, String<uint64_t> & cords)
+inline bool path(String<Dna5> & read, typename PMRes::HitString hit, StringSet<String<short> > & f2, String<uint64_t> & cords)
 {
-    String<int> f1;
+    String<short> f1;
     unsigned currentIt = 0;
     if(!initCord(hit, currentIt, cords))
         return false;
@@ -674,7 +674,7 @@ inline bool path(String<Dna5> & read, typename PMRes::HitString hit, StringSet<S
 
 void path(typename PMRes::HitSet & hits, StringSet<String<Dna5> > & reads, StringSet<String<Dna5> > & genomes, StringSet<String<uint64_t> > & cords)
 {
-    StringSet<String<int> > f2;
+    StringSet<String<short> > f2;
     createFeatures(genomes, f2);
     std::cerr << "raw mapping... " << std::endl;
     for (unsigned k = 0; k < length(reads); k++)
@@ -1402,7 +1402,7 @@ inline bool nextCord(typename Iterator<PMRes::HitString>::Type & it,
     }
 }
 
-inline bool extendWindowAll(String<int> &f1, String<int> & f2, typename Cord::CordString & cord, float & score)
+inline bool extendWindowAll(String<short> &f1, String<short> & f2, typename Cord::CordString & cord, float & score)
 {
     Cord::CordType preCordY = (_DefaultHit.isBlockEnd(cord[length(cord) - 2]))?
     0:_DefaultCord.getCordY(back(cord)) + window_delta;
@@ -1505,8 +1505,8 @@ inline bool pathAll(String<Dna5> & read,
 inline bool path_dst(
                  typename Iterator<PMRes::HitString>::Type hitBegin, 
                  typename Iterator<PMRes::HitString>::Type hitEnd, 
-                 StringSet<String<int> > & f1,
-                 StringSet<String<int> > & f2, 
+                 StringSet<String<short> > & f1,
+                 StringSet<String<short> > & f2, 
                  String<uint64_t> & cords,
                  float const & cordLenThr
                 )
@@ -1550,7 +1550,7 @@ int rawMap_dst(typename PMCore<TDna, TSpec>::Index   & index,
     std::cerr << "[rawMap_dst] Raw Mapping \n"; 
 
     
-    StringSet<String<int> > f2;
+    StringSet<String<short> > f2;
     double time2 = sysTime();
     createFeatures(genomes, f2, threads);
     std::cerr << "init1 " << sysTime() - time2 << "\n";
@@ -1565,7 +1565,7 @@ int rawMap_dst(typename PMCore<TDna, TSpec>::Index   & index,
     Anchors anchors;
     typename PMRes::HitString crhit;
     StringSet<String<uint64_t> >  cordsTmp;
-    StringSet< String<int> > f1;
+    StringSet< String<short> > f1;
     //printf ("done\n");
     unsigned thd_id =  omp_get_thread_num();
     if (thd_id < length(reads) - size2 * threads)
@@ -1624,7 +1624,7 @@ int rawMap_dst(typename PMCore<TDna, TSpec>::Index   & index,
  */
 template <typename TDna, typename TSpec>
 int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
-            StringSet<String<int> > & f2,
+            StringSet<String<short> > & f2,
             typename PMRecord<TDna>::RecSeqs      & reads,
             MapParm & mapParm,
             StringSet<String<uint64_t> > & cords,
@@ -1648,7 +1648,7 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
     Anchors anchors;
     typename PMRes::HitString crhit;
     StringSet<String<uint64_t> >  cordsTmp;
-    StringSet< String<int> > f1;
+    StringSet< String<short> > f1;
     unsigned thd_id =  omp_get_thread_num();
     if (thd_id < length(reads) - size2 * threads)
     {

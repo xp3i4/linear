@@ -376,7 +376,7 @@ template <typename TDna, typename TSpec>
 int map(Mapper<TDna, TSpec> & mapper)
 {
     //printStatus();
-    StringSet<String<int> > f2;
+    StringSet<String<short> > f2;
     mapper.createIndex(false); // true: destroy genomes string to reduce memory footprint
     createFeatures(mapper.genomes(), f2, mapper.thread());
     SeqFileIn rFile(toCString(mapper.readPath()));
