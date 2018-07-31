@@ -564,6 +564,24 @@ hashNexth(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 
 /*
  * this hashNext function is for index only collect mini hash value [minindex]
+ * calculate hValue;
+ */ 
+template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
+inline typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
+hashNextV(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
+{
+    //typedef typename Size< Shape<TValue, TSpec> >::Type  TSize;
+    SEQAN_ASSERT_GT((unsigned)me.span, 0u);
+    uint64_t  v2 = ordValue((TValue)*(it + me.span - 1 ));
+    me.hValue=((me.hValue & MASK<TSPAN * 2 - 2>::VALUE)<< 2)+ v2;
+    me.crhValue=((me.crhValue >> 2) & MASK<TSPAN * 2 - 2>::VALUE) + 
+                ((COMP4 - v2) << (TSPAN * 2 - 2));
+    me.x += (v2 - me.leftChar) << 1;
+    me.leftChar = ordValue(*(it));
+    return (me.x > 0)?me.hValue:me.crhValue; 
+}
+/*
+ * this hashNext function is for index only collect mini hash value [minindex]
  * calculate XValue
  */ 
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
