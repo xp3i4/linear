@@ -819,8 +819,25 @@ int mapGaps(StringSet<String<Dna5> > & seqs, StringSet<String<Dna5> > & reads,
     return 0;
 }
 
-
-
+int mapGaps(StringSet<String<Dna5> > & seqs, 
+            StringSet<String<Dna5> >& reads, 
+            StringSet<String<uint64_t> > & cords, 
+            int start1,
+            int start2,
+            int len,
+            int const thd_gap, 
+            int const thd_tileSize)
+{
+    
+    String<uint64_t>  g_hs;
+    String<uint64_t>  g_anchor;
+    resize (g_hs, 1ULL << 20);
+    resize (g_anchor, 1ULL<<20);
+    for (unsigned k = 0; k < len; k++)
+    {
+        mapGaps(seqs, reads[start1 + k], cords[start2 + k], g_hs, g_anchor, thd_gap, thd_tileSize);
+    }
+}
 
 
 

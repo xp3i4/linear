@@ -387,6 +387,7 @@ int map(Mapper<TDna, TSpec> & mapper)
     dotstatus[0] = ".   ";
     dotstatus[1] = "..  ";
     dotstatus[2] = "... ";
+    int cordstart = 0;
     //while (!atEnd(rFile))
     //{
         double time1 = sysTime();
@@ -397,29 +398,22 @@ int map(Mapper<TDna, TSpec> & mapper)
         std::cerr <<  ">>Map::mapping  block "<< k << " Size " << length(mapper.reads()) << " " << dotstatus[j++ % length(dotstatus)] << "\r";
         time1 = sysTime() - time1;
         double time2 = sysTime();
+        cordstart = length(mapper.cords());
         rawMap_dst2_MF<TDna, TSpec>(mapper.index(), f2, mapper.reads(), mapper.mapParm(), mapper.cords(), mapper.thread());
         time2 = sysTime() - time2;
-        std::cerr <<  "--Map::file_I/O+Map block "<< k << " Size " << length(mapper.reads()) << " Elapsed Time: file_I/O " << time1 << " map "<< time2 << "\n";
+        double time3 = sysTime();
+        mapGaps(mapper.genomes(), mapper.reads(), mapper.cords(), 0, cordstart, blockSize, 500, 192);
+        time3 = sysTime() - time3;
+        std::cerr <<  "--Map::file_I/O+Map block "<< k << " Size " << length(mapper.reads()) << " Elapsed Time: file_I/O " << time1 << " map "<< time2 << " gap " << time3 << "\n";
+        
         k++;
     //}
-    unsigned count = 0;
-    String<uint64_t> g_hs;
-    String<uint64_t> g_anchor;
-    resize (g_hs, 1ULL<<20);
-    resize (g_anchor, 1ULL<<20);
-    std::cerr << "[]::reads length " << length(mapper.reads()) << " cords length " << length(mapper.cords()) << "\n";
     
-    for (unsigned k = 0; k < length(mapper.cords()); k++)
-    {
-//        count += mapGaps(mapper.genomes(), mapper.reads()[k], mapper.cords()[k], 500, 192);
-        mapGaps(mapper.genomes(), mapper.reads()[k], mapper.cords()[k], g_hs, g_anchor, 500, 192);
-    }
-    std::cerr << "done \n";
     //mapper.printCordsAll();
     clear (mapper.genomes());
     mapper.index().clear();
     mapper.printCordsRaw2();
-    std::cerr << "[]::count " << count/1024.0/1024 << " " << length(mapper.cords()) << " " << length(mapper.reads()) << " \n";
+    //std::cerr << "[]::count " << count/1024.0/1024 << " " << length(mapper.cords()) << " " << length(mapper.reads()) << " \n";
     return 0;
 }
 
