@@ -92,7 +92,7 @@ struct Cord
     
     CordType getCordX(CordType const &, typename CordBase::Bit const &, typename CordBase::Mask const &) const;
     CordType getCordY(CordType const &, typename CordBase::Mask const &) const;
-    CordType createCord(CordType const &, CordType const &, typename CordBase::Bit const &) const ;
+    CordType createCord(CordType const &, CordType const &, CordType const &, typename CordBase::Bit const &, typename CordBase::Bit const &) const ;
     CordType hit2Cord(PMRes::HitType const &, typename CordBase::Bit const &, typename CordBase::Mask const &, typename CordBase::Mask const &) const;
     CordType hit2Cord_dstr(PMRes::HitType const &, typename CordBase::Bit const &, typename CordBase::Mask const &, typename CordBase::Mask const &) const;
     CellType cord2Cell(CordType const &, typename CordBase::Bit const &) const;
@@ -129,9 +129,11 @@ Cord::getCordY(typename Cord::CordType const & cord,
 inline typename Cord::CordType 
 Cord::createCord(typename Cord::CordType const & x, 
                  typename Cord::CordType const & y, 
-                 typename CordBase::Bit const & bit = _DefaultCordBase.bit) const
+                 typename Cord::CordType const & strand,
+                 typename CordBase::Bit const & bit = _DefaultCordBase.bit, 
+                 typename CordBase::Bit const & bit2 = _DefaultCordBase.flag_bit) const
 {
-    return (x << bit) + y;
+    return (x << bit) + y + (strand << bit2);
 }
 
 inline typename Cord::CordType 
@@ -470,7 +472,10 @@ inline bool initCord(typename PMRes::HitString & hit, unsigned & currentIt, Stri
     return true;
 }
 
-inline bool previousWindow(String<short> & f1, String<short> & f2, typename Cord::CordString & cord)
+inline bool previousWindow(String<short> & f1, 
+                           String<short> & f2, 
+                           typename Cord::CordString & cord, 
+                           uint64_t & strand)
 {
     typedef typename Cord::CordType CordType;
     CordType genomeId = _getSA_i1(_DefaultCord.getCordX(back(cord)));
@@ -500,15 +505,19 @@ inline bool previousWindow(String<short> & f1, String<short> & f2, typename Cord
     {
         if ( x_suf - x_min > med)
         {
-            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y)));
+            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand));
         }
         else
-            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y)));
+            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
     }
     return true;
 }
 
-inline bool previousWindow(String<short> & f1, String<short> & f2, typename Cord::CordString & cord, float & score)
+inline bool previousWindow(String<short> & f1, 
+                           String<short> & f2, 
+                           typename Cord::CordString & cord, 
+                           float & score, 
+                           uint64_t & strand)
 {
     typedef typename Cord::CordType CordType;
     CordType genomeId = _getSA_i1(_DefaultCord.getCordX(back(cord)));
@@ -537,10 +546,10 @@ inline bool previousWindow(String<short> & f1, String<short> & f2, typename Cord
     {
         if ( x_suf - x_min > med)
         {
-            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y)));
+            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand));
         }
         else
-            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y)));
+            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
     }
     //printf("[debug]::previousWindow %d\n", min);
     score += min;
@@ -548,7 +557,10 @@ inline bool previousWindow(String<short> & f1, String<short> & f2, typename Cord
 }
 
 
-inline bool nextWindow(String<short> &f1, String<short> & f2, typename Cord::CordString & cord)
+inline bool nextWindow(String<short> &f1, 
+                       String<short> & f2, 
+                       typename Cord::CordString & cord, 
+                       uint64_t & strand)
 {
     typedef typename Cord::CordType CordType;
     CordType genomeId = _getSA_i1(_DefaultCord.getCordX(back(cord)));
@@ -578,16 +590,20 @@ inline bool nextWindow(String<short> &f1, String<short> & f2, typename Cord::Cor
     else 
         if ( x_min - x_pre > med)
         {
-            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y)));
+            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y), strand));
         }
         else
         {
-            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y)));
+            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
         }
     return true;
 }
 
-inline bool nextWindow(String<short> &f1, String<short> & f2, typename Cord::CordString & cord, float & score)
+inline bool nextWindow(String<short> &f1, 
+                       String<short> & f2, 
+                       typename Cord::CordString & cord, 
+                       float & score, 
+                       uint64_t & strand)
 {
     typedef typename Cord::CordType CordType;
     CordType genomeId = _getSA_i1(_DefaultCord.getCordX(back(cord)));
@@ -616,11 +632,11 @@ inline bool nextWindow(String<short> &f1, String<short> & f2, typename Cord::Cor
     else 
         if ( x_min - x_pre > med)
         {
-            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y)));
+            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y), strand));
         }
         else
         {
-            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y)));
+            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
         }
     score += min;
         //printf("[debug]::nextWindow %d\n", min);
@@ -628,16 +644,16 @@ inline bool nextWindow(String<short> &f1, String<short> & f2, typename Cord::Cor
     return true;
 }
 
-inline bool extendWindow(String<short> &f1, String<short> & f2, typename Cord::CordString & cord)
+inline bool extendWindow(String<short> &f1, String<short> & f2, typename Cord::CordString & cord, uint64_t strand)
 {
     Cord::CordType preCord = (length(cord)==1)?0:back(cord);
     unsigned len = length(cord) - 1;
-    while (preCord <= back(cord) && previousWindow(f1, f2, cord)){}
+    while (preCord <= back(cord) && previousWindow(f1, f2, cord, strand)){}
     for (unsigned k = len; k < ((length(cord) + len) >> 1); k++) 
     {
         std::swap(cord[k], cord[length(cord) - k + len - 1]);
     }
-    while (nextWindow(f1, f2, cord)){}
+    while (nextWindow(f1, f2, cord, strand)){}
     return true;
 }
 
@@ -664,7 +680,7 @@ inline bool path(String<Dna5> & read, typename PMRes::HitString hit, StringSet<S
     //std::cout << "[debug] " << _DefaultCord.getCordY(back(cords)) << "\n";
     while (_DefaultCord.getCordY(back(cords)) < length(read) - window_size)
     {
-        extendWindow(f1, f2[genomeId], cords);
+        extendWindow(f1, f2[genomeId], cords, _DefaultCord.getCordStrand(back(cords)));
         //std::cerr << "nextCord" << std::endl;
         if(!nextCord(hit, currentIt, cords))
                 return false;
@@ -1402,19 +1418,23 @@ inline bool nextCord(typename Iterator<PMRes::HitString>::Type & it,
     }
 }
 
-inline bool extendWindowAll(String<short> &f1, String<short> & f2, typename Cord::CordString & cord, float & score)
+inline bool extendWindowAll(String<short> &f1, 
+                            String<short> & f2, 
+                            typename Cord::CordString & cord, 
+                            float & score, 
+                            uint64_t & strand)
 {
     Cord::CordType preCordY = (_DefaultHit.isBlockEnd(cord[length(cord) - 2]))?
     0:_DefaultCord.getCordY(back(cord)) + window_delta;
     unsigned len = length(cord) - 1;
    
     while (preCordY<= _DefaultCord.getCordY(back(cord)) && 
-        previousWindow(f1, f2, cord, score)){}
+        previousWindow(f1, f2, cord, score, strand)){}
     for (unsigned k = len; k < ((length(cord) + len) >> 1); k++) 
     {
         std::swap(cord[k], cord[length(cord) - k + len - 1]);
     }
-    while (nextWindow(f1, f2, cord, score)){}
+    while (nextWindow(f1, f2, cord, score, strand)){}
     return true;
 }
 
@@ -1517,7 +1537,8 @@ inline bool path_dst(
     if(initCord(it, hitEnd, preBlockPtr, cords))
     {
         do{
-            extendWindowAll(f1[_DefaultCord.getCordStrand(back(cords))], f2[_getSA_i1(_DefaultCord.getCordX(back(cords)))], cords, score);
+            uint64_t strand = _DefaultCord.getCordStrand(back(cords));
+            extendWindowAll(f1[strand], f2[_getSA_i1(_DefaultCord.getCordX(back(cords)))], cords, score, strand);
         }
         while (nextCord(it, hitEnd, preBlockPtr, cords, cordLenThr, score));
         //printf("[debug]::nextdone\n");
@@ -1621,14 +1642,16 @@ int rawMap_dst(typename PMCore<TDna, TSpec>::Index   & index,
  * This mapping function use the hash value of double strand 
  * that allow to stream the sequence of double strand for only once
  * pass feature instead of genomes to reduce memory footprint
- */
+ *
 template <typename TDna, typename TSpec>
 int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
             StringSet<String<short> > & f2,
             typename PMRecord<TDna>::RecSeqs      & reads,
             MapParm & mapParm,
             StringSet<String<uint64_t> > & cords,
-            unsigned & threads)
+            unsigned & threads,
+            StringSet<String<TDna> > & seqs
+            )
 {
   
     typedef typename PMRecord<TDna>::RecSeq Seq;
@@ -1657,7 +1680,11 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
     resize(cordsTmp, ChunkSize);
     resize(f1, 2);
     unsigned c = 0;
-
+    
+    String<uint64_t>  g_hs;
+    String<uint64_t>  g_anchor;
+    resize (g_hs, 1ULL << 20);
+    resize (g_anchor, 1ULL<<20);
 
     #pragma omp for
     for (unsigned j = 0; j < length(reads); j++)
@@ -1682,6 +1709,7 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
                 path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
             }   
             //mapGaps ()
+            mapGaps(seqs, reads[j], cordsTmp[c], g_hs, g_anchor, 500, 192);
         }
         c += 1;
     } 
@@ -1695,6 +1723,7 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
     //std::cerr << "    End raw mapping. Time[s]: " << sysTime() - time << std::flush << std::endl;
     return 0;
 }
+*/
 //End all mapper module
 //============================================
 

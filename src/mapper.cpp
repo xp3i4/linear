@@ -330,7 +330,7 @@ void Mapper<TDna, TSpec>::printCordsRaw2()
                 if (_DefaultHit.isBlockEnd(cordSet[k][j-1]) )//&& ++recordCount < 10)
                 {
                     of << "\n" << record.id1[k] << " " << length(cordSet[k]) << " "
-                    << _DefaultCord.getCordY(cordSet[k][j]) << " " << length(reads()[k]) << " x " 
+                    << _DefaultCord.getCordY(cordSet[k][j]) << " " << length(reads()[k]) << " " << _DefaultCord.getCordStrand(cordSet[k][j])<< " "
                     << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j])) << " " << cordCount << " "
                     << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << " " 
                     ;  
@@ -369,6 +369,89 @@ void map(Mapper<TDna, TSpec> & mapper)
 }
 */
 
+template <typename TDna, typename TSpec>
+int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
+            StringSet<String<short> > & f2,
+            typename PMRecord<TDna>::RecSeqs      & reads,
+            MapParm & mapParm,
+            StringSet<String<uint64_t> > & cords,
+            unsigned & threads,
+            StringSet<String<TDna> > & seqs
+            )
+{
+  
+    typedef typename PMRecord<TDna>::RecSeq Seq;
+    //double time=sysTime();
+    float senThr = mapParm.senThr / window_size;
+    float cordThr = mapParm.cordThr / window_size;
+    MapParm complexParm = mapParm;
+    complexParm.alpha = complexParm.alpha2;
+    complexParm.listN = complexParm.listN2;
+    //double time2 = sysTime();
+#pragma omp parallel
+{
+    unsigned size2 = length(reads) / threads;
+    unsigned ChunkSize = size2;
+    Seq comStr;
+    //Anchors anchors(Const_::_LLTMax, AnchorBase::size);
+    Anchors anchors;
+    typename PMRes::HitString crhit;
+    StringSet<String<uint64_t> >  cordsTmp;
+    StringSet< String<short> > f1;
+    unsigned thd_id =  omp_get_thread_num();
+    if (thd_id < length(reads) - size2 * threads)
+    {
+        ChunkSize = size2 + 1;
+    }
+    resize(cordsTmp, ChunkSize);
+    resize(f1, 2);
+    unsigned c = 0;
+    
+    String<uint64_t>  g_hs;
+    String<uint64_t>  g_anchor;
+    resize (g_hs, 1ULL << 20);
+    resize (g_anchor, 1ULL<<20);
+
+    #pragma omp for
+    for (unsigned j = 0; j < length(reads); j++)
+    {
+        if (length(reads[j]) >= mapParm.minReadLen)
+        {
+            float cordLenThr = length(reads[j]) * cordThr;
+            _compltRvseStr(reads[j], comStr);
+            createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
+            createFeatures(begin(comStr), end(comStr), f1[1]);
+            anchors.init(1);
+            clear(crhit);
+            mnMapReadList<TDna, TSpec>(index, reads[j], anchors, mapParm, crhit);
+            path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
+            if (_DefaultCord.getMaxLen(cordsTmp[c]) < length(reads[j]) * senThr)// && 
+            //_DefaultCord.getMaxLen(cordsTmp[c]) > 0)
+            {
+                clear(cordsTmp[c]);
+                anchors.init(1);
+                clear(crhit);
+                mnMapReadList<TDna, TSpec>(index, reads[j], anchors, complexParm, crhit);
+                path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
+            }   
+            //mapGaps ()
+            //std::cout << "[]::rawMap_dst2_MF " << j << "\n";
+            mapGaps(seqs, reads[j], cordsTmp[c], g_hs, g_anchor, 500, 192);
+        }   
+        
+        c += 1;
+    } 
+    #pragma omp for ordered
+    for (unsigned j = 0; j < threads; j++)
+        #pragma omp ordered
+        {
+            append(cords, cordsTmp);
+        }
+}
+    //std::cerr << "    End raw mapping. Time[s]: " << sysTime() - time << std::flush << std::endl;
+    return 0;
+}
+
 /*
  *[]::map
  */
@@ -377,7 +460,7 @@ int map(Mapper<TDna, TSpec> & mapper)
 {
     //printStatus();
     StringSet<String<short> > f2;
-    mapper.createIndex(false); // true: destroy genomes string to reduce memory footprint
+    mapper.createIndex(false); // true: destruct genomes string to reduce memory footprint
     createFeatures(mapper.genomes(), f2, mapper.thread());
     SeqFileIn rFile(toCString(mapper.readPath()));
     unsigned k = 1, j = 0;
@@ -388,8 +471,8 @@ int map(Mapper<TDna, TSpec> & mapper)
     dotstatus[1] = "..  ";
     dotstatus[2] = "... ";
     int cordstart = 0;
-    //while (!atEnd(rFile))
-    //{
+    while (!atEnd(rFile))
+    {
         double time1 = sysTime();
         clear (mapper.reads());
         std::cerr <<  ">>Map::file_I/O  block " << k << dotstatus[j++ % length(dotstatus)] << "\r";
@@ -399,15 +482,15 @@ int map(Mapper<TDna, TSpec> & mapper)
         time1 = sysTime() - time1;
         double time2 = sysTime();
         cordstart = length(mapper.cords());
-        rawMap_dst2_MF<TDna, TSpec>(mapper.index(), f2, mapper.reads(), mapper.mapParm(), mapper.cords(), mapper.thread());
+        rawMap_dst2_MF<TDna, TSpec>(mapper.index(), f2, mapper.reads(), mapper.mapParm(), mapper.cords(), mapper.thread(), mapper.genomes());
         time2 = sysTime() - time2;
-        double time3 = sysTime();
-        mapGaps(mapper.genomes(), mapper.reads(), mapper.cords(), 0, cordstart, blockSize, 500, 192);
-        time3 = sysTime() - time3;
-        std::cerr <<  "--Map::file_I/O+Map block "<< k << " Size " << length(mapper.reads()) << " Elapsed Time: file_I/O " << time1 << " map "<< time2 << " gap " << time3 << "\n";
-        
+        //double time3 = sysTime();
+        //mapGaps(mapper.genomes(), mapper.reads(), mapper.cords(), 0, cordstart, blockSize, 500, 192);
+        //time3 = sysTime() - time3;
+        //std::cerr <<  "--Map::file_I/O+Map block "<< k << " Size " << length(mapper.reads()) << " Elapsed Time[s]: file_I/O " << time1 << " map "<< time2 << " gap " << time3 << "\n";
+        std::cerr <<  "--Map::file_I/O+Map block "<< k << " Size " << length(mapper.reads()) << " Elapsed Time[s]: file_I/O " << time1 << " map "<< time2 << "\n";
         k++;
-    //}
+    }
     
     //mapper.printCordsAll();
     clear (mapper.genomes());

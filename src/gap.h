@@ -639,6 +639,12 @@ inline void g_mapHs_anchor_ (String<uint64_t> & anchor,
         }
     }
     //std::cout << "[]::g_mapHs_anchor_ max_prek " << max_prek << " max_k " << max_k << "\n";
+   
+    for (int k = 0; k < anchor_end; k++) 
+    {
+      //  std::cout << "[]::g_mapHs_tile_ " << _defaultACoord.getAnchor(anchor[k]) << "\n";
+        //std::cout << "[]::g_mapHs_anchor_ " << k << " " << ((anchor[k] >> 61) & 1) << " " << (int64_t) ((anchor[k]>> 20) & ((1ULL << 40) - 1))  << " " << (anchor[k] & ((1ULL << 20) - 1))<< "\n";
+    }
     
     std::sort (begin(anchor) + max_prek, 
             begin(anchor) + max_k, 
@@ -646,15 +652,7 @@ inline void g_mapHs_anchor_ (String<uint64_t> & anchor,
             {
                 return _defaultACoord.getCoord(s2) > _defaultACoord.getCoord(s1);
             });
-   /* 
-    for (int k = 0; k < anchor_end; k++) 
-    {
-      //  std::cout << "[]::g_mapHs_tile_ " << _defaultACoord.getAnchor(anchor[k]) << "\n";
-        std::cout << "[]::g_mapHs_anchor_ " << k << " " << ((anchor[k] >> 61) & 1) << " " << (int64_t) ((anchor[k]>> 20) & ((1ULL << 40) - 1))  << " " << (anchor[k] & ((1ULL << 20) - 1))<< "\n";
-    }
-    */
-
-    std::cout << "g_mapHs__anchor_ max " << max_k - max_prek << "\n";
+    //std::cout << "g_mapHs__anchor_ max " << max_k - max_prek << "\n";
     appendValue(tile, acoord2Tile(anchor[max_prek]));
     for (unsigned j = max_prek + 1; j < max_k; j++)
     {
@@ -679,6 +677,7 @@ inline int g_mapHs_(String<Dna5> & seq,
                     String<uint64_t> & g_hs_tile,
                     int thd_tileSize)
 {
+    double time = sysTime();
     int g_hs_end = 0;
     int g_hs_anchor_end = 0;
     //std::cout << "[]::m_map_hs_ 1 " << g_hs_end << "\n";
@@ -686,6 +685,8 @@ inline int g_mapHs_(String<Dna5> & seq,
     //std::cout << "[]::m_map_hs_ 2 " << g_hs_end << "\n";
     g_hs_end = g_mapHs_kmer_(read, g_hs, gr_start, gr_end, g_hs_end, 1, 1);
     //std::cout << "[]::m_map_hs_ 3 " << g_hs_end << "\n";
+    time = sysTime() - time;
+    double time2 = sysTime();
     std::sort (begin(g_hs), begin(g_hs) + g_hs_end);
     int p1 = 0, p2 = 0;
     for (int k = 0; k < g_hs_end; k++)
@@ -706,8 +707,8 @@ inline int g_mapHs_(String<Dna5> & seq,
                 p2 = k; 
         }
     }
-    //std::cout << "[]::m_map_hs_ 5 " << g_hs_anchor_end << "\n";
     g_mapHs_anchor_(g_hs_anchor, g_hs_tile, g_hs_anchor_end, thd_tileSize);
+    std::cout << "[]::m_map_hs_ 5 " << g_hs_anchor_end << " " << (sysTime() - time2) / time << "\n";
 }
 
 /*
@@ -787,10 +788,11 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             !_DefaultHit.isBlockEnd(cords[k - 1]))
         {
             clear(tile);
+            //std::cout << "[]::mapGaps " << " " << _DefaultCord.getCordY(cords[k - 1]) << " " << _DefaultCord.getCordY(cords[k]) << "\n";
             g_mapHs_(seqs[_getSA_i1(_DefaultCord.getCordX(cords[k - 1]))], 
                      read, 
-                     _DefaultCord.getCordX(cords[k - 1]) + delta,
-                     _DefaultCord.getCordX(cords[k]) + delta,
+                     _getSA_i2(_DefaultCord.getCordX(cords[k - 1])) + delta,
+                     _getSA_i2(_DefaultCord.getCordX(cords[k])) + delta,
                      _DefaultCord.getCordY(cords[k - 1]) + delta, 
                      _DefaultCord.getCordY(cords[k]) + delta,
                      g_hs,
