@@ -924,6 +924,7 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
     unsigned dt = 0;
     PShape shape;
     uint64_t xpre = 0;
+    double time, time2;
     hashInit(shape, begin(read));
     for (unsigned k = 0; k < length(read); k++)
     {
@@ -939,7 +940,9 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
             if(hashNextX(shape, begin(read) + k) ^ xpre)
             {
                 xpre = shape.XValue;
+                time = sysTime();
                 uint64_t pos = getXDir(index, shape.XValue, shape.YValue);
+                time = sysTime() - time;
 //!Note: This contition is different from single strand which will slightly 
 //changes the senstivity; In the single strand index, if the size of the block having the same
 //is > mapParm.delta, then the block of the ysa will not be used. 
@@ -948,6 +951,7 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
         // if (_DefaultHs.getHsBodyY(index.ysa[std::min(pos + mapParm.delta, length(index.ysa) - 1)]) ^ shape.YValue)
             //{
                 //while (_DefaultHs.isBodyYEqual(index.ysa[pos], shape.YValue))
+                time2 = sysTime();
                 if (_DefaultHs.getHeadPtr(index.ysa[pos-1]) < mapParm.delta)
                 //if (_DefaultHs.getHeadPtr(index.ysa[pos-1]) < 1000000)
                 {
@@ -980,10 +984,12 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
                         ++pos;
                     }
                 }
+                time2 = sysTime() - time2;
             }
             dt = 0;
         }
     }
+    std::cout << "[]::getIndexMatchAll " << time / time2 << "\n";
     return 0;
 }
 

@@ -549,7 +549,7 @@ int readRecords_block (StringSet<CharString> & ids, StringSet<String<Dna5> > & r
 {
     int start = length(reads);
     readRecords(ids, reads, fin, blockSize);
-    for (int k = 0; k < length(reads) - start; k++)
+    for (unsigned k = 0; k < length(reads) - start; k++)
     {
         appendValue (lens, length(reads[start + k]));
     }

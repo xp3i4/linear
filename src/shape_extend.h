@@ -578,6 +578,7 @@ hashNextV(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
                 ((COMP4 - v2) << (TSPAN * 2 - 2));
     me.x += (v2 - me.leftChar) << 1;
     me.leftChar = ordValue(*(it));
+    me.strand = (me.x >> 63) & 1; //Note: me.x type is uint64_t
     return (me.x > 0)?me.hValue:me.crhValue; 
 }
 /*
