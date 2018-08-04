@@ -483,6 +483,35 @@ int mapGap_(GIndex & g_index, String <Dna5> & read,  uint64_t start2, uint64_t e
 }
 
 
+//========================
+//g_hs_anchor: N/A[13]|strand[1]|anchor[30]|cord[20]
+static const uint64_t g_hs_anchor_mask1 = (1ULL << 20) - 1;
+static const uint64_t g_hs_anchor_mask3 = (1ULL << 30) - 1;
+static const uint64_t g_hs_anchor_bit1 = 20;
+static const uint64_t g_hs_anchor_bit2 = 50;
+static const uint64_t g_hs_anchor_mask2 = ~(1ULL << 50);
+
+inline uint64_t g_hs_anchor_getCord (uint64_t & anchor)
+{
+    return anchor & g_hs_anchor_mask1;
+}
+
+inline uint64_t g_hs_anchor_getAnchor (uint64_t anchor)
+{
+    return (anchor >> g_hs_anchor_bit1) & g_hs_anchor_mask3;
+}
+
+inline uint64_t g_hs_anchor_getX (uint64_t & val)
+{
+    return ((val >> g_hs_anchor_bit1) & g_hs_anchor_mask3) + (val & g_hs_anchor_mask1);
+}
+
+inline uint64_t g_hs_anchor_getY (uint64_t & val)
+{
+    return val & g_hs_anchor_mask1;
+}
+
+
 //g_hs: N/A[1]|xval[30]|type[2]strand[1]|coordinate[30]
 static const uint64_t g_hs_mask1 = (1ULL << 30);
 static const uint64_t g_hs_mask2 = (1ULL << 30) - 1;
@@ -499,15 +528,23 @@ inline void g_hs_setGhs_(uint64_t & val,
 
 inline void g_hs_setAnchor_(uint64_t & val, 
                             uint64_t const & hs1, /*genome*/
-                            uint64_t const & hs2 /*read*/)
+                            uint64_t const & hs2, /*read*/
+                            uint64_t revscomp_const)
 {
     uint64_t strand = ((hs1 ^ hs2) >> 30 ) & 1;
-    val = (strand << 61) + (((hs1 + _nStrand(strand) * hs2) & g_hs_mask2) << 20) + (hs2 & g_hs_mask2); 
+    uint64_t x = revscomp_const * strand - _nStrand(strand) * (hs2 & g_hs_mask2); 
+    val = (((hs1 - x) & (g_hs_mask2)) << 20) + x + (strand << g_hs_anchor_bit2);
 }
 
 inline uint64_t g_hs_getXT (uint64_t const & val)
 {
     return (val >> 31) & g_hs_mask3;
+}
+
+inline uint64_t g_hs_anchor_2Tile (uint64_t & anchor)
+{
+    uint64_t strand = (anchor >> g_hs_anchor_bit2) & 1;
+	return (anchor + ((anchor & g_hs_anchor_mask1) << 20) & g_hs_anchor_mask2) + (strand << 61);
 }
 
 /*
@@ -589,6 +626,7 @@ inline int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
                             int p1, 
                             int p2, 
                             int k, 
+                            uint64_t revscomp_const,
                             int g_anchor_end) 
 {
     unsigned n = 0;
@@ -596,7 +634,7 @@ inline int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
     {
         for (int j = p2; j < k; j++) 
         {
-            g_hs_setAnchor_(g_anchor[g_anchor_end + n++], g_hs[i], g_hs[j]);
+            g_hs_setAnchor_(g_anchor[g_anchor_end + n++], g_hs[i], g_hs[j], revscomp_const);
             //std::cout << "[]::g_mapHs_createAnchors_ " << (g_anchor[g_anchor_end + n - 1] >> 20 & ((1ULL << 40 ) - 1)) << " " << (g_anchor[g_anchor_end + n - 1] & ((1ULL << 20) - 1))<< "\n";
         }   
     }
@@ -618,10 +656,12 @@ inline void g_mapHs_anchor_ (String<uint64_t> & anchor,
     for (unsigned k = 0; k < anchor_end + 1; k++)
     {
         //TODO: handle thd_min_segment, anchor 
-        int64_t d = std::abs(_defaultACoord.getCoord(anchor[k]) - _defaultACoord.getCoord(anchor[prek]));
-        if (_defaultACoord.getAnchor(anchor[k]) - _defaultACoord.getAnchor(anchor[prek]) > 
-            150)
-     //       thd_error_percent * std::max(thd_min_segment, d))
+        //int64_t d = std::abs(_defaultACoord.getCoord(anchor[k]) - _defaultACoord.getCoord(anchor[prek]));
+        int64_t d = std::abs((int64_t)g_hs_anchor_getY(anchor[k]) - (int64_t)g_hs_anchor_getY(anchor[prek]));
+        //std::cout << "[]::g_mapHs_anchor_ 3 " << std::max(thd_min_segment, d) << "\n";
+        if (g_hs_anchor_getAnchor(anchor[k] - anchor[prek]) > 150)
+
+            //thd_error_percent * std::max(thd_min_segment, d))
         {
             //std::cout << "[]::g_mapHs_anchor_ prek " << prek << " k " << k << "\n";
             if (anchor_len > max_anchor_len)
@@ -639,28 +679,30 @@ inline void g_mapHs_anchor_ (String<uint64_t> & anchor,
         }
     }
     //std::cout << "[]::g_mapHs_anchor_ max_prek " << max_prek << " max_k " << max_k << "\n";
-   
+    /*
     for (int k = 0; k < anchor_end; k++) 
     {
-      //  std::cout << "[]::g_mapHs_tile_ " << _defaultACoord.getAnchor(anchor[k]) << "\n";
-        //std::cout << "[]::g_mapHs_anchor_ " << k << " " << ((anchor[k] >> 61) & 1) << " " << (int64_t) ((anchor[k]>> 20) & ((1ULL << 40) - 1))  << " " << (anchor[k] & ((1ULL << 20) - 1))<< "\n";
+        //std::cout << "[]::g_mapHs_tile_ " << _defaultACoord.getAnchor(anchor[k]) << "\n";
+        std::cout << "[]::g_mapHs_anchor_ " << k << " " << ((anchor[k] >> 50) & 1) << " " << g_hs_anchor_getAnchor(anchor[k]) << " " << g_hs_anchor_getX(anchor[k])  << " " << g_hs_anchor_getY(anchor[k])<< " " << (anchor[k] >> 51) << "\n";
     }
-    
+    */
     std::sort (begin(anchor) + max_prek, 
             begin(anchor) + max_k, 
             [](uint64_t & s1, uint64_t & s2)
             {
-                return _defaultACoord.getCoord(s2) > _defaultACoord.getCoord(s1);
+                //return _defaultACoord.getCoord(s2) > _defaultACoord.getCoord(s1);
+                return g_hs_anchor_getCord(s2) > g_hs_anchor_getCord(s1);
             });
     //std::cout << "g_mapHs__anchor_ max " << max_k - max_prek << "\n";
-    appendValue(tile, acoord2Tile(anchor[max_prek]));
+    appendValue(tile, g_hs_anchor_2Tile(anchor[max_prek]));
     for (unsigned j = max_prek + 1; j < max_k; j++)
     {
         //add a tile if anchor[j] is not in the last tile
-        if (_defaultACoord.getX(anchor[j]) > _defaultTile.getX(back(tile)) + thd_tileSize
-            || _defaultACoord.getY(anchor[j]) > _defaultTile.getY(back(tile)) + thd_tileSize)
+        //if (_defaultACoord.getX(anchor[j]) > _defaultTile.getX(back(tile)) + thd_tileSize
+        if (g_hs_anchor_getX(anchor[j]) > _defaultTile.getX(back(tile)) + thd_tileSize
+            || g_hs_anchor_getY(anchor[j]) > _defaultTile.getY(back(tile)) + thd_tileSize)
         {
-            appendValue (tile, acoord2Tile(anchor[j - 1]));
+            appendValue (tile, g_hs_anchor_2Tile(anchor[j - 1]));
         }
     }
      
@@ -702,13 +744,13 @@ inline int g_mapHs_(String<Dna5> & seq,
                 p2 = k;
                 break;
             default:
-                g_hs_anchor_end = g_mapHs_setAnchors_(g_hs, g_hs_anchor, p1, p2, k, g_hs_anchor_end);
+                g_hs_anchor_end = g_mapHs_setAnchors_(g_hs, g_hs_anchor, p1, p2, k, gr_start + gr_end - 1, g_hs_anchor_end);
                 p1 = k;
                 p2 = k; 
         }
     }
     g_mapHs_anchor_(g_hs_anchor, g_hs_tile, g_hs_anchor_end, thd_tileSize);
-    std::cout << "[]::m_map_hs_ 5 " << g_hs_anchor_end << " " << (sysTime() - time2) / time << "\n";
+    //std::cout << "[]::m_map_hs_ 5 " << g_hs_anchor_end << " " << (sysTime() - time2) / time << "\n";
 }
 
 /*
@@ -768,6 +810,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs, String<Dna5> & read, String<uint64_
  * Extract gaps from cords then re-map gaps.
  * use table to map
  * []::mg3
+ * start and end of the gap in this function are supposed to have the same strand. Otherwise(like inverse) need more process.
  */
 int mapGaps(StringSet<String<Dna5> > & seqs, 
             String<Dna5> & read, 
@@ -786,14 +829,31 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
         if (_DefaultCord.getCordX(cords[k] - cords[k - 1]) > thd_gap && 
             _DefaultCord.getCordY(cords[k] - cords[k - 1]) > thd_gap &&
             !_DefaultHit.isBlockEnd(cords[k - 1]))
-        {
+        	{
             clear(tile);
             //std::cout << "[]::mapGaps " << " " << _DefaultCord.getCordY(cords[k - 1]) << " " << _DefaultCord.getCordY(cords[k]) << "\n";
+            //strand of cord[k - 1] are supposed to be eqaul to strand of cord[k]
+            uint64_t strand = _DefaultCord.getCordStrand (cords[k - 1]);
+            /*
+            uint64_t gr_start = (length(read) - 1) * strand - 
+            		(_nStrand(strand) * (_DefaultCord.getCordY(cords[k - 1]) + delta));
+            uint64_t gr_end = (length(read) - 1) * strand - 
+            		(_nStrand(strand) * (_DefaultCord.getCordY(cords[k]) + delta));
+            if (gr_start > gr_end)
+                std::swap(gr_start, gr_end);
+                */
+            if (strand)
+            	reverseComplement(read);
+            //else
+            // 	Stirng<Dna5> r = read;
+            //std::cerr << "[]::mapGaps 3 " << gr_start << " " << gr_end << "\n";
             g_mapHs_(seqs[_getSA_i1(_DefaultCord.getCordX(cords[k - 1]))], 
                      read, 
                      _getSA_i2(_DefaultCord.getCordX(cords[k - 1])) + delta,
                      _getSA_i2(_DefaultCord.getCordX(cords[k])) + delta,
-                     _DefaultCord.getCordY(cords[k - 1]) + delta, 
+                     //gr_start,
+                     //gr_end,
+                     _DefaultCord.getCordY(cords[k -1]) + delta,
                      _DefaultCord.getCordY(cords[k]) + delta,
                      g_hs,
                      g_anchor,

@@ -314,38 +314,63 @@ void Mapper<TDna, TSpec>::printCordsRaw()
 template <typename TDna, typename TSpec>
 void Mapper<TDna, TSpec>::printCordsRaw2()
 {
+    std::cerr << ">>Write results to disk        \r";
     double time = sysTime();
-    //unsigned strand;
     unsigned cordCount = 0;
-
+    CharString first_line = "";
     cordCount = 0;
-    std::cerr << ">>Write results to disk\r";
-    for (unsigned k = 0; k < length(cordSet); k++)
+    uint64_t readCordEnd;
+    uint64_t seqsCordEnd;
+    //std::cerr << "[]::printCordsRaw2 " << length(rlens) << " " << length(cordSet) << "\n";
+    int prek = 0;
+    float k_delta = 0.1 * length(cordSet);
+    for (int k = 0; k < length(cordSet); k++)
     {
-        //unsigned recordCount = 0;
+        /*
+        if (k - prek > k_delta)
+        {
+            std::cerr << ">>Write results to disk        " << std::setprecision(2) << (float)k / length(cordSet) * 100 << "% \r";
+            prek = k;
+        }
+        */
         if (!empty(cordSet[k]))
         {
             for (unsigned j = 1; j < length(cordSet[k]); j++)
             {
-                if (_DefaultHit.isBlockEnd(cordSet[k][j-1]) )//&& ++recordCount < 10)
+                if (_DefaultHit.isBlockEnd(cordSet[k][j-1]))
                 {
-                    of << "\n" << record.id1[k] << " " << length(cordSet[k]) << " "
-                    << _DefaultCord.getCordY(cordSet[k][j]) << " " << length(reads()[k]) << " " << _DefaultCord.getCordStrand(cordSet[k][j])<< " "
-                    << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j])) << " " << cordCount << " "
-                    << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << " " 
-                    ;  
-                    //flag = false;
+                    for (int i = j; ; i++)
+                    {
+                        if (_DefaultHit.isBlockEnd(cordSet[k][i]) || i == length(cordSet[k]) - 1)
+                        {
+                            readCordEnd = _DefaultCord.getCordY(cordSet[k][i]) + window_size;
+                            seqsCordEnd = _getSA_i2(_DefaultCord.getCordX(cordSet[k][i])) + window_size;
+                            break;
+                        }
+                    }
+                    char icon_strand = (_DefaultCord.getCordStrand(cordSet[k][j]))?'-':'+';
+                    of  << first_line;
+                    of  << record.id1[k] << " " 
+                        //<< length(record.seqs1[k]) << " "
+                        << rlens[k] << " "
+                        << _DefaultCord.getCordY(cordSet[k][j]) << " " 
+                        << std::min(readCordEnd, (uint64_t)rlens[k]) << " " 
+                        << icon_strand<< " "
+                        << record.id2[_getSA_i1(_DefaultCord.getCordX(cordSet[k][j]))] << " " 
+                        << length(record.seq2[_getSA_i1(_DefaultCord.getCordX(cordSet[k][j]))]) << " "
+                        << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << " " 
+                        << seqsCordEnd << " ";
+                    first_line = "\n";
                     cordCount = 0;
                 }
-                of << _DefaultCord.getCordY(cordSet[k][j]) <<" " << 
-                _getSA_i2(_DefaultCord.getCordX(cordSet[k][j])) << " | ";
+                of  << "| " << _DefaultCord.getCordY(cordSet[k][j]) << " " 
+                    << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j])) << " ";
                 cordCount++;
             }
-            //_DefaultCord.print(cordSet[k],of);
         }
     }
     close(of);
-    std::cerr << "--Write results to disk       Elapsed Time[s] " << sysTime() - time << std::endl;
+    std::cerr << "--Write results to disk       100% Elapsed Time[s] " << sysTime() - time << std::endl;
 }
 
 /*
@@ -452,6 +477,7 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
     return 0;
 }
 
+
 /*
  *[]::map
  */
@@ -476,7 +502,7 @@ int map(Mapper<TDna, TSpec> & mapper)
         double time1 = sysTime();
         clear (mapper.reads());
         std::cerr <<  ">>Map::file_I/O  block " << k << dotstatus[j++ % length(dotstatus)] << "\r";
-        readRecords(mapper.readsId(), mapper.reads(), rFile, blockSize);
+        readRecords_block(mapper.readsId(), mapper.reads(), mapper.readLens(), rFile, blockSize);
         std::cerr << "                                    \r";
         std::cerr <<  ">>Map::mapping  block "<< k << " Size " << length(mapper.reads()) << " " << dotstatus[j++ % length(dotstatus)] << "\r";
         time1 = sysTime() - time1;
@@ -499,32 +525,6 @@ int map(Mapper<TDna, TSpec> & mapper)
     //std::cerr << "[]::count " << count/1024.0/1024 << " " << length(mapper.cords()) << " " << length(mapper.reads()) << " \n";
     return 0;
 }
-
-/*
- * Mapping with extra processing of gaps
- */
-template <typename TDna, typename TSpec>
-int map2(Mapper<TDna, TSpec> & mapper)
-{
-    omp_set_num_threads(mapper.thread());
-    StringSet<String<int> > f2;
-    createFeatures(mapper.genomes(), f2, mapper.thread());
-    mapper.createIndex(); 
-    SeqFileIn rFile(toCString(mapper.readPath()));
-    double time = sysTime();
-    
-    std::cerr <<  ">reading reads from " << mapper.readPath() << "\r";
-    readRecords(mapper.readsId(), mapper.reads(), rFile);//, blockSize);
-    std::cerr << ">end reading " <<sysTime() - time << "[s]" << std::endl;
-    
-    std::cerr << ">mapping " << length(mapper.reads()) << " reads to reference genomes"<< std::endl;
-    rawMap_dst2_MF<TDna, TSpec>(mapper.index(), f2, mapper.reads(), mapper.mapParm(), mapper.cords(), mapper.thread());
-    mapGaps (mapper.genomes(), mapper.reads(), mapper.coords());
-    
-    mapper.printCordsRaw2();
-    return 0;
-}
-
 
 int main(int argc, char const ** argv)
 {

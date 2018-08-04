@@ -63,6 +63,7 @@ class Mapper {
     CordSet cordSet;
     std::ofstream of;
     unsigned _thread;
+    String<int> rlens;
 
 public:
     Mapper();
@@ -96,6 +97,7 @@ public:
     CharString & genomePath(){return record.genomePath;}
     StringSet<CharString> & readsId(){return record.id1;}
     StringSet<CharString> & genomesId(){return record.id2;}
+    String<int> & readLens(){return rlens;}
     
 };
 
