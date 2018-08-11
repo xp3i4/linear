@@ -285,6 +285,16 @@ struct PMRes
 
 };
 
+/*
+ * flip strand from 0, 1 to -1, 1;
+ * strand = 0, 1, other values is not allowed
+ * return -1 , 1
+ */
+inline uint64_t _nStrand(uint64_t strand)
+{
+    return (strand << 1) - 1;
+}
+
 //inline PMRes::Pos PMRes::getPosBegin(unsigned k)
 //{
 //    return pos[k] >> ResBase::bit;

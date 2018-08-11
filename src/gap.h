@@ -289,16 +289,6 @@ int mergeGap(String <std::pair<uint64_t, uint64_t> > & gaps)
 }
 */
 
-/*
- * flip strand from 0, 1 to -1, 1;
- * strand = 0, 1, other values is not allowed
- * return -1 , 1
- */
-inline uint64_t _nStrand(uint64_t strand)
-{
-    return (strand << 1) - 1;
-}
-
 //N/A[2]strand[1]|N/A[1]|anchor[40]|coord[20]
 //strand = 1 or 0
 struct ACoordBase
