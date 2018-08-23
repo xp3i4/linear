@@ -497,6 +497,7 @@ int map(Mapper<TDna, TSpec> & mapper)
     dotstatus[1] = "..  ";
     dotstatus[2] = "... ";
     int cordstart = 0;
+    std::cerr << "[]::map done\n";
     while (!atEnd(rFile))
     {
         double time1 = sysTime();
@@ -519,13 +520,25 @@ int map(Mapper<TDna, TSpec> & mapper)
     }
     
     //mapper.printCordsAll();
-    clear (mapper.genomes());
+    //clear (mapper.genomes());
     mapper.index().clear();
     mapper.printCordsRaw2();
     //std::cerr << "[]::count " << count/1024.0/1024 << " " << length(mapper.cords()) << " " << length(mapper.reads()) << " \n";
     return 0;
 }
-
+/*
+int map (Mapper<> mapper)
+{
+    if (mapper.raw)
+    {
+        return mapRaw(mapper);
+    }
+    else
+    {
+        return mapAlign(mapper);
+    }
+}
+*/
 int main(int argc, char const ** argv)
 {
     double time = sysTime();
@@ -538,10 +551,9 @@ int main(int argc, char const ** argv)
     std::cerr << "Encapsulated version: Mapping reads efficiently" << std::endl;
     Mapper<> mapper(options);
     omp_set_num_threads(mapper.thread());
-    //mapper.printParm();
     map(mapper);
+    align(mapper.genomes(), mapper.reads(), mapper.cords());
     std::cerr << "  Result File: \033[1;31m" << options.oPath << "\033[0m" << std::endl;
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
-
     return 0;
 }

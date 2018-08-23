@@ -541,7 +541,7 @@ inline bool previousWindow(String<short> & f1,
         }
     }
     if (min > windowThreshold)
-        return false;
+        return false;    
     else 
     {
         if ( x_suf - x_min > med)
@@ -551,6 +551,7 @@ inline bool previousWindow(String<short> & f1,
         else
             appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
     }
+
     //printf("[debug]::previousWindow %d\n", min);
     score += min;
     return true;
@@ -948,17 +949,17 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
         // if (_DefaultHs.getHsBodyY(index.ysa[std::min(pos + mapParm.delta, length(index.ysa) - 1)]) ^ shape.YValue)
             //{
                 //while (_DefaultHs.isBodyYEqual(index.ysa[pos], shape.YValue))
-                if (_DefaultHs.getHeadPtr(index.ysa[pos-1]) < mapParm.delta)
+                
+                uint64_t ptr = _DefaultHs.getHeadPtr(index.ysa[pos-1]);
+                if (ptr < mapParm.delta)
                 //if (_DefaultHs.getHeadPtr(index.ysa[pos-1]) < 1000000)
                 {
           //          unsigned pr = _DefaultHs.getHeadPtr(index.ysa[pos-1]);
                     //while (_DefaultHs.isBody(index.ysa[pos]))
-                //std::cout << "[debug]::k " << k << std::endl;
-                    while (_DefaultHs.getHsBodyY(index.ysa[pos]) == shape.YValue || _DefaultHs.getHsBodyY(index.ysa[pos]) == 0)
+                    while ((_DefaultHs.getHsBodyY(index.ysa[pos]) == shape.YValue || _DefaultHs.getHsBodyY(index.ysa[pos]) == 0))
                     {
     //!Note: needs change
     //!Note: the sa is in reverse order in hindex. this is different from the generic index
-                        
                         if (_DefaultHs.getHsBodyS(pre - index.ysa[pos]) > mapParm.kmerStep)
                         {
                             //[COMT]::condition of complement reverse strand
@@ -974,7 +975,6 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
 
                                 appendValue(set, ((_DefaultHs.getHsBodyS(index.ysa[pos]) - k) << 20) | k);
                             }
-                            //std::cout << "[debug]::getIndexMatchAll " << ((back(set) >> 20)&((1ULL << 30) - 1)) << " " << (back(set) &((1ULL << 20) - 1)) << " " << shape.XValue << " "  << "\n";
                             pre = index.ysa[pos];
                         }
                         ++pos;
@@ -1427,7 +1427,7 @@ inline bool extendWindowAll(String<short> &f1,
     Cord::CordType preCordY = (_DefaultHit.isBlockEnd(cord[length(cord) - 2]))?
     0:_DefaultCord.getCordY(back(cord)) + window_delta;
     unsigned len = length(cord) - 1;
-   
+    
     while (preCordY<= _DefaultCord.getCordY(back(cord)) && 
         previousWindow(f1, f2, cord, score, strand)){}
     for (unsigned k = len; k < ((length(cord) + len) >> 1); k++) 
@@ -1534,6 +1534,7 @@ inline bool path_dst(
     typename Iterator<PMRes::HitString>::Type it = hitBegin;
     unsigned preBlockPtr;
     float score = 0;
+    
     if(initCord(it, hitEnd, preBlockPtr, cords))
     {
         do{
@@ -1541,7 +1542,6 @@ inline bool path_dst(
             extendWindowAll(f1[strand], f2[_getSA_i1(_DefaultCord.getCordX(back(cords)))], cords, score, strand);
         }
         while (nextCord(it, hitEnd, preBlockPtr, cords, cordLenThr, score));
-        //printf("[debug]::nextdone\n");
         return endCord(cords, preBlockPtr, cordLenThr, score);   
     }
     return false;
