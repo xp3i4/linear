@@ -846,7 +846,6 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             int const thd_gap, 
             int const thd_tileSize)
 {
-    
     String<uint64_t>  g_hs;
     String<uint64_t>  g_anchor;
     resize (g_hs, 1ULL << 20);

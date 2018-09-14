@@ -462,6 +462,7 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
             //mapGaps ()
             //std::cout << "[]::rawMap_dst2_MF " << j << "\n";
             mapGaps(seqs, reads[j], cordsTmp[c], g_hs, g_anchor, 500, 192);
+            //align (seqs, reads[j], comStr, cordsTmp[c]);
         }   
         
         c += 1;
@@ -496,8 +497,6 @@ int map(Mapper<TDna, TSpec> & mapper)
     dotstatus[0] = ".   ";
     dotstatus[1] = "..  ";
     dotstatus[2] = "... ";
-    int cordstart = 0;
-    std::cerr << "[]::map done\n";
     while (!atEnd(rFile))
     {
         double time1 = sysTime();
@@ -508,22 +507,20 @@ int map(Mapper<TDna, TSpec> & mapper)
         std::cerr <<  ">>Map::mapping  block "<< k << " Size " << length(mapper.reads()) << " " << dotstatus[j++ % length(dotstatus)] << "\r";
         time1 = sysTime() - time1;
         double time2 = sysTime();
-        cordstart = length(mapper.cords());
-        rawMap_dst2_MF<TDna, TSpec>(mapper.index(), f2, mapper.reads(), mapper.mapParm(), mapper.cords(), mapper.thread(), mapper.genomes());
+        rawMap_dst2_MF<TDna, TSpec>(mapper.index(), 
+                                    f2, 
+                                    mapper.reads(), 
+                                    mapper.mapParm(), 
+                                    mapper.cords(), 
+                                    mapper.thread(), 
+                                    mapper.genomes());
         time2 = sysTime() - time2;
-        //double time3 = sysTime();
-        //mapGaps(mapper.genomes(), mapper.reads(), mapper.cords(), 0, cordstart, blockSize, 500, 192);
-        //time3 = sysTime() - time3;
-        //std::cerr <<  "--Map::file_I/O+Map block "<< k << " Size " << length(mapper.reads()) << " Elapsed Time[s]: file_I/O " << time1 << " map "<< time2 << " gap " << time3 << "\n";
         std::cerr <<  "--Map::file_I/O+Map block "<< k << " Size " << length(mapper.reads()) << " Elapsed Time[s]: file_I/O " << time1 << " map "<< time2 << "\n";
         k++;
     }
-    
-    //mapper.printCordsAll();
     //clear (mapper.genomes());
     mapper.index().clear();
     mapper.printCordsRaw2();
-    //std::cerr << "[]::count " << count/1024.0/1024 << " " << length(mapper.cords()) << " " << length(mapper.reads()) << " \n";
     return 0;
 }
 /*
@@ -542,7 +539,7 @@ int map (Mapper<> mapper)
 int main(int argc, char const ** argv)
 {
     double time = sysTime();
-
+    std::cerr << "[]\n";
     (void)argc;
     Options options;
     seqan::ArgumentParser::ParseResult res = parseCommandLine(options, argc, argv);
@@ -552,7 +549,7 @@ int main(int argc, char const ** argv)
     Mapper<> mapper(options);
     omp_set_num_threads(mapper.thread());
     map(mapper);
-    align(mapper.genomes(), mapper.reads(), mapper.cords());
+//    align(mapper.genomes(), mapper.reads(), mapper.cords());
     std::cerr << "  Result File: \033[1;31m" << options.oPath << "\033[0m" << std::endl;
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
     return 0;

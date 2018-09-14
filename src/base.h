@@ -39,13 +39,13 @@
 #include <seqan/stream.h>
 #include <seqan/index.h>
 #include <seqan/store.h>
+#include <seqan/basic.h>
+#include <seqan/arg_parse.h>
 #include <iostream>
 #include <fstream>
 #include <math.h>
-#include <seqan/basic.h>
 #include <bitset>
 #include <climits>
-#include <seqan/arg_parse.h>
 #include <thread>
 #include <chrono>
 #include <atomic>   

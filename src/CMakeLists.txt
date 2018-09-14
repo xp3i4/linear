@@ -10,11 +10,11 @@ message (STATUS "Configuring linear/src")
 # ----------------------------------------------------------------------------
 # Dependencies
 # ----------------------------------------------------------------------------
-find_package(CXX11 REQUIRED)
-if (NOT CXX11_FOUND)
-    message (STATUS " C++11 compiler needed to build linear")
-    return ()
-endif (NOT CXX11_FOUND)
+#find_package(CXX11 REQUIRED)
+#if (NOT CXX11_FOUND)
+#    message (STATUS " C++11 compiler needed to build linear")
+#    return ()
+#endif (NOT CXX11_FOUND)
 
 find_package(OpenMP)
 if (OPENMP_FOUND)
