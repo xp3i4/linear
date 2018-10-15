@@ -33,9 +33,10 @@
 // ==========================================================================
 
 #include "base.h"
+#include "f_io.h"
 #include "pmpfinder.h"
-#include "gap.h"
 #include "align_interface.h"
+#include "gap.h"
 #include "mapparm.h"
 
 #ifndef SEQAN_HEADER_PACMAPPER_H
@@ -56,6 +57,7 @@ class Mapper {
     typedef typename Cord::CordType CordType;
     typedef typename Res::HitSet    HitSet;
     typedef typename Res::HitType   HitType; 
+    typedef Align<String<Dna5>,ArrayGaps> TAlign;
 
     Record  record;
     Parm    parm;
@@ -65,6 +67,9 @@ class Mapper {
     std::ofstream of;
     unsigned _thread;
     String<int> rlens;
+    
+    //String<TAlign> str_sv_aligner;
+    
 
 public:
     Mapper();
@@ -91,6 +96,7 @@ public:
     void printCordsAll();
     void printCordsRaw();
     void printCordsRaw2();
+    int print_vcf();
     int createIndex(bool = false);
     unsigned sens(){return parm.sensitivity;}
     unsigned & thread(){return _thread;}
@@ -99,6 +105,9 @@ public:
     StringSet<CharString> & readsId(){return record.id1;}
     StringSet<CharString> & genomesId(){return record.id2;}
     String<int> & readLens(){return rlens;}
+    //String<TAlign> getSVAligners(){return str_sv_aligner;}
+    int print_gff();
+    
     
 };
 

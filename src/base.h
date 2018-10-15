@@ -41,6 +41,7 @@
 #include <seqan/store.h>
 #include <seqan/basic.h>
 #include <seqan/arg_parse.h>
+#include <seqan/vcf_io.h>
 #include <iostream>
 #include <fstream>
 #include <math.h>
@@ -53,6 +54,7 @@
 #include <functional>   // for std::ref()
 #include <chrono>
 #include <thread>
+#include <ctime>
    
 #include "shape_extend.h"
 #include "index_extend.h"

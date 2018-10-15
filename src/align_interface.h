@@ -1,9 +1,173 @@
 #ifndef LINEAR_HEADER_ALIGNER_H
 #define LINEAR_HEADER_ALIGNER_H
 
-#include <seqan/align_parallel.h>
+//#include <seqan/align_parallel.h>
 
 using namespace seqan;
+
+
+int const s1 = 3; //match
+int const s2 = 0; //mismatch
+int const s3 = -1; //gap
+
+int thd_align_score = 350 /*depends on score_scheme*/;
+
+int align_genome_cord (String<Dna5> & genome,
+                       String<Dna5> & read, 
+                       String<Dna5> & comrevRead,
+                       String<uint64_t> & cord,
+                       String<int> & score)
+{
+    Infix<String<Dna5> >::Type infix1;  
+    Infix<String<Dna5> >::Type infix2;  
+    for (unsigned k = 0; k < length(cord); k++)
+    {
+        uint64_t genomeStart = _getSA_i2(_DefaultCord.getCordX(cord[k]));
+        uint64_t strand = _DefaultCord.getCordStrand (cord[k]);
+        uint64_t readStart = _DefaultCord.getCordY(cord[k]);
+        //std::cout << "[]::align score " << genomeStart << " " << readStart << " " << genomeId << "\n";
+        if (strand)
+        {
+            infix2 = infix(comrevRead, readStart, std::min(readStart + window_size, length(read)));  
+        }
+        else
+        {
+            infix2 = infix(read, readStart, std::min(readStart + window_size, length(read)));  
+        }
+        infix1 = infix(genome, genomeStart, genomeStart + window_size);   
+
+        score[k] = globalAlignmentScore(infix1, infix2, Score<int, Simple> (s1, s2, s3), AlignConfig<false, false, false, false>(), -90, 90);
+        
+    }
+    return 0;
+}
+
+inline int align_block_(Align<String<Dna5>, ArrayGaps> & aligner,
+                      String<Dna5> & genome,
+                      String<Dna5> & read,
+                      String<Dna5> & comrevRead,
+                      uint64_t strand,
+                      uint64_t genomeStart,
+                      uint64_t genomeEnd,
+                      uint64_t readStart,
+                      uint64_t readEnd,
+                      int band)
+{
+
+    Infix<String<Dna5> >::Type infix1;  
+    Infix<String<Dna5> >::Type infix2;  
+
+    int s = 4;
+    int clip_thd = 70;
+    int clip = 0;
+    if ( strand)
+    {
+        infix2 = infix(comrevRead, readStart, std::min(readEnd, length(read)));  
+    }
+    else
+    {
+        infix2 = infix(read, readStart, std::min(readEnd, length(read)));  
+    }
+    infix1 = infix(genome, genomeStart, genomeEnd);   
+    assignSource (row(aligner, 0), infix1);  
+    assignSource (row(aligner, 1), infix2); 
+    int score = globalAlignment(aligner, Score<int, Simple> (s1, s2, s3), AlignConfig<false, false, false, false>(), -band, band);
+    //std::cout << "[]::align_block " << aligner << " score " << score << " " << genomeStart << " " << genomeEnd << " " << readStart << " " << readEnd << " " << strand << " " << band << "\n" ;
+    return score;
+}
+
+
+
+/**
+ * Clip break point within the 192x192 window 
+ */
+
+inline int clip_window (String<Dna5> & genome,
+                        String<Dna5> & read,
+                        String<Dna5> & comrevRead,
+                        uint64_t & cord)
+{ 
+    typedef Align<String<Dna5>,ArrayGaps> TAlign;
+    typedef Row<TAlign>::Type TRow; 
+    
+    TAlign aligner; 
+    resize(rows(aligner), 2); 
+    uint64_t genomeStart = _getSA_i2(_DefaultCord.getCordX(cord));
+    uint64_t strand = _DefaultCord.getCordStrand (cord);
+    uint64_t readStart = _DefaultCord.getCordY(cord);
+    int score = align_block_ (aligner,
+                              genome, 
+                              read, 
+                              comrevRead,
+                              strand, 
+                              genomeStart, 
+                              genomeStart + window_size, 
+                              readStart,
+                              readStart + window_size,
+                              window_size / 2
+                            );
+    if (score < thd_align_score)
+    {
+        return -1;
+    }
+    
+    /**
+     * clip breakpoint within the block
+     */
+    TRow & row1 = row(aligner, 0);
+    TRow & row2 = row(aligner, 1);
+    int window = 30;
+    int x = 0;
+    int count = 0;
+    int count2 = 0;
+    int s = 4;
+    int clip_thd = 70;
+    int clip = 0;
+    String<int> buffer;
+    x = 0;
+    for (int i = toViewPosition(row1, 0); i < toViewPosition(row1, window); i++)
+    {
+        if (row1[i] == row2[i])
+        {
+            x += s;
+        }
+    }
+    int delta = 3;
+    for (int k = delta; k < window_size - window  + 1; k+=delta)
+    {
+        for (int i = toViewPosition(row1, k - delta); i < toViewPosition(row1, k); i++)
+        {
+            if (row1[i] == row2[i])
+            {
+                x -= s;
+            }
+        }
+        for (int i = toViewPosition(row1, k + window - 1 - delta); i < toViewPosition(row1, k + window - 1); i++)
+        {
+            if (row1[i] == row2[i])
+            {
+                x += s;
+            }
+        }
+        appendValue(buffer, x);
+        //std::cout << "clip_block_right " << k << " " << x << "\n";
+    }
+    int max = 0;
+    int max_sp = 0; // max source position
+    for (int k = window / delta ; k < length(buffer); k++)
+    {
+        int d_ = std::abs(buffer[k] - buffer[k - window / delta]);
+        if (max < d_)
+        {
+            max = d_;
+            max_sp = k * delta;
+        }
+        
+    }
+    //std::cout << "[]::clip_drop_ " << _DefaultCord.getCordX(cord) << " " << _DefaultCord.getCordY(cord) << "\n";
+     return (max < 20)?-1:max;
+        
+}
 
 int align (StringSet<String<Dna5> > & genomes,
            String<Dna5> & read, 
@@ -24,6 +188,8 @@ int align (StringSet<String<Dna5> > & genomes,
     Infix<String<Dna5> >::Type infix2;  
     //String<Dna5> comrevRead;
     //_compltRvseStr(read, comrevRead);
+    std::string cigar;
+    std::string mutations;
     for (unsigned k = 1; k < length(cord) - 1; k++)
     {
         t = sysTime();
@@ -31,34 +197,39 @@ int align (StringSet<String<Dna5> > & genomes,
         uint64_t genomeStart = _getSA_i2(_DefaultCord.getCordX(cord[k]));
         uint64_t strand = _DefaultCord.getCordStrand (cord[k]);
         uint64_t readStart = _DefaultCord.getCordY(cord[k]);
+        clear(cigar);
+        clear(mutations);
         //std::cout << "[]::align score " << genomeStart << " " << readStart << " " << genomeId << "\n";
         if (strand)
         {
-            infix2 = infix(comrevRead, readStart, std::min(readStart + 192, length(read)));  
+            infix2 = infix(comrevRead, readStart, std::min(readStart + window_size, length(read)));  
         }
         else
         {
-            infix2 = infix(read, readStart, std::min(readStart + 192, length(read)));  
+            infix2 = infix(read, readStart, std::min(readStart + window_size, length(read)));  
         }
         //infix1 = infix(genomes[genomeId], genomeStart, genomeStart + length(infix2));   
-        infix1 = infix(genomes[genomeId], genomeStart, genomeStart + 192);   
-        //assignSource (row(aligner, 0), infix1);  
-        //assignSource (row(aligner, 1), infix2);  
+        infix1 = infix(genomes[genomeId], genomeStart, genomeStart + window_size);   
+        assignSource (row(aligner, 0), infix1);  
+        assignSource (row(aligner, 1), infix2);  
         //clearClipping (row1);
         //clearClipping (row2);
         /*
         setClippedBeginPosition(row1, genomeStart);
-        setClippedEndPosition(row1, genomeStart + 192);
+        setClippedEndPosition(row1, genomeStart + window_size);
         setClippedBeginPosition(row2, readStart);
-        setClippedEndPosition(row2, readStart + 192);
+        setClippedEndPosition(row2, readStart + window_size);
         */
         t1 += sysTime() - t;
         t = sysTime();
-        //int score = globalAlignment(aligner,  Score<int, Simple>(1, 0, 0), AlignConfig<false, false, false, false>(), -90, 90);
-        int score = globalAlignmentScore(infix1,  infix2, Score<int, Simple>(1, 0, 0), AlignConfig<false, false, false, false>(), -90, 90);
+        int score = globalAlignment(aligner, Score<int, Simple> (s1, s2, s3), AlignConfig<false, false, false, false>(), -90, 90);
+        //int score = globalAlignmentScore(infix1,  infix2, score_scheme, AlignConfig<false, false, false, false>(), -90, 90);
         t2 += sysTime() - t;
         
-        //std::cout << "[]::align score " << strand << " " << score << "\n" ;//<< aligner << "\n";
+        //std::cout << "[]::align score " << genomeStart << " " << readStart << " " << strand << " " << score << "\n" ;//<< aligner << "\n";
+        //std::cout << "[]::align strand " << strand <<  " " << genomeStart << " score " << score << "\n" << aligner << "\n";
+        align2cigar_(aligner, cigar, mutations);
+        std::cout << "[]::align cigar " << cigar << " " << mutations << "\n";
     }
     //std::cout << t1 << " " << t2 << " " << t1/t2 << std::endl;
     return 0;

@@ -44,12 +44,13 @@ add_definitions (-DSEQAN_REVISION="${SEQAN_REVISION}")
 add_definitions (-DSEQAN_DATE="${SEQAN_DATE}")
 
 # Update the list of file names below if you add source files to your application.
-add_executable (linear mapper.cpp mapper.h base.h index_extend.h shape_extend.h mapparm.h gap.h align_interface.h)
+add_executable (linear mapper.cpp mapper.h base.h index_extend.h shape_extend.h mapparm.h gap.h align_interface.h f_io.h)
 add_executable (testCase testCase.cpp mapper.h base.h index_extend.h shape_extend.h mapparm.h)
-
+add_library(linear_fio STATIC f_io.cpp)
 # Add dependencies found by find_package (SeqAn).
-target_link_libraries (linear ${SEQAN_LIBRARIES})
+target_link_libraries (linear ${SEQAN_LIBRARIES} linear_fio)
 target_link_libraries (testCase ${SEQAN_LIBRARIES})
+
 
 # Add CXX flags found by find_package (SeqAn).
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS} ${CXX11_CXX_FLAGS}")
