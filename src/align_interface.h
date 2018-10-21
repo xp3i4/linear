@@ -57,9 +57,6 @@ inline int align_block_(Align<String<Dna5>, ArrayGaps> & aligner,
     Infix<String<Dna5> >::Type infix1;  
     Infix<String<Dna5> >::Type infix2;  
 
-    int s = 4;
-    int clip_thd = 70;
-    int clip = 0;
     if ( strand)
     {
         infix2 = infix(comrevRead, readStart, std::min(readEnd, length(read)));  
@@ -72,41 +69,77 @@ inline int align_block_(Align<String<Dna5>, ArrayGaps> & aligner,
     assignSource (row(aligner, 0), infix1);  
     assignSource (row(aligner, 1), infix2); 
     int score = globalAlignment(aligner, Score<int, Simple> (s1, s2, s3), AlignConfig<false, false, false, false>(), -band, band);
-    //std::cout << "[]::align_block " << aligner << " score " << score << " " << genomeStart << " " << genomeEnd << " " << readStart << " " << readEnd << " " << strand << " " << band << "\n" ;
+    std::cout << "[]::align_block " << aligner << " score " << score << " " << genomeStart << " " << genomeEnd << " " << readStart << " " << readEnd << " " << strand << " " << band << "\n" ;
     return score;
 }
 
-
+/**
+ * a short function to return score x of two chars
+ */
+//static float ln[10] = {1,2,}
+inline int getScore_(char r1_char,
+                     char r2_char,
+                     int k,
+                     //int & l,
+                     int x
+)
+{
+    int s_match = 8 * k;
+    int s_gap = -3 * k;
+    int s_mismatch = 0 * k;
+    if (r1_char == r2_char)
+    {
+        x += s_match;
+    }
+    else
+    {
+        if (r1_char == '-')
+        {
+            x += s_gap;
+        }
+        else
+        {
+            x += s_mismatch;
+        }
+        
+    }
+    return x;
+}
 
 /**
- * Clip break point within the 192x192 window 
+ * Clip break point within the lxl window 
+ * direction: clip direction  > 0  -----------mmmmmmmmm,  < 0 mmmmmmmmmmm--------; where 'm' is match
  */
-
 inline int clip_window (String<Dna5> & genome,
                         String<Dna5> & read,
                         String<Dna5> & comrevRead,
-                        uint64_t & cord)
+                        uint64_t genomeId,
+                        uint64_t genomeStart,
+                        uint64_t genomeEnd,
+                        uint64_t readStart,
+                        uint64_t readEnd,
+                        uint64_t strand,
+                        uint64_t band,
+                        int direction)
 { 
     typedef Align<String<Dna5>,ArrayGaps> TAlign;
     typedef Row<TAlign>::Type TRow; 
     
     TAlign aligner; 
     resize(rows(aligner), 2); 
-    uint64_t genomeStart = _getSA_i2(_DefaultCord.getCordX(cord));
-    uint64_t strand = _DefaultCord.getCordStrand (cord);
-    uint64_t readStart = _DefaultCord.getCordY(cord);
     int score = align_block_ (aligner,
                               genome, 
                               read, 
                               comrevRead,
                               strand, 
                               genomeStart, 
-                              genomeStart + window_size, 
+                              genomeEnd,
                               readStart,
-                              readStart + window_size,
-                              window_size / 2
+                              readEnd,
+                              band
                             );
-    if (score < thd_align_score)
+    int g_range = (int) genomeEnd - genomeStart;
+    if (score < thd_align_score / (int) window_size * g_range)
     {
         return -1;
     }
@@ -120,53 +153,64 @@ inline int clip_window (String<Dna5> & genome,
     int x = 0;
     int count = 0;
     int count2 = 0;
-    int s = 4;
+    int s_match = 4;
     int clip_thd = 70;
-    int clip = 0;
+    uint64_t clip_ref = 0;
+    uint64_t clip_read = 0;
     String<int> buffer;
     x = 0;
     for (int i = toViewPosition(row1, 0); i < toViewPosition(row1, window); i++)
     {
-        if (row1[i] == row2[i])
-        {
-            x += s;
-        }
+        x = getScore_ (row1[i], row2[i], 1, x);
     }
     int delta = 3;
-    for (int k = delta; k < window_size - window  + 1; k+=delta)
+    for (int k = delta; k < g_range - window  + 1; k += delta)
     {
         for (int i = toViewPosition(row1, k - delta); i < toViewPosition(row1, k); i++)
         {
-            if (row1[i] == row2[i])
-            {
-                x -= s;
-            }
+            x = getScore_ (row1[i], row2[i], -1, x);
         }
         for (int i = toViewPosition(row1, k + window - 1 - delta); i < toViewPosition(row1, k + window - 1); i++)
         {
-            if (row1[i] == row2[i])
-            {
-                x += s;
-            }
+            x = getScore_ (row1[i], row2[i], 1, x);
         }
         appendValue(buffer, x);
         //std::cout << "clip_block_right " << k << " " << x << "\n";
     }
     int max = 0;
-    int max_sp = 0; // max source position
-    for (int k = window / delta ; k < length(buffer); k++)
+    int max_sp_ref = 0; // max source position
+    int max_sp_read = 0;
+    direction = direction / std::abs(direction);
+    for (int k = window / delta ; k < (int)length(buffer); k++)
     {
-        int d_ = std::abs(buffer[k] - buffer[k - window / delta]);
+        int d_ = (buffer[k] - buffer[k - window / delta]) * direction;
+        /**
+        for (int i = toViewPosition(row1, k * delta - 10); i < toViewPosition(row1, k * delta + 10); i++) 
+        {
+            std::cout << row1[i];
+        }
+        std::cout << "\n";
+        */
+        std::cout << "[]::clip_window " << d_ << " " << k << " " << buffer[k] << " " << buffer[k - window] << "\n";;
+        
         if (max < d_)
         {
             max = d_;
-            max_sp = k * delta;
+            max_sp_ref = k * delta;
+            max_sp_read = toSourcePosition(row2, toViewPosition(row1, max_sp_ref));
         }
         
     }
-    //std::cout << "[]::clip_drop_ " << _DefaultCord.getCordX(cord) << " " << _DefaultCord.getCordY(cord) << "\n";
-     return (max < 20)?-1:max;
-        
+    clip_ref = (max < 20)?-1:max_sp_ref;
+    clip_read = (max < 20)?-1:max_sp_read;
+    std::cout << "[]::clip_window::clip " << clip_ref << " " << clip_read << " " << genomeStart + clip_ref << " " << readStart + clip_read << "\n";
+    
+    uint64_t returnCord = _DefaultCord.createCord(_createSANode(genomeId, genomeStart + clip_ref), 
+                                                  readStart + clip_read, 
+                                                  strand);
+    std::cout << "[]::clip_window::max_score " << max << " " << int(score) / g_range << " " << "\n";
+    return returnCord;
+    //return clip_ref;
 }
 
 int align (StringSet<String<Dna5> > & genomes,

@@ -322,10 +322,9 @@ void Mapper<TDna, TSpec>::printCordsRaw2()
     uint64_t readCordEnd;
     uint64_t seqsCordEnd;
     //std::cerr << "[]::printCordsRaw2 " << length(rlens) << " " << length(cordSet) << "\n";
-    int prek = 0;
-    char main_icon_strand, icon_strand;
-    float k_delta = 0.1 * length(cordSet);
-    for (int k = 0; k < length(cordSet); k++)
+    char main_icon_strand = '+', icon_strand = '+';
+    int fflag = 0;
+    for (unsigned k = 0; k < length(cordSet); k++)
     {
         /*
         if (k - prek > k_delta)
@@ -340,7 +339,7 @@ void Mapper<TDna, TSpec>::printCordsRaw2()
             {
                 if (_DefaultHit.isBlockEnd(cordSet[k][j-1]))
                 {
-                    for (int i = j; ; i++)
+                    for (unsigned i = j; ; i++)
                     {
                         if (_DefaultHit.isBlockEnd(cordSet[k][i]) || i == length(cordSet[k]) - 1)
                         {
@@ -360,17 +359,28 @@ void Mapper<TDna, TSpec>::printCordsRaw2()
                         << record.id2[_getSA_i1(_DefaultCord.getCordX(cordSet[k][j]))] << " " 
                         << length(record.seq2[_getSA_i1(_DefaultCord.getCordX(cordSet[k][j]))]) << " "
                         << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << " " 
-                        << seqsCordEnd << " ";
+                        << seqsCordEnd << "\n";
                     first_line = "\n";
                     cordCount = 0;
+                    fflag = 1;
                 }
                 icon_strand = (_DefaultCord.getCordStrand(cordSet[k][j]))?'-':'+';
                 CharString mark = "| ";
                 if (icon_strand != main_icon_strand)
-                    mark = "**********";
+                    mark = "********** ";
+                int64_t d = 0;//_DefaultCord.getCordY(cordSet[k][1]);
+                int64_t d2 = 0;
+                if (!fflag)
+                {
+                    d = (int) _DefaultCord.getCordX(cordSet[k][j] - cordSet[k][j - 1]);
+                    d2 = (int) _DefaultCord.getCordY(cordSet[k][j] - cordSet[k][j - 1]);
+                    
+                }
+                
                 of  << mark  << _DefaultCord.getCordY(cordSet[k][j]) << " " 
-                    << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j])) << " " << _DefaultCord.getCordX(cordSet[k][j] - cordSet[k][j - 1]) << " \n";
+                    << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j])) << " " << d2 << " " << d << " \n";
                 cordCount++;
+                fflag = 0;
             }
         }
     }
@@ -462,7 +472,9 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
     for (unsigned j = 0; j < length(reads); j++)
     {
         if (length(reads[j]) >= mapParm.minReadLen)
+        //if (1)
         {
+            std::cout << "[]::rawmap::j " << j <<"\n";
             float cordLenThr = length(reads[j]) * cordThr;
             _compltRvseStr(reads[j], comStr);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);

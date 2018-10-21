@@ -287,8 +287,10 @@ static const int scriptMask2 = scriptMask << scriptWindow;
 static const int scriptMask3 = scriptMask2 << scriptWindow;
 
 static const uint64_t hmask = (1ULL << 20) - 1;
-
-static const unsigned windowThreshold = 35;
+/**
+ * ATTENTION TODO parameter needs tuning: will affect speed, gap extension, clip
+ */
+static const unsigned windowThreshold = 30; // 36;
 
 
 template <typename TIter>
@@ -561,7 +563,9 @@ inline uint64_t previousWindow(String<short> & f1,
                                String<short> & f2, 
                                uint64_t cordx,
                                uint64_t cordy,
-                               uint64_t strand)
+                               uint64_t strand,
+                               unsigned window_threshold = windowThreshold
+                              )
 {
     typedef typename Cord::CordType CordType;
     CordType genomeId = _getSA_i1(cordx);
@@ -571,7 +575,7 @@ inline uint64_t previousWindow(String<short> & f1,
     CordType y;
     
     if (y_suf < med || x_suf < sup)
-        return false;
+        return 0;
     else 
        y = y_suf - med;
 
@@ -585,7 +589,8 @@ inline uint64_t previousWindow(String<short> & f1,
             x_min = x;
         }
     }
-    if (min > windowThreshold)
+        //std::cout << "[]::previous score " << min << "\n";
+    if (min > window_threshold)
         return 0;    
     else 
     {
@@ -599,9 +604,9 @@ inline uint64_t previousWindow(String<short> & f1,
     return 0;
 }
 
-inline uint64_t previousWindow(String<short> & f1, String<short> & f2, uint64_t cord)
+inline uint64_t previousWindow(String<short> & f1, String<short> & f2, uint64_t cord, unsigned window_threshold)
 {
-    return previousWindow(f1, f2, _DefaultCord.getCordX(cord), _DefaultCord.getCordY(cord), _DefaultCord.getCordStrand(cord));
+    return previousWindow(f1, f2, _DefaultCord.getCordX(cord), _DefaultCord.getCordY(cord), _DefaultCord.getCordStrand(cord), window_threshold);
 }
 
 inline bool nextWindow(String<short> &f1, 
@@ -695,7 +700,9 @@ inline uint64_t nextWindow(String<short> & f1,
                            String<short> & f2, 
                            uint64_t cordx,
                            uint64_t cordy,
-                           uint64_t strand)
+                           uint64_t strand,
+                           unsigned window_threshold = windowThreshold
+                          )
 {
     typedef typename Cord::CordType CordType;
     CordType genomeId = _getSA_i1(cordx);
@@ -706,7 +713,7 @@ inline uint64_t nextWindow(String<short> & f1,
     unsigned min = ~0;
     
     if (y_pre + sup * 2 > length(f1) || x_pre + sup * 2> length(f2))
-        return false;
+        return 0;
     else 
         y = y_pre + med;
     
@@ -719,7 +726,8 @@ inline uint64_t nextWindow(String<short> & f1,
             x_min = x;
         }
     }
-    if (min > windowThreshold)
+    std::cout << "[]::nextWindow score " << min << "\n";
+    if (min > window_threshold)
        return 0;
     else 
         if ( x_min - x_pre > med)
@@ -733,9 +741,9 @@ inline uint64_t nextWindow(String<short> & f1,
     return 0;
 }
 
-inline uint64_t nextWindow(String<short> & f1, String<short> & f2, uint64_t cord)
+inline uint64_t nextWindow(String<short> & f1, String<short> & f2, uint64_t cord, unsigned window_threshold)
 {
-    return nextWindow(f1, f2, _DefaultCord.getCordX(cord), _DefaultCord.getCordY(cord), _DefaultCord.getCordStrand(cord));
+    return nextWindow(f1, f2, _DefaultCord.getCordX(cord), _DefaultCord.getCordY(cord), _DefaultCord.getCordStrand(cord), window_threshold);
 }
 
 inline bool extendWindow(String<short> &f1, String<short> & f2, typename Cord::CordString & cord, uint64_t strand)
@@ -1501,6 +1509,7 @@ inline bool nextCord(typename Iterator<PMRes::HitString>::Type & it,
         if (length(cord) - preCordStart < std::max(score/25,  cordThr) )//|| std::abs(b1 - b2) < 10)
         {
             erase(cord, preCordStart, length(cord));
+            //std::cerr << "[]::nextCord erase cord\n";
         }
         else
         {
@@ -1540,58 +1549,98 @@ inline bool extendWindowAll(String<short> &f1,
     return true;
 }
 
-inline bool isOverlap (uint64_t cord1, uint64_t cord2)
+inline bool isOverlap (uint64_t cord1, uint64_t cord2, int revscomp_const)
 {
-    /**
-     * NOTE cords of different strand are defined as not overlapped .
-     */
-    if (_DefaultCord.getCordStrand (cord1 ^ cord2))
-    {
-        return false;
-    }
+    uint64_t strand1 = _DefaultCord.getCordStrand(cord1);
+    uint64_t strand2 = _DefaultCord.getCordStrand(cord2);
     int64_t x1 = _DefaultCord.getCordX(cord1);
-    int64_t y1 = _DefaultCord.getCordX(cord1);
+    //int64_t y1 = revscomp_const * strand1 - _nStrand(strand1) * _DefaultCord.getCordY(cord1);
+    int64_t y1 = _DefaultCord.getCordY (cord1);
     int64_t x2 = _DefaultCord.getCordX(cord2);
-    int64_t y2 = _DefaultCord.getCordX(cord2);
-    //std::cout << "[]::overlap " << _DefaultCord.getCordY(cord1) << " " << _DefaultCord.getCordY(cord2)<< x1 - x2 << " " << y1 - y2 << "\n";
-    return std::abs(x1 - x2) < window_size && std::abs(y1 - y2) < window_size;
+    //int64_t y2 = revscomp_const * strand2 - _nStrand(strand2) * _DefaultCord.getCordY(cord2);
+    int64_t y2 = _DefaultCord.getCordY (cord2);
+    (void) revscomp_const;
+    return std::abs(x1 - x2) < window_size && std::abs(y1 - y2) < window_size && (!(strand1 ^ strand2));
 }
-
 /**
- * Extend windows between cord1, and cord2 if they are not overlapped.
- * and insert the windows to the k th element of the cords 
+ * cord1 is predecessor of cord2 and they are not overlapped
+ */
+inline bool isPreGap (uint64_t cord1, uint64_t cord2, int revscomp_const)
+{
+    //uint64_t strand1 = _DefaultCord.getCordStrand(cord1);
+    //uint64_t strand2 = _DefaultCord.getCordStrand(cord2);
+    int64_t x1 = _DefaultCord.getCordX(cord1);
+    //int64_t y1 = _DefaultCord.getCordY(cord1);
+    int64_t x2 = _DefaultCord.getCordX(cord2);
+    //int64_t y2 = _DefaultCord.getCordY(cord2);
+    //return (x1 + window_size > x2 || y1 + window_size > y2) && (std::abs(x1 - x2) > window_size || std::abs(y1 - y2) > window_size);
+    (void) revscomp_const;
+    //std::cout << "[]::isPreGap " << x1 + window_size << " " << x2 << "\n";
+    return (x1 + window_size < x2);
+}
+/**
+ * cord1 is successor of cord2 and they are not overlapped
+ */
+inline bool isSucGap (uint64_t cord1, uint64_t cord2, int revscomp_const)
+{
+    return isPreGap (cord2, cord1, revscomp_const);
+}
+/**
+ * Extend windows between cord1, and cord2 if they are not overlapped,
+ * and insert the windows to the k th element of the cords. 
+ * if cord1 and cord2 have the same strand 
+ * then call previousWindow for cord1 and nextWindow for cord2 until x1 + window_size < x2
+ * if cord1 and cord2 have different strand 
+ * then call nextWindow for cord1 and previousWindow for cord2 along each own strand until it can't be extended any more.
+ * 
  */         
-inline int extendPatch(String<short> & f1, 
-                         String<short> & f2, 
-                         String<uint64_t> & cords,
-                         int k,
-                         uint64_t cord1,
-                         uint64_t cord2
+inline int extendPatch(StringSet<String<short> > & f1, 
+                       StringSet<String<short> > & f2, 
+                      String<uint64_t> & cords,
+                      int k,
+                      uint64_t cord1,
+                      uint64_t cord2,
+                      int revscomp_const
                         )
 {
-    int len = 0;
-    if (isOverlap(cord1, cord2))
+    unsigned window_threshold = 30;
+    //std::cout << "[]::extendPatch::coord cord1y " << _DefaultCord.getCordY(cord1) << " cord2y " << _DefaultCord.getCordY(cord2) << " " << _DefaultCord.getCordStrand(cord1 ^ cord2) << "\n";
+    if (isOverlap(cord1, cord2, revscomp_const))
     {
         return 0;
     }
-    uint64_t cord = cord1;
-    String<uint64_t> tmp;
-    
-    while (!isOverlap(cord, cord2))
+    uint64_t pcord = cord1;
+    uint64_t scord = cord2;
+    /*
+    if (isSucGap(cord1, cord2, revscomp_const))
     {
-        cord = nextWindow (f1, f2, cord);
+        pcord = cord2;
+        scord = cord1;
+    }
+    */
+    uint64_t strand1 = _DefaultCord.getCordStrand(pcord);
+    uint64_t strand2 = _DefaultCord.getCordStrand(scord);
+    uint64_t genomeId1 = _getSA_i1(_DefaultCord.getCordX(pcord));
+    uint64_t genomeId2 = _getSA_i1(_DefaultCord.getCordX(scord));
+    int len = 0;
+    uint64_t cord = pcord;
+    String<uint64_t> tmp;
+    //std::cout << "[]::extendPatch pcord " << _DefaultCord.getCordY(cord) << " " << _DefaultCord.getCordY(scord) << "\n";
+    while (isPreGap(cord, scord, revscomp_const))
+    {
+        //std::cout << "[]::extendWindow::n cord " << _DefaultCord.getCordY(cord) << "\n";
+        cord = nextWindow (f1[strand1], f2[genomeId1], cord, window_threshold);
         if (cord)
         {
             appendValue (tmp, cord);
-            std::cout << "[]::extendWidnow::n " << _DefaultCord.getCordY(back(tmp)) << " " << _DefaultCord.getCordX(back(tmp)) << "\n";
+            //std::cout << "[]::extendWidnow::n append " << _DefaultCord.getCordY(back(tmp)) << " " << _DefaultCord.getCordX(back(tmp)) << " " << strand1 << " " << strand2 << "\n";
         }
         else
         {
-            std::cout << "done\n";
             break;
         }
     }
-    uint64_t nw = cord1;
+    uint64_t nw = pcord;
     if (!empty (tmp))
     {
         len += length(tmp);
@@ -1600,15 +1649,16 @@ inline int extendPatch(String<short> & f1,
         clear(tmp);
     }
     
-    cord = cord2;
-    while (!isOverlap(cord, nw))
+    cord = scord;
+    while (isSucGap(cord, nw, revscomp_const))
     {
-        std::cout << "[]:p " << _DefaultCord.getCordY(cord) << "\n";
-        cord = previousWindow(f1, f2, cord);
+        //std::cout << "[]::extendWindow::p cord " << _DefaultCord.getCordY(cord) << "\n";
+        cord = previousWindow(f1[strand2], f2[genomeId2], cord, window_threshold);
         if (cord)
         {
+            //TODO do another round previousWindow if cord = 0.
             appendValue (tmp, cord);
-            std::cout << "[]::extendWidnow::p " << _DefaultCord.getCordY(cord) << " " << _DefaultCord.getCordX(cord) << "\n";
+         //   std::cout << "[]::extendWidnow::p append " << _DefaultCord.getCordY(cord) << " " << _DefaultCord.getCordX(cord) << " " << _DefaultCord.getCordY (nw) << " " << _DefaultCord.getCordX(nw) << "\n";
         }
         else
         {
@@ -1617,9 +1667,8 @@ inline int extendPatch(String<short> & f1,
     }
     if (!empty (tmp))
     {
-        for (int i = 0; i < length(tmp) / 2; i++)
+        for (unsigned i = 0; i < length(tmp) / 2; i++)
         {
-            std::cout << "[]::sqp " << _DefaultCord.getCordY (tmp[i]) << "\n";
             std::swap (tmp[i], tmp[length(tmp) - i - 1]);
         }
         insert(cords, k + len, tmp);

@@ -296,6 +296,15 @@ inline uint64_t _nStrand(uint64_t strand)
 {
     return (strand << 1) - 1;
 }
+/*
+ * flip the coordinates if strand = -1
+ * do nothing if strand = 0
+ * len is the length of the sequences;
+ */
+inline uint64_t _flipCoord (uint64_t coord, uint64_t len, uint64_t strand)
+{
+    return len * strand - _nStrand(strand) * coord;
+}
 
 //inline PMRes::Pos PMRes::getPosBegin(unsigned k)
 //{
