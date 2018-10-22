@@ -1604,7 +1604,7 @@ inline int extendPatch(StringSet<String<short> > & f1,
                         )
 {
     unsigned window_threshold = 30;
-    //std::cout << "[]::extendPatch::coord cord1y " << _DefaultCord.getCordY(cord1) << " cord2y " << _DefaultCord.getCordY(cord2) << " " << _DefaultCord.getCordStrand(cord1 ^ cord2) << "\n";
+    std::cout << "[]::extendPatch::coord cord1y " << _DefaultCord.getCordY(cord1) << " cord2y " << _DefaultCord.getCordY(cord2) << " " << _DefaultCord.getCordStrand(cord1 ^ cord2) << "\n";
     if (isOverlap(cord1, cord2, revscomp_const))
     {
         return 0;
@@ -1633,7 +1633,7 @@ inline int extendPatch(StringSet<String<short> > & f1,
         if (cord)
         {
             appendValue (tmp, cord);
-            //std::cout << "[]::extendWidnow::n append " << _DefaultCord.getCordY(back(tmp)) << " " << _DefaultCord.getCordX(back(tmp)) << " " << strand1 << " " << strand2 << "\n";
+            std::cout << "[]::extendWidnow::n append " << _DefaultCord.getCordY(back(tmp)) << " " << _DefaultCord.getCordX(back(tmp)) << " " << strand1 << " " << strand2 << "\n";
         }
         else
         {
@@ -1658,7 +1658,7 @@ inline int extendPatch(StringSet<String<short> > & f1,
         {
             //TODO do another round previousWindow if cord = 0.
             appendValue (tmp, cord);
-         //   std::cout << "[]::extendWidnow::p append " << _DefaultCord.getCordY(cord) << " " << _DefaultCord.getCordX(cord) << " " << _DefaultCord.getCordY (nw) << " " << _DefaultCord.getCordX(nw) << "\n";
+            std::cout << "[]::extendWidnow::p append " << _DefaultCord.getCordY(cord) << " " << _DefaultCord.getCordX(cord) << " " << _DefaultCord.getCordY (nw) << " " << _DefaultCord.getCordX(nw) << "\n";
         }
         else
         {

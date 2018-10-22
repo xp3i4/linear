@@ -841,9 +841,10 @@ inline void g_mapHs_anchor_sv_ (String<uint64_t> & anchor,
                                 uint64_t gs_end,
                                 uint64_t gr_start,
                                 uint64_t gr_end,
+                                uint64_t  main_strand, 
+                                uint64_t genomeId,
                                 int anchor_end, 
                                 int thd_tileSize,
-                                uint64_t  main_strand, 
                                 int revscomp_const
                                 )
 {
@@ -853,6 +854,7 @@ inline void g_mapHs_anchor_sv_ (String<uint64_t> & anchor,
     int thd_fscore = 45;
     float thd_overlap_tile = thd_tileSize * 0.4;
     float thd_error_percent = 0.6;
+    float thd_swap_tile = thd_tileSize * 0.05;
     
     /**
      * cluster anchors
@@ -942,11 +944,34 @@ inline void g_mapHs_anchor_sv_ (String<uint64_t> & anchor,
             }
         }
     }
+    /**
+     * sort cords according to the x, y and strand
+     * using a weight function as
+     * y + (x << w1) + (strand << w2);
+     * or defined as y + 8 * x + 512 * strand
+     * NOTE flip y according to the strand (for inversions)
+     * NOTE strand is the relative strand to the main_strand.
+     * The function first cluster according to the strand, then the reference direction, at last the read direction
+     * For an example
+     * Given s1 = 0, s2 = 1, y1 = 1, y2 = 10;
+     * then:
+     * when x1 - x2 > 512/8=64(bases), the cord1 > cord2 even if s1 < s2.  
+     * when x2 < x1 < x2 + 64, the cord1 < cord2. This case is regarded as  x1 are not significantly bigger than x2, so the cord is sorted according to the strand.
+     * The similar case for y 
+     */
     std::sort (begin(tiles), 
                begin(tiles) + prep,
-               [](uint64_t & s1, uint64_t & s2)
+               [main_strand, revscomp_const](uint64_t & s1, uint64_t & s2)
                {
-                   return _defaultTile.getX(s1) < _defaultTile.getX(s2);
+                    uint64_t strand1 = _defaultTile.getStrand(s1) ^ main_strand; // main_strand as the 0 strand
+                    uint64_t strand2 = _defaultTile.getStrand(s2) ^ main_strand;
+                    // _flip y to the main_strand if strand1 == 1, otherwise do nothing
+                    uint64_t y1 = _flipCoord(_defaultTile.getY(s1), revscomp_const, strand1); 
+                    uint64_t y2 = _flipCoord(_defaultTile.getY(s2), revscomp_const, strand2);
+                   
+                   return  y1 + (_defaultTile.getX(s1) << 3) + (strand1 << 9) < 
+                           y2 + (_defaultTile.getX(s2) << 3) + (strand2 << 9);  
+
             });
     /**
      * remove tiles overlap with its adjacent tiles except the first and last tiles
@@ -963,8 +988,8 @@ inline void g_mapHs_anchor_sv_ (String<uint64_t> & anchor,
          * Above tile t1 and t2, y of two tiles is far away while x of two tiles are almost overlapped 
          */
         
-        if (_defaultTile.getX(tiles[i + 1] - tiles[prep2]) < thd_overlap_tile && 
-            _defaultTile.getY(tiles[i + 1] - tiles[prep2]) < thd_overlap_tile)
+        if (std::abs(_defaultTile.getX(tiles[i + 1]) - _defaultTile.getX(tiles[prep2])) < thd_overlap_tile && 
+            std::abs(_defaultTile.getY(tiles[i + 1]) - _defaultTile.getY(tiles[prep2])) < thd_overlap_tile)
         {
             continue;
         }
@@ -975,20 +1000,30 @@ inline void g_mapHs_anchor_sv_ (String<uint64_t> & anchor,
         }
     }
     resize (tiles, prep2);
+    /**
+     * swap two tiles if the x are very close while y has large length. 
+     *
+    for (int i = 1; i < length(tiles); i++)
+    {
+        if (_defaultTile.getX(tiles[i] - tiles[i - 1]) < thd_swap_tile &&
+            _defaultTile.getY(tiles[i] - tiles[i - 1] > thd_overlap_tile)
+        )
+        {
+            std::swap (tiles[i], tiles[i - 1]);
+        }
+    }
+    */
     
     /**
      * extend window if there are gaps between tiles until the horizontal coordinates x1 - x2 < windo_size or the gap can't be extend any more
      * ATTENTION: relation between y1 and y2 currently are not considered.
      */
     //extend the middle tiles
-    /*
     for (int i = 1; i < length(tiles); i++)
     {
         i += extendPatch(f1, f2, tiles, i, tiles[i - 1], tiles[i], revscomp_const);   
     }
-    */
     //**extend the last and first tiles
-    uint64_t genomeId = _getSA_i1(_defaultTile.getX(tiles[0]));
     /**
      * flip the coordinates from the direction of the reference genome to the direction of the data structure 'Cord'.
      */
@@ -1007,23 +1042,25 @@ inline void g_mapHs_anchor_sv_ (String<uint64_t> & anchor,
     uint64_t t = 1;
     if (empty(tiles))
     {
-        //extendPatch(f1, f2, tiles, 0, startCord, endCord, revscomp_const);
+        extendPatch(f1, f2, tiles, 0, startCord, endCord, revscomp_const);
         t = 1;
     }
     else
     {
+        /*
         if (_defaultTile.getY(startCord) > _defaultTile.getY(endCord))
         {
             std::cerr << "[error]::g_mapHs_anchor_sv_anchor_sv y \n";
         }
+        */
         /*
         if (_defaultTile.getX(startCord) > _defaultTile.getX(tiles[0]))
         {
             std::cerr << "[erro]::g_mapHs_anchor_sv_anchor_sv y \n";
         }
         */
-        //extendPatch(f1, f2, tiles, 0, startCord, tiles[0], revscomp_const);
-        //extendPatch(f1, f2, tiles, length(tiles), back(tiles), endCord, revscomp_const);   
+        extendPatch(f1, f2, tiles, 0, startCord, tiles[0], revscomp_const);
+        extendPatch(f1, f2, tiles, length(tiles), back(tiles), endCord, revscomp_const);   
         t = 1;
     }
     
@@ -1183,9 +1220,9 @@ inline int g_align_gap_(String<Dna5> & seq,
             tile2 = tiles[it_tile];
             //delta = std::max(_defaultTile.getX(tile2 - tile1) + window_size, (uint64_t)window_size);
             //delta2 = window_size ;
-            cgstart = _getSA_i2(_defaultTile.getX(tile1)) ;
                    //   - delta + delta2;
             cgend = _getSA_i2(_defaultTile.getX(tile2)) + window_size;
+            cgstart = std::min(_getSA_i2(_defaultTile.getX(tile1)), cgend - 2 * window_size);
                     //+ delta2;
             delta = cgend - cgstart;
             band = int(90.0 * delta / window_size);
@@ -1195,18 +1232,19 @@ inline int g_align_gap_(String<Dna5> & seq,
                     //+ delta2;
             crstrand = _defaultTile.getStrand(tile2);
             //NOTE: change direction if clip from the other side.
-            clip = clip_window (seq, read, comstr,genomeId, cgstart,cgend,crstart, crend, crstrand, band, 1);
+            std::cout << "[]::g_align_gap_::sv_flags " << sv_flags[i] << " " << _defaultTile.getY (tiles[i]) << " " << cgstart << " " << cgend << " " << crstart << " " << crend << "\n";
+            clip = clip_window (seq, read, comstr, genomeId, cgstart, cgend, crstart, crend, crstrand, band, 1);
     //insert (tiles, it_tile, clip);
     //++it_tile;
-    //std::cout << "[]::g_align_gap_::align " << clip + cgstart << "\n";
-            std::cout << "[]::g_align_gap_::inv_clip " << _defaultTile.getX(clip) << " " << _defaultTile.getY(clip) << " " << delta << "\n"; 
         }
         ++it_tile;
     }
+    /*
     for (int i = 1; i < length(tiles); i++)
     {
         tiles[i - 1] = tiles[i];
     }
+    */
     resize (tiles, length(tiles) - 1);
     return 0;
     //std::cout << "[]::g_align_gap_ " << length
@@ -1220,12 +1258,14 @@ inline int g_mapHs_(String<Dna5> & seq,
                     uint64_t gr_start,
                     uint64_t gr_end,
                     uint64_t main_strand,
+                    uint64_t genomeId,
                     String<uint64_t> & g_hs,
                     String<uint64_t> & g_hs_anchor,
                     String<uint64_t> & g_hs_tile,
                     StringSet<String<short> > & f1,
                     StringSet<String<short> >& f2,
-                    int thd_tileSize)
+                    int thd_tileSize
+                   )
 {
     int g_hs_end = 0;
     int g_hs_anchor_end = 0;
@@ -1270,12 +1310,14 @@ inline int g_mapHs_(String<Dna5> & seq,
                        gs_end, 
                        gr_start, 
                        gr_end, 
-                       g_hs_anchor_end, 
-                       thd_tileSize, 
                        main_strand, 
+                       genomeId,
+                       g_hs_anchor_end, 
+                       thd_tileSize,
+                       length(read) - 1
                        //DANGER revscomp_const is incorrect
-                       length(read) - 1);
-    //g_align_gap_(seq, read, comstr, g_hs_tile, gs_start, gs_end, gr_start, gr_end, main_strand);
+                      );
+    g_align_gap_(seq, read, comstr, g_hs_tile, gs_start, gs_end, gr_start, gr_end, main_strand);
 }
 
 /*
@@ -1393,7 +1435,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             clear(tile);
             //strand of cord[k - 1] are supposed to be eqaul to strand of cord[k]
             /**
-             *ATTENTION: the strand of the head and tail cords of the two chains of cords connect to the gap are required to be the same, as the following marks
+             *ATTENTION: the strand of the head and tail cords of the two chains connecting to the gap are required to be the same, as the following marks
              * case 1:
              *   seg1  gap  seg2
              *  -----xxxxxxx-----  correct
@@ -1416,12 +1458,13 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                     (_nStrand(strand) * (_DefaultCord.getCordY(cords[k - 1])));
             uint64_t gr_end = (length(read) - 1) * strand - 
                     (_nStrand(strand) * (_DefaultCord.getCordY(cords[k])));
+            uint64_t genomeId = _getSA_i1(_DefaultCord.getCordX(k - 1));
             if (strand)
             {
                 std::swap(gr_start, gr_end);
             }
             std::cout << "[]::mapGaps " << gr_start << " " << gr_end << "\n";
-            g_mapHs_(seqs[_getSA_i1(_DefaultCord.getCordX(cords[k - 1]))], 
+            g_mapHs_(seqs[genomeId], 
                      read, 
                      comstr,
                      _getSA_i2(_DefaultCord.getCordX(cords[k - 1])),
@@ -1431,6 +1474,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                      strand,
                      //_DefaultCord.getCordY(cords[k -1]) + delta,
                      //_DefaultCord.getCordY(cords[k]) + delta,
+                     genomeId,
                      g_hs,
                      g_anchor,
                      tile,
@@ -1440,7 +1484,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                     );
             //g_align_gap_(seqs, read, comstr, tile);
             //align(seqs, read, comstr, tile);
-            std::cout << "[]::mapGaps:check_tiles_ " << check_tiles_(tile, _getSA_i2(_DefaultCord.getCordX(cords[k - 1])), _getSA_i2(_DefaultCord.getCordX(cords[k]))) << "\n";
+            //std::cout << "[]::mapGaps:check_tiles_ " << check_tiles_(tile, _getSA_i2(_DefaultCord.getCordX(cords[k - 1])), _getSA_i2(_DefaultCord.getCordX(cords[k]))) << "\n";
             count += _DefaultCord.getCordX(cords[k] - cords[k - 1]);
             insert(cords, k, tile);
             k += length(tile);
