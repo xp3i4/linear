@@ -290,7 +290,7 @@ static const uint64_t hmask = (1ULL << 20) - 1;
 /**
  * ATTENTION TODO parameter needs tuning: will affect speed, gap extension, clip
  */
-static const unsigned windowThreshold = 30; // 36;
+static const unsigned windowThreshold = 36; // 36;
 
 
 template <typename TIter>
@@ -861,6 +861,7 @@ struct Hit
     void setBlockBody(uint64_t &, uint64_t const & = _DefaultHitBase.flag);
     bool isBlockStart(uint64_t &, uint64_t const & = _DefaultHitBase.flag);
     void setBlockEnd(uint64_t &, uint64_t const & = _DefaultHitBase.flag);
+    void unsetBlockEnd(uint64_t &, uint64_t const & = _DefaultHitBase.flag);
     void setBlockStrand(uint64_t &, uint64_t const &, 
                      uint64_t const & = _DefaultHitBase.flag2);
     bool isBlockEnd(uint64_t &, uint64_t const & = _DefaultHitBase.flag);
@@ -886,6 +887,11 @@ inline bool Hit::isBlockStart(uint64_t & val, uint64_t const & flag)
 inline void Hit::setBlockEnd(uint64_t & val, uint64_t const & flag)
 {
     val |= flag;
+}
+
+inline void Hit::unsetBlockEnd(uint64_t & val, uint64_t const & flag)
+{
+    val &= ~flag;
 }
 
 inline void Hit::setBlockStrand(uint64_t & val, uint64_t const & strand, uint64_t const & flag)
@@ -1773,7 +1779,6 @@ inline bool path_dst(
     typename Iterator<PMRes::HitString>::Type it = hitBegin;
     unsigned preBlockPtr;
     float score = 0;
-    
     if(initCord(it, hitEnd, preBlockPtr, cords))
     {
         do{
@@ -1783,6 +1788,7 @@ inline bool path_dst(
         while (nextCord(it, hitEnd, preBlockPtr, cords, cordLenThr, score));
         return endCord(cords, preBlockPtr, cordLenThr, score);   
     }
+    //std::cout << "[]::path_dist::cord " 
     return false;
 }
 

@@ -306,6 +306,14 @@ inline uint64_t _flipCoord (uint64_t coord, uint64_t len, uint64_t strand)
     return len * strand - _nStrand(strand) * coord;
 }
 
+/*
+ * return if uint64_t is an negative
+ */
+inline uint64_t u_negative_(uint64_t val)
+{
+    return val >> 63;
+}
+
 //inline PMRes::Pos PMRes::getPosBegin(unsigned k)
 //{
 //    return pos[k] >> ResBase::bit;
