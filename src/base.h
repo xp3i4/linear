@@ -111,9 +111,9 @@ struct Options{
 
     unsigned    kmerLen;
     unsigned    MiKmLen;
-    typename    Const_::PATH_ rPath;
-    typename    Const_::PATH_ gPath;
-    typename    Const_::PATH_ oPath;
+    typename    std::string rPath;
+    typename    std::string gPath;
+    typename    std::string oPath;
     bool        Sensitive; 
     unsigned    sensitivity;
     unsigned    thread;
@@ -136,9 +136,9 @@ struct Options{
         sensitivity(0),
         thread(4)
         {}
-    Const_::PATH_ getGenomePath() const {return gPath;};
-    Const_::PATH_ getReadPat() const {return rPath;};
-    Const_::PATH_ getOutputPath() const {return oPath;};
+    std::string getGenomePath() const {return gPath;};
+    std::string getReadPath() const {return rPath;};
+    std::string getOutputPath() const {return oPath;};
     int print();
 }; 
 

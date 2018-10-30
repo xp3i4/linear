@@ -10,6 +10,27 @@
 #include "f_io.h"
 using namespace seqan;
 
+std::string getFileName(const std::string& s, char sep, int flag) {
+
+    if (flag == 1)
+    {
+        size_t i = s.rfind(sep, s.length());
+        if (i != std::string::npos) 
+        {
+            return(s.substr(i+1, s.length() - i));
+        }   
+    }
+    else
+    {
+        size_t i = s.rfind(sep, s.length());
+        if (i != std::string::npos) 
+        {
+            return(s.substr(0, i));
+        }   
+    }
+    return s;
+}
+
 std::string & operator<< (std::string & s, int i)
 {
     s += std::to_string(i);
@@ -103,6 +124,33 @@ int align2cigar_(Align<String<Dna5>,ArrayGaps> & align,
     return 0;
 }
 
+///print one gff record
+int print_gff_(GffFileOut & out, 
+               CharString ref,
+               CharString source,
+               CharString type,
+               uint64_t beginPos,
+               uint64_t endPos,
+               uint64_t strand,
+               int score,
+               StringSet<CharString> tagNames, 
+               StringSet<CharString> tagValues
+              )
+{
+    GffRecord record;
+    record.ref = ref;
+    record.source = source;
+    record.type = type;
+    record.beginPos = beginPos;
+    record.endPos = endPos;
+    record.strand = strand;
+    record.score = score;
+    append(record.tagNames, tagNames);
+    append(record.tagValues, tagValues);
+    writeRecord(out, record);
+    return 0;
+}
+
 /**
  *concat two blocks specified by 'start' and 'end' to cigar according to align1 and align2
  * NOTE:j 
@@ -138,31 +186,3 @@ int aligns2cigar_(Align<String<Dna5>,ArrayGaps> & align1,
 
 
 
-/*
-//print one gff record
-int print_gff_(GffFileOut & out, 
-               String ref,
-               String source,
-               String type,
-               uint64_t beginPos,
-               uint64_t endPos,
-               uint64_t stand,
-               int score,
-               String tagName, 
-               String tagValue
-              )
-{
-    GffRecord record;
-    record.ref = ref;
-    record.source = source;
-    record.type = type;
-    record.beginPos = beginPos;
-    record.endPos = endPos;
-    record.strand = strand;
-    record.score = score;
-    appendValue(record.tagNames, tagName);
-    appendValue(record.tagValues, tagValue);
-    writeRecord(out, record);
-    return 0;
-}
-*/

@@ -110,7 +110,7 @@ inline int getScore_(char r1_char,
  * Clip break point within the lxl window 
  * direction: clip direction  > 0  -----------mmmmmmmmm,  < 0 mmmmmmmmmmm--------; where 'm' is match
  */
-inline int clip_window (String<Dna5> & genome,
+inline uint64_t clip_window (String<Dna5> & genome,
                         String<Dna5> & read,
                         String<Dna5> & comrevRead,
                         uint64_t genomeId,
@@ -208,7 +208,7 @@ inline int clip_window (String<Dna5> & genome,
     uint64_t returnCord = _DefaultCord.createCord(_createSANode(genomeId, genomeStart + clip_ref), 
                                                   readStart + clip_read, 
                                                   strand);
-    std::cout << "[]::clip_window::max_score " << max << " " << int(score) / g_range << " " << "\n";
+    std::cout << "[]::clip_window::max_score " << max << " " << int(score) / g_range << " " << _DefaultCord.getCordX(returnCord) << "\n";
     return returnCord;
     //return clip_ref;
 }

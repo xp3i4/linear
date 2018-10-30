@@ -67,6 +67,7 @@ class Mapper {
     std::ofstream of;
     unsigned _thread;
     String<int> rlens;
+    std::string outputPrefix;
     
     //String<TAlign> str_sv_aligner;
     
@@ -93,7 +94,6 @@ public:
     void printParm();
     void printCords(std::ostream & );
     void printCords();
-    void printCordsAll();
     void printCordsRaw();
     void printCordsRaw2();
     int print_vcf();
@@ -106,7 +106,8 @@ public:
     StringSet<CharString> & genomesId(){return record.id2;}
     String<int> & readLens(){return rlens;}
     //String<TAlign> getSVAligners(){return str_sv_aligner;}
-    int print_gff();
+    int print_gff(StringSet<String<uint64_t> >&);
+    std::string getOutputPrefix(){return outputPrefix;}
     
     
 };

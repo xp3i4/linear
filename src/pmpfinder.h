@@ -103,6 +103,7 @@ struct Cord
     //void setHead(uint64_t &, uint64_t const &, uint64_t const & = _DefaultCordBase.headFlag);
     void setMaxLen(String<uint64_t> &, uint64_t const &, uint64_t const & = _DefaultCordBase.mask);
     uint64_t getMaxLen(String<uint64_t> const &, uint64_t const & = _DefaultCordBase.mask);
+    uint64_t shift(uint64_t & val, int64_t x, int64_t y, unsigned const & = _DefaultCordBase.bit); //add x and y
 
     
     bool print (CordString const &, std::ostream & = std::cout, CordBase const & = _DefaultCordBase) const;
@@ -202,6 +203,11 @@ inline uint64_t Cord::getMaxLen(String<uint64_t> const & cord, uint64_t const & 
     if (empty(cord))
         return 0;
     return cord[0] & mask;
+}
+
+inline uint64_t Cord::shift(uint64_t & val, int64_t x, int64_t y, unsigned const & bit) //add x and y
+{
+    return uint64_t((int64_t)val + (x << bit) + y);
 }
 
 inline bool Cord::print(typename Cord::CordString const & cords, std::ostream & of, CordBase const & cordBase) const
