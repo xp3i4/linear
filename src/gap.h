@@ -1622,15 +1622,16 @@ inline int g_alignGap_(String<Dna5> & seq,
         {
             tile1 = tiles[i];
             tile2 = tiles[i + 1];
-            std::cout << "[]::g_align_gap_ rl " << (sv_flags[i] & g_sv_r) << " " << (sv_flags[i+1] & g_sv_l) << "\n";
+            std::cout << "[]::g_align_gap_lrx " << (sv_flags[i] & g_sv_r) << " " << (sv_flags[i+1] & g_sv_l) << " " << _defaultTile.getX(tile1) << " " << _defaultTile.getX(tile2) << "\n";
             if ((sv_flags[i] & g_sv_r) && (sv_flags[i + 1] & g_sv_l)) 
             {
                 std::cout << "[]::g_align_gap_ sv_exists lr " << delta <<"\n";
                 cgend = _getSA_i2(_defaultTile.getX(tile2)) + window_size;
                 cgstart = std::min(_getSA_i2(_defaultTile.getX(tile1)), cgend - 2 * window_size);
+                //cgstart = cgend - 2 * window_size;
                 delta = cgend - cgstart;
                 crend = _defaultTile.getY(tile2) + window_size;
-                crstart = _defaultTile.getY(tile2) - delta + window_size;
+                crstart = crend - delta ;
                 if ((int64_t)(crstart) < 0)
                 {
                     crstart = 0;
@@ -1639,7 +1640,7 @@ inline int g_alignGap_(String<Dna5> & seq,
                 }
                 band = int(90.0 * delta / window_size);
                 crstrand = _defaultTile.getStrand(tile2);
-                std::cout << "[]::g_align_gap_ " << cgstart << " " << cgend << " " << crstart << " " << crend << " " << (sv_flags[i] & g_sv_r) << " " << (sv_flags[i+1] & g_sv_l) << " " << i << " " << length(sv_flags) - 1<< "\n";
+                std::cout << "[]::g_align_gap_lrc " << cgstart << " " << cgend << " " << crstart << " " << crend << " " << (sv_flags[i] & g_sv_r) << " " << (sv_flags[i+1] & g_sv_l) << " " << i << " " << length(sv_flags) - 1<< "\n";
                 clip = clip_window (seq, read, comstr, genomeId, cgstart, cgend, crstart, crend, crstrand, band, 1);   
                 appendValue (clips, clip);
             }
@@ -1667,7 +1668,7 @@ inline int g_alignGap_(String<Dna5> & seq,
                 crstrand = _defaultTile.getStrand(tile2);
                 
                 std::cout << "[]::g_align_gap_l " << cgstart << " " << cgend - delta << " " << cgend << " " <<g_start << " " << crstart << " " << crend << " " << (sv_flags[i] & g_sv_r) << " " << (sv_flags[i+1] & g_sv_l) << " " << i << " " << length(sv_flags) - 1<< "\n";
-                clip = clip_window (seq, read, comstr, genomeId, cgstart, cgend, crstart, crend, crstrand, band, -1);   
+                clip = clip_window (seq, read, comstr, genomeId, cgstart, cgend, crstart, crend, crstrand, band, 1);   
                 appendValue(clips, clip);
             }
         }
@@ -1873,7 +1874,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
         if (_DefaultCord.getCordX(cord2 - cord1) > thd_gap ||
             _DefaultCord.getCordY(cord2 - cord1) > thd_gap)         
         {
-        std::cout << "[]::mapGaps::map_middle " << _defaultTile.getX(cords[i]) << "\n";
+        std::cout << "[]::mapGaps::map_middle " << _defaultTile.getX(cords[i - 1]) << " " << _defaultTile.getX(cords[i]) << "\n";
             mapGap_(seqs, read, comstr, cords[i - 1], cords[i], 
                     g_hs, g_anchor, f1, f2, thd_gap, thd_tileSize, tiles, clips, g_align_closed);
             if (length(tiles) > 0)

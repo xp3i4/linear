@@ -68,7 +68,7 @@ inline int align_block_(Align<String<Dna5>, ArrayGaps> & aligner,
     infix1 = infix(genome, genomeStart, genomeEnd);   
     assignSource (row(aligner, 0), infix1);  
     assignSource (row(aligner, 1), infix2); 
-    int score = globalAlignment(aligner, Score<int, Simple> (s1, s2, s3), AlignConfig<false, false, false, false>(), -band, band);
+    int score = globalAlignment(aligner, Score<int, Simple> (s1, s2, s3), AlignConfig<true, true, true, true>(), -band, band);
     std::cout << "[]::align_block " << aligner << " score " << score << " " << genomeStart << " " << genomeEnd << " " << readStart << " " << readEnd << " " << strand << " " << band << "\n" ;
     return score;
 }

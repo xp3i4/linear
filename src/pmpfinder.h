@@ -595,17 +595,20 @@ inline uint64_t previousWindow(String<short> & f1,
             x_min = x;
         }
     }
-        //std::cout << "[]::previous score " << min << "\n";
     if (min > window_threshold)
         return 0;    
     else 
     {
         if ( x_suf - x_min > med)
         {
+        std::cout << "[]::previous score " << min << " " <<_DefaultCord.cell2Cord(x_suf - med) << "\n";
             return _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand);
         }
         else
+        {
+        std::cout << "[]::previous score " << min << " " << _DefaultCord.cell2Cord(x_min) << "\n";
             return _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
+        } 
     }
     return 0;
 }
@@ -690,10 +693,12 @@ inline bool nextWindow(String<short> &f1,
     else 
         if ( x_min - x_pre > med)
         {
+            std::cout << "[]::nextWindow min score " << min << " " << _DefaultCord.cell2Cord(x_pre + med) << "\n";
             appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y), strand));
         }
         else
         {
+            std::cout << "[]::nextWindow min score " << min << " " << _DefaultCord.cell2Cord(x_min) << "\n";
             appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
         }
     score += min;

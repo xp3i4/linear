@@ -238,6 +238,9 @@ int Mapper<TDna, TSpec>::print_vcf()
     return 0;
 }
 
+/**
+ * utility for debugs
+ */
 template <typename TDna, typename TSpec>
 int Mapper<TDna, TSpec>::print_gff(StringSet<String<uint64_t> > & clips)
 {
@@ -259,7 +262,6 @@ int Mapper<TDna, TSpec>::print_gff(StringSet<String<uint64_t> > & clips)
         }
     }
     of.close();
-    
     return 0;
 }
 
@@ -390,7 +392,9 @@ int map(Mapper<TDna, TSpec> & mapper)
         std::cerr <<  "--Map::file_I/O+Map block "<< k << " Size " << length(mapper.reads()) << " Elapsed Time[s]: file_I/O " << time1 << " map "<< time2 << "\n";
         k++;
     }
-    mapper.index().clear();
+    mapper.index().clear(); 
+    mapper.printCordsRaw2();
+    mapper.print_gff(clips);
     return 0;
 }
 
@@ -407,8 +411,7 @@ int main(int argc, char const ** argv)
     Mapper<> mapper(options);
     omp_set_num_threads(mapper.thread());
     map(mapper);
-    mapper.printCordsRaw2();
-    mapper.print_gff(clips);
+
     //mapper.print_vcf();
     std::cerr << "  Result Files: \033[1;31m" << options.oPath << "\033[0m" << std::endl;
     std::cerr << "                \033[1;31m" << (mapper.getOutputPrefix() + ".gff") << "\033[0m" << std::endl;
