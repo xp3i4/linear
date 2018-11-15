@@ -216,8 +216,8 @@ void Mapper<TDna, TSpec>::printCordsRaw2()
                 int64_t d2 = 0;
                 if (!fflag)
                 {
-                    d = (int) _DefaultCord.getCordX(cordSet[k][j] - cordSet[k][j - 1]);
-                    d2 = (int) _DefaultCord.getCordY(cordSet[k][j] - cordSet[k][j - 1]);
+                    d = (int64_t)_DefaultCord.getCordX(cordSet[k][j]) - (int64_t)_DefaultCord.getCordX(cordSet[k][j - 1]);
+                    d2 = (int64_t)_DefaultCord.getCordY(cordSet[k][j]) - (int64_t)_DefaultCord.getCordY(cordSet[k][j - 1]);
                     
                 }
                 
@@ -232,17 +232,10 @@ void Mapper<TDna, TSpec>::printCordsRaw2()
     std::cerr << "--Write results to disk       100% Elapsed Time[s] " << sysTime() - time << std::endl;
 }
 
-template <typename TDna, typename TSpec>
-int Mapper<TDna, TSpec>::print_vcf()
-{
-    return 0;
-}
-
-/**
- * utility for debugs
- */
-template <typename TDna, typename TSpec>
-int Mapper<TDna, TSpec>::print_gff(StringSet<String<uint64_t> > & clips)
+int print_clip_gff_(StringSet<String<uint64_t> > & clips, 
+              StringSet<CharString> & readsId, 
+              std::ofstream & of, 
+              std::string & outputPrefix)
 {
     std::string file_path = outputPrefix + ".gff";
     std::cerr << "[]::filepath " << file_path << "\n";
@@ -251,7 +244,7 @@ int Mapper<TDna, TSpec>::print_gff(StringSet<String<uint64_t> > & clips)
     {
         if (!empty(clips[i]))
         {
-            of << i << " " << readsId()[i] << " ";
+            of << i << " " << readsId[i] << " ";
             for (unsigned j = 0; j < length(clips[i]); j++)
             {
                 uint64_t cord_x = _DefaultCord.getCordX(clips[i][j]);
@@ -265,6 +258,59 @@ int Mapper<TDna, TSpec>::print_gff(StringSet<String<uint64_t> > & clips)
     return 0;
 }
 
+int print_clip_gvf_(StringSet<String<uint64_t> > & clips, 
+              StringSet<CharString> & readsId, 
+              StringSet<CharString> & genomesId,
+              std::ofstream & of, 
+              std::string outputPrefix)
+{
+    std::string file_path = outputPrefix + ".gvf";
+    std::cerr << "[]::filepath " << file_path << "\n";
+    of.open(toCString(file_path));
+    std::string source = ".";
+    std::string type = ".";
+    for (unsigned i = 0; i < length(clips); i++)
+    {
+        if (!empty(clips[i]))
+        {
+            for (unsigned j = 0; j < length(clips[i]); j++)
+            {
+                uint64_t cord_x = _getSA_i2(_DefaultCord.getCordX(clips[i][j]));
+                //uint64_t cord_y = _DefaultCord.getCordY(clips[i][j]);
+                CharString genomeId = genomesId[_getSA_i1(_DefaultCord.getCordX(clips[i][j]))];
+                if ((j >> 1) << 1 == j)
+                {
+                    of  << genomeId << " " << source << " " << type << " " << cord_x << " ";   
+                    if (j == length(clips[i]) - 1)
+                    {
+                        of << " . readId=" << readsId[i] << ";" << i << "\n";
+                    }
+                }
+                else
+                {
+                    of << cord_x << " readId=" << readsId[i] << ";" << i << "\n";
+                }
+            }
+        }
+    }
+    of.close();
+    return 0;
+}
+
+template <typename TDna, typename TSpec>
+int print_clip_gff(Mapper<TDna, TSpec> & mapper)
+{
+    print_clip_gff_(mapper.getClips(), mapper.readsId(), mapper.getOf(), mapper.getOutputPrefix());
+    return 0;
+}
+
+template <typename TDna, typename TSpec>
+int print_clip_gvf(Mapper<TDna, TSpec> & mapper)
+{
+    print_clip_gvf_(mapper.getClips(), mapper.readsId(), mapper.genomesId(), mapper.getOf(), mapper.getOutputPrefix());
+    return 0;
+}
+
 template <typename TDna, typename TSpec>
 int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
             StringSet<String<short> > & f2,
@@ -273,7 +319,8 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
             StringSet<String<uint64_t> > & cords,
             StringSet<String<uint64_t> > & clips,
             unsigned & threads,
-            StringSet<String<TDna> > & seqs
+            StringSet<String<TDna> > & seqs,
+            int p1
             )
 {
   
@@ -284,6 +331,15 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
     MapParm complexParm = mapParm;
     complexParm.alpha = complexParm.alpha2;
     complexParm.listN = complexParm.listN2;
+    String<uint64_t> gap_len;
+    String<uint64_t> red_len;
+    resize (gap_len, threads);
+    resize (red_len, threads);
+    for (int i = 0; i < length(gap_len); i++)
+{
+    gap_len[i]  = 0;
+    red_len[i] = 0;
+}
     //double time2 = sysTime();
 #pragma omp parallel
 {
@@ -316,6 +372,7 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
     {
         if (length(reads[j]) >= mapParm.minReadLen)
         {
+            red_len[thd_id] += length(reads[j]);
             std::cout << "[]::rawmap::j " << j <<"\n";
             float cordLenThr = length(reads[j]) * cordThr;
             _compltRvseStr(reads[j], comStr);
@@ -333,9 +390,9 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
                 mnMapReadList<TDna, TSpec>(index, reads[j], anchors, complexParm, crhit);
                 path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
             }   
-            mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, 300, 192);
+            gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, 300, 192, p1);
         }   
-        
+    
         c += 1;
     } 
     #pragma omp for ordered
@@ -345,6 +402,11 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
             append(cords, cordsTmp);
             append(clips, clipsTmp);
         }
+    
+}
+for (int k = 0; k < length(gap_len); k++)
+{
+    std::cout << "[] gap len " << gap_len[k] << " " << red_len[k] << " " << float(gap_len[k]) / red_len[k] << "\n";
 }
     //std::cerr << "    End raw mapping. Time[s]: " << sysTime() - time << std::flush << std::endl;
     return 0;
@@ -355,7 +417,7 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
  *[]::map
  */
 template <typename TDna, typename TSpec>
-int map(Mapper<TDna, TSpec> & mapper)
+int map(Mapper<TDna, TSpec> & mapper, int p1)
 {
     //printStatus();
     StringSet<String<short> > f2;
@@ -364,7 +426,6 @@ int map(Mapper<TDna, TSpec> & mapper)
     SeqFileIn rFile(toCString(mapper.readPath()));
     unsigned k = 1, j = 0;
     unsigned blockSize = 50000;
-    StringSet<String<uint64_t> > clips;
     StringSet<String<char> > dotstatus;
     resize(dotstatus, 3);
     dotstatus[0] = ".   ";
@@ -385,16 +446,18 @@ int map(Mapper<TDna, TSpec> & mapper)
                                     mapper.reads(), 
                                     mapper.mapParm(), 
                                     mapper.cords(), 
-                                    clips,
+                                    mapper.getClips(),
                                     mapper.thread(), 
-                                    mapper.genomes());
+                                    mapper.genomes(),
+                                    p1
+                                   );
         time2 = sysTime() - time2;
         std::cerr <<  "--Map::file_I/O+Map block "<< k << " Size " << length(mapper.reads()) << " Elapsed Time[s]: file_I/O " << time1 << " map "<< time2 << "\n";
         k++;
     }
     mapper.index().clear(); 
     mapper.printCordsRaw2();
-    mapper.print_gff(clips);
+    print_clip_gvf(mapper);
     return 0;
 }
 
@@ -410,11 +473,11 @@ int main(int argc, char const ** argv)
     std::cerr << "Encapsulated version: Mapping reads efficiently" << std::endl;
     Mapper<> mapper(options);
     omp_set_num_threads(mapper.thread());
-    map(mapper);
+    map(mapper, options.p1);
 
     //mapper.print_vcf();
     std::cerr << "  Result Files: \033[1;31m" << options.oPath << "\033[0m" << std::endl;
-    std::cerr << "                \033[1;31m" << (mapper.getOutputPrefix() + ".gff") << "\033[0m" << std::endl;
+    std::cerr << "                \033[1;31m" << (mapper.getOutputPrefix() + ".gvf") << "\033[0m" << std::endl;
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
     return 0;
 }

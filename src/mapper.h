@@ -67,6 +67,7 @@ class Mapper {
     std::ofstream of;
     unsigned _thread;
     String<int> rlens;
+    StringSet<String<uint64_t> > clip_set;
     std::string outputPrefix;
     
     //String<TAlign> str_sv_aligner;
@@ -104,10 +105,10 @@ public:
     CharString & genomePath(){return record.genomePath;}
     StringSet<CharString> & readsId(){return record.id1;}
     StringSet<CharString> & genomesId(){return record.id2;}
+    StringSet<String<uint64_t> > & getClips(){return clip_set;}
     String<int> & readLens(){return rlens;}
-    //String<TAlign> getSVAligners(){return str_sv_aligner;}
-    int print_gff(StringSet<String<uint64_t> >&);
-    std::string getOutputPrefix(){return outputPrefix;}
+    std::ofstream & getOf() {return of;}
+    std::string & getOutputPrefix(){return outputPrefix;}
     
     
 };

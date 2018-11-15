@@ -601,12 +601,12 @@ inline uint64_t previousWindow(String<short> & f1,
     {
         if ( x_suf - x_min > med)
         {
-        std::cout << "[]::previous score " << min << " " <<_DefaultCord.cell2Cord(x_suf - med) << "\n";
+        //std::cout << "[]::previous score " << min << " " <<_DefaultCord.cell2Cord(x_suf - med) << "\n";
             return _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand);
         }
         else
         {
-        std::cout << "[]::previous score " << min << " " << _DefaultCord.cell2Cord(x_min) << "\n";
+        //std::cout << "[]::previous score " << min << " " << _DefaultCord.cell2Cord(x_min) << "\n";
             return _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         } 
     }
@@ -693,12 +693,12 @@ inline bool nextWindow(String<short> &f1,
     else 
         if ( x_min - x_pre > med)
         {
-            std::cout << "[]::nextWindow min score " << min << " " << _DefaultCord.cell2Cord(x_pre + med) << "\n";
+            //std::cout << "[]::nextWindow min score " << min << " " << _DefaultCord.cell2Cord(x_pre + med) << "\n";
             appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y), strand));
         }
         else
         {
-            std::cout << "[]::nextWindow min score " << min << " " << _DefaultCord.cell2Cord(x_min) << "\n";
+            //std::cout << "[]::nextWindow min score " << min << " " << _DefaultCord.cell2Cord(x_min) << "\n";
             appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
         }
     score += min;
@@ -737,7 +737,7 @@ inline uint64_t nextWindow(String<short> & f1,
             x_min = x;
         }
     }
-    std::cout << "[]::nextWindow score " << min << "\n";
+    //std::cout << "[]::nextWindow score " << min << "\n";
     if (min > window_threshold)
        return 0;
     else 
@@ -1621,7 +1621,7 @@ inline int extendPatch(StringSet<String<short> > & f1,
                         )
 {
     unsigned window_threshold = 30;
-    std::cout << "[]::extendPatch::coord cord1y " << _DefaultCord.getCordY(cord1) << " cord2y " << _DefaultCord.getCordY(cord2) << " " << _DefaultCord.getCordStrand(cord1 ^ cord2) << "\n";
+    //std::cout << "[]::extendPatch::coord cord1y " << _DefaultCord.getCordY(cord1) << " cord2y " << _DefaultCord.getCordY(cord2) << " " << _DefaultCord.getCordStrand(cord1 ^ cord2) << "\n";
     if (isOverlap(cord1, cord2, revscomp_const))
     {
         return 0;
@@ -1650,7 +1650,7 @@ inline int extendPatch(StringSet<String<short> > & f1,
         if (cord)
         {
             appendValue (tmp, cord);
-            std::cout << "[]::extendWidnow::n append " << _DefaultCord.getCordY(back(tmp)) << " " << _DefaultCord.getCordX(back(tmp)) << " " << strand1 << " " << strand2 << "\n";
+            //std::cout << "[]::extendWidnow::n append " << _DefaultCord.getCordY(back(tmp)) << " " << _DefaultCord.getCordX(back(tmp)) << " " << strand1 << " " << strand2 << "\n";
         }
         else
         {
@@ -1675,7 +1675,7 @@ inline int extendPatch(StringSet<String<short> > & f1,
         {
             //TODO do another round previousWindow if cord = 0.
             appendValue (tmp, cord);
-            std::cout << "[]::extendWidnow::p append " << _DefaultCord.getCordY(cord) << " " << _DefaultCord.getCordX(cord) << " " << _DefaultCord.getCordY (nw) << " " << _DefaultCord.getCordX(nw) << "\n";
+            //std::cout << "[]::extendWidnow::p append " << _DefaultCord.getCordY(cord) << " " << _DefaultCord.getCordX(cord) << " " << _DefaultCord.getCordY (nw) << " " << _DefaultCord.getCordX(nw) << "\n";
         }
         else
         {

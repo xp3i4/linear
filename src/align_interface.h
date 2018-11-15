@@ -68,7 +68,12 @@ inline int align_block_(Align<String<Dna5>, ArrayGaps> & aligner,
     infix1 = infix(genome, genomeStart, genomeEnd);   
     assignSource (row(aligner, 0), infix1);  
     assignSource (row(aligner, 1), infix2); 
+    double time = sysTime ();
     int score = globalAlignment(aligner, Score<int, Simple> (s1, s2, s3), AlignConfig<true, true, true, true>(), -band, band);
+    double dt1 = sysTime() - time;
+    int score2 = globalAlignmentScore(infix1, infix2, Score<int, Simple> (s1, s2, s3), AlignConfig<true, true, true, true>(), -band, band);
+    double dt2 = sysTime() - time;
+    std::cout << "[]::align_block_ " << dt1 / dt2 << "\n";
     std::cout << "[]::align_block " << aligner << " score " << score << " " << genomeStart << " " << genomeEnd << " " << readStart << " " << readEnd << " " << strand << " " << band << "\n" ;
     return score;
 }
@@ -122,11 +127,16 @@ inline uint64_t clip_window (String<Dna5> & genome,
                         uint64_t band,
                         int direction)
 { 
+    double t1 = sysTime();
     typedef Align<String<Dna5>,ArrayGaps> TAlign;
     typedef Row<TAlign>::Type TRow; 
-    
     TAlign aligner; 
     resize(rows(aligner), 2); 
+    double t2 = sysTime();
+    for (int i = genomeStart; i < genomeEnd; i++)
+    {
+        std::cout << *(begin(genome) + i);
+    }
     int score = align_block_ (aligner,
                               genome, 
                               read, 
@@ -138,6 +148,7 @@ inline uint64_t clip_window (String<Dna5> & genome,
                               readEnd,
                               band
                             );
+    double dt = sysTime() - t1;
     int g_range = (int) genomeEnd - genomeStart;
     if (score < thd_align_score / (int) window_size * g_range)
     {
@@ -191,7 +202,7 @@ inline uint64_t clip_window (String<Dna5> & genome,
         }
         std::cout << "\n";
         */
-        std::cout << "[]::clip_window " << d_ << " " << k << " " << buffer[k] << " " << buffer[k - window] << "\n";;
+        //std::cout << "[]::clip_window " << d_ << " " << k << " " << buffer[k] << " " << buffer[k - window] << "\n";;
         
         if (max < d_)
         {
@@ -203,12 +214,13 @@ inline uint64_t clip_window (String<Dna5> & genome,
     }
     clip_ref = (max < 20)?-1:max_sp_ref;
     clip_read = (max < 20)?-1:max_sp_read;
-    std::cout << "[]::clip_window::clip " << clip_ref << " " << clip_read << " " << genomeStart + clip_ref << " " << readStart + clip_read << "\n";
+    //std::cout << "[]::clip_window::clip " << clip_ref << " " << clip_read << " " << genomeStart + clip_ref << " " << readStart + clip_read << "\n";
     
     uint64_t returnCord = _DefaultCord.createCord(_createSANode(genomeId, genomeStart + clip_ref), 
                                                   readStart + clip_read, 
                                                   strand);
-    std::cout << "[]::clip_window::max_score " << max << " " << int(score) / g_range << " " << _DefaultCord.getCordX(returnCord) << "\n";
+    //std::cout << "[]::clip_window::max_score " << max << " " << int(score) / g_range << " " << _DefaultCord.getCordX(returnCord) << "\n";
+    std::cout << "[]::clip_window time percent " << dt / (sysTime() - t1) << " " << (t2 - t1) / dt << "\n";
     return returnCord;
     //return clip_ref;
 }

@@ -124,6 +124,7 @@ struct Options{
     float alpha2;
     float cordThr;
     float senThr;
+    int p1;
 //
     
     Options():
@@ -133,8 +134,8 @@ struct Options{
         gPath(""),
         oPath("mapper_result.txt"),
         Sensitive(false),
-        sensitivity(0),
-        thread(4)
+        sensitivity(1),
+        thread(16)
         {}
     std::string getGenomePath() const {return gPath;};
     std::string getReadPath() const {return rPath;};
@@ -836,6 +837,9 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     addOption(parser, seqan::ArgParseOption(
         "t2", "senThr", "mapping::senThr",
             seqan::ArgParseArgument::DOUBLE, "DOUBLE"));        
+    addOption(parser, seqan::ArgParseOption(
+        "p1", "par1", "options::p1",
+            seqan::ArgParseArgument::INTEGER, "INT")); 
         
     // Add Examples Section.
 ////////////////////////
@@ -864,7 +868,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     getOptionValue(options.alpha2, parser, "alpha2");
     getOptionValue(options.cordThr, parser, "cordThr");
     getOptionValue(options.senThr, parser, "senThr");
-    
+    getOptionValue(options.p1, parser, "p1");
     seqan::getArgumentValue(options.rPath, parser, 0);
     seqan::getArgumentValue(options.gPath, parser, 1);
 

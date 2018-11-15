@@ -300,40 +300,54 @@ template <unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
 inline uint64_t hashInit(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 {
 
-        SEQAN_ASSERT_GT((unsigned)me.span, 0u);
+    SEQAN_ASSERT_GT((unsigned)me.span, 0u);
 
-        me.leftChar = 0;
-        //me.hValue = ordValue(*it);
-        me.hValue = 0;
-        me.crhValue = 0;
-        //hash_key = ((uint64_t)1 << (me.span*2 -2 )) - 1;
-        //hash_key3 = ((uint64_t)1 << (me.span*2 )) - 1;
-        me.leftChar = 0;
-        me.x = me.leftChar- ordC;
-        uint64_t k =0, count = 0; //COMP for complemnet value;
-    
-        while (count < me.span)
+    me.leftChar = 0;
+    //me.hValue = ordValue(*it);
+    me.hValue = 0;
+    me.crhValue = 0;
+    //hash_key = ((uint64_t)1 << (me.span*2 -2 )) - 1;
+    //hash_key3 = ((uint64_t)1 << (me.span*2 )) - 1;
+    me.leftChar = 0;
+    me.x = me.leftChar- ordC;
+    uint64_t k =0, count = 0; //COMP for complemnet value;
+
+    while (count < me.span)
+    {
+        if (ordValue(*(it + k + count)) == 4)
         {
-            if (ordValue(*(it + k + count)) == 4)
-            {
-                k += count + 1;
-                count = 0;
-            }
-            else
-                count++;
+            k += count + 1;
+            count = 0;
         }
-        unsigned bit = 2;
+        else
+            count++;
+    }
+    unsigned bit = 2;
+    for (unsigned i = 0; i < me.span - 1; ++i)
+    {
+        uint64_t val = ordValue (*(it + k + i));
+        me.x += (val << 1) - ordC;
+        me.hValue = (me.hValue << 2) + val;
+        me.crhValue += ((COMP4 - val) << bit);
+        bit += 2;
+        
+    }
+    //}
+    return k;
+}
+//
+/**
+ *init for hashNexthS 
+ */
+template <unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
+inline uint64_t hashInit_hs(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
+{
+        me.hValue = 0;
         for (unsigned i = 0; i < me.span - 1; ++i)
         {
-            uint64_t val = ordValue (*(it + k + i));
-            me.x += (val << 1) - ordC;
-            me.hValue = (me.hValue << 2) + val;
-            me.crhValue += ((COMP4 - val) << bit);
-            bit += 2;
-            
+            me.hValue = (me.hValue << 2) + ordValue (*(it + i));
         }
-        //}
-        return k;
+        return 0;
 }
 
 /*
@@ -561,7 +575,18 @@ hashNexth(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
     me.leftChar = ordValue(*(it));
     return me.x; 
 }
-
+/**
+ * only calculate hash value for single strand
+ * calculate hValue;
+ */ 
+template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
+inline typename Value<Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
+hashNext_hs(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
+{
+    uint64_t v2 = ordValue((TValue)*(it + me.span - 1 ));
+    me.hValue=((me.hValue & MASK<TSPAN * 2 - 2>::VALUE)<< 2)+ v2;
+    return me.hValue; 
+}
 /*
  * this hashNext function is for index only collect mini hash value [minindex]
  * calculate hValue;

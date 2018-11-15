@@ -125,6 +125,7 @@ int align2cigar_(Align<String<Dna5>,ArrayGaps> & align,
 }
 
 ///print one gff record
+/*
 int print_gff_(GffFileOut & out, 
                CharString ref,
                CharString source,
@@ -150,6 +151,8 @@ int print_gff_(GffFileOut & out,
     writeRecord(out, record);
     return 0;
 }
+*/
+
 
 /**
  *concat two blocks specified by 'start' and 'end' to cigar according to align1 and align2
