@@ -587,6 +587,7 @@ hashNext_hs(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &i
     me.hValue=((me.hValue & MASK<TSPAN * 2 - 2>::VALUE)<< 2)+ v2;
     return me.hValue; 
 }
+
 /*
  * this hashNext function is for index only collect mini hash value [minindex]
  * calculate hValue;

@@ -12,6 +12,162 @@ int const s3 = -1; //gap
 
 int thd_align_score = 350 /*depends on score_scheme*/;
 
+/**
+ * debug utility
+ */
+void printAlignment(Align<String<Dna5>, ArrayGaps> & aligner)
+{
+    typedef Align<String<Dna5>, ArrayGaps> TAlign;
+    typedef Row<TAlign>::Type TRow;  
+    TRow & row1 = row(aligner, 0);
+    TRow & row2 = row(aligner, 1);
+    CharString line0, line1, line2, line3, line4;
+    int line_len = 50;
+    int sourceP = 0, sourceP2 = 0;
+    int viewP = toSourcePosition(row1, sourceP);
+    int viewP2 = toSourcePosition(row2, sourceP);
+    int len0 = 10;
+    resize(line0, line_len * 2);
+    resize(line1, line_len);
+    resize(line2, line_len);
+    resize(line3, line_len);
+    resize(line4, line_len * 2);
+    for (int j = 0; j < length(line0); j++)
+    {
+        line0[j] = ' ';
+    } 
+    for (int j = 0; j < length(line0); j++)
+    {
+        line4[j] = ' ';
+    }
+    for (int i = 0; i < length(row1); i++)
+    {
+        int count = i % line_len;
+        if (i == viewP)
+        {
+            CharString tmpc;
+            int tmp = sourceP;
+            while ( tmp > 0)
+            {
+               appendValue(tmpc, tmp - tmp / 10 * 10 + '0');
+               tmp /= 10;
+            }
+            for (int j = 0; j < length(tmpc); j++)
+            {
+                line0[count + length(tmpc) - 1 - j] = tmpc[j];
+            //    std::cerr << line0[count + length(tmpc) - 1 - j];
+            }
+            //line0[count] = '0';
+            sourceP += len0;
+            viewP = toViewPosition(row1, sourceP - 1);
+        }
+        if (i == viewP2)
+        {
+            CharString tmpc;
+            int tmp = sourceP2;
+            while ( tmp > 0)
+            {
+               appendValue(tmpc, tmp - tmp / 10 * 10 + '0');
+               tmp /= 10;
+            }
+            for (int j = 0; j < length(tmpc); j++)
+            {
+                line4[count + length(tmpc) - 1 - j] = tmpc[j];
+            }
+            sourceP2 += len0;
+            viewP2 = toViewPosition(row2, sourceP2 - 1);
+        }
+        line1[count] = row1[i];
+        line2[count] = row2[i];
+        if (line1[count] == line2[count])
+        {
+            line3[count] = '|';
+        }
+        else
+        {
+            line3[count] = ' ';
+        }
+        if (count == line_len - 1)
+        {
+            std::cout << "     " << line0 << "\n     " << line1 << "\n     " << line3 << "\n     " << line2 << "\n     " << line4 << "\n";
+            for (int j = 0; j < length(line0); j++)
+            {
+                line0[j] = ' ';
+            }
+            for (int j = 0; j < length(line4); j++)
+            {
+                line4[j] = ' ';
+            }
+        }
+    }
+}
+/*
+int align_merge_cord_band (StringSet<String<uint64_t> > & cords,
+                           String<uint64_t> & bands,
+                           int band_width,
+                           int band_width_max
+                          )
+{
+    int flag = 1;
+    for (int i = 1; i < length(cords); i++)
+    {
+        int64_t tmp_upper_band;
+        int64_t tmp_lower_band;
+        if (flag)
+        {
+            int upper_band = _DefaultCord.getCordX(cords[i]) + band_width; 
+            int lower_band = _DefaultCord.getCordY(cords[i]) + ;
+            flag = 0;
+        }
+        else
+        {
+            int64_t x1 = _DefaultCord.getCordX(cords[i]); 
+            int64_t y1 = _DefaultCord.getCordY(cords[i]);
+            ///WARNING::need optimize
+            if (x1 - upper_band - y1  + band_width> 0 )
+            {
+                tmp_upper_band = x1 - y1;
+            }
+            else if (x1 - lower_band - y1 +  band_width <= 0)
+            {
+                    tmp_lower_band = x1 - y1;
+            }
+            if (x1 - lower_band - y1  - band_width > 0 )
+            {
+                tmp_lower_band_band = x1 - y1;
+            }
+            else if (x1 - upper_band - y1 -  band_width <= 0)
+            {
+                    tmp_upper_band = x1 - y1;
+            }
+            if (tmp_upper_band - tmp_lower_band < band_width_max) 
+            {
+                upper_band = tmp_upper_band;
+                lower_band = tmp_lower_band;
+            }
+            else // clip the bands to two groups of discontinuous bands otherwise the band width is too large.
+            {
+                uint64_t center_diagonal = lower_band + band_width;
+                uint64_t x_start1 = 
+                if (x_start - y_start  - center_diagonal > 0)
+                {
+                    
+                }
+                else
+                {
+                    x1 - y1 - 
+                }
+                appendValue(bands, start_cords);
+                appendValue(bands, end_cords);
+            }
+        }
+        if (_DefaultCord.isCordEnd(cords))
+        {
+            flag == 1;
+        }
+    }
+}
+*/
 int align_genome_cord (String<Dna5> & genome,
                        String<Dna5> & read, 
                        String<Dna5> & comrevRead,
@@ -74,7 +230,8 @@ inline int align_block_(Align<String<Dna5>, ArrayGaps> & aligner,
     int score2 = globalAlignmentScore(infix1, infix2, Score<int, Simple> (s1, s2, s3), AlignConfig<true, true, true, true>(), -band, band);
     double dt2 = sysTime() - time;
     std::cout << "[]::align_block_ " << dt1 / dt2 << "\n";
-    std::cout << "[]::align_block " << aligner << " score " << score << " " << genomeStart << " " << genomeEnd << " " << readStart << " " << readEnd << " " << strand << " " << band << "\n" ;
+    printAlignment(aligner);
+    std::cout << "[]::align_block " << " score " << score << " " << genomeStart << " " << genomeEnd << " " << readStart << " " << readEnd << " " << strand << " " << band << "\n" ;
     return score;
 }
 
