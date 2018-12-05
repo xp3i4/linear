@@ -1833,19 +1833,19 @@ inline int c_clip_extend_gap_(String<uint64_t> & hs,
     }
     hashInit_hs(shape, itBegin_read);
     int count = 0;
-    int x = 0;
+    int x = itEnd_genome - itBegin_genome - 1;
     for (int j = 0; j < itEnd_read - itBegin_read; j++)
     {
         int flag = 1;
-        uint64_t val = hashNext_hs(shape, itBegin_read + j);
+        uint64_t val = hashNext_hs(shape, itEnd_read + j);
         tn[0] = ctzb_4_(val ^ hs[x]);
         ln[0] = clzb_4_(val ^ hs[x]);
-        for (int k = x + 1; k < std::min(x + band + 1, hs_len_genome); k++)
+        int m = 1;
+        for (int k = x + 1; k >= std::max(x - band + 1, 0); k--)
         {
-            int ki = k - x;
-            uint64_t dv = val ^ hs[ki + 1];
-            tn[ki] = ctzb_4_(dv);
-            ln[ki] = clzb_4_(dv);
+            uint64_t dv = val ^ hs[k + 1];
+            tn[m] = ctzb_4_(dv);
+            ln[m] = clzb_4_(dv);
             std::cout << "[]::c_clip_extend_gap_ v " << x << " " << k << " " << std::bitset<8>(val) << " " << std::bitset<8>(hs[ki]) << " " << dv << " " << tn[ki] << " " << ln[ki] << " " << tn[ki - 1] << " " << ln[ki - 1] << "\n";
             if (c_isGapMatch_(val, tn[ki], tn[ki - 1], ln[ki], ln[ki - 1], c_shape_len3))
             {
@@ -2130,10 +2130,10 @@ inline int64_t c_clip_(String<Dna5> & genome,
     int extend_window = 100;
     int band_gap = 5; 
     int thd_gap_shape = 5;
-    Iterator<String<Dna5> >::Type itBegin_genome = begin(seq1) + gs_start + dx;
-    Iterator<String<Dna5> >::Type itEnd_genome = itBegin_genome + extend_window;
-    Iterator<String<Dna5> >::Type itBegin_read = begin(seq2) + gr_start + dy;
-    Iterator<String<Dna5> >::Type itEnd_read = itBegin_read + extend_window;
+    Iterator<String<Dna5> >::Type itEnd_genome = begin(seq1) + gs_start + 280;
+    Iterator<String<Dna5> >::Type itBegin_genome = itEnd_genome - extend_window;
+    Iterator<String<Dna5> >::Type itEnd_read = begin(seq2) + gr_start + 274;
+    Iterator<String<Dna5> >::Type itBegin_read = itBegin_read - extend_window;
     c_clip_extend_gap_(g_hs,
                        itBegin_genome,
                        itEnd_genome,
