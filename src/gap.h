@@ -1831,23 +1831,23 @@ inline int c_clip_extend_gap_(String<uint64_t> & hs,
     {
         hs[i] = hashNext_hs(shape, itBegin_genome + i);
     }
-    hashInit_hs(shape, itBegin_read);
+    hashInit_hs(shape, itEnd_read, 1);
     int count = 0;
     int x = itEnd_genome - itBegin_genome - 1;
-    for (int j = 0; j < itEnd_read - itBegin_read; j++)
+    for (int j = 0; j < itEnd_read - itBegin_read + 1; j++)
     {
         int flag = 1;
-        uint64_t val = hashNext_hs(shape, itEnd_read + j);
+        uint64_t val = hashPre_hs(shape, itEnd_read - j);
         tn[0] = ctzb_4_(val ^ hs[x]);
         ln[0] = clzb_4_(val ^ hs[x]);
         int m = 1;
         for (int k = x + 1; k >= std::max(x - band + 1, 0); k--)
         {
-            uint64_t dv = val ^ hs[k + 1];
+            uint64_t dv = val ^ hs[k];
             tn[m] = ctzb_4_(dv);
             ln[m] = clzb_4_(dv);
-            std::cout << "[]::c_clip_extend_gap_ v " << x << " " << k << " " << std::bitset<8>(val) << " " << std::bitset<8>(hs[ki]) << " " << dv << " " << tn[ki] << " " << ln[ki] << " " << tn[ki - 1] << " " << ln[ki - 1] << "\n";
-            if (c_isGapMatch_(val, tn[ki], tn[ki - 1], ln[ki], ln[ki - 1], c_shape_len3))
+            std::cout << "[]::c_clip_extend_gap_ v " << x << " " << k << " " << std::bitset<8>(val) << " " << std::bitset<8>(hs[k]) << " " << dv << " " << tn[m] << " " << ln[m] << " " << tn[m - 1] << " " << ln[m - 1] << "\n";
+            if (c_isGapMatch_(val, tn[m], tn[m - 1], ln[m], ln[m - 1], c_shape_len3))
             {
                 x = k + 1;
                 break;
@@ -1856,6 +1856,7 @@ inline int c_clip_extend_gap_(String<uint64_t> & hs,
             {
                 count++;
             }
+            m++;
         }   
         if (count > thd_gap_shape)
         {

@@ -340,13 +340,14 @@ inline uint64_t hashInit(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIt
  *init for hashNexthS 
  */
 template <unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
-inline uint64_t hashInit_hs(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
+inline uint64_t hashInit_hs(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it, int direction = 0)
 {
         me.hValue = 0;
         for (unsigned i = 0; i < me.span - 1; ++i)
         {
             me.hValue = (me.hValue << 2) + ordValue (*(it + i));
         }
+        me.hValue <<= (direction * 2);
         return 0;
 }
 
@@ -588,6 +589,14 @@ hashNext_hs(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &i
     return me.hValue; 
 }
 
+template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
+inline typename Value<Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
+hashPre_hs(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
+{
+    uint64_t v2 = ordValue((TValue)*(it + me.span - 1 )) << ((TSPAN << 1)  - 2);
+    me.hValue=((me.hValue >> 2) & MASK<TSPAN * 2 - 2>::VALUE)+ v2;
+    return me.hValue; 
+}
 /*
  * this hashNext function is for index only collect mini hash value [minindex]
  * calculate hValue;
