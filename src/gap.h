@@ -1801,9 +1801,19 @@ inline int64_t c_clip_anchors_ (String<uint64_t> & anchor,
     return 0;
 }
 
-inline int c_isGapMatch_(uint64_t & dv, short& t1, short & t2, short & l1, short & l2, short k)
+inline int c_isGapMatch_(int & x, int & it, uint64_t & dv, short& t1, short & t2, short & l1, short & l2, short k)
 {
-    return (dv == 0) || (t1 + l2 - k + 1 == 0) || (t1 + l1 - k + 1 == 0) || (t2 + l1 - k == 0);
+    if (dv == 0 || t1 + l1 - k + 1 == 0 || t2 + l1 -k == 0)    
+    {
+        x = it;
+        return 1; // match mismatch del
+    }
+    if (t1 + l2 - k + 1 == 0)
+    {
+        x = it - 1;
+        return 1;  //ins
+    }
+    return 0;
 }
 
 inline int c_clip_extend_gap_(String<uint64_t> & hs, 
@@ -1837,7 +1847,7 @@ inline int c_clip_extend_gap_(String<uint64_t> & hs,
         }
         std::cout << "\n";
     }
-    hashInit_hs(shape, itEnd_read, 1);
+    hashInit_hs(shape, itEnd_read - 1, 1);
     int count = 0;
     int x = itEnd_genome - itBegin_genome;
     for (int j = 0; j < itEnd_read - itBegin_read + 1; j++)
@@ -1867,6 +1877,7 @@ inline int c_clip_extend_gap_(String<uint64_t> & hs,
                     << k << " " 
                     << std::bitset<8>(val) << " " 
                     << std::bitset<8>(hs[k]) << " " 
+                    << std::bitset<8>(hs[k + 1]) << " " 
                     << val << " " 
                     << hs[k] << " dv=" 
                     << dv << " " 
@@ -1874,9 +1885,8 @@ inline int c_clip_extend_gap_(String<uint64_t> & hs,
                     << ln[m] << " " 
                     << tn[m - 1] << " " 
                     << ln[m - 1] << "\n";
-            if (c_isGapMatch_(dv, tn[m], tn[m - 1], ln[m], ln[m - 1], c_shape_len3))
+            if (c_isGapMatch_(x, k, dv, tn[m], tn[m - 1], ln[m], ln[m - 1], c_shape_len3))
             {
-                x = k;
                 break;
             }
             else 
