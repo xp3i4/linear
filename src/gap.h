@@ -1837,6 +1837,11 @@ inline int c_clip_extend_gap_(String<uint64_t> & hs,
     for (int j = 0; j < itEnd_read - itBegin_read + 1; j++)
     {
         int flag = 1;
+        std::cout <<"[]::c_clip_extend_gap_ v " << shape.hValue << " ";
+        for (int i = 0; i < 6; i++)
+        {
+           std::cout << *(itEnd_read - j + i);
+        }
         uint64_t val = hashPre_hs(shape, itEnd_read - j);
         tn[0] = ctzb_4_(val ^ hs[x]);
         ln[0] = clzb_4_(val ^ hs[x]);

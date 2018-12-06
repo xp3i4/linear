@@ -14,9 +14,7 @@ cmake > 3.0.0
   $ make linear
 ```
 
-## Introduction
-
- 
+## Introduction 
 
 
 
