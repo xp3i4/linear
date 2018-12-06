@@ -1801,9 +1801,9 @@ inline int64_t c_clip_anchors_ (String<uint64_t> & anchor,
     return 0;
 }
 
-inline int c_isGapMatch_(uint64_t & val, short& t1, short & t2, short & l1, short & l2, short k)
+inline int c_isGapMatch_(uint64_t & dv, short& t1, short & t2, short & l1, short & l2, short k)
 {
-    return (val == 0) || (t1 + l2 - k + 1 == 0) || (t1 + l1 - k + 1 == 0) || (t2 + l1 - k == 0);
+    return (dv == 0) || (t1 + l2 - k + 1 == 0) || (t1 + l1 - k + 1 == 0) || (t2 + l1 - k == 0);
 }
 
 inline int c_clip_extend_gap_(String<uint64_t> & hs, 
@@ -1827,34 +1827,56 @@ inline int c_clip_extend_gap_(String<uint64_t> & hs,
         std::cout << "Error::c_clip_gap_shape_\n";
         return 1;
     }
-    for (int i = 0; i < itEnd_genome - itBegin_genome; i++)
+    for (int i = 0; i < itEnd_genome - itBegin_genome + 1; i++)
     {
         hs[i] = hashNext_hs(shape, itBegin_genome + i);
+        std::cout << "[]::hashN " << hs[i] << " ";
+        for (int j = 0; j < 4; j++)
+        {
+           std::cout << *(itBegin_genome + i + j);
+        }
+        std::cout << "\n";
     }
     hashInit_hs(shape, itEnd_read, 1);
     int count = 0;
-    int x = itEnd_genome - itBegin_genome - 1;
+    int x = itEnd_genome - itBegin_genome;
     for (int j = 0; j < itEnd_read - itBegin_read + 1; j++)
     {
         int flag = 1;
         std::cout <<"[]::c_clip_extend_gap_ v " << shape.hValue << " ";
-        for (int i = 0; i < 6; i++)
+        for (int i = 0; i < 4; i++)
         {
            std::cout << *(itEnd_read - j + i);
+        }
+        std::cout << " ";
+        for (int i = 0; i < 4; i++)
+        {
+           std::cout << *(itEnd_genome - j + i);
         }
         uint64_t val = hashPre_hs(shape, itEnd_read - j);
         tn[0] = ctzb_4_(val ^ hs[x]);
         ln[0] = clzb_4_(val ^ hs[x]);
         int m = 1;
-        for (int k = x + 1; k >= std::max(x - band + 1, 0); k--)
+        for (int k = x - 1; k >= std::max(x - band + 1, 0); k--)
         {
             uint64_t dv = val ^ hs[k];
             tn[m] = ctzb_4_(dv);
             ln[m] = clzb_4_(dv);
-            std::cout << "[]::c_clip_extend_gap_ v " << x << " " << k << " " << std::bitset<8>(val) << " " << std::bitset<8>(hs[k]) << " " << dv << " " << tn[m] << " " << ln[m] << " " << tn[m - 1] << " " << ln[m - 1] << "\n";
-            if (c_isGapMatch_(val, tn[m], tn[m - 1], ln[m], ln[m - 1], c_shape_len3))
+            std::cout << "[]::c_clip_extend_gap_ v " 
+                    << x << " " 
+                    << k << " " 
+                    << std::bitset<8>(val) << " " 
+                    << std::bitset<8>(hs[k]) << " " 
+                    << val << " " 
+                    << hs[k] << " dv=" 
+                    << dv << " " 
+                    << tn[m] << " " 
+                    << ln[m] << " " 
+                    << tn[m - 1] << " " 
+                    << ln[m - 1] << "\n";
+            if (c_isGapMatch_(dv, tn[m], tn[m - 1], ln[m], ln[m - 1], c_shape_len3))
             {
-                x = k + 1;
+                x = k;
                 break;
             }
             else 
