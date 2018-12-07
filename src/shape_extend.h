@@ -209,9 +209,6 @@ hash(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
         {
             me.hValue = (me.hValue << 2) + ordValue((TValue)*(it + i));
         }
-   
-    
-
     return me.hValue;
 }
 
@@ -588,6 +585,7 @@ hashNext_hs(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &i
     me.hValue=((me.hValue & MASK<TSPAN * 2 - 2>::VALUE)<< 2)+ v2;
     return me.hValue; 
 }
+
 
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
 inline typename Value<Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type

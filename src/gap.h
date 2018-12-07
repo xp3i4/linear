@@ -1815,6 +1815,98 @@ inline int c_isGapMatch_(int & x, int & it, uint64_t & dv, short& t1, short & t2
     }
     return 0;
 }
+inline int c_isGapMatch_2anchor_(uint64_t & anchor, uint64_t & x, uint64_t & y, uint64_t & dv, short& t1, short & t2, short & l1, short & l2, short k)
+{
+	uint64_t xULL = x;
+    if (dv == 0 || t1 + l1 - k + 1 == 0 || t2 + l1 -k == 0)    
+    {
+        c_2Anchor_(anchor, x, y);
+        std::cout << "[]::c_isGapMatch_2anchor_1 " << x << " " << y << "\n";
+        return 1; // match mismatch del
+    }
+    if (t1 + l2 - k + 1 == 0)
+    {
+        c_2Anchor_(anchor, x - 1, y);
+        std::cout << "[]::c_isGapMatch_2anchor_2 " << x - 1 << " " << y << "\n";
+        return 1;  //ins
+    }
+    return 0;
+}
+
+inline int c_clip_extend_gap2_(String<uint64_t> & hs, 
+								String<uint64_t> & anchors,
+                                Iterator<String<Dna5> >::Type itBegin_genome, 
+                                Iterator<String<Dna5> >::Type itEnd_genome, 
+                                Iterator<String<Dna5> >::Type itBegin_read, 
+                                Iterator<String<Dna5> >::Type itEnd_read, 
+                                int min_scan_delta,
+                                int error_level,
+                                int thd_gap_shape
+	)
+{
+    String<short> tn;
+    String<short> ln;
+    Shape<Dna5, Minimizer<c_shape_len3> > shape;
+    int hs_len_genome = itEnd_genome - itBegin_genome;
+    resize(tn, hs_len_genome >> error_level);
+    resize(ln, hs_len_genome >>error_level);
+    hashInit_hs(shape, itBegin_genome);
+    if (length(hs) < itEnd_genome - itBegin_genome)
+    {
+        std::cout << "Error::c_clip_gap_shape_\n";
+        return 1;
+    }
+    for (int i = 0; i < itEnd_genome - itBegin_genome + 1; i++)
+    {
+        hs[i] = hashNext_hs(shape, itBegin_genome + i);
+        std::cout << "[]::hashN " << hs[i] << " ";
+        for (int j = 0; j < 4; j++)
+        {
+           std::cout << *(itBegin_genome + i + j);
+        }
+        std::cout << "\n";
+    }	
+    int iBegin = 0;    //iBegin: read begin
+    int iEnd = itEnd_read - itBegin_read;
+    int anchorBegin = iEnd;
+    int n = 0;
+   	hashInit_hs(shape, itBegin_read);
+   	for (uint64_t i = iBegin; i < iEnd; i++) //iterate of read
+   	{
+   		uint64_t hVal_read = hashNext_hs(shape, itBeign_read + i);  
+   		//WARNING::
+   		//change i_delta from iEnd - i to i if clip from left to right 
+   		int i_delta = iEnd - (int)i;
+   		int j_delta = std::max(i_delta >> error_level, min_scan_delta);
+   		int jBegin = std::max(0, hs_len_genome - i_delta  - j_delta); //begin of genome to scan
+   		int jEnd = std::min(hs_len_genome - i_delta + j_delta, hs_len_genome);
+   		uint64_t dv = hVal_read ^ hs[jBegin];
+		tn[0] = ctzb_4_(dv);
+	    ln[0] = clzb_4_(dv);
+		int m = 1;
+   		for (uint64_t j = jBegin + 1; j < jEnd; j++) //iterate of genome
+   		{
+   			dv = hVal_read ^ hs[j];
+   			tn[m] = ctzb_4_(dv);
+	        ln[m] = clzb_4_(dv);
+        	c_isGapMatch_2anchor_(anchors[n++], j, i, dv, tn[m - 1], tn[m], ln[m - 1], ln[m], c_shape_len3);
+	        std::cout << "[]::c_clip_extend_gap2_ v " 
+	        << i << " "
+	        << j << " "
+            << std::bitset<8>(val) << " " 
+            << std::bitset<8>(hs[j]) << " " 
+            << std::bitset<8>(hs[j - 1]) << " " 
+            << val << " " 
+            << " dv=" 
+            << dv << " " 
+            << tn[m] << " " 
+            << ln[m] << " " 
+            << tn[m - 1] << " "
+            << ln[m - 1] << " \n"; 
+        	m++;
+   		}
+   	}
+}
 
 inline int c_clip_extend_gap_(String<uint64_t> & hs, 
                                 Iterator<String<Dna5> >::Type itBegin_genome, 
@@ -1829,7 +1921,7 @@ inline int c_clip_extend_gap_(String<uint64_t> & hs,
     String<short> ln;
     resize(tn, band);
     resize(ln, band);
-    Shape<Dna5, Minimizer<c_shape_len2> > shape;
+    Shape<Dna5, Minimizer<c_shape_len3> > shape;
     int hs_len_genome = itEnd_genome - itBegin_genome;
     hashInit_hs(shape, itBegin_genome);
     if (length(hs) < itEnd_genome - itBegin_genome)
@@ -1850,7 +1942,8 @@ inline int c_clip_extend_gap_(String<uint64_t> & hs,
     hashInit_hs(shape, itEnd_read - 1, 1);
     int count = 0;
     int x = itEnd_genome - itBegin_genome;
-    for (int j = 0; j < itEnd_read - itBegin_read + 1; j++)
+    int step = c_shape_len3;
+    for (int j = 1; j < itEnd_read - itBegin_read + 1; j++)
     {
         int flag = 1;
         std::cout <<"[]::c_clip_extend_gap_ v " << shape.hValue << " ";
@@ -1864,42 +1957,52 @@ inline int c_clip_extend_gap_(String<uint64_t> & hs,
            std::cout << *(itEnd_genome - j + i);
         }
         uint64_t val = hashPre_hs(shape, itEnd_read - j);
-        tn[0] = ctzb_4_(val ^ hs[x]);
-        ln[0] = clzb_4_(val ^ hs[x]);
-        int m = 1;
-        for (int k = x - 1; k >= std::max(x - band + 1, 0); k--)
+        if (step < c_shape_len3 - 1)
         {
-            uint64_t dv = val ^ hs[k];
-            tn[m] = ctzb_4_(dv);
-            ln[m] = clzb_4_(dv);
-            std::cout << "[]::c_clip_extend_gap_ v " 
-                    << x << " " 
-                    << k << " " 
-                    << std::bitset<8>(val) << " " 
-                    << std::bitset<8>(hs[k]) << " " 
-                    << std::bitset<8>(hs[k + 1]) << " " 
-                    << val << " " 
-                    << hs[k] << " dv=" 
-                    << dv << " " 
-                    << tn[m] << " " 
-                    << ln[m] << " " 
-                    << tn[m - 1] << " " 
-                    << ln[m - 1] << "\n";
-            if (c_isGapMatch_(x, k, dv, tn[m], tn[m - 1], ln[m], ln[m - 1], c_shape_len3))
-            {
-                break;
-            }
-            else 
-            {
-                count++;
-            }
-            m++;
-        }   
-        if (count > thd_gap_shape)
+        	step++;
+        }
+        else
         {
-            count++;
-            return x;
-        }   
+	        tn[0] = ctzb_4_(val ^ hs[x]);
+	        ln[0] = clzb_4_(val ^ hs[x]);
+	        int m = 1;
+	        for (int k = x - 1; k >= std::max(x - band + 1, 0); k--)
+	        {
+	            uint64_t dv = val ^ hs[k];
+	            tn[m] = ctzb_4_(dv);
+	            ln[m] = clzb_4_(dv);
+	            std::cout << "[]::c_clip_extend_gap_ v " 
+	                    << x << " " 
+	                    << k << " " 
+	                    << std::bitset<8>(val) << " " 
+	                    << std::bitset<8>(hs[k]) << " " 
+	                    << std::bitset<8>(hs[k + 1]) << " " 
+	                    << val << " " 
+	                    << hs[k] << " dv=" 
+	                    << dv << " " 
+	                    << tn[m] << " " 
+	                    << ln[m] << " " 
+	                    << tn[m - 1] << " "
+	                    << ln[m - 1] << " "; 
+	            if (c_isGapMatch_(x, k, dv, tn[m], tn[m - 1], ln[m], ln[m - 1], c_shape_len3))
+	            {
+	            	step = 0;
+	            	x = k - c_shape_len3 + 1;
+	                break;
+	            }
+	            else 
+	            {
+	                count++;
+	            }
+	            m++;
+	        }   
+	        if (count > thd_gap_shape)
+	        {
+	            count++;
+	            return x;
+	        }   
+    	}
+        std::cout << "\n";
     }
     return hs_len_genome;
 }
@@ -2172,12 +2275,26 @@ inline int64_t c_clip_(String<Dna5> & genome,
     Iterator<String<Dna5> >::Type itBegin_genome = itEnd_genome - extend_window;
     Iterator<String<Dna5> >::Type itEnd_read = begin(seq2) + gr_start + 274;
     Iterator<String<Dna5> >::Type itBegin_read = itBegin_read - extend_window;
+    /*
     c_clip_extend_gap_(g_hs,
                        itBegin_genome,
                        itEnd_genome,
                        itBegin_read,
                        itEnd_read,
                        band_gap,
+                       thd_gap_shape
+                      );
+	*/
+	int error_level = 3; // >>3 == * 0.125
+	int min_scan_delta = 5;  //at least scan 5 elements in the genome for each kmer in the read
+    c_clip_extend_gap2_(g_hs,
+    				   g_anchor,
+                       itBegin_genome,
+                       itEnd_genome,
+                       itBegin_read,
+                       itEnd_read,
+                       min_scan_delta,
+                       error_level,
                        thd_gap_shape
                       );
     return clip;
