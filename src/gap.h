@@ -1852,8 +1852,8 @@ inline int c_clip_extend_gap2_(String<uint64_t> & hs,
     String<short> ln;
     Shape<Dna5, Minimizer<c_shape_len3> > shape;
     int hs_len_genome = itEnd_genome - itBegin_genome;
-    resize(tn, hs_len_genome >> error_level);
-    resize(ln, hs_len_genome >> error_level);
+    resize(tn, hs_len_genome >> error_level + 1);
+    resize(ln, hs_len_genome >> error_level + 1);
     hashInit_hs(shape, itBegin_genome);
     if (length(hs) < itEnd_genome - itBegin_genome)
     {
@@ -1902,8 +1902,8 @@ inline int c_clip_extend_gap2_(String<uint64_t> & hs,
 	        << i_delta << " "
 	        << " jEnd - jBegin =" << jEnd - jBegin << " "
             << std::bitset<8>(hVal_read) << " " 
-            << std::bitset<8>(hs[j]) << " " 
             << std::bitset<8>(hs[j - 1]) << " " 
+            << std::bitset<8>(hs[j]) << " " 
             << hVal_read << " " 
             << " dv=" 
             << dv << " " 
@@ -1915,7 +1915,65 @@ inline int c_clip_extend_gap2_(String<uint64_t> & hs,
         	m++;
    		}
    	}
+    //merge anchors 
+    //extend mapping until clipping
 	std::cout << "[]::anchors_len " << n << "\n";
+    String <short> ex_x, tmp_x;
+    String <short> ex_y, tmp_y;
+    resize (ex_x, length(tn));
+    resize (ex_y, length(tn));
+    resize (tmp_x, length(tn));
+    resize (tmp_y, length(tn));
+    ex_x[0] = short(itEnd_genome - itBegin_genome);
+    ex_y[0] = short(itEnd_read - itBegin_read);
+    int jBegin = n - 2;
+    int flag = 1;
+    uint64_t pre_anchor = anchors[i + 1];
+    for (int i = n - 2; i > 0; i--)
+    {
+        //skip kmer within the range of c_shape_len3 if the previouse has been mergerd.
+        if (g_hs_anchor_getY(anchors[i] ^ pre_anchor))
+        {
+            if (g_hs_anchor_getY(anchors[i]) > nextY)
+            {
+                i = blockBegin + 1;
+                flag = 0
+                continue;
+            }
+            else
+            {
+                blockBegin = i;
+                if (flag)
+                {
+                    flag = 1;
+                    continue;
+                }
+            }
+        }
+        if (i < nexti)
+        {
+            continue;
+        }
+        for (int j = 0; j < ex_len; j++)
+        {
+            short x = short(g_hs_anchor_getX(anchors[j]));
+            short y = short(g_hs_anchor_gety(anchors[j]));
+            short delta_x = std::abs(ex_x[j] - x);
+            short delta_y = std::abs(ex_y[j] - y);
+            if ( < thd_merge_x &&  < thd_merge_y)
+            {
+                tmp_x[n] = x;
+                tmp_y[n] = y
+                break;
+                n++;
+            }
+        }
+
+        else
+        {
+
+        }
+    }
 }
 
 inline int c_clip_extend_gap_(String<uint64_t> & hs, 
