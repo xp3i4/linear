@@ -1928,12 +1928,13 @@ inline int c_clip_extend_gap2_(String<uint64_t> & hs,
     ex_y[0] = short(itEnd_read - itBegin_read);
     int jBegin = n - 2;
     int flag = 1;
-    uint64_t pre_anchor = anchors[i + 1];
+    uint64_t pre_anchor = ~0;
     int blockBegin = 0;
     int blockEnd = 0;
     int tmp_n = 0;
     for (int i = n - 2; i > 0; i--)
     {
+        std::cout << "[]::c_clip_extend_gap2_ v merge " << i << " " << blockBegin << " " << blockEnd << "\n";
         //skip kmer within the range of c_shape_len3 if the previouse has been mergerd.
         if (flag)
         {
@@ -1979,8 +1980,8 @@ inline int c_clip_extend_gap2_(String<uint64_t> & hs,
                         tmp_x[tmp_n] = x;
                         tmp_y[tmp_n] = y
                         next_y = current_y + c_shape_len3;
-                        break;
                         tmp_n++;
+                        break;
                     }
                 }
             }
