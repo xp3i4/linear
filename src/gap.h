@@ -1929,49 +1929,61 @@ inline int c_clip_extend_gap2_(String<uint64_t> & hs,
     int jBegin = n - 2;
     int flag = 1;
     uint64_t pre_anchor = anchors[i + 1];
+    int blockBegin = 0;
+    int blockEnd = 0;
+    int tmp_n = 0;
     for (int i = n - 2; i > 0; i--)
     {
         //skip kmer within the range of c_shape_len3 if the previouse has been mergerd.
-        if (g_hs_anchor_getY(anchors[i] ^ pre_anchor))
+        if (flag)
         {
-            if (g_hs_anchor_getY(anchors[i]) > nextY)
+            current_y = g_hs_anchor_getY(anchor[i]);
+            if (g_hs_anchor_getY(anchors[i] ^ pre_anchor))
             {
-                i = blockBegin + 1;
-                flag = 0
-                continue;
-            }
-            else
-            {
-                blockBegin = i;
-                if (flag)
+                if (current_y < next_y)
                 {
-                    flag = 1;
-                    continue;
+                    blockEnd = i;
+                }
+                else
+                {
+                    blockBegin = i;     
+                    i = blockEnd + 1; //i-- to blockBegin
+                    flag = 0;
                 }
             }
         }
-        if (i < nexti)
-        {
-            continue;
-        }
-        for (int j = 0; j < ex_len; j++)
-        {
-            short x = short(g_hs_anchor_getX(anchors[j]));
-            short y = short(g_hs_anchor_gety(anchors[j]));
-            short delta_x = std::abs(ex_x[j] - x);
-            short delta_y = std::abs(ex_y[j] - y);
-            if ( < thd_merge_x &&  < thd_merge_y)
-            {
-                tmp_x[n] = x;
-                tmp_y[n] = y
-                break;
-                n++;
-            }
-        }
-
         else
         {
-
+            if (i == blockBegin)
+            {
+                ++i;
+                for (int j = 0; j < tmp_n; j++)
+                {
+                    ex_x[j] = tmp_x[j];
+                    ex_y[j] = tmp_y[j];
+                }
+                tmp_n = 0;
+                flag = 1;
+            }            
+            else
+            {
+                for (int j = 0; j < ex_len; j++)
+                {
+                    short x = short(g_hs_anchor_getX(anchors[j]));
+                    short y = short(g_hs_anchor_gety(anchors[j]));
+                    short delta_x = ex_x[j] - x;
+                    short delta_y = ex_y[j] - y;
+                    //if ( < thd_merge_x &&  < thd_merge_y)
+                    if (std::abs(delta_x - delta_y) < thd_merge_anchor)
+                    {
+                        tmp_x[tmp_n] = x;
+                        tmp_y[tmp_n] = y
+                        next_y = current_y + c_shape_len3;
+                        break;
+                        tmp_n++;
+                    }
+                }
+            }
         }
     }
 }
