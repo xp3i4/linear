@@ -2000,16 +2000,26 @@ inline int c_clip_extend_gap2_(String<uint64_t> & hs,
             if (g_hs_anchor_getY(anchors[i] ^ pre_anchor))
             {
                 its[itsk] = i; //record the first i of each block in which anchor has the same y
+                std::cout << "drop_count " << g_hs_anchor_getY(anchors[i]) << " " << next_y << " " << itsk << "\n";
                 if (g_hs_anchor_getY(anchors[i]) < next_y)
                 {
-                    itsEnd = itsk--;
-                    i = its[itsk] + 1;
-                    flag = 0;
-                    tmp_n = 0;
-                    for (int k = 0; k < itsEnd + 1; k++)
+                    itsEnd = itsk--; 
+                    if (itsk < 0)
                     {
-                        std::cout << "[]::c_clip_extend_gap2_ merge itsk[k]" << k << " " << its[k] << " " << next_y << " " << n - 1<< "\n";
-                    } 
+                        itsk = 0;
+                        next_y -= c_shape_len3;
+                        if (++drop_count == thd_merge_drop)
+                        {
+                            std::cout << "drop_count " << drop_count << "\n";
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        i = its[itsk] + 1;
+                        flag = 0;
+                        tmp_n = 0;
+                    }
                 }
                 else
                 {
@@ -2022,11 +2032,11 @@ inline int c_clip_extend_gap2_(String<uint64_t> & hs,
         }
         else // scan blocks in the range.
         {
-            if (itsk > length(its) || i > length(anchors)  || itsEnd > length(its) || itsk < 0 || i < 0 || itsEnd < 0)
-            {
-                std::cout << "[]::error mg " << itsk << " " << i << " " << itsEnd << " " << length(its) << " " << length(anchors) << "\n";
-                return 1;
-            }
+            //if (itsk > length(its) || i > length(anchors)  || itsEnd > length(its) || itsk < 0 || i < 0 || itsEnd < 0)
+            //{
+            //    std::cout << "[]::error mg " << itsk << " " << i << " " << itsEnd << " " << length(its) << " " << length(anchors) << "\n";
+            //    return 1;
+            //}
             std::cout << "xxxxlen " << i << " " << its[itsk + 1] << " it\n";
             if (i == its[itsk + 1])//reach end of current block
             {
@@ -2054,7 +2064,6 @@ inline int c_clip_extend_gap2_(String<uint64_t> & hs,
                     {
                         if (++drop_count == thd_merge_drop) //large gap to clip
                         {
-                            tmp_n = 0;
                             break; 
                         }
                         else
@@ -2097,7 +2106,6 @@ inline int c_clip_extend_gap2_(String<uint64_t> & hs,
                 }
             }
         }
-        
     }
 }
 
