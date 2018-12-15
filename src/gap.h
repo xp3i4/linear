@@ -2030,7 +2030,7 @@ inline int c_clip_extend_gap2_(String<uint64_t> & hs,
             std::cout << "xxxxlen " << i << " " << its[itsk + 1] << " it\n";
             if (i == its[itsk + 1])//reach end of current block
             {
-                std::cout << "xxxlen1 " << i << " " << its[itsk + 1] << " " << itsk << " " << tmp_n << " \n";
+                std::cout << "xxxlen1 " << i << " " << its[itsk + 1] << " " << itsk << " " << tmp_n << " " << ex_len << " \n";
                 if (tmp_n > 0)          //there exists new merges
                 {
                     for (int j = 0; j < tmp_n; j++)
@@ -2038,6 +2038,7 @@ inline int c_clip_extend_gap2_(String<uint64_t> & hs,
                         ex_x[j] = tmp_x[j];
                         ex_y[j] = tmp_y[j];
                     }
+                    std::cout << "ex tmp " << ex_len << "\n";
                     ex_len = tmp_n;
                     tmp_n = 0;
                     flag = 1;
@@ -2060,6 +2061,7 @@ inline int c_clip_extend_gap2_(String<uint64_t> & hs,
                         {
                             i = its[itsEnd] + 1;
                             next_y -= c_shape_len3;
+                            flag = 1;
                         }
                     } 
                     else
@@ -2082,14 +2084,15 @@ inline int c_clip_extend_gap2_(String<uint64_t> & hs,
                     //if ( < thd_merge_x &&  < thd_merge_y)
                     if (std::abs(delta_x - delta_y) < 5)
                     {
-                        if (tmp_n > length(tmp_x))
-                        {
-                            return 1;
-                        }
+                        //if (tmp_n > length(tmp_x))
+                        //{
+                        //    return 1;
+                        //}
                         tmp_x[tmp_n] = x;
                         tmp_y[tmp_n] = y;
                         next_y = y - c_shape_len3;
                         tmp_n++;
+                        break;
                     }
                 }
             }
