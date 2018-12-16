@@ -1935,8 +1935,8 @@ inline int c_clip_extend_gap2_(String<uint64_t> & hs,
     resize (tmp_x, length(tn));
     resize (tmp_y, length(tn));
     resize (its, n);
-    ex_x[0] = short(itEnd_genome - itBegin_genome);
-    ex_y[0] = short(itEnd_read - itBegin_read);
+    ex_x[0] = short(hs_len_genome);
+    ex_y[0] = short(hs_len_read);
     int blockEnd = 0;
     int ex_len = 1;
     int tmp_n = 0;
@@ -1962,7 +1962,7 @@ inline int c_clip_extend_gap2_(String<uint64_t> & hs,
     uint64_t thd_gap_len = thd_merge_drop * c_shape_len3;
     
     pre_anchor = ~0;
-    std::cout << "clip<<<<<<<<<<<<<<<<\n";
+    std::cout << "clip<<<<<<<<<<<<<<<<" << hs_len_read << " " << next_y << "\n";
     for (int i = n - 1; i >= 0; i--)
     {
         //skip kmer within the range of c_shape_len3 if the previouse has been mergerd.
@@ -1971,19 +1971,21 @@ inline int c_clip_extend_gap2_(String<uint64_t> & hs,
             if (g_hs_anchor_getY(anchors[i] ^ pre_anchor))
             {
                 its[itsk] = i; //record the first i of each block in which anchor has the same y
-                std::cout << "drop_count " << g_hs_anchor_getY(anchors[i]) << " " << next_y << " " << itsk << "\n";
+                std::cout << "drop_count " << g_hs_anchor_getY(anchors[i]) << " " << next_y << " " << itsk << " " << drop_count << "\n";
                 if (g_hs_anchor_getY(anchors[i]) < next_y)
                 {
                     itsEnd = itsk--; 
                     if (itsk < 0)
                     {
-                        itsk = 0;
-                        next_y -= c_shape_len3;
-                        if (++drop_count == thd_merge_drop)
+                        drop_count += (ex_y[0] - g_hs_anchor_getY(anchors[i])) / c_shape_len3;
+                        std::cout << "drop_count < " << next_y << " " << g_hs_anchor_getY(anchors[i]) << " " << drop_count << "\n";
+                        if (drop_count > thd_merge_drop)
                         {
                             std::cout << "drop_count " << drop_count << "\n";
                             break;
                         }
+                        itsk = 0;
+                        next_y -= c_shape_len3;
                     }
                     else
                     {
@@ -1998,16 +2000,9 @@ inline int c_clip_extend_gap2_(String<uint64_t> & hs,
                 }
                 pre_anchor = anchors[i];
             }
-            std::cout << "[]::c_clip_extend_gap2_ v merge " << i << " " << next_y << " " << itsk << "\n";
- 
         }
         else // scan blocks in the range.
         {
-            //if (itsk > length(its) || i > length(anchors)  || itsEnd > length(its) || itsk < 0 || i < 0 || itsEnd < 0)
-            //{
-            //    std::cout << "[]::error mg " << itsk << " " << i << " " << itsEnd << " " << length(its) << " " << length(anchors) << "\n";
-            //    return 1;
-            //}
             std::cout << "xxxxlen " << i << " " << its[itsk + 1] << " it\n";
             if (i == its[itsk + 1])//reach end of current block
             {
@@ -2061,13 +2056,9 @@ inline int c_clip_extend_gap2_(String<uint64_t> & hs,
                 {
                     short delta_x = ex_x[j] - x;
                     short delta_y = ex_y[j] - y;
-                    if ( < thd_merge_x &&  < thd_merge_y)
-                    //if (std::abs(delta_x - delta_y) < 5)
+                    if (std::abs(delta_x - delta_y) < thd_merge_anchor)
                     {
-                        //if (tmp_n > length(tmp_x))
-                        //{
-                        //    return 1;
-                        //}
+
                         tmp_x[tmp_n] = x;
                         tmp_y[tmp_n] = y;
                         next_y = y - c_shape_len3;
@@ -2346,8 +2337,8 @@ inline int64_t c_clip_(String<Dna5> & genome,
     int extend_window = 100;
     int band_gap = 5; 
     int thd_gap_shape = 5;
-    int thd_merge_anchor = 3;
-    int thd_merge_drop = 5;
+    int thd_merge_anchor = 5;
+    int thd_merge_drop = 2;
     Iterator<String<Dna5> >::Type itEnd_genome = begin(seq1) + gs_start + 280;
     Iterator<String<Dna5> >::Type itBegin_genome = itEnd_genome - extend_window;
     Iterator<String<Dna5> >::Type itEnd_read = begin(seq2) + gr_start + 274;
