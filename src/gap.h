@@ -2010,7 +2010,9 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
                                 int error_level,
                                 int thd_gap_shape,
                                 int thd_merge_anchor,
-                                int thd_merge_drop
+                                int thd_merge_drop,
+                                int clip_direction = -1 // 1  left part is well aligned
+                                                       // -1 right side is well aligned
     )
 {
     std::cout << "[]::xxlen_anchor " << length(anchors) << "\n";
@@ -2031,12 +2033,6 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
     for (int i = 0; i < itEnd_genome - itBegin_genome + 1; i++)
     {
         hs[i] = hashNext_hs(shape, itBegin_genome + i);
-        std::cout << "[]::hashN " << hs[i] << " ";
-        for (int j = 0; j < 4; j++)
-        {
-           std::cout << *(itBegin_genome + i + j);
-        }
-        std::cout << "\n";
     }   
     int iBegin = 0;    //iBegin: read begin
     int iEnd = itEnd_read - itBegin_read;
@@ -2095,7 +2091,7 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
     String <int> its;
     resize (ex_x, length(tn)); //extend kmer coordinates x
     resize (ex_y, length(tn));
-    resize (tmp_x, length(tn));
+    resize (tmp_x, length(tn)); //temporarily store coordinates x
     resize (tmp_y, length(tn));
     resize (its, n);
     ex_x[0] = short(hs_len_genome);
@@ -2119,19 +2115,29 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
         next_y = hs_len_read - c_shape_len3;
     }
     std::cout << "clip<<<<<<<<<<<<<<<<" << hs_len_read << " " << next_y << "\n";
-    for (int i = n - 1; i >= 0; i--)
+    //direction::
+    //int w1 = 0, w2 = 1
+    //if (clip_direction == -1)
+    //{
+    //    w1 = n - 1;
+    //    w2 = -1;
+    //}
+    for (int k = 0; k < n - 1; k++)
     {
+        //int i = w1 + k * w2; //flip k if the clip_direction is -1
         //skip kmer within the range of c_shape_len3 if the previouse has been mergerd.
         if (flag) // decide the next range to scan
         {
             if (g_hs_anchor_getY(anchors[i] ^ pre_anchor))
             {
                 its[itsk] = i; //record the first i of each block in which anchor has the same y
+                //direction::
                 if (g_hs_anchor_getY(anchors[i]) < next_y)
                 {
                     itsEnd = itsk--; 
                     if (itsk < 0)
                     {
+                        //direction::
                         drop_count += (ex_y[0] - g_hs_anchor_getY(anchors[i])) / c_shape_len3;
                         if (drop_count > thd_merge_drop)
                         {
