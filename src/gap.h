@@ -1999,6 +1999,33 @@ inline uint64_t c_clip_anchors_precise(String<uint64_t> & anchor,
     */
 }
 
+String<Dna5> & int2str(String<Dna5> & s, uint64_t s1, int n)
+{
+    int mask = 3;
+    for (int i = 0; i < n; i++)
+    {
+        int t = (s1 >> (i * 2)) & mask;
+        if (t == 0)
+        {
+            s[n - 1 - i] = 'A';
+        }
+
+if (t == 1)
+        {
+            s[n - 1 - i] = 'C';
+        }
+if (t == 2)
+        {
+            s[n - 1 - i] = 'G';
+        }
+if (t == 3)
+        {
+            s[n - 1 - i] = 'T';
+        }
+    }
+
+    return s;
+}
 inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
                                 String<uint64_t> & hs, 
                                 String<uint64_t> & anchors,
@@ -2039,6 +2066,8 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
     int anchorBegin = iEnd;
     int n = 0;
     hashInit_hs(shape, itBegin_read);
+    String<Dna5> couts;
+    resize(couts, 4);
     for (uint64_t i = iBegin; i < iEnd; i++) //iterate of read
     {
         uint64_t hVal_read = hashNext_hs(shape, itBegin_read + i);  
@@ -2065,9 +2094,9 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
             << j << " "
             << i_delta << " "
             << " jEnd - jBegin =" << jEnd - jBegin << " "
-            << std::bitset<8>(hVal_read) << " " 
-            << std::bitset<8>(hs[j - 1]) << " " 
-            << std::bitset<8>(hs[j]) << " " 
+            << int2str(couts, hVal_read, 4) << " " 
+            << int2str(couts, hs[j - 1], 4) << " " 
+            << int2str(couts, hs[j], 4) << " " 
             << hVal_read << " " 
             << " dv=" 
             << dv << " " 
@@ -2122,7 +2151,7 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
     //    w1 = n - 1;
     //    w2 = -1;
     //}
-    for (int k = 0; k < n - 1; k++)
+    for (int i = n - 1; i >= 0; i--)
     {
         //int i = w1 + k * w2; //flip k if the clip_direction is -1
         //skip kmer within the range of c_shape_len3 if the previouse has been mergerd.
@@ -2138,8 +2167,8 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
                     if (itsk < 0)
                     {
                         //direction::
-                        drop_count += (ex_y[0] - g_hs_anchor_getY(anchors[i])) / c_shape_len3;
-                        if (drop_count > thd_merge_drop)
+                        drop_count += (ex_y[0] - g_hs_anchor_getY(anchors[i]));
+                        if (drop_count >= thd_merge_drop)
                         {
                             break;
                         }
@@ -2187,7 +2216,8 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
                 {
                     if (itsk < 1 ) //if last block of current range
                     {
-                        if (++drop_count == thd_merge_drop) //large gap to clip
+                        drop_count += c_shape_len3;
+                        if (drop_count >= thd_merge_drop) //large gap to clip
                         {
                             break; 
                         }
@@ -2340,10 +2370,10 @@ inline int64_t c_clip_(String<Dna5> & genome,
     int band_gap = 5; 
     int thd_gap_shape = 5;
     int thd_merge_anchor = 5;
-    int thd_merge_drop = 2;
-    Iterator<String<Dna5> >::Type itEnd_genome = begin(seq1) + gs_start + dy;
+    int thd_merge_drop = 2 * c_shape_len3;
+    Iterator<String<Dna5> >::Type itEnd_genome = begin(seq1) + gs_start + dx;
     Iterator<String<Dna5> >::Type itBegin_genome = itEnd_genome - extend_window;
-    Iterator<String<Dna5> >::Type itEnd_read = begin(seq2) + gr_start + dx;
+    Iterator<String<Dna5> >::Type itEnd_read = begin(seq2) + gr_start + dy;
     Iterator<String<Dna5> >::Type itBegin_read = itEnd_read - extend_window;
     /*
     c_clip_extend_gap_(g_hs,
