@@ -1142,8 +1142,8 @@ inline void g_mapHs_anchor_sv1_ (String<uint64_t> & anchor,
          * Above tile t1 and t2, y of two tiles is far away while x of two tiles are almost overlapped 
          */
         
-        if (std::abs(_defaultTile.getX(tiles[i + 1]) - _defaultTile.getX(tiles[prep2])) < thd_overlap_tile && 
-            std::abs(_defaultTile.getY(tiles[i + 1]) - _defaultTile.getY(tiles[prep2])) < thd_overlap_tile)
+        if (std::abs(int64_t(_defaultTile.getX(tiles[i + 1]) - _defaultTile.getX(tiles[prep2]))) < thd_overlap_tile && 
+            std::abs(int64_t(_defaultTile.getY(tiles[i + 1]) - _defaultTile.getY(tiles[prep2]))) < thd_overlap_tile)
         {
             continue;
         }
@@ -1374,8 +1374,8 @@ inline void g_mapHs_anchor_sv2_ (String<uint64_t> & anchor,
          *        -----------     y
          * Example of ins above has large distance of y while x of two tiles are very close.
          */
-        if (std::abs(_defaultTile.getX(tiles[i + 1]) - _defaultTile.getX(tiles[prep2])) < thd_overlap_tile && 
-            std::abs(_defaultTile.getY(tiles[i + 1]) - _defaultTile.getY(tiles[prep2])) < thd_overlap_tile)
+        if (std::abs(int64_t(_defaultTile.getX(tiles[i + 1]) - _defaultTile.getX(tiles[prep2]))) < thd_overlap_tile && 
+            std::abs(int64_t(_defaultTile.getY(tiles[i + 1]) - _defaultTile.getY(tiles[prep2]))) < thd_overlap_tile)
         {
             continue;
         }
@@ -1733,15 +1733,16 @@ inline int64_t c_clip_anchors_ (String<uint64_t> & anchor,
                 std::cout << "[]::ax << " << (int64_t)(g_hs_anchor_getAnchor(anchor[last_k]) - gs_start + gr_start) << " " << g_hs_anchor_getX(anchor[last_k]) << " " << ct_conts << "\n";
                 uint64_t x = g_hs_anchor_getX(anchor[last_k]) - gs_start;
                 uint64_t y = g_hs_anchor_getY(anchor[last_k]) - gr_start;
+                //operation I: data structure of anchor is changed 
                 anchor[it++] = (x << bit) + ((ct_conts + 1) << g_hs_anchor_bit1) + y;
             //}
             start_k = k + 1;
             ct_conts = 0;
         }
     }
+    //NOTE:: anchors is not the previous data structure anymore because of operation I
+    // sort accoding to x, ct_conts and y 
     std::sort(begin(anchor), begin(anchor) + it);
-    //for (int i = 0; i < it - 1; i++)
-    //    std::cout << "sort anchor it " << (anchor[i] >> bit) << " " << it << " " << anchor_end << "\n";
     int it_merge = anchor_end - 1;
     uint64_t end_record = 0;
     int max_sc = 0;
@@ -1875,15 +1876,11 @@ inline uint64_t c_clip_anchors_precise(String<uint64_t> & anchor,
         }
         else
         {
-            //if (ct_conts > thd_break_a)
-            //{
-                //last_k = start_k;
-                last_k = k - ct_conts ;
-                std::cout << "[]::ax << " << (int64_t)(g_hs_anchor_getAnchor(anchor[last_k]) - gs_start + gr_start) << " " << g_hs_anchor_getX(anchor[last_k]) << " " << ct_conts << "\n";
-                uint64_t x = g_hs_anchor_getX(anchor[last_k]) - gs_start;
-                uint64_t y = g_hs_anchor_getY(anchor[last_k]) - gr_start;
-                anchor[it++] = (x << bit) + ((ct_conts + 1) << g_hs_anchor_bit1) + y;
-            //}
+            last_k = k - ct_conts ;
+            std::cout << "[]::ax << " << (int64_t)(g_hs_anchor_getAnchor(anchor[last_k]) - gs_start + gr_start) << " " << g_hs_anchor_getX(anchor[last_k]) << " " << ct_conts << "\n";
+            uint64_t x = g_hs_anchor_getX(anchor[last_k]) - gs_start;
+            uint64_t y = g_hs_anchor_getY(anchor[last_k]) - gr_start;
+            anchor[it++] = (x << bit) + ((ct_conts + 1) << g_hs_anchor_bit1) + y;
             start_k = k + 1;
             ct_conts = 0;
         }
@@ -1893,10 +1890,6 @@ inline uint64_t c_clip_anchors_precise(String<uint64_t> & anchor,
     {
         std::cout << "sort anchor it " << (anchor[i] >> bit) << " " << ((anchor[i] >> bit1) & mask1) << " " << (anchor[i] & mask1) << " " << it << " " << anchor_end << "\n";
     }
-    int it_merge = anchor_end - 1;
-    uint64_t end_record = 0;
-    int max_sc = 0;
-    uint64_t max_ac = 0;
     int64_t itgenome = 0;
     int64_t itread = 0;
     for (int i = 0; i < it - 1; i++)
@@ -1909,11 +1902,8 @@ inline uint64_t c_clip_anchors_precise(String<uint64_t> & anchor,
         int64_t nxt_end = x0 + c_conts;
         int sum_conts = c_conts;
         int seg_len = 0;
-        int flag = 0;
         std::cout <<"[]::axit new " << x0 << " " << y0 << " " << sum_conts << " <<<<<<<<<<<<<<<<<\n";
-        int start = i + 1;
         int dj = 0;
-        int64_t end_record = 0;
         int width_count = 0;
         int64_t x1;
         int64_t y1;
@@ -1947,15 +1937,6 @@ inline uint64_t c_clip_anchors_precise(String<uint64_t> & anchor,
             }
         }
         sc += c_sc_(nxt_c_conts, nxt_c_conts);
-        //seg_len += c_conts;
-        //int sc = c_sc_(sum_conts, seg_len);
-        //if (sc > thd_clip_sc)
-        //{
-            max_ac = anchor[i];
-            max_sc = sc;
-            std::cout << "[]return ax " << (max_ac >> bit) << " " << (max_ac & mask1) << "\n";
-            //return int64_t((((max_ac >> bit) & mask1) << 32) + (max_ac & mask1));
-        //}
         std::cout << "[]::axit3 " << sum_conts << " " << seg_len << " " << sc << "\n";
         it -= dj;
         if (sum_conts > 15)
@@ -1968,6 +1949,7 @@ inline uint64_t c_clip_anchors_precise(String<uint64_t> & anchor,
     std::cout << "[]::ax sc <<<<<<<<<<<<<<<<<<< " << itgenome << " " << itread << "\n";
     return (itgenome << 32) + itread;
 //    return 0;
+    ///clip by sliding windows
     /*
     int w_len = 5;
     int w_ct_l = 0;
@@ -2023,7 +2005,6 @@ if (t == 3)
             s[n - 1 - i] = 'T';
         }
     }
-
     return s;
 }
 inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
@@ -2168,6 +2149,7 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
                     {
                         //direction::
                         drop_count += (ex_y[0] - g_hs_anchor_getY(anchors[i]));
+                        std::cout << "xxxxlen4 " << drop_count << " " << ex_y[0] << " " << g_hs_anchor_getY(anchors[i]) << "\n";
                         if (drop_count >= thd_merge_drop)
                         {
                             break;
@@ -2194,7 +2176,7 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
             std::cout << "xxxxlen " << i << " " << its[itsk + 1] << " it\n";
             if (i == its[itsk + 1])//reach end of current block
             {
-                std::cout << "xxxlen1 " << i << " " << its[itsk + 1] << " " << itsk << " " << tmp_n << " " << ex_len << " \n";
+                std::cout << "xxxlen1 " << i << " " << its[itsk + 1] << " " << itsk << " " << tmp_n << " " << ex_len << " " << drop_count << " \n";
                 if (tmp_n > 0)          //there exists new merges
                 {
                     for (int j = 0; j < tmp_n; j++)
@@ -2217,6 +2199,7 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
                     if (itsk < 1 ) //if last block of current range
                     {
                         drop_count += c_shape_len3;
+                        std::cout << "xxxxlen3 " << drop_count << "\n";
                         if (drop_count >= thd_merge_drop) //large gap to clip
                         {
                             break; 
@@ -2370,7 +2353,7 @@ inline int64_t c_clip_(String<Dna5> & genome,
     int band_gap = 5; 
     int thd_gap_shape = 5;
     int thd_merge_anchor = 5;
-    int thd_merge_drop = 2 * c_shape_len3;
+    int thd_merge_drop = 6;
     Iterator<String<Dna5> >::Type itEnd_genome = begin(seq1) + gs_start + dx;
     Iterator<String<Dna5> >::Type itBegin_genome = itEnd_genome - extend_window;
     Iterator<String<Dna5> >::Type itEnd_read = begin(seq2) + gr_start + dy;
