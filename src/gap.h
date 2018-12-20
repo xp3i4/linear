@@ -2287,7 +2287,7 @@ inline int64_t c_clip_(String<Dna5> & genome,
     int thd_merge2 = 20;
     int thd_width = 10;
     uint64_t g_anchor_val = 0;
-    g_anchor_val = c_clip_anchors_(g_anchor, 
+    g_anchor_val = c_clip_anchors_precise(g_anchor, 
                                    gs_start, 
                                    gr_start, 
                                    g_anchor_end, 
