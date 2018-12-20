@@ -2023,21 +2023,20 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
                                                        // -1 right side is well aligned
     )
 {
-    std::cout << "[]::xxlen_anchor " << length(anchors) << "\n";
     String<short> tn;
     String<short> ln;
     Shape<Dna5, Minimizer<c_shape_len3> > shape;
     int hs_len_genome = itEnd_genome - itBegin_genome;
     int hs_len_read = itEnd_read - itBegin_read;
-    resize(tn, (hs_len_genome >> error_level) + 1);
-    resize(ln, (hs_len_genome >> error_level) + 1);
-    std::cout << "xxxlen " << hs_len_genome << " " << error_level << "\n";
+    resize(tn, (hs_len_genome >> (error_level - 1)) + 1);
+    resize(ln, (hs_len_genome >> (error_level - 1)) + 1);
     hashInit_hs(shape, itBegin_genome);
     if (length(hs) < itEnd_genome - itBegin_genome)
     {
         std::cout << "Error::c_clip_gap_shape_\n";
         return 1;
     }
+
     for (int i = 0; i < itEnd_genome - itBegin_genome + 1; i++)
     {
         hs[i] = hashNext_hs(shape, itBegin_genome + i);
@@ -2046,6 +2045,7 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
     int iEnd = itEnd_read - itBegin_read;
     int anchorBegin = iEnd;
     int n = 0;
+
     hashInit_hs(shape, itBegin_read);
     String<Dna5> couts;
     resize(couts, 4);
@@ -2242,8 +2242,8 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
         }
     }
     //Median number of ex_x. ex_y values are equal
-    ex_d = (ex_x[ex_len / 2] << 32) + ex_y[0];
-    std::cout << (ex_d >> 32) << "\n";
+    ex_d = (uint64_t(ex_x[ex_len / 2]) << 32) + ex_y[0];
+    //std::cout << (ex_d >> 32) << "\n";
     return 0;
 
 }
@@ -2287,7 +2287,7 @@ inline int64_t c_clip_(String<Dna5> & genome,
     int thd_merge2 = 20;
     int thd_width = 10;
     uint64_t g_anchor_val = 0;
-    g_anchor_val = c_clip_anchors_precise(g_anchor, 
+    g_anchor_val = c_clip_anchors_(g_anchor, 
                                    gs_start, 
                                    gr_start, 
                                    g_anchor_end, 
@@ -2312,6 +2312,7 @@ inline int64_t c_clip_(String<Dna5> & genome,
     {
         g_hs[i] &= mask;
     }
+
     std::sort (begin(g_hs), begin(g_hs) + g_hs_end);
     int band_lower2 = 5;
     int band_level2 = 3;
@@ -2347,7 +2348,7 @@ inline int64_t c_clip_(String<Dna5> & genome,
     dy = (g_anchor_val & ((1ULL << 32) - 1));
     uint64_t clip = _DefaultCord.createCord(_createSANode(genomeId, gs_start + dx), 
                                             gr_start + dy, 
-                                            gr_strand);
+                                            gr_strand); 
     std::cout << "[]::c_clip_ g_anchor_end g_anchor_val "  << dx << " " << dy << " " << dx + gs_start << " " << gs_start << " " << genomeId << " " << _getSA_i1(_DefaultCord.getCordX(clip))<< "\n";
     int extend_window = 100;
     int band_gap = 5; 
@@ -2373,6 +2374,7 @@ inline int64_t c_clip_(String<Dna5> & genome,
 
     std::cout << "[]::xxlen_anchor " << length(g_anchor) << "\n";
     uint64_t ex_d = 0;
+    
     c_clip_extend_gap2_(ex_d, 
                        g_hs,
     				   g_anchor,
@@ -2386,6 +2388,17 @@ inline int64_t c_clip_(String<Dna5> & genome,
                        thd_merge_anchor,
                        thd_merge_drop 
                       );
+
+    int dyt = (ex_d & ((1ULL << 32) - 1));
+    dx -= extend_window - (ex_d >> 32);
+    dy -= extend_window -dyt; 
+    std::cout << "[]::clip_result " << dx << " " << dy << " " << dyt << "\n";
+    if (p1 == 1) //p1 is for debug control
+    {
+		clip = _DefaultCord.createCord(_createSANode(genomeId, gs_start + dx), 
+                                            gr_start + dy, 
+                                            gr_strand); 
+    }
     return clip;
 
 }
