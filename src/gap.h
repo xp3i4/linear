@@ -2264,7 +2264,6 @@ inline int64_t c_clip_(String<Dna5> & genome,
             int clip_direction = 1
             )
 {
-    
     std::cout << "[]::c_clip_ start " << gs_start << " " << gs_end << " " << gr_start << " " << gr_end << "\n";
     //clear(g_anchor);
     String<Dna5> & seq1 = genome;
@@ -2329,7 +2328,6 @@ inline int64_t c_clip_(String<Dna5> & genome,
                        thd_merge_anchor,
                        thd_merge_drop 
                       );
-
     int dyt = (ex_d & ((1ULL << 32) - 1));
     dx -= extend_window - (ex_d >> 32);
     dy -= extend_window -dyt; 
