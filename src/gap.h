@@ -2298,58 +2298,12 @@ inline int64_t c_clip_(String<Dna5> & genome,
                                    thd_width);    
     
     ///clip breakpoints
-    std::cout << "another round -------------- " << (g_anchor_val >> 32) << " " << (g_anchor_val & ((1ULL << 32) - 1)) << " " << p1 << "\n";
     uint64_t dx = (g_anchor_val >> 32);
     uint64_t dy = (g_anchor_val & ((1ULL << 32) - 1));
-    int64_t dx_lower = 100;
-    int64_t dx_upper = 50;
-    int64_t x_lower = std::max((int64_t)gs_start, int64_t(gs_start + dx - dx_lower));
-    int64_t x_upper = std::min((int64_t)gs_end, int64_t(gs_start + dx + dx_upper));
-    g_anchor_end = 0;
-    int bit = 33;  //WARNING::33 is the bit length of g_hs, need modification if the g_hs definition is changed.
-    uint64_t mask =  ~(((1ULL << (c_shape_len - c_shape_len2) * 2) - 1) << bit); // 11...1100...0011
-    for (int i = 0; i < g_hs_end; i++)
-    {
-        g_hs[i] &= mask;
-    }
-
-    std::sort (begin(g_hs), begin(g_hs) + g_hs_end);
-    int band_lower2 = 5;
-    int band_level2 = 3;
-    g_anchor_end = c_create_anchors_(g_hs, 
-                                     g_anchor, 
-                                     g_hs_end, 
-                                     band_level2, 
-                                     band_lower2, 
-                                     gs_start + dx, 
-                                     gr_start + dy,
-                                     x_lower,
-                                     x_upper
-                                    );
-    thd_merge1 = 5;
-    thd_merge1_lower = 5;
-    thd_merge2 = 5;
-    thd_width = 20;
-    int sc_clip = c_sc_(18,20);
-
-    std::cout << "[]::xxlen_anchor " << length(g_anchor) << "\n";
-    g_anchor_val = c_clip_anchors_precise(g_anchor, 
-                                   gs_start, 
-                                   gr_start, 
-                                   g_anchor_end, 
-                                   c_shape_len2, 
-                                   thd_merge1, 
-                                   thd_merge1_lower, 
-                                   thd_merge2, 
-                                   thd_width,
-                                   c_sc_(18, 20)
-                                   );    
-    dx = (g_anchor_val >> 32);
-    dy = (g_anchor_val & ((1ULL << 32) - 1));
     uint64_t clip = _DefaultCord.createCord(_createSANode(genomeId, gs_start + dx), 
                                             gr_start + dy, 
-                                            gr_strand); 
-    std::cout << "[]::c_clip_ g_anchor_end g_anchor_val "  << dx << " " << dy << " " << dx + gs_start << " " << gs_start << " " << genomeId << " " << _getSA_i1(_DefaultCord.getCordX(clip))<< "\n";
+                                            gr_strand);
+
     int extend_window = 100;
     int band_gap = 5; 
     int thd_gap_shape = 5;
@@ -2359,22 +2313,9 @@ inline int64_t c_clip_(String<Dna5> & genome,
     Iterator<String<Dna5> >::Type itBegin_genome = itEnd_genome - extend_window;
     Iterator<String<Dna5> >::Type itEnd_read = begin(seq2) + gr_start + dy;
     Iterator<String<Dna5> >::Type itBegin_read = itEnd_read - extend_window;
-    /*
-    c_clip_extend_gap_(g_hs,
-                       itBegin_genome,
-                       itEnd_genome,
-                       itBegin_read,
-                       itEnd_read,
-                       band_gap,
-                       thd_gap_shape
-                      );
-	*/
 	int error_level = 3; // >>3 == * 0.125
 	int min_scan_delta = 3;  //at least scan 5 elements in the genome for each kmer in the read
-
-    std::cout << "[]::xxlen_anchor " << length(g_anchor) << "\n";
     uint64_t ex_d = 0;
-    
     c_clip_extend_gap2_(ex_d, 
                        g_hs,
     				   g_anchor,
