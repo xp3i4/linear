@@ -1841,7 +1841,7 @@ inline int c_isGapMatch_2anchor_(uint64_t & anchor, uint64_t & x, uint64_t & y, 
 {
     if (dv == 0)  
     {
-        c_2GapAnchor_(anchor, x, y);
+        c_2GapAnchor_(anchor, x, y, 1ULL);
         return 1; // match
     }
     if (t1 + l1 - k + 1 == 0)
@@ -1901,7 +1901,6 @@ inline uint64_t c_clip_anchors_precise(String<uint64_t> & anchor,
         {
             last_k = k - ct_conts ;
             std::cout << "[]::ax << " << (int64_t)(g_hs_anchor_getAnchor(anchor[last_k]) - gs_start + gr_start) << " " << g_hs_anchor_getX(anchor[last_k]) << " " << ct_conts << "\n";
-<<<<<<< HEAD
             uint64_t x = g_hs_anchor_getX(anchor[last_k]) - gs_start;
             uint64_t y = g_hs_anchor_getY(anchor[last_k]) - gr_start;
             anchor[it++] = (x << bit) + ((ct_conts + 1) << g_hs_anchor_bit1) + y;
@@ -2776,6 +2775,3 @@ int mapGaps(StringSet<String<Dna5> > & seqs, StringSet<String<Dna5> > & reads,
 */
 
 
-=======
-            uint64_t x = g_hs_anchor_getX(ancho
->>>>>>> 8c2809eaf6a7598267ad249e637ea9da79b731c9
