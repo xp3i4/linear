@@ -2173,10 +2173,10 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
         }
         else // scan blocks in the range.
         {
-            std::cout << "xxxxlen " << i << " " << its[itsk + 1] << " it\n";
+            std::cout << "xxxxlen 0| " << i << " " << its[itsk + 1] << " it\n";
             if (i == its[itsk + 1])//reach end of current block
             {
-                std::cout << "xxxlen1 " << i << " " << its[itsk + 1] << " " << itsk << " " << tmp_n << " " << ex_len << " " << drop_count << " \n";
+                std::cout << "xxxxlen 1| " << i << " " << its[itsk + 1] << " " << itsk << " " << tmp_n << " " << ex_len << " " << drop_count << " \n";
                 if (tmp_n > 0)          //there exists new merges
                 {
                     for (int j = 0; j < tmp_n; j++)
@@ -2199,7 +2199,7 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
                     if (itsk < 1 ) //if last block of current range
                     {
                         drop_count += c_shape_len3;
-                        std::cout << "xxxxlen3 " << drop_count << "\n";
+                        std::cout << "xxxxlen 3| " << drop_count << "\n";
                         if (drop_count >= thd_merge_drop) //large gap to clip
                         {
                             break; 
@@ -2223,7 +2223,7 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
             {
                 short x = short(g_hs_anchor_getX(anchors[i]));
                 short y = short(g_hs_anchor_getY(anchors[i]));
-                std::cout << "xxxxlen2 " << i << " " << its[itsk + 1] << " " << x << " " << g_hs_anchor_getY(anchors[i]) << " " << ex_len << "\n";
+                std::cout << "xxxxlen 2| " << i << " " << its[itsk + 1] << " " << x << " " << g_hs_anchor_getY(anchors[i]) << " " << ex_len << "\n";
                 for (int j = 0; j < ex_len; j++)
                 {
                     short delta_x = ex_x[j] - x;
