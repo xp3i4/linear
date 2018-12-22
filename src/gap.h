@@ -2168,10 +2168,11 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
                 if (g_hs_anchor_getY(anchors[i]) < next_y)
                 {
                     itsEnd = itsk--; 
+                	int range = ex_y[0] - g_hs_anchor_getY(anchors[i]);
                     if (itsk < 0)
                     {
                         //direction::
-                        drop_count += (ex_y[0] - g_hs_anchor_getY(anchors[i]));
+                        drop_count += range;
                         std::cout << "xxxxlen4 " << drop_count << " " << ex_y[0] << " " << g_hs_anchor_getY(anchors[i]) << "\n";
                         if (drop_count >= thd_merge_drop)
                         {
@@ -2180,7 +2181,7 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
                         itsk = 0;
                         next_y -= c_shape_len3;
                     }
-                    else
+                    else if (range + drop_count < thd_merge_drop)
                     {
                         i = its[itsk] + 1;
                         flag = 0;
@@ -2196,7 +2197,6 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
         }
         else // scan blocks in the range.
         {
-            std::cout << "xxxxlen 0| " << i << " " << its[itsk + 1] << " it\n";
             if (i == its[itsk + 1])//reach end of current block
             {
                 std::cout << "xxxxlen 1| " << i << " " << its[itsk + 1] << " " << itsk << " " << tmp_n << " " << ex_len << " " << drop_count << " \n";
@@ -2222,7 +2222,7 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
                     if (itsk < 1 ) //if last block of current range
                     {
                         drop_count += c_shape_len3;
-                        std::cout << "xxxxlen 3| " << drop_count << "\n";
+                        std::cout << "xxxxlen 3| " << drop_count << " " << ex_x[0] << " " << ex_y[0] << "\n";
                         if (drop_count >= thd_merge_drop) //large gap to clip
                         {
                             break; 
@@ -2251,6 +2251,7 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
                 {
                     short delta_x = ex_x[j] - x;
                     short delta_y = ex_y[j] - y;
+                    std::cout << "xxxxlen 2|_ " << ex_x[j] << " " << ex_y[j] << " " << x << " " << y << " " << delta_x << " " << delta_y << "\n";
                     if (std::abs(delta_x - delta_y) < 3 && delta_x - delta_y >= -1)
 //                    if (std::abs(delta_x - delta_y) < thd_merge_anchor)
                     {
