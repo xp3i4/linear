@@ -1576,6 +1576,13 @@ inline void c_2Anchor_(uint64_t & val, uint64_t const & hs1, uint64_t const & hs
     val = (((hs1 - x) & (g_hs_mask2)) << g_hs_anchor_bit1) + x;
 }
 
+inline void c_2GapAnchor_(uint64_t & val, uint64_t const & hs1, uint64_t const & hs2, uint64_t gap_type)
+{
+    ///hs1 genome, hs2 read
+    uint64_t x = hs2 & g_hs_mask2; 
+    val = (((hs1 - x) & (g_hs_mask2)) << g_hs_anchor_bit1) + x + (gap_type << g_hs_anchor_bit2);
+}
+
 //using de brujin sequence to calculate the clz and ctz
 int const clzb_4_index_[8] = {0, 0, 3, 1, 3, 2, 2, 1}; // de brujin sequence table / 2
 inline int clzb_4__ (uint64_t a)
@@ -1805,15 +1812,25 @@ inline int64_t c_clip_anchors_ (String<uint64_t> & anchor,
 
 inline int c_isGapMatch_(int & x, int & it, uint64_t & dv, short& t1, short & t2, short & l1, short & l2, short k)
 {
-    if (dv == 0 || t1 + l1 - k + 1 == 0 || (t2 + l1 -k == 0 && t2 != k && l1 !=k))    
+    if (dv == 0)
     {
         x = it;
-        return 1; // match mismatch del
+        return 1; // match 
+    }
+    if (t1 + l1 - k + 1 == 0)
+    {
+        x = it;
+        return 2; // mismatch 
+    }
+    if (t2 + l1 - k == 0 && t2 != k && l1 != k)
+    {
+        x = it;
+        return 3; // del
     }
     if (t1 + l2 - k + 1 == 0)
     {
         x = it - 1;
-        return 1;  //ins
+        return 4;  //ins
     }
     return 0;
 }
@@ -1822,22 +1839,28 @@ inline int c_isGapMatch_(int & x, int & it, uint64_t & dv, short& t1, short & t2
 */
 inline int c_isGapMatch_2anchor_(uint64_t & anchor, uint64_t & x, uint64_t & y, uint64_t & dv, short& t1, short & t2, short & l1, short & l2, short k)
 {
-	uint64_t xULL = x;
-    if (dv == 0 || t1 + l1 - k + 1 == 0 || (t2 + l1 -k == 0 && t2 != k && l1 != k))    
+    if (dv == 0)  
     {
-        c_2Anchor_(anchor, x, y);
-        std::cout << "[]::c_isGapMatch_2anchor_1 " << x << " " << y << " t1 =" << t1 << " " << t2 << " " << l1 << " " << l2 << "\n";
-        return 1; // match mismatch del
+        c_2GapAnchor_(anchor, x, y);
+        return 1; // match
+    }
+    if (t1 + l1 - k + 1 == 0)
+    {
+        c_2GapAnchor_(anchor, x, y, 2ULL);
+        return 2; // mismatch
+    }
+    if (t2 + l1 - k == 0 && t2 != k && l1 != k)
+    {
+        c_2GapAnchor_(anchor, x, y, 3ULL);
+        return 3; //del 
     }
     if (t1 + l2 - k + 1 == 0)
     {
-        c_2Anchor_(anchor, x - 1, y);
-        std::cout << "[]::c_isGapMatch_2anchor_2 " << x - 1 << " " << y << "\n";
-        return 1;  //ins
+        c_2GapAnchor_(anchor, x - 1, y, 4ULL);
+        return 4;  //ins
     }
     return 0;
 }
-
 inline uint64_t c_clip_anchors_precise(String<uint64_t> & anchor, 
                             uint64_t gs_start,
                             uint64_t gr_start,
@@ -1878,6 +1901,7 @@ inline uint64_t c_clip_anchors_precise(String<uint64_t> & anchor,
         {
             last_k = k - ct_conts ;
             std::cout << "[]::ax << " << (int64_t)(g_hs_anchor_getAnchor(anchor[last_k]) - gs_start + gr_start) << " " << g_hs_anchor_getX(anchor[last_k]) << " " << ct_conts << "\n";
+<<<<<<< HEAD
             uint64_t x = g_hs_anchor_getX(anchor[last_k]) - gs_start;
             uint64_t y = g_hs_anchor_getY(anchor[last_k]) - gr_start;
             anchor[it++] = (x << bit) + ((ct_conts + 1) << g_hs_anchor_bit1) + y;
@@ -2752,3 +2776,6 @@ int mapGaps(StringSet<String<Dna5> > & seqs, StringSet<String<Dna5> > & reads,
 */
 
 
+=======
+            uint64_t x = g_hs_anchor_getX(ancho
+>>>>>>> 8c2809eaf6a7598267ad249e637ea9da79b731c9
