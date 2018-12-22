@@ -2075,9 +2075,9 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
             << j << " "
             << i_delta << " "
             << " jEnd - jBegin =" << jEnd - jBegin << " "
-            << int2str(couts, hVal_read, 4) << " " 
-            << int2str(couts, hs[j - 1], 4) << " " 
-            << int2str(couts, hs[j], 4) << " " 
+            << int2str(couts, hVal_read, 4) << " ";
+            std::cout << int2str(couts, hs[j - 1], 4) << " ";
+            std::cout << int2str(couts, hs[j], 4) << " "
             << hVal_read << " " 
             << " dv=" 
             << dv << " " 
@@ -2228,7 +2228,8 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
                 {
                     short delta_x = ex_x[j] - x;
                     short delta_y = ex_y[j] - y;
-                    if (std::abs(delta_x - delta_y) < thd_merge_anchor)
+                    if (std::abs(delta_x - delta_y) < 3 && delta_x - delta_y >= -1)
+//                    if (std::abs(delta_x - delta_y) < thd_merge_anchor)
                     {
 
                         tmp_x[tmp_n] = x;
