@@ -2164,11 +2164,11 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
             if (g_hs_anchor_getY(anchors[i] ^ pre_anchor))
             {
                 its[itsk] = i; //record the first i of each block in which anchor has the same y
+              	int range = ex_y[0] - g_hs_anchor_getY(anchors[i]);
                 //direction::
                 if (g_hs_anchor_getY(anchors[i]) < next_y)
                 {
                     itsEnd = itsk--; 
-                	int range = ex_y[0] - g_hs_anchor_getY(anchors[i]);
                     if (itsk < 0)
                     {
                         //direction::
@@ -2181,14 +2181,14 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
                         itsk = 0;
                         next_y -= c_shape_len3;
                     }
-                    else if (range + drop_count < thd_merge_drop)
+                    else 
                     {
                         i = its[itsk] + 1;
                         flag = 0;
                         tmp_n = 0;
                     }
                 }
-                else
+                else if (range + drop_count - (int)c_shape_len3 < thd_merge_drop)
                 {
                     itsk++;
                 }
@@ -2251,7 +2251,6 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
                 {
                     short delta_x = ex_x[j] - x;
                     short delta_y = ex_y[j] - y;
-                    std::cout << "xxxxlen 2|_ " << ex_x[j] << " " << ex_y[j] << " " << x << " " << y << " " << delta_x << " " << delta_y << "\n";
                     if (std::abs(delta_x - delta_y) < 3 && delta_x - delta_y >= -1)
 //                    if (std::abs(delta_x - delta_y) < thd_merge_anchor)
                     {
