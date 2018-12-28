@@ -101,73 +101,70 @@ void printAlignment(Align<String<Dna5>, ArrayGaps> & aligner)
         }
     }
 }
-/*
-int align_merge_cord_band (StringSet<String<uint64_t> > & cords,
+int align_mergeCords_band (String<uint64_t> & cords,
                            String<uint64_t> & bands,
-                           int band_width,
-                           int band_width_max
+                           int band_width = 90,
+                           int band_width_max_rate = 0.1
                           )
 {
     int flag = 1;
+    int upper_band = -(1 << 30);
+  	int lower_band = 1 << 30;
+    uint64_t x_start = _getSA_i2(_DefaultCord.getCordX(cords[1]));
+    uint64_t y_start = _DefaultCord.getCordY(cords[1]);
+    clear(bands);
     for (int i = 1; i < length(cords); i++)
     {
         int64_t tmp_upper_band;
         int64_t tmp_lower_band;
-        if (flag)
+
+        int64_t x1 = _getSA_i2(_DefaultCord.getCordX(cords[i])); 
+        int64_t y1 = _DefaultCord.getCordY(cords[i]);
+        ///WARNING::need optimize
+        int xy_upper_band = x1 - y1 + band_width;
+        int xy_lower_band = x1 - y1 - band_width;
+        tmp_upper_band = std::max(xy_upper_band, upper_band);
+        tmp_lower_band = std::min(xy_lower_band, lower_band);
+        int band_width_max = std::min(int(window_size), int((y1 - y_start) * band_width_max_rate));
+        band_width_max = std::max(band_width_max, 200);
+        std::cout << " xxbands" << i << " " << xy_upper_band << " " << upper_band << " " << xy_lower_band << " " << lower_band << " " << band_width_max << "\n";
+        if (tmp_upper_band - tmp_lower_band < band_width_max) 
         {
-            int upper_band = _DefaultCord.getCordX(cords[i]) + band_width; 
-            int lower_band = _DefaultCord.getCordY(cords[i]) + ;
-            flag = 0;
+            upper_band = tmp_upper_band;
+            lower_band = tmp_lower_band;
         }
-        else
+        //else // clip the band to two discontinuous bands 
+        //{
+            uint64_t center_diagonal = lower_band + band_width;
+            //uint64_t x_start1 = 
+            std::cout << "[]::align_mergeCords_band1 " << y_start << " " << y1 << "\n";
+            /*
+            if (x_start - y_start - center_diagonal > 0)
+            {
+                
+            }
+            else
+            {
+                x1 - y1 - 
+            }
+            */
+            //appendValue(bands, start_cords);
+            //appendValue(bands, end_cords);
+        //}
+        std::cout << "[]::align_mergeCords_band2 " << lower_band << " " << upper_band << "\n";
+        if (_DefaultHit.isBlockEnd(cords[i]))
         {
-            int64_t x1 = _DefaultCord.getCordX(cords[i]); 
-            int64_t y1 = _DefaultCord.getCordY(cords[i]);
-            ///WARNING::need optimize
-            if (x1 - upper_band - y1  + band_width> 0 )
-            {
-                tmp_upper_band = x1 - y1;
-            }
-            else if (x1 - lower_band - y1 +  band_width <= 0)
-            {
-                    tmp_lower_band = x1 - y1;
-            }
-            if (x1 - lower_band - y1  - band_width > 0 )
-            {
-                tmp_lower_band_band = x1 - y1;
-            }
-            else if (x1 - upper_band - y1 -  band_width <= 0)
-            {
-                    tmp_upper_band = x1 - y1;
-            }
-            if (tmp_upper_band - tmp_lower_band < band_width_max) 
-            {
-                upper_band = tmp_upper_band;
-                lower_band = tmp_lower_band;
-            }
-            else // clip the bands to two groups of discontinuous bands otherwise the band width is too large.
-            {
-                uint64_t center_diagonal = lower_band + band_width;
-                uint64_t x_start1 = 
-                if (x_start - y_start  - center_diagonal > 0)
-                {
-                    
-                }
-                else
-                {
-                    x1 - y1 - 
-                }
-                appendValue(bands, start_cords);
-                appendValue(bands, end_cords);
-            }
-        }
-        if (_DefaultCord.isCordEnd(cords))
-        {
-            flag == 1;
+        	upper_band = ~0;
+        	lower_band = 1 << 30;
+        	if (i < length(cords) - 1)
+        	{
+        		x_start = _getSA_i2(_DefaultCord.getCordX(cords[i]));
+        		y_start = _DefaultCord.getCordY(cords[i]);
+        	}
+        	std::cout << "xxxmerge " << i << "\n";
         }
     }
 }
-*/
 int align_genome_cord (String<Dna5> & genome,
                        String<Dna5> & read, 
                        String<Dna5> & comrevRead,

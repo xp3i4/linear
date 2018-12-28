@@ -99,7 +99,7 @@ struct Cord
     CordType cell2Cord(CellType const &, typename CordBase::Bit const &) const;
     void setCordEnd(CordType &, typename CordBase::Flag const &, typename CordBase::Flag const &);
     Flag getCordStrand(CordType const &, CordBase::Bit const &) const;
-    Flag AtCordEnd(CordType const &, CordBase::Flag const &)const;
+    Flag isCordEnd(CordType const &, CordBase::Flag const &)const;
     //void setHead(uint64_t &, uint64_t const &, uint64_t const & = _DefaultCordBase.headFlag);
     void setMaxLen(String<uint64_t> &, uint64_t const &, uint64_t const & = _DefaultCordBase.mask);
     uint64_t getMaxLen(String<uint64_t> const &, uint64_t const & = _DefaultCordBase.mask);
@@ -186,7 +186,7 @@ Cord::getCordStrand(typename Cord::CordType const & cord,
 }
 
 inline typename CordBase::Flag 
-Cord::AtCordEnd(typename Cord::CordType const & cord,
+Cord::isCordEnd(typename Cord::CordType const & cord,
                 typename CordBase::Flag const & end = _DefaultCordBase.flag_end) const
 {
     return cord & end;

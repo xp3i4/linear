@@ -362,8 +362,9 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
     resize(f1, 2);
     unsigned c = 0;
     
-    String<uint64_t>  g_hs;
-    String<uint64_t>  g_anchor;
+    String<uint64_t> g_hs;
+    String<uint64_t> g_anchor;
+    String<uint64_t> bands;
     resize (g_hs, 1ULL << 20);
     resize (g_anchor, 1ULL<<20);
 
@@ -391,6 +392,7 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
                 path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
             }   
             gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, 300, 192, p1);
+            align_mergeCords_band(cordsTmp[c], bands);//, band_width, band_width_max);
         }   
     
         c += 1;
