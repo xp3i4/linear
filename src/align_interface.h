@@ -82,6 +82,7 @@ void printAlign_(Align<String<Dna5>, ArrayGaps> & aligner, int row_i, int row_j)
         line2[count] = row2[i];
         if (line1[count] == line2[count])
         {
+
             line3[count] = '|';
         }
         else
@@ -206,7 +207,6 @@ inline int align_block_(Align<String<Dna5>, ArrayGaps> & aligner,
     int score2 = globalAlignmentScore(infix1, infix2, Score<int, Simple> (s1, s2, s3), AlignConfig<true, true, true, true>(), -band, band);
     double dt2 = sysTime() - time;
     std::cout << "[]::align_block_ " << dt1 << " " << dt2 << "\n";
-    printAlignment(aligner);
     std::cout << "[]::align_block " << " score " << score << " " << genomeStart << " " << genomeEnd << " " << readStart << " " << readEnd << " " << strand << " " << band << "\n" ;
     return 0; //score;
 }
@@ -271,65 +271,102 @@ inline int getScore_(char r1_char,
 }
 /**
  * Clip head or tails \in [0, l) of the aligner within the lxl window.
- * But the point to clip is not exactly the breakpoint.
  * This function is to clip the well aligned region in the aligner.
- * direction: clip direction  > 0  -----------mmmmmmmmm,  < 0 mmmmmmmmmmm--------; where 'm' is match
  */
-int clip_Head_(Align<String<Dna5>,ArrayGaps> & aligner, 
+int clip_head_(Align<String<Dna5>,ArrayGaps> & aligner, 
 			   int row_i,
 			   int row_j,
-			   uint64_t & clip_ref, 
-			   uint64_t & clip_read, 
-			   int direction
+			   int g_end
 			  )
 {
 	typedef Align<String<Dna5>, ArrayGaps> TAlign;
 	typedef Row<TAlign>::Type TRow; 
 
-	double t = sysTime();
 	TRow & row1 = row(aligner, row_i);
     TRow & row2 = row(aligner, row_j);
-    int window = 5;
+    int window = 6;
+    int thd_clip = 5;
     int x = 0;
-    String<int> buffer;
-    int countm = 0
-//toViewPosition time drain
+    int maxx = 0, maxxp = 0;
     for (int i = 0; i < window; i++)
     {
-        x = getScore_ (row1[i], row2[i], 1, x);
+   		if (row1[i] == row2[i]) 
+   		{
+   			++x;
+   		}
     }
-    int delta = 3;
-    for (int k = delta; k < g_end - window  + 1; k += delta)
+    for (int k = 1; k < g_end; k++)
     {
-        appendValue(buffer, x);
-    	if (row1[i] == row2[i])
+  		std::cout << "[]::clip head x " << x << " " << row1[k - 1] << " " << row2[k - 1] << "\n";
+    	if (x >= thd_clip)
     	{
-    		++countm;
+    		std::cout << "[]::clip head " << toSourcePosition(row1, k) + 1 << "\n";
+    		return toSourcePosition(row1, k) + 1;
     	}
-    	if (row1[i - window + 1] == row2[i - window + 1])
+    	if (row1[k + window - 1] == row2[k + window - 1])
     	{
-    		--countm;
+    		++x;
+    	}
+    	if (row1[k - 1] == row2[k - 1])
+    	{
+    		--x;
+    	}
+    	if (maxx < x)
+    	{
+    		maxx = x;
+    		maxxp = k;
     	}
     }
-    t = sysTime() - t;
-    double t2 = sysTime();
-    int max = 0;
-    int max_sp_ref = 0; // max source position
-    int max_sp_read = 0;
-    direction = direction / std::abs(direction);
-    for (int k = window / delta ; k < (int)length(buffer); k++)
+	std::cout << "[]::clip head 2" << toSourcePosition(row1, maxxp) + 1 << "\n";
+    return toSourcePosition(row1, maxxp) + 1;
+}
+
+int clip_tail_(Align<String<Dna5>,ArrayGaps> & aligner, 
+			   int row_i,
+			   int row_j,
+			   int g_start
+			  )
+{
+	typedef Align<String<Dna5>, ArrayGaps> TAlign;
+	typedef Row<TAlign>::Type TRow; 
+
+	TRow & row1 = row(aligner, row_i);
+    TRow & row2 = row(aligner, row_j);
+    int window = 6;
+    int thd_clip = 5;
+    int x = 0;
+    int maxx = 0, maxxp = 0;
+    for (int i = 0; i < window; i++)
     {
-        int d_ = (buffer[k] - buffer[k - window / delta]) * direction;
-        if (max < d_)
-        {
-            max = d_;
-            max_sp_ref = k * delta;
-            max_sp_read = toSourcePosition(row2, toViewPosition(row1, max_sp_ref));
-        }
+   		if (row1[length(row1) - i - 1] == row2[length(row1) - i - 1]) 
+   		{
+   			++x;
+   		}
     }
-    clip_ref = (max < 20)?-1:max_sp_ref;
-    clip_read = (max < 20)?-1:max_sp_read;
-    return 0;
+    for (int k = length(row1) - 2; k > g_start; k--)
+    {
+  		std::cout << "[]::clip tail x " << x << " " << row1[k + 1] << " " << row2[k + 1] << "\n";
+    	if (x >= thd_clip)
+    	{
+    		std::cout << "[]::clip tail " << toSourcePosition(row1, k) + 1 << "\n";
+    		return toSourcePosition(row1, k) + 1;
+    	}
+    	if (row1[k - window - 1] == row2[k - window - 1])
+    	{
+    		++x;
+    	}
+    	if (row1[k + 1] == row2[k + 1])
+    	{
+    		--x;
+    	}
+    	if (maxx < x)
+    	{
+    		maxx = x;
+    		maxxp = k;
+    	}
+    }
+	std::cout << "[]::clip tail 2" << toSourcePosition(row1, maxxp) + 1 << "\n";
+    return toSourcePosition(row1, maxxp) + 1;
 }
 /**
  * Clip breakpoint \in [w, l - w),w = 30, of the aligner within the lxl window
@@ -455,6 +492,8 @@ int align_cords(String<Dna5> & genome,
 	double time = sysTime() - time; 
 	std::cout << "xxalign_cords\n";
 	int t = length(cords) - 1;
+	int head_end = window_size >> 2;// * 0.25
+	int tail_start = window_size - (window_size >> 2);
 	for (int i = 1; i < t + 1; i++)
 	{
 		align_cord (aligner, genome, read, comrevRead, cords[i]);
@@ -465,36 +504,12 @@ int align_cords(String<Dna5> & genome,
 	//			     clip_read, 
 	//			     direction
 	//			    )	
+		clip_head_(aligner, 0, 1, head_end);
+		clip_tail_(aligner, 0, 1, tail_start);
+		printAlignment(aligner);
 		append(rows(aligners), rows(aligner));
 	}
-	for (int i = 0; i < length(rows(aligners)); i += 2)
-	{
-		printAlign_ (aligners, i, i + 1);
-	}
 	std::cout << "[]::align_cords " << " " << sysTime() - time << "\n";
-	time = sysTime();
-	uint64_t cord = cords[1];
-    uint64_t genomeStart = _getSA_i2(_DefaultCord.getCordX(cord));
-    uint64_t genomeId = _getSA_i1(_DefaultCord.getCordX(cord));
-    uint64_t genomeEnd = genomeStart + window_size * t;
-    uint64_t readStart = _DefaultCord.getCordY(cord);
-    uint64_t readEnd = readStart + window_size * t;
-    uint64_t strand = _DefaultCord.getCordStrand (cord);
-    align_block(aligner, genome, read, comrevRead, strand, genomeStart, genomeEnd, readStart, readEnd, band);
-	std::cout << "[]::align_cords 2 " << sysTime() - time << "\n";
-	int direction = 1;
-	clip_window (genome,
-                  read,
-                  comrevRead,
-                genomeId,
-                genomeStart,
-                genomeEnd,
-                readStart,
-                readEnd,
-                strand,
-                band,
-               direction,
-               0);
 }
 
 
