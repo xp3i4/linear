@@ -15,12 +15,13 @@ int thd_align_score = 350 /*depends on score_scheme*/;
 /**
  * debug utility
  */
-void printAlignment(Align<String<Dna5>, ArrayGaps> & aligner)
+void printAlign_(Align<String<Dna5>, ArrayGaps> & aligner, int row_i, int row_j)
 {
+	std::cout << "[]::printAlignment \n";
     typedef Align<String<Dna5>, ArrayGaps> TAlign;
     typedef Row<TAlign>::Type TRow;  
-    TRow & row1 = row(aligner, 0);
-    TRow & row2 = row(aligner, 1);
+    TRow & row1 = row(aligner, row_i);
+    TRow & row2 = row(aligner, row_j);
     CharString line0, line1, line2, line3, line4;
     int line_len = 50;
     int sourceP = 0, sourceP2 = 0;
@@ -100,6 +101,10 @@ void printAlignment(Align<String<Dna5>, ArrayGaps> & aligner)
             }
         }
     }
+}
+void printAlignment(Align<String<Dna5>, ArrayGaps> & aligner)
+{
+	printAlign_(aligner, 0, 1);
 }
 int align_mergeCords_band (String<uint64_t> & cords,
                            String<uint64_t> & bands,
@@ -241,7 +246,6 @@ int align_cord (Align<String<Dna5>, ArrayGaps> & aligner,
 inline int getScore_(char r1_char,
                      char r2_char,
                      int k,
-                     //int & l,
                      int x
 )
 {
@@ -266,42 +270,49 @@ inline int getScore_(char r1_char,
     return x;
 }
 /**
- * Clip breakpoint of the aligner within the lxl window 
+ * Clip head or tails \in [0, l) of the aligner within the lxl window.
+ * But the point to clip is not exactly the breakpoint.
+ * This function is to clip the well aligned region in the aligner.
  * direction: clip direction  > 0  -----------mmmmmmmmm,  < 0 mmmmmmmmmmm--------; where 'm' is match
  */
-int clip_window_(Align<String<Dna5>,ArrayGaps> & aligner, 
-				 int g_range,
-			     uint64_t & clip_ref, 
-				 uint64_t & clip_read, 
-				 int direction
-				)
+int clip_Head_(Align<String<Dna5>,ArrayGaps> & aligner, 
+			   int row_i,
+			   int row_j,
+			   uint64_t & clip_ref, 
+			   uint64_t & clip_read, 
+			   int direction
+			  )
 {
-	typedef Align<String<Dna5>,ArrayGaps> TAlign;
+	typedef Align<String<Dna5>, ArrayGaps> TAlign;
 	typedef Row<TAlign>::Type TRow; 
 
-	TRow & row1 = row(aligner, 0);
-    TRow & row2 = row(aligner, 1);
-    int window = 30;
+	double t = sysTime();
+	TRow & row1 = row(aligner, row_i);
+    TRow & row2 = row(aligner, row_j);
+    int window = 5;
     int x = 0;
     String<int> buffer;
-
-    for (int i = toViewPosition(row1, 0); i < toViewPosition(row1, window); i++)
+    int countm = 0
+//toViewPosition time drain
+    for (int i = 0; i < window; i++)
     {
         x = getScore_ (row1[i], row2[i], 1, x);
     }
     int delta = 3;
-    for (int k = delta; k < g_range - window  + 1; k += delta)
+    for (int k = delta; k < g_end - window  + 1; k += delta)
     {
-        for (int i = toViewPosition(row1, k - delta); i < toViewPosition(row1, k); i++)
-        {
-            x = getScore_ (row1[i], row2[i], -1, x);
-        }
-        for (int i = toViewPosition(row1, k + window - 1 - delta); i < toViewPosition(row1, k + window - 1); i++)
-        {
-            x = getScore_ (row1[i], row2[i], 1, x);
-        }
         appendValue(buffer, x);
+    	if (row1[i] == row2[i])
+    	{
+    		++countm;
+    	}
+    	if (row1[i - window + 1] == row2[i - window + 1])
+    	{
+    		--countm;
+    	}
     }
+    t = sysTime() - t;
+    double t2 = sysTime();
     int max = 0;
     int max_sp_ref = 0; // max source position
     int max_sp_read = 0;
@@ -315,7 +326,65 @@ int clip_window_(Align<String<Dna5>,ArrayGaps> & aligner,
             max_sp_ref = k * delta;
             max_sp_read = toSourcePosition(row2, toViewPosition(row1, max_sp_ref));
         }
-        
+    }
+    clip_ref = (max < 20)?-1:max_sp_ref;
+    clip_read = (max < 20)?-1:max_sp_read;
+    return 0;
+}
+/**
+ * Clip breakpoint \in [w, l - w),w = 30, of the aligner within the lxl window
+ * direction: clip direction  > 0  -----------mmmmmmmmm,  < 0 mmmmmmmmmmm--------; where 'm' is match
+ */
+int clip_window_(Align<String<Dna5>,ArrayGaps> & aligner, 
+				 int g_start,
+				 int g_end,
+			     uint64_t & clip_ref, 
+				 uint64_t & clip_read, 
+				 int direction
+				)
+{
+	typedef Align<String<Dna5>, ArrayGaps> TAlign;
+	typedef Row<TAlign>::Type TRow; 
+
+	double t = sysTime();
+	TRow & row1 = row(aligner, 0);
+    TRow & row2 = row(aligner, 1);
+    int window = 30;  // w = window
+    int x = 0;
+    String<int> buffer;
+//toViewPosition time drain
+    for (int i = toViewPosition(row1, g_start); i < toViewPosition(row1, g_start + window); i++)
+    {
+        x = getScore_ (row1[i], row2[i], 1, x);
+    }
+    int delta = 3;
+    for (int k = delta + g_start; k < g_end - window  + 1; k += delta)
+    {
+        for (int i = toViewPosition(row1, k - delta); i < toViewPosition(row1, k); i++)
+        {
+            x = getScore_ (row1[i], row2[i], -1, x);
+        }
+        for (int i = toViewPosition(row1, k + window - 1 - delta); i < toViewPosition(row1, k + window - 1); i++)
+        {
+            x = getScore_ (row1[i], row2[i], 1, x);
+        }
+        appendValue(buffer, x);
+    }
+    t = sysTime() - t;
+    double t2 = sysTime();
+    int max = 0;
+    int max_sp_ref = 0; // max source position
+    int max_sp_read = 0;
+    direction = direction / std::abs(direction);
+    for (int k = window / delta ; k < (int)length(buffer); k++)
+    {
+        int d_ = (buffer[k] - buffer[k - window / delta]) * direction;
+        if (max < d_)
+        {
+            max = d_;
+            max_sp_ref = k * delta;
+            max_sp_read = toSourcePosition(row2, toViewPosition(row1, max_sp_ref));
+        }
     }
     clip_ref = (max < 20)?-1:max_sp_ref;
     clip_read = (max < 20)?-1:max_sp_read;
@@ -335,7 +404,9 @@ inline uint64_t clip_window (String<Dna5> & genome,
 	                         uint64_t readEnd,
 	                         uint64_t strand,
 	                         uint64_t band,
-	                         int direction)
+	                         int direction,
+	                         int score_flag = 1
+	                        )
 { 
     double t1 = sysTime();
     Align<String<Dna5>,ArrayGaps> aligner;
@@ -359,14 +430,12 @@ inline uint64_t clip_window (String<Dna5> & genome,
     double dt = sysTime() - t1;
     std::cout << "clip_window_ score " << score << "\n";
     int g_range = (int) genomeEnd - genomeStart;
-    /*
-    if (score < thd_align_score / (int) window_size * g_range)
+    if (score < thd_align_score / (int) window_size * g_range && score_flag)
     {
         return -1;
     }
-    */
     uint64_t clip_ref = 0, clip_read = 0;
-  	clip_window_ (aligner, g_range, clip_ref, clip_read, direction);
+  	clip_window_ (aligner, 0, g_range, clip_ref, clip_read, direction);
     uint64_t returnCord = _DefaultCord.createCord(_createSANode(genomeId, genomeStart + clip_ref), 
                                                   readStart + clip_read, 
                                                   strand);
@@ -380,16 +449,29 @@ int align_cords(String<Dna5> & genome,
                 int band = window_size / 2
                ) 
 {
+	Align<String<Dna5>, ArrayGaps> aligners;
 	Align<String<Dna5>, ArrayGaps> aligner;
     resize(rows(aligner), 2); 
 	double time = sysTime() - time; 
 	std::cout << "xxalign_cords\n";
 	int t = length(cords) - 1;
-	for (int i = 1; i < t; i++)
+	for (int i = 1; i < t + 1; i++)
 	{
 		align_cord (aligner, genome, read, comrevRead, cords[i]);
+
+	//	clip_window_(aligner, 
+	//			  	 g_range,
+	//		         clip_ref, 
+	//			     clip_read, 
+	//			     direction
+	//			    )	
+		append(rows(aligners), rows(aligner));
 	}
-	std::cout << "[]::align_cords " << sysTime() - time << "\n";
+	for (int i = 0; i < length(rows(aligners)); i += 2)
+	{
+		printAlign_ (aligners, i, i + 1);
+	}
+	std::cout << "[]::align_cords " << " " << sysTime() - time << "\n";
 	time = sysTime();
 	uint64_t cord = cords[1];
     uint64_t genomeStart = _getSA_i2(_DefaultCord.getCordX(cord));
@@ -411,7 +493,8 @@ int align_cords(String<Dna5> & genome,
                 readEnd,
                 strand,
                 band,
-               direction);
+               direction,
+               0);
 }
 
 
