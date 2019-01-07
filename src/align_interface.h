@@ -24,7 +24,7 @@ void printAlign_(Align<String<Dna5>, ArrayGaps> & aligner, int row_i, int row_j)
     TRow & row2 = row(aligner, row_j);
     CharString line0, line1, line2, line3, line4;
     int line_len = 50;
-    int sourceP = 0, sourceP2 = 0;
+    int sourceP = clippedBeginPosition(row1), sourceP2 = clippedBeginPosition(row2);
     int viewP = toSourcePosition(row1, sourceP);
     int viewP2 = toSourcePosition(row2, sourceP);
     int len0 = 10;
@@ -41,14 +41,14 @@ void printAlign_(Align<String<Dna5>, ArrayGaps> & aligner, int row_i, int row_j)
     {
         line4[j] = ' ';
     }
-    for (int i = 0; i < length(row1); i++)
+    for (int i = clippedBeginPosition(row1); i < clippedEndPosition(row1); i++)
     {
         int count = i % line_len;
         if (i == viewP)
         {
             CharString tmpc;
             int tmp = sourceP;
-            while ( tmp > 0)
+            while (tmp > 0)
             {
                appendValue(tmpc, tmp - tmp / 10 * 10 + '0');
                tmp /= 10;
@@ -89,18 +89,24 @@ void printAlign_(Align<String<Dna5>, ArrayGaps> & aligner, int row_i, int row_j)
         {
             line3[count] = ' ';
         }
-        if (count == line_len - 1)
+        if (count == line_len - 1 || i + 1== length(row1))
         {
             std::cout << "     " << line0 << "\n     " << line1 << "\n     " << line3 << "\n     " << line2 << "\n     " << line4 << "\n";
             for (int j = 0; j < length(line0); j++)
             {
                 line0[j] = ' ';
             }
+			for (int j = 0; j < length(line1); j++)
+            {
+                line1[j] = ' ';
+                line2[j] = ' ';
+                line3[j] = ' ';
+            }
             for (int j = 0; j < length(line4); j++)
             {
                 line4[j] = ' ';
             }
-        }
+       }
     }
 }
 void printAlignment(Align<String<Dna5>, ArrayGaps> & aligner)
@@ -281,33 +287,45 @@ int clip_head_(Align<String<Dna5>,ArrayGaps> & aligner,
 {
 	typedef Align<String<Dna5>, ArrayGaps> TAlign;
 	typedef Row<TAlign>::Type TRow; 
+    typedef Iterator<TRow>::Type TRowIterator;
 
+    TRowIterator it1, it2;
 	TRow & row1 = row(aligner, row_i);
     TRow & row2 = row(aligner, row_j);
     int window = 6;
     int thd_clip = 5;
     int x = 0;
     int maxx = 0, maxxp = 0;
+    int clip_start = clippedBeginPosition(row1);
+    it1 = begin(row1) + clip_start;
+    it2 = begin(row2) + clip_start;
+    if (clip_start > g_end - clip_start)
+    {
+    	return 1;
+    }
     for (int i = 0; i < window; i++)
     {
-   		if (row1[i] == row2[i]) 
+   		if (*it1 == *it2)
    		{
    			++x;
    		}
+   		it1++;
+   		it2++;
     }
-    for (int k = 1; k < g_end; k++)
+    TRowIterator it1_2 = begin(row1), it2_2 = begin(row2);
+    for (int k = 0; k < g_end; k++)
     {
-  		std::cout << "[]::clip head x " << x << " " << row1[k - 1] << " " << row2[k - 1] << "\n";
     	if (x >= thd_clip)
     	{
-    		std::cout << "[]::clip head " << toSourcePosition(row1, k) + 1 << "\n";
+    		setClippedBeginPosition(row1, k);
+    		setClippedBeginPosition(row2, k);
     		return toSourcePosition(row1, k) + 1;
     	}
-    	if (row1[k + window - 1] == row2[k + window - 1])
+    	if (*it1 == *it2)
     	{
     		++x;
     	}
-    	if (row1[k - 1] == row2[k - 1])
+    	if (*it1_2 == *it2_2)
     	{
     		--x;
     	}
@@ -316,8 +334,13 @@ int clip_head_(Align<String<Dna5>,ArrayGaps> & aligner,
     		maxx = x;
     		maxxp = k;
     	}
+    	++it1;
+    	++it2;
+    	++it1_2;
+    	++it2_2;
     }
-	std::cout << "[]::clip head 2" << toSourcePosition(row1, maxxp) + 1 << "\n";
+	setClippedBeginPosition(row1, maxxp - clip_start);
+	setClippedBeginPosition(row2, maxxp - clip_start);
     return toSourcePosition(row1, maxxp) + 1;
 }
 
@@ -329,33 +352,48 @@ int clip_tail_(Align<String<Dna5>,ArrayGaps> & aligner,
 {
 	typedef Align<String<Dna5>, ArrayGaps> TAlign;
 	typedef Row<TAlign>::Type TRow; 
+    typedef Iterator<TRow>::Type TRowIterator;
 
+    TRowIterator it1, it2, it1_2, it2_2;
 	TRow & row1 = row(aligner, row_i);
     TRow & row2 = row(aligner, row_j);
     int window = 6;
     int thd_clip = 5;
     int x = 0;
     int maxx = 0, maxxp = 0;
+    int clip_start = clippedBeginPosition(row1);
+    int clip_end = clippedEndPosition(row1);
+    it1 = begin(row1) + clip_end;
+   	it2 = begin(row2) + clip_end;
+   	it1_2 = it1;
+   	it2_2 =  it2;
+    if (clip_end < g_start - clip_start)
+    {
+    	return 1;
+    }
     for (int i = 0; i < window; i++)
     {
-   		if (row1[length(row1) - i - 1] == row2[length(row1) - i - 1]) 
+    	if (*(it1) == (*it2))
    		{
    			++x;
    		}
+   		it1--;
+   		it2--;
     }
-    for (int k = length(row1) - 2; k > g_start; k--)
+    for (int k = clip_end; k > g_start; k--)
     {
-  		std::cout << "[]::clip tail x " << x << " " << row1[k + 1] << " " << row2[k + 1] << "\n";
     	if (x >= thd_clip)
     	{
-    		std::cout << "[]::clip tail " << toSourcePosition(row1, k) + 1 << "\n";
-    		return toSourcePosition(row1, k) + 1;
+    		setClippedEndPosition(row1, k);
+    		setClippedEndPosition(row2, k);
+    		std::cout << "clip_tail_ " << k;
+    		return toSourcePosition(row1, k) - 1;
     	}
-    	if (row1[k - window - 1] == row2[k - window - 1])
+    	if (*it1 == *it2)
     	{
     		++x;
     	}
-    	if (row1[k + 1] == row2[k + 1])
+    	if (*it1_2 == *it2_2)
     	{
     		--x;
     	}
@@ -364,9 +402,78 @@ int clip_tail_(Align<String<Dna5>,ArrayGaps> & aligner,
     		maxx = x;
     		maxxp = k;
     	}
+    	--it1;
+    	--it2;
+    	--it1_2;
+    	--it2_2;
     }
-	std::cout << "[]::clip tail 2" << toSourcePosition(row1, maxxp) + 1 << "\n";
-    return toSourcePosition(row1, maxxp) + 1;
+    setClippedEndPosition(row1, maxxp);
+    setClippedEndPosition(row2, maxxp);
+    return toSourcePosition(row1, maxxp) - 1;
+}
+int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
+					  Row<Align<String<Dna5>,ArrayGaps> >::Type & row12,
+					  Row<Align<String<Dna5>,ArrayGaps> >::Type & row21,
+					  Row<Align<String<Dna5>,ArrayGaps> >::Type & row22,
+					  uint64_t start11,  
+					  uint64_t start21, //x
+					  uint64_t start12,
+					  uint64_t start22 //y
+					 )
+{
+	typedef Align<String<Dna5>, ArrayGaps> TAlign;
+	typedef Row<TAlign>::Type TRow; 
+    typedef Iterator<TRow>::Type TRowIterator;
+    TRowIterator it11, it12, it21, it22;
+    int bit = 20, bit2 = 40;
+    //int clip_start = clippedBeginPosition(row1);
+    uint64_t mask = (1ULL << bit) - 1;
+	uint64_t delta1 = start21 - start11;
+	uint64_t delta2 = start22 - start12;
+	uint64_t sourceP11, sourp12;
+// 	it1 = begin(row1) + clip_start;
+	String<uint64_t> align1, align2; 
+    std::cout << "[]::clipMerge_aligner " << clippedBeginPosition(row11) << " " << beginPosition(row11) << " " << clippedBeginPosition(row12) << " " << beginPosition(row12) << " " << delta1 << " " << delta2 << "\n";
+    
+	for (int i = clippedBeginPosition(row21); i < delta + clippedBeginPosition(row11) + 1; i++)
+	{
+		if (!isGap(it11))
+		{
+			sourceP11++;
+		}
+		if (!isGap(it12))
+		{
+			sourceP12++;
+		}
+		if (*it11 == *it12)
+		{
+			appendValue (align1, (i << bit2) + (sourceP11 << bit) + sourp12);
+		}
+		it11++; 
+		it12++;
+	}
+    
+	/*
+	for (int i = 0; i < length(align1); i++)	
+	{
+		int64_t x1 = align1 >> bit;
+		int64_t y1 = align1 & mask;
+		for (j = ; j < length(alin2); j++)	
+		{
+			int64_t x2 = align2 >> bit;
+			int64_t y2 = align2 & mask;
+			if (std::abs(x1 - x2) < thd_merge_x && std::abs(y1 - y2) < thd_merge_y)
+			{
+				std::cout << "[]::align_merge" << i << " " << x1 << " " << x2 << " " << y1 << " " << y2 << "\n";
+				return 0;
+			}
+			else if (x2 - x1 > thd_drop_x || y2 - y1 > thd_drop_y)
+			{
+				break;
+			}
+		}
+	}
+	*/
 }
 /**
  * Clip breakpoint \in [w, l - w),w = 30, of the aligner within the lxl window
@@ -497,17 +604,22 @@ int align_cords(String<Dna5> & genome,
 	for (int i = 1; i < t + 1; i++)
 	{
 		align_cord (aligner, genome, read, comrevRead, cords[i]);
-
-	//	clip_window_(aligner, 
-	//			  	 g_range,
-	//		         clip_ref, 
-	//			     clip_read, 
-	//			     direction
-	//			    )	
+		double l = sysTime() - time;
 		clip_head_(aligner, 0, 1, head_end);
 		clip_tail_(aligner, 0, 1, tail_start);
-		printAlignment(aligner);
 		append(rows(aligners), rows(aligner));
+		if (i > 1)
+		{
+			clipMerge_aligner(row(aligners, 2 * (i - 1)), 
+						      row(aligners, 2 * (i - 1) + 1),
+						      row(aligner, 0),
+						      row(aligner, 1), 
+						      _getSA_i2(_DefaultCord.getCordX(cords[i - 1])),
+						      _getSA_i2(_DefaultCord.getCordX(cords[i])),
+						      _DefaultCord.getCordY(cords[i - 1]),
+						      _DefaultCord.getCordY(cords[i])
+	    					 );
+		}
 	}
 	std::cout << "[]::align_cords " << " " << sysTime() - time << "\n";
 }
