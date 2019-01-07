@@ -45,18 +45,18 @@
 template <typename TDna = typename MapperBase<>::DefaultAlphabet, 
     typename TSpec = typename MapperBase<>::DefaultShape>
 class Mapper {
-    typedef MapperBase<TDna, TSpec> Base;
+    typedef MapperBase<TDna, TSpec>  Base;
     typedef typename Base::MRecord   Record;
     typedef typename Base::MParm     Parm;
     typedef typename Base::MIndex    Index;
-    typedef typename Base::MAnchors    Anchors;
-    typedef typename Base::MRes   Res;
+    typedef typename Base::MAnchors  Anchors;
+    typedef typename Base::MRes      Res;
     typedef typename Base::MSeq      Seq;
     typedef typename Base::MSeqs     Seqs;
-    typedef typename Cord::CordSet      CordSet;
-    typedef typename Cord::CordType CordType;
-    typedef typename Res::HitSet    HitSet;
-    typedef typename Res::HitType   HitType; 
+    typedef typename Cord::CordSet   CordSet;
+    typedef typename Cord::CordType  CordType;
+    typedef typename Res::HitSet     HitSet;
+    typedef typename Res::HitType    HitType; 
     typedef Align<String<Dna5>,ArrayGaps> TAlign;
 
     Record  record;
@@ -69,9 +69,6 @@ class Mapper {
     String<int> rlens;
     StringSet<String<uint64_t> > clip_set;
     std::string outputPrefix;
-    
-    //String<TAlign> str_sv_aligner;
-    
 
 public:
     Mapper();
@@ -82,12 +79,7 @@ public:
     Res & result() {return res;}
     Index & index() {return qIndex;}
     HitSet & hits() {return res.hits;}             //returns hit set
-    Pair<HitType, HitType> getAliX(unsigned) const;
-    HitType getHitX (HitType const &) const;     //returns coordinates x,y of the hits 
-    HitType getHitY (HitType const &) const;     //type uint64_t
     CordSet & cords() {return cordSet;}            //returns cord set 
-    CordType getCordX(CordType const &) const;   // returns coordinates x,y of the vertex of sliding window
-    CordType getCordY(CordType const &) const;   // type uint64_t 
     
     void printHits();
     void printBestHitsStart();
@@ -109,8 +101,6 @@ public:
     String<int> & readLens(){return rlens;}
     std::ofstream & getOf() {return of;}
     std::string & getOutputPrefix(){return outputPrefix;}
-    
-    
 };
 
 

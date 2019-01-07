@@ -236,38 +236,11 @@ inline bool Cord::print(typename Cord::CordSet const & cords, std::ostream & of,
 }
 
 
-    
-
-//inline bool Cord::printAlignmentMatrix(typename Cord::CordSet const & cords, unsigned const & readLen, CordBase const & cordBase = _DefaultCordBase) const
-//{
-//    unsigned it = 0;
-//    for (unsigned y = 0; y < readLen / 16; y++)
-//    {
-//        for (; it < length(cords); it++)
-//        {
-//            for (unsigned k = 0; k < 100; k++)
-//            {
-//                for (unsigned j =0; j < 100; j++)
-//                    if (cords)
-//                    std::cout << "*";
-//                std::cout << std::endl;
-//            }
-//        }
-//    }
-//    return true;
-//}
-//
-
-
 //======HIndex getIndexMatch()
 
-//Note: length of read should be < 1MB;
-
-
-
+//WARNING:The length of read should be < 1MB;
 
 static const float band_width = 0.25;
-//static const unsigned cmask = ((uint64_t)1<<32) - 1;
 static const unsigned cmask = ((uint64_t)1<<20) - 1;
 static const unsigned cell_size = 16;
 static const unsigned cell_num = 12;
@@ -286,7 +259,6 @@ static const unsigned scriptBit=4;
 static const unsigned scriptWindow=5; //script_length = 2^scriptWindow
 static const unsigned scriptWindow2 = scriptWindow << 1;
 static const unsigned scriptWindow3 = scriptWindow2 + scriptWindow;
-//static const uint64_t scriptMask = (1-3*scriptWindow) -1;
 static const int scriptCount[5] = {1, 1<<scriptWindow, 1 <<(scriptWindow * 2), 0, 0};
 static const int scriptMask = (1 << scriptWindow) - 1;
 static const int scriptMask2 = scriptMask << scriptWindow;
@@ -313,29 +285,13 @@ inline uint64_t getScript(TIter const & it)
 
 inline int _scriptDist(int const & s1, int const & s2)
 {
-    //return std::abs((s1 & scriptMask)- (s2 & scriptMask)) + std::abs(((s1 & scriptMask2) - (s2 & scriptMask2)) >> scriptWindow) + std::abs((s1>>scriptWindow*2) - (s2>>scriptWindow*2));
-    int res = std::abs((s1 & scriptMask)- (s2 & scriptMask)) + std::abs(((s1 >> scriptWindow) & scriptMask) - ((s2 >> scriptWindow) & scriptMask)) + std::abs((s1>>scriptWindow2) - (s2>>scriptWindow2));
-    //printf("[sc] %d %d %d %d %d\n", res, (s1 & scriptMask), ((s1 >> scriptWindow)&scriptMask), (s1>>scriptWindow2), s1);
-    //printf ("[sc] %d %d\n", s1, s2);
+    int res = std::abs((s1 & scriptMask)
+            - (s2 & scriptMask)) 
+            + std::abs(((s1 >> scriptWindow) & scriptMask) 
+            - ((s2 >> scriptWindow) & scriptMask)) 
+            + std::abs((s1>>scriptWindow2) - (s2>>scriptWindow2));
     return res;
 }
-
-/*
- * calculate features of reverse complement seuqnece
- * !Note: the function is not tested.
-inline void _reverseComplementFeature(String<int> & f1, String<int> & f2)
-{
-    resize(f2, length(f1));
-    for (uint64_t k = 0; k < length(f1); k++)
-    {
-        f2[k] = (uint64_t)window_size - (f1[length(f1) - k - 1] & scriptMask) - 
-        (f1[length(f1) - 1 - k] >> scriptWindow2 & scriptMask) - (f1[length(f1) - 
-        1 - k] >> scriptWindow3 & scriptMask) + (f1[length(f1) - 1 - k] & 
-        scriptMask2 << scriptWindow) + (f1[length(f1) - 1 - k] & scriptMask3 >> 
-        scriptWindow);
-    }
-}
-*/
 
 template<typename TIter> 
 inline void createFeatures(TIter const & itBegin, TIter const & itEnd, String<short> & f)
@@ -355,17 +311,17 @@ inline void createFeatures(TIter const & itBegin, TIter const & itEnd, String<sh
         {
             f[next] += scriptCount[ordValue(*(itBegin + j + window))] - scriptCount[ordValue(*(itBegin + j))];
         }
-        //printf("[createFeatures] %d \n", f[next]);
         next++;
     }
 }
 
-
-template <typename T> //unsigned or uint64_t
-inline T parallelParm_Static(T range, unsigned threads, unsigned & thd_id, 
-                                T & thd_begin, T & thd_end)
+inline uint64_t parallelParm_Static(uint64_t range, 
+                                    unsigned threads, 
+                                    unsigned & thd_id, 
+                                    uint64_t & thd_begin, 
+                                    uint64_t & thd_end)
 {
-    T ChunkSize = range / threads;
+    uint64_t ChunkSize = range / threads;
     unsigned id = range - ChunkSize * threads;
     if (thd_id < id)
     {
@@ -376,12 +332,11 @@ inline T parallelParm_Static(T range, unsigned threads, unsigned & thd_id,
        thd_begin = id + thd_id * ChunkSize;
     }
     thd_end = thd_begin + ChunkSize; 
-//    printf("[parallelParm_Static] %d, %d\n",thd_id, ChunkSize);
     return ChunkSize;
 }
 
-/*
- * parallel
+/**
+ * Parallel 
  */
 template<typename TIter> 
 inline void createFeatures(TIter const & itBegin, TIter const & itEnd, String<short> & f, unsigned threads)
@@ -396,7 +351,6 @@ inline void createFeatures(TIter const & itBegin, TIter const & itEnd, String<sh
     uint64_t range = (itEnd - itBegin - window - scriptStep) / scriptStep;
     parallelParm_Static(range, threads, 
                         thd_id,  thd_begin, thd_end);
-    //printf("[createfeature] %d %d %d\n", thd_id, thd_begin, thd_end);
     uint64_t next = thd_begin;
     thd_begin *= scriptStep;
     thd_end *= scriptStep;
@@ -405,7 +359,6 @@ inline void createFeatures(TIter const & itBegin, TIter const & itEnd, String<sh
     {
         f[next] += scriptCount[ordValue(*(itBegin + k))];
     }
-    //printf("%d %d %d\n", next, thd_id, f[next]);
     next++;
     for (unsigned k = thd_begin + scriptStep; k < thd_end ; k+=scriptStep) 
     {
@@ -414,16 +367,13 @@ inline void createFeatures(TIter const & itBegin, TIter const & itEnd, String<sh
         {
             f[next] += scriptCount[ordValue(*(itBegin + j + window))] - scriptCount[ordValue(*(itBegin + j))];
         }
-        //printf("[createFeatures] %d \n", f[next]);
         next++;
     }
-    //printf("[createfeature1] %d %d %d\n", thd_id, next);
 }
-    
 }
 
-/*
- * parallel
+/**
+ * Parallel
  */
 template<typename TDna> 
 inline void createFeatures(StringSet<String<TDna> > & seq, StringSet<String<short> > & f, unsigned threads)
@@ -444,19 +394,20 @@ inline void createFeatures(StringSet<String<TDna> > & seq, StringSet<String<shor
 template<typename TIter>
 inline unsigned _windowDist(TIter const & it1, TIter const & it2)
 {
-    return _scriptDist(*it1, *it2)+ _scriptDist(*(it1 + 2), *(it2 + 2)) + _scriptDist(*(it1+4),*(it2+4)) + _scriptDist(*(it1 + 6), *(it2 + 6)) + _scriptDist(*(it1+8), *(it2+8)) + _scriptDist(*(it1 + 10), *(it2 + 10));
+    return _scriptDist(*it1, *it2) 
+         + _scriptDist(*(it1 + 2), *(it2 + 2)) 
+         + _scriptDist(*(it1+4),*(it2+4)) 
+         + _scriptDist(*(it1 + 6), *(it2 + 6)) 
+         + _scriptDist(*(it1+8), *(it2+8)) 
+         + _scriptDist(*(it1 + 10), *(it2 + 10));
 }
 
 inline bool nextCord(typename PMRes::HitString & hit, unsigned & currentIt, String<uint64_t> & cord)
 {
-    //std::cout << "nextCord\n";
-    //std::cout << "length(hit) " << length(hit) << std::endl;
     uint64_t cordLY = _DefaultCord.getCordY(back(cord));
     while (++currentIt < length(hit)) 
-    //while (--currentIt > 0) 
     {
         uint64_t tmpCord = _DefaultCord.hit2Cord(hit[currentIt]);
-        //if(_DefaultCord.getCordY(tmpCord) < cordLY)
         if(_DefaultCord.getCordY(tmpCord) > cordLY + window_delta)
         {
             appendValue(cord, tmpCord);
@@ -466,17 +417,13 @@ inline bool nextCord(typename PMRes::HitString & hit, unsigned & currentIt, Stri
     return false;
 }
 
-
 inline bool initCord(typename PMRes::HitString & hit, unsigned & currentIt, String<uint64_t> & cord)
 {
     currentIt = 0;
-    //currentIt = length(hit);
     if (empty(hit))
         return false;
     else
         appendValue(cord, _DefaultCord.hit2Cord(hit[0]));
-        //appendValue(cord, _DefaultCord.hit2Cord(back(hit)));
-    //std::cerr << "init" << (cord[0] >> 20) << " " << (cord[0] & 0xfffff) << std::endl;
     return true;
 }
 
@@ -494,7 +441,7 @@ inline bool previousWindow(String<short> & f1,
     if (y_suf < med || x_suf < sup)
         return false;
     else 
-       y = y_suf - med;
+        y = y_suf - med;
 
     unsigned min = ~0;
     for (CordType x = x_suf - sup; x < x_suf - inf; x += 1) 
@@ -559,8 +506,6 @@ inline bool previousWindow(String<short> & f1,
         else
             appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
     }
-
-    //printf("[debug]::previousWindow %d\n", min);
     score += min;
     return true;
 }
@@ -570,8 +515,7 @@ inline uint64_t previousWindow(String<short> & f1,
                                uint64_t cordx,
                                uint64_t cordy,
                                uint64_t strand,
-                               unsigned window_threshold = windowThreshold
-                              )
+                               unsigned window_threshold = windowThreshold )
 {
     typedef typename Cord::CordType CordType;
     CordType genomeId = _getSA_i1(cordx);
@@ -583,7 +527,7 @@ inline uint64_t previousWindow(String<short> & f1,
     if (y_suf < med || x_suf < sup)
         return 0;
     else 
-       y = y_suf - med;
+        y = y_suf - med;
 
     unsigned min = ~0;
     for (CordType x = x_suf - sup; x < x_suf - inf; x += 1) 
@@ -601,12 +545,10 @@ inline uint64_t previousWindow(String<short> & f1,
     {
         if ( x_suf - x_min > med)
         {
-        //std::cout << "[]::previous score " << min << " " <<_DefaultCord.cell2Cord(x_suf - med) << "\n";
             return _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand);
         }
         else
         {
-        //std::cout << "[]::previous score " << min << " " << _DefaultCord.cell2Cord(x_min) << "\n";
             return _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         } 
     }
@@ -615,7 +557,11 @@ inline uint64_t previousWindow(String<short> & f1,
 
 inline uint64_t previousWindow(String<short> & f1, String<short> & f2, uint64_t cord, unsigned window_threshold)
 {
-    return previousWindow(f1, f2, _DefaultCord.getCordX(cord), _DefaultCord.getCordY(cord), _DefaultCord.getCordStrand(cord), window_threshold);
+    return previousWindow(f1, 
+                          f2, 
+                          _DefaultCord.getCordX(cord),
+                          _DefaultCord.getCordY(cord), 
+                          _DefaultCord.getCordStrand(cord), window_threshold);
 }
 
 inline bool nextWindow(String<short> &f1, 
@@ -693,17 +639,13 @@ inline bool nextWindow(String<short> &f1,
     else 
         if ( x_min - x_pre > med)
         {
-            //std::cout << "[]::nextWindow min score " << min << " " << _DefaultCord.cell2Cord(x_pre + med) << "\n";
             appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y), strand));
         }
         else
         {
-            //std::cout << "[]::nextWindow min score " << min << " " << _DefaultCord.cell2Cord(x_min) << "\n";
             appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
         }
     score += min;
-        //printf("[debug]::nextWindow %d\n", min);
-
     return true;
 }
 
@@ -737,7 +679,6 @@ inline uint64_t nextWindow(String<short> & f1,
             x_min = x;
         }
     }
-    //std::cout << "[]::nextWindow score " << min << "\n";
     if (min > window_threshold)
        return 0;
     else 
@@ -769,15 +710,6 @@ inline bool extendWindow(String<short> &f1, String<short> & f2, typename Cord::C
     while (nextWindow(f1, f2, cord, strand)){}
     return true;
 }
-/*
-inline  bool extendWindow(String<short> & f1, String<short> & f2, String<uint64_t> & cords, uint64_t strand, int k)
-{
-    //uint64_t preCord = (length(cords) == 1) ? 0 : back(cords);
-    ///unsigned len = length(cords) - 1;
-    //while (preCord <= back(cords) && previousWindow(f1, f2, cord, strand));
-    while (nextWindow(f1, f2, ))
-}
-*/
 
 inline bool path(String<Dna5> & read, typename PMRes::HitString hit, StringSet<String<short> > & f2, String<uint64_t> & cords)
 {
@@ -785,25 +717,11 @@ inline bool path(String<Dna5> & read, typename PMRes::HitString hit, StringSet<S
     unsigned currentIt = 0;
     if(!initCord(hit, currentIt, cords))
         return false;
-//    std::cerr << "length " << length(read) << std::endl;
     createFeatures(begin(read), end(read), f1);
     unsigned genomeId = _getSA_i1(_DefaultCord.getCordX(cords[0]));
-   // uint64_t pre = _getSA_i1(_DefaultCord.getCordX(cords[0]));
-   // for (unsigned k = 0; k<length(cords);k++)
-   // {
-   // 
-   // if (pre != _getSA_i1(_DefaultCord.getCordX(cords[k])))
-   //     std::cerr << "id error " << pre << " " << _getSA_i1(_DefaultCord.getCordX(cords[k])) << std::endl;
-   // pre = _getSA_i1(_DefaultCord.getCordX(cords[k]));
-   // }
-        
-
-//    std::cerr << "done " << std::endl;
-    //std::cout << "[debug] " << _DefaultCord.getCordY(back(cords)) << "\n";
     while (_DefaultCord.getCordY(back(cords)) < length(read) - window_size)
     {
         extendWindow(f1, f2[genomeId], cords, _DefaultCord.getCordStrand(back(cords)));
-        //std::cerr << "nextCord" << std::endl;
         if(!nextCord(hit, currentIt, cords))
                 return false;
     }
@@ -819,8 +737,6 @@ void path(typename PMRes::HitSet & hits, StringSet<String<Dna5> > & reads, Strin
     {
         path(reads[k], hits[k], f2, cords[k]);
     }
-//    _DefaultCord.print(cords);
-//    _DefaultCord.printAlignmentMatrix(cords);
 }
 
 void checkPath(typename Cord::CordSet const & cords, StringSet<String<Dna5> > const & reads)
@@ -829,7 +745,6 @@ void checkPath(typename Cord::CordSet const & cords, StringSet<String<Dna5> > co
     Iterator<typename Cord::CordSet const>::Type it = begin(cords);
     for (auto && read : reads)
     {
-        //std::cout << _DefaultCord.getCordY(back(*it)) << " len " << length(reads) << std::endl;
         if(empty(*it))
             count++;
         else
@@ -839,16 +754,15 @@ void checkPath(typename Cord::CordSet const & cords, StringSet<String<Dna5> > co
             }
         it++;
     }
-    //std::cerr << "checkPath " << (float) count / length(reads) << std::endl;
 }
 
-/*==================================================
-*   this part is for different types of mapping
-*   struct hit:
-*   extend the structure Cord;
-*   NA[2]|strand[1]|head[1]|genome pos[40]|read pos[20]
-*   NodeType: 1 Head, 0 Body
-*/
+/**=======================================================
+ *   The following part is for different types of mapping
+ *   struct hit:
+ *   extend the structure Cord;
+ *   NA[2]|strand[1]|head[1]|genome pos[40]|read pos[20]
+ *   NodeType: 1 Head, 0 Body
+ */
 struct HitBase
 {
     uint64_t bit;
@@ -907,7 +821,6 @@ inline void Hit::unsetBlockEnd(uint64_t & val, uint64_t const & flag)
 
 inline void Hit::setBlockStrand(uint64_t & val, uint64_t const & strand, uint64_t const & flag)
 {
-    //val = strand?((1ULL << bit)|val):val;
     if (strand)
         val |= flag;
     else
@@ -933,9 +846,7 @@ void _printHit(unsigned j, unsigned id1, unsigned id2, String<uint64_t> & hit, u
             end = 1;
         else
             end = 0;
-        
         printf("[printhit] %d %d %d %d %d\n", j, id1, id2, len, end);
-        //printf("[printhit] %d %d %d % " PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %d %d\n", j, id1, id2, hit[k], _getSA_i1(_DefaultCord.getCordX(hit[k])), _getSA_i2(_DefaultCord.getCordX(hit[k])), _DefaultCord.getCordY(hit[k]), end, _DefaultCord.getMaxLen(hit), len);
     }
 }
 
@@ -943,9 +854,14 @@ void _printHit(String<uint64_t>  & hit)
 {
     for (unsigned k = 0; k < length(hit); k++)
     {
-    std::cout << "hit " << _getSA_i1(_DefaultCord.getCordX(_DefaultCord.hit2Cord(hit[k]))) << " " << _getSA_i2(_DefaultCord.getCordX(_DefaultCord.hit2Cord(hit[k]))) << " " << _DefaultCord.getCordY(hit[k]) << "\n";
+        std::cout << "[P]::_printHit() " 
+              << _getSA_i1(_DefaultCord.getCordX(_DefaultCord.hit2Cord(hit[k]))) << " " 
+              << _getSA_i2(_DefaultCord.getCordX(_DefaultCord.hit2Cord(hit[k]))) << " " 
+              << _DefaultCord.getCordY(hit[k]) << "\n";
         if (_DefaultHit.isBlockEnd(hit[k]))
-            std::cout << "end\n";
+        {
+            std::cout << "[P]::_printHit() end\n";
+        }
     }
 }
 
@@ -1033,50 +949,41 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
 }
 */
 
-/*
+/**
  * search double strand in one round
  */
 template <typename TDna, typename TSpec>
 inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
                               typename PMRecord<TDna>::RecSeq const & read,
-                              //uint64_t* const set,
                               String<uint64_t> & set,
                               MapParm & mapParm)
 {   
     typedef typename PMCore<TDna, TSpec>::Index TIndex;
     typedef typename TIndex::TShape PShape;
-    
-    //printf("[debug]\n");
-    //unsigned block = (mapParm.blockSize < length(read))?mapParm.blockSize:length(read);
-    //unsigned dt = block * (mapParm.alpha / (1 - mapParm.alpha));
     unsigned dt = 0;
     PShape shape;
     uint64_t xpre = 0;
     hashInit(shape, begin(read));
     for (unsigned k = 0; k < length(read); k++)
     {
-        //printf("[debug]\n");
-        //unsigned count = 0;
-        //hashNext(shape, begin(read) + k);
         hashNexth(shape, begin(read) + k);
-
         uint64_t pre = ~0;
-        //uint64_t pos = getXYDir(index, shape.XValue, shape.YValue);
         if (++dt == mapParm.alpha)
         {
             if(hashNextX(shape, begin(read) + k) ^ xpre)
             {
                 xpre = shape.XValue;
                 uint64_t pos = getXDir(index, shape.XValue, shape.YValue);
-//!Note: This contition is different from single strand which will slightly 
-//changes the senstivity; In the single strand index, if the size of the block having the same
-//is > mapParm.delta, then the block of the ysa will not be used. 
-//While in double strand index, the length of ysa of fixed value includes both + 
-//and - strands.
+//!Note: The contition is different from single strand \
+         which will slightly changes the senstivity.\
+         Specifically, in the single strand index, if the size of the block is > mapParm.delta, \
+         then the block of the ysa will not be used. \
+         While in double strand index, the length of ysa of fixed value includes kmer \
+         of f both + and - strands.
+
         // if (_DefaultHs.getHsBodyY(index.ysa[std::min(pos + mapParm.delta, length(index.ysa) - 1)]) ^ shape.YValue)
             //{
                 //while (_DefaultHs.isBodyYEqual(index.ysa[pos], shape.YValue))
-                
                 uint64_t ptr = _DefaultHs.getHeadPtr(index.ysa[pos-1]);
                 if (ptr < mapParm.delta)
                 //if (_DefaultHs.getHeadPtr(index.ysa[pos-1]) < 1000000)
@@ -1402,13 +1309,11 @@ inline bool endCord( String<uint64_t> & cord,
     if (length(cord) - preCordStart > cordThr)// > std::max(score/25, cordThr))
     {
         _DefaultHit.setBlockEnd(back(cord));
-        //printf("[debug]::nextcord new block %f %d %f\n", (float)score/(length(cord) - preCordStart), length(cord) - preCordStart, cordThr);
     }
     else
     {
         erase(cord, preCordStart, length(cord));
     }
-   //printf("[debug]::endcord done\n");
     (void)score;
     return true;
 }
