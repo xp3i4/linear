@@ -449,9 +449,17 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
         //neither source or view coordniates.
 		if (*it1 == *it2)
 		{
+            sourceP1 = toSourcePosition(row11,i); 
+            sourceP2 = toSourcePosition(row12,i);
 			appendValue (align1, (i << bit2) + (sourceP1 << bit) + sourceP2);
+            if (toViewPosition(row11, sourceP1) != toViewPosition(row12, sourceP2))
+            {
+                std::cout << "viepError " << i << " " << sourceP1 << " " << toSourcePosition(row11,i) << " " << sourceP2 << " " << toSourcePosition(row12,i) << " " << toViewPosition(row11, sourceP1) << " " << toViewPosition(row12, sourceP2) << "\n";
+            }
 		}
-        if (!isGap(it1))
+        //if (!isGap(it1))
+        /*
+        if (*it1 != '-')
         {
             sourceP1++;
         }
@@ -459,6 +467,7 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
         {
             sourceP2++;
         }
+        */
 		it1++; 
         it2++;
 	}
@@ -486,6 +495,15 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
         it1++; 
         it2++;
     }
+    for (int i = 0; i < std::min(length(align1), length(align2)); i++)
+    {
+        int x1 = (align1[i] >> bit & mask);
+        int y1 = (align1[i] & mask);
+        int x2 = (align2[i] >> bit & mask);
+        int y2 = (align2[i] & mask);
+        std::cout << "1align1 " << x1 << " " << y1 << " " <<toViewPosition(row11,x1) << " " << toViewPosition(row11, y1) << " " << x2 << " " << y2 << "\n";
+    }
+    std::cout << "1align1\n";
     /*
     int thd_merge_x = 2, thd_merge_y = 2;
     int flag = 0, start_j = 0;
@@ -515,10 +533,10 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
 			{
                 int clip1 = (align1[i] >> bit2 & mask);
                 int clip2 = align2[j] >> bit2 & mask;
-                //setClippedBeginPosition(row21, clip2);
-                //setClippedBeginPosition(row22, clip2);
-                //setClippedEndPosition(row11, clip1);
-                //setClippedEndPosition(row12, clip1);
+                setClippedBeginPosition(row21, clip2);
+                setClippedBeginPosition(row22, clip2);
+                setClippedEndPosition(row11, clip1);
+                setClippedEndPosition(row12, clip1);
                 std::cout << "[]::align_merge" << i << " " << x1 << " " << x2 << " " << y1 << " " << y2 << " " << clip1 << " " << clip2 << " " << delta1 << " " << delta2 << "\n";
 				return 0;
 			}
