@@ -436,13 +436,6 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
         return 1;
     }
     //ouput source coordinates of align to buffer 
-    int start_clip = toViewPosition(row11, beginPosition(row21) + delta1);  //cord1
-    int end_clip = 150;
-    it1 = begin(row11) + start_clip + clippedBeginPosition(row11);
-    it2 = begin(row12) + start_clip + clippedBeginPosition(row12);
-    std::cout << "viepEr";
-    start_clip = 0;
-
     int64_t src1 = beginPosition(row21) + delta1;  //cord1_x
     int64_t intersect_view_Begin = toViewPosition(row11, src1);
     int64_t src2 = toSourcePosition(row12, intersect_view_Begin); 
@@ -453,7 +446,7 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
 	{
 		if (*it1 == *it2)
 		{
-			appendValue (align1, (i << bit2) + (src1 << bit) + src2);
+			appendValue (align1, ((i + clippedBeginPosition(row11))<< bit2) + (src1 << bit) + src2);
 		}
         if (!isGap(it1))
         {
@@ -473,12 +466,12 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     intersect_view_End = toViewPosition(row21, endPosition(row11) - delta1);
     it1 = begin(row21) + intersect_view_Begin;
     it2 = begin(row22) + intersect_view_Begin;
-    std::cout << "[]::start_clip2 " << start_clip << " " << end_clip << " " << src1<< " " << src2 << "\n";
     for (int64_t i = intersect_view_Begin; i < intersect_view_End; i++)
     {
         if (*it1 == *it2)
         {
-            appendValue (align2, (i << bit2) + ((src1 + delta1) << bit) + (src2 + delta2));
+            appendValue (align2, ((i + clippedBeginPosition(row21))<< bit2) 
+                                 + ((src1 + delta1) << bit) + (src2 + delta2));
         }
         if (!isGap(it1))
         {
@@ -497,10 +490,9 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
         int y1 = (align1[i] & mask);
         int x2 = (align2[i] >> bit & mask);
         int y2 = (align2[i] & mask);
-        std::cout << "1align1 " << x1 << " " << y1 << " " << x2 << " " << y2 << "\n";
     }
     std::cout << "1align1\n";
-    /*
+
     int thd_merge_x = 2, thd_merge_y = 2;
     int flag = 0, start_j = 0;
     int x1 = (align1[0] >> bit) & mask;
@@ -515,14 +507,12 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
 		{
 			int64_t x2 = align2[j] >> bit & mask;
 			int64_t y2 = align2[j] & mask;
-            std::cout << "alignx2 " << i << " " << j << " " << x1 << " " << y1 << " " << x2 << " " << y2 << " " << x1_next << " " << y1_next << "\n";
             if (!flag)
             {
                 if (std::abs(x1_next - x2) < thd_merge_x) 
                 {
                     start_j = j;
                     flag = 1;
-                    std::cout << "[]::start_j " << j << "\n";
                 }
             }
 			if (std::abs(x1 - x2) < thd_merge_x && std::abs(y1 - y2) < thd_merge_y)
@@ -544,7 +534,6 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
         x1 = x1_next;
         y1 = y1_next;
 	}
-    */
 }
 
 int align_cords(String<Dna5> & genome,
@@ -562,7 +551,7 @@ int align_cords(String<Dna5> & genome,
     int t = length(cords) - 1;
     int head_end = window_size >> 2;// * 0.25
     int tail_start = window_size - (window_size >> 2);
-    for (int i = 0; i < t + 1; i++)
+    for (int i = 1; i < t + 1; i++)
     {
         align_cord (aligner, genome, read, comrevRead, cords[i]);
         clip_head_ (aligner, 0, 1, head_end);
@@ -570,16 +559,17 @@ int align_cords(String<Dna5> & genome,
         appendValue(aligners, aligner);
         if (i > 1)
         {
-            clipMerge_aligner(row(aligners[i - 1], 0), 
-                              row(aligners[i - 1], 1),
-                              row(aligners[i], 0),
-                              row(aligners[i], 1), 
+            if (!_DefaultCord.getCordStrand(cords[i - 1] ^ cords[i]))
+            clipMerge_aligner(row(aligners[i - 2], 0), 
+                              row(aligners[i - 2], 1),
+                              row(aligners[i - 1], 0),
+                              row(aligners[i - 1], 1), 
                               _getSA_i2(_DefaultCord.getCordX(cords[i - 1])),
                               _getSA_i2(_DefaultCord.getCordX(cords[i])),
                               _DefaultCord.getCordY(cords[i - 1]),
                               _DefaultCord.getCordY(cords[i])
                              );
-        std::cout << aligners[i - 1] << "\n";
+            std::cout << aligners[i - 2] << "\n";
         }
     }
     std::cout << "[]::align_cords " << " " << sysTime() - time << "\n";
