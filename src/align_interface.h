@@ -295,8 +295,8 @@ int clip_head_(Align<String<Dna5>,ArrayGaps> & aligner,
     int x = 0;
     int maxx = 0, maxxp = 0;
     int clip_start = clippedBeginPosition(row1);
-    TRowIterator it1 = begin(row1) + clip_start;
-    TRowIterator it2 = begin(row2) + clip_start;
+    TRowIterator it1 = begin(row1);
+    TRowIterator it2 = begin(row2);
     TRowIterator it1_2 = it1, it2_2 = it2; 
     if (clip_start > g_end - clip_start)
     {
@@ -313,7 +313,7 @@ int clip_head_(Align<String<Dna5>,ArrayGaps> & aligner,
     }
     for (int k = 0; k < g_end; k++)
     {
-    	if (x >= thd_clip)
+        if (x >= thd_clip)
     	{
     		setClippedBeginPosition(row1, k);
     		setClippedBeginPosition(row2, k);
@@ -337,8 +337,8 @@ int clip_head_(Align<String<Dna5>,ArrayGaps> & aligner,
     	++it1_2;
     	++it2_2;
     }
-	setClippedBeginPosition(row1, maxxp - clip_start);
-	setClippedBeginPosition(row2, maxxp - clip_start);
+	setClippedBeginPosition(row1, maxxp);
+	setClippedBeginPosition(row2, maxxp);
     return 0;
 }
 
@@ -361,8 +361,8 @@ int clip_tail_(Align<String<Dna5>,ArrayGaps> & aligner,
     int maxx = 0, maxxp = 0;
     int clip_start = clippedBeginPosition(row1);
     int clip_end = clippedEndPosition(row1);
-    it1 = begin(row1) + clip_end;
-   	it2 = begin(row2) + clip_end;
+    it1 = end(row1) - 1;
+   	it2 = end(row2) - 1;
    	it1_2 = it1;
    	it2_2 = it2;
     if (clip_end < g_start - clip_start)
@@ -406,7 +406,7 @@ int clip_tail_(Align<String<Dna5>,ArrayGaps> & aligner,
     }
     setClippedEndPosition(row1, maxxp);
     setClippedEndPosition(row2, maxxp);
-    return toSourcePosition(row1, maxxp) - 1;
+    return 0;
 }
 
 int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
@@ -436,61 +436,57 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
         return 1;
     }
     //ouput source coordinates of align to buffer 
-    int start_clip = toViewPosition(row11, beginPosition(row21) + delta1) + clippedBeginPosition(row11); //cord1
-    int end_clip = clippedEndPosition(row11);
-    it1 = begin(row11) + start_clip;
-    it2 = begin(row12) + start_clip;
-    int sourceP1 = toSourcePosition(row11, start_clip);  //cord1_x
-    int sourceP2 = toSourcePosition(row12, start_clip);  
-    std::cout << "[]::start_clip " << start_clip << " " << end_clip << " " << sourceP1 << " " << sourceP2 << "\n";
-	for (int64_t i = start_clip; i < end_clip; i++)
+    int start_clip = toViewPosition(row11, beginPosition(row21) + delta1);  //cord1
+    int end_clip = 150;
+    it1 = begin(row11) + start_clip + clippedBeginPosition(row11);
+    it2 = begin(row12) + start_clip + clippedBeginPosition(row12);
+    std::cout << "viepEr";
+    start_clip = 0;
+
+    int64_t src1 = beginPosition(row21) + delta1;  //cord1_x
+    int64_t intersect_view_Begin = toViewPosition(row11, src1);
+    int64_t src2 = toSourcePosition(row12, intersect_view_Begin); 
+    int64_t intersect_view_End = clippedEndPosition(row11) - clippedBeginPosition(row11);
+    it1 = begin(row11) + intersect_view_Begin;
+    it2 = begin(row12) + intersect_view_Begin;
+	for (int64_t i = intersect_view_Begin; i < intersect_view_End; i++)
 	{
-        //coordinates of string of gaps data structure\
-        //neither source or view coordniates.
 		if (*it1 == *it2)
 		{
-            sourceP1 = toSourcePosition(row11,i); 
-            sourceP2 = toSourcePosition(row12,i);
-			appendValue (align1, (i << bit2) + (sourceP1 << bit) + sourceP2);
-            if (toViewPosition(row11, sourceP1) != toViewPosition(row12, sourceP2))
-            {
-                std::cout << "viepError " << i << " " << sourceP1 << " " << toSourcePosition(row11,i) << " " << sourceP2 << " " << toSourcePosition(row12,i) << " " << toViewPosition(row11, sourceP1) << " " << toViewPosition(row12, sourceP2) << "\n";
-            }
+			appendValue (align1, (i << bit2) + (src1 << bit) + src2);
 		}
-        //if (!isGap(it1))
-        /*
-        if (*it1 != '-')
+        if (!isGap(it1))
         {
-            sourceP1++;
+            src1++;
         }
         if (!isGap(it2))
         {
-            sourceP2++;
+            src2++;
         }
-        */
 		it1++; 
         it2++;
 	}
-    start_clip = clippedBeginPosition(row21); //cord1
-    end_clip = toViewPosition(row21, endPosition(row11) - delta1) + clippedBeginPosition(row21);
-    it1 = begin(row21) + start_clip;
-    it2 = begin(row22) + start_clip;
-    sourceP1 = beginPosition(row21) + delta1; //cord1_x
-    sourceP2 = beginPosition(row22) + delta2;
-    std::cout << "[]::start_clip2 " << start_clip << " " << end_clip << " " << sourceP1 << " " << sourceP2 << "\n";
-    for (int64_t i = start_clip; i < end_clip; i++)
+
+    src1 = beginPosition(row21); //cord1_x
+    src2 = beginPosition(row22);
+    intersect_view_Begin = 0;
+    intersect_view_End = toViewPosition(row21, endPosition(row11) - delta1);
+    it1 = begin(row21) + intersect_view_Begin;
+    it2 = begin(row22) + intersect_view_Begin;
+    std::cout << "[]::start_clip2 " << start_clip << " " << end_clip << " " << src1<< " " << src2 << "\n";
+    for (int64_t i = intersect_view_Begin; i < intersect_view_End; i++)
     {
         if (*it1 == *it2)
         {
-            appendValue (align2, (i << bit2) + (sourceP1 << bit) + sourceP2);
+            appendValue (align2, (i << bit2) + ((src1 + delta1) << bit) + (src2 + delta2));
         }
         if (!isGap(it1))
         {
-            sourceP1++;
+            src1++;
         }
-        if (!isGap(it1))
+        if (!isGap(it2))
         {
-            sourceP2++;
+            src2++;
         }
         it1++; 
         it2++;
@@ -501,7 +497,7 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
         int y1 = (align1[i] & mask);
         int x2 = (align2[i] >> bit & mask);
         int y2 = (align2[i] & mask);
-        std::cout << "1align1 " << x1 << " " << y1 << " " <<toViewPosition(row11,x1) << " " << toViewPosition(row11, y1) << " " << x2 << " " << y2 << "\n";
+        std::cout << "1align1 " << x1 << " " << y1 << " " << x2 << " " << y2 << "\n";
     }
     std::cout << "1align1\n";
     /*
