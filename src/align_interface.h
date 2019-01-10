@@ -436,6 +436,7 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
         return 1;
     }
     //ouput source coordinates of align to buffer 
+    double time2 = sysTime();
     int64_t src1 = beginPosition(row21) + delta1;  //cord1_x
     int64_t intersect_view_Begin = toViewPosition(row11, src1);
     int64_t src2 = toSourcePosition(row12, intersect_view_Begin); 
@@ -491,13 +492,15 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
         int x2 = (align2[i] >> bit & mask);
         int y2 = (align2[i] & mask);
     }
-    std::cout << "1align1\n";
+    //std::cout << "1align1\n";
+    double time3 = sysTime() - time2;
 
     int thd_merge_x = 2, thd_merge_y = 2;
     int flag = 0, start_j = 0;
     int x1 = (align1[0] >> bit) & mask;
     int y1 = align1[0] & mask;flag = 0;
     int x1_next, y1_next;
+    
 	for (int i = 0; i < length(align1) - 1; i++)	
 	{
 		int64_t x1_next = (align1[i + 1] >> bit) & mask;
@@ -523,7 +526,8 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
                 setClippedBeginPosition(row22, clip2);
                 setClippedEndPosition(row11, clip1);
                 setClippedEndPosition(row12, clip1);
-                std::cout << "[]::align_merge" << i << " " << x1 << " " << x2 << " " << y1 << " " << y2 << " " << clip1 << " " << clip2 << " " << delta1 << " " << delta2 << "\n";
+                //std::cout << "[]::align_merge" << i << " " << x1 << " " << x2 << " " << y1 << " " << y2 << " " << clip1 << " " << clip2 << " " << delta1 << " " << delta2 << "\n";
+    std::cout << "xxx33 " << time3 << " " << sysTime() - time2 - time3 << "\n";
 				return 0;
 			}
 			else if (x2 - x1 > thd_merge_x|| y2 - y1 > thd_merge_x)
@@ -534,6 +538,50 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
         x1 = x1_next;
         y1 = y1_next;
 	}
+
+}
+
+int align_cords(String<Align<String<Dna5>, ArrayGaps> > & aligners,
+                String<Dna5> & genome,
+                String<Dna5> & read, 
+                String<Dna5> & comrevRead,
+                String<uint64_t> & cords,
+                int band = window_size / 2
+               ) 
+{
+    Align<String<Dna5>, ArrayGaps> aligner;
+    resize(rows(aligner), 2); 
+    double time = sysTime() - time; 
+    std::cout << "xxalign_cords\n";
+    int head_end = window_size >> 2;// * 0.25
+    int tail_start = window_size - (window_size >> 2);
+    //std::string mutations, cigar;
+    for (int i = 1; i < length(cords); i++)
+    {
+        double time2 = sysTime();
+        align_cord (aligner, genome, read, comrevRead, cords[i]);
+        double time3 = sysTime() - time2;
+        clip_head_ (aligner, 0, 1, head_end);
+        clip_tail_ (aligner, 0, 1, tail_start);
+        appendValue(aligners, aligner);
+        if (i > 1)
+        {
+            //if (!_DefaultCord.getCordStrand(cords[i - 1] ^ cords[i]))
+            clipMerge_aligner(row(aligners[i - 2], 0), 
+                              row(aligners[i - 2], 1),
+                              row(aligners[i - 1], 0),
+                              row(aligners[i - 1], 1), 
+                              _getSA_i2(_DefaultCord.getCordX(cords[i - 1])),
+                              _getSA_i2(_DefaultCord.getCordX(cords[i])),
+                              _DefaultCord.getCordY(cords[i - 1]),
+                              _DefaultCord.getCordY(cords[i])
+                             );
+            //std::cout << aligners[i - 2] << "\n";
+        }
+        std::cout << "clip33 " << time3 << " " << sysTime() - time2 - time3 << "\n";
+        //align2cigar_(row(aligners[i - 2], 0), row(aligners[i - 2], 1), cigar, mutations);
+    }
+    std::cout << "[]::align_cords " << " " << sysTime() - time << "\n";
 }
 
 int align_cords(String<Dna5> & genome,
@@ -544,35 +592,18 @@ int align_cords(String<Dna5> & genome,
                ) 
 {
     String<Align<String<Dna5>, ArrayGaps> > aligners;
-    Align<String<Dna5>, ArrayGaps> aligner;
-    resize(rows(aligner), 2); 
-    double time = sysTime() - time; 
-    std::cout << "xxalign_cords\n";
-    int t = length(cords) - 1;
-    int head_end = window_size >> 2;// * 0.25
-    int tail_start = window_size - (window_size >> 2);
-    for (int i = 1; i < t + 1; i++)
+    BamAlignmentRecord record;
+    std::string cigar, mutations;
+    align_cords(aligners,
+                genome, 
+                read, 
+                comrevRead,
+                cords);
+    for (int i = 0; i < length(aligners); i++)
     {
-        align_cord (aligner, genome, read, comrevRead, cords[i]);
-        clip_head_ (aligner, 0, 1, head_end);
-        clip_tail_ (aligner, 0, 1, tail_start);
-        appendValue(aligners, aligner);
-        if (i > 1)
-        {
-            if (!_DefaultCord.getCordStrand(cords[i - 1] ^ cords[i]))
-            clipMerge_aligner(row(aligners[i - 2], 0), 
-                              row(aligners[i - 2], 1),
-                              row(aligners[i - 1], 0),
-                              row(aligners[i - 1], 1), 
-                              _getSA_i2(_DefaultCord.getCordX(cords[i - 1])),
-                              _getSA_i2(_DefaultCord.getCordX(cords[i])),
-                              _DefaultCord.getCordY(cords[i - 1]),
-                              _DefaultCord.getCordY(cords[i])
-                             );
-            std::cout << aligners[i - 2] << "\n";
-        }
+        align2cigar_(aligners[i], cigar, mutations);
+        //std::cout << cigar << " " << mutations << "\n";
     }
-    std::cout << "[]::align_cords " << " " << sysTime() - time << "\n";
 }
                             
 /**
@@ -746,7 +777,7 @@ int align (StringSet<String<Dna5> > & genomes,
         
         //std::cout << "[]::align score " << genomeStart << " " << readStart << " " << strand << " " << score << "\n" ;//<< aligner << "\n";
         //std::cout << "[]::align strand " << strand <<  " " << genomeStart << " score " << score << "\n" << aligner << "\n";
-        align2cigar_(aligner, cigar, mutations);
+        //align2cigar_(aligner, cigar, mutations);
         std::cout << "[]::align cigar " << cigar << " " << mutations << "\n";
     }
     //std::cout << t1 << " " << t2 << " " << t1/t2 << std::endl;

@@ -415,7 +415,6 @@ for (int k = 0; k < length(gap_len); k++)
     return 0;
 }
 
-
 /*
  *[]::map
  */
