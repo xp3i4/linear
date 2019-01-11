@@ -9,7 +9,12 @@ std::string & operator<< (std::string & s, std::string s2);
 
 std::string getFileName(const std::string&, char sep = '/', int flag = 1);
 
-int align2cigar_(Align<String<Dna5>,ArrayGaps> & align, 
+int align2cigar(Align<String<Dna5>,ArrayGaps> & align, 
                  std::string & cigar, 
                  std::string & mutations);
+
+void align2cigar(String<CigarElement< > > &cigar,
+                 Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps1,
+                 Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps2
+                );
 #endif

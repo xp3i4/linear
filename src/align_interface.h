@@ -566,6 +566,7 @@ int align_cords(String<Align<String<Dna5>, ArrayGaps> > & aligners,
         appendValue(aligners, aligner);
         if (i > 1)
         {
+//TODO:: align if different strand
             //if (!_DefaultCord.getCordStrand(cords[i - 1] ^ cords[i]))
             clipMerge_aligner(row(aligners[i - 2], 0), 
                               row(aligners[i - 2], 1),
@@ -588,6 +589,7 @@ int align_cords(String<Dna5> & genome,
                 String<Dna5> & read, 
                 String<Dna5> & comrevRead,
                 String<uint64_t> & cords,
+                String<String<CigarElement<char, unsigned> > > & cigars,
                 int band = window_size / 2
                ) 
 {
@@ -599,10 +601,24 @@ int align_cords(String<Dna5> & genome,
                 read, 
                 comrevRead,
                 cords);
+    int count = 0;
+    for (int i = 1; i < length(cords); i++)
+    {//NOTE::cords[0] is virtual node
+        if (_DefaultHit.isBlockEnd(cords[i])) 
+        {
+            count++;
+        }
+    }
+    resize(cigars, count);
+    count = 0;
     for (int i = 0; i < length(aligners); i++)
     {
-        align2cigar_(aligners[i], cigar, mutations);
-        //std::cout << cigar << " " << mutations << "\n";
+        align2cigar(cigars[count], row(aligners[i], 0), row(aligners[i], 1));
+        //getCigarStringx();
+        if (_DefaultHit.isBlockEnd(cords[i + 1]))
+        { 
+            count++;
+        }
     }
 }
                             

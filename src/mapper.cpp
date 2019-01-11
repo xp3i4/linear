@@ -99,7 +99,38 @@ void Mapper<TDna, TSpec>::printCords()
     std::cerr << ">Write results to disk        " << count << std::endl;
     std::cerr << "    End writing results. Time[s]" << sysTime() - time << std::endl;
 }
-
+int print_align_sam_(StringSet<String<String<CigarElement<> > > > & cigars, 
+                     StringSet<CharString> & readsId, 
+                     StringSet<CharString> & genomesId,
+                     std::ofstream & of,
+                     std::string outputPrefix)
+{
+    std::string filePath = outputPrefix + ".sam";
+    of.open(toCString(filePath));
+    BamFileOut bamFileOut(of, Sam());
+    BamAlignmentRecord record;
+    for (int i = 0; i < length(cigars); i++)
+    {
+        record.qName = readsId[i];
+        record.seq = genomesId[i];
+        for (int j = 0; j < length(cigars[i]); j++)
+        {
+            record.cigar = cigars[i][j]; //cigars[i][j];
+            writeRecord(bamFileOut, record);
+        std::cout << "[]::print_sam_ " << i << " " << j << "\n";
+        }
+    }
+    of.close();
+}
+template <typename TDna, typename TSpec>
+int print_align_sam(Mapper<TDna, TSpec> & mapper)
+{
+    print_align_sam_(mapper.getCigars(),
+                     mapper.readsId(),
+                     mapper.genomesId(),
+                     mapper.getOf(),
+                     mapper.getOutputPrefix());
+}
 /*
  * print the cords without detailes 
  */
@@ -138,7 +169,8 @@ void Mapper<TDna, TSpec>::printCordsRaw()
     std::cerr << ">Write results to disk          " << std::endl;
     std::cerr << "    End writing results. Time[s]" << sysTime() - time << std::endl; 
 }
-/*
+
+/**
  * print all cords with cordinates
  */
 template <typename TDna, typename TSpec>
@@ -265,7 +297,7 @@ int print_clip_gvf_(StringSet<String<uint64_t> > & clips,
               std::string outputPrefix)
 {
     std::string file_path = outputPrefix + ".gvf";
-    std::cerr << "[]::filepath " << file_path << "\n";
+    //std::cerr << "[]::filepath " << file_path << "\n";
     of.open(toCString(file_path));
     std::string source = ".";
     std::string type = ".";
@@ -312,16 +344,17 @@ int print_clip_gvf(Mapper<TDna, TSpec> & mapper)
 }
 
 template <typename TDna, typename TSpec>
-int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
-            StringSet<String<short> > & f2,
-            typename PMRecord<TDna>::RecSeqs      & reads,
-            MapParm & mapParm,
-            StringSet<String<uint64_t> > & cords,
-            StringSet<String<uint64_t> > & clips,
-            unsigned & threads,
-            StringSet<String<TDna> > & seqs,
-            int p1
-            )
+int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index & index,
+                   StringSet<String<short> > & f2,
+                   typename PMRecord<TDna>::RecSeqs & reads,
+                   MapParm & mapParm,
+                   StringSet<String<uint64_t> > & cords,
+                   StringSet<String<uint64_t> > & clips,
+                   StringSet<String<TDna> > & seqs,
+                   StringSet<String<String<CigarElement< > > > >& cigars,
+                   unsigned & threads,
+                   int p1
+                  )
 {
   
     typedef typename PMRecord<TDna>::RecSeq Seq;
@@ -352,6 +385,7 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
     StringSet<String<uint64_t> >  cordsTmp;
     StringSet< String<short> > f1;
     StringSet<String<uint64_t> > clipsTmp;
+    StringSet<String<String<CigarElement<> > > > cigarsTmp;
     unsigned thd_id =  omp_get_thread_num();
     if (thd_id < length(reads) - size2 * threads)
     {
@@ -359,6 +393,7 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
     }
     resize(cordsTmp, ChunkSize);
     resize(clipsTmp, ChunkSize);
+    resize(cigarsTmp, ChunkSize);
     resize(f1, 2);
     unsigned c = 0;
     
@@ -392,10 +427,8 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
                 path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
             }   
             gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, 300, 192, p1);
-            //align_mergeCords_band(cordsTmp[c], bands);//, band_width, band_width_max);
-            align_cords(seqs[0], reads[j], comStr, cordsTmp[c]);
+            align_cords(seqs[0], reads[j], comStr, cordsTmp[c], cigarsTmp[c]);
         }   
-    
         c += 1;
     } 
     #pragma omp for ordered
@@ -404,6 +437,7 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index   & index,
         {
             append(cords, cordsTmp);
             append(clips, clipsTmp);
+            append(cigars, cigarsTmp);
         }
     
 }
@@ -449,8 +483,9 @@ int map(Mapper<TDna, TSpec> & mapper, int p1)
                                     mapper.mapParm(), 
                                     mapper.cords(), 
                                     mapper.getClips(),
-                                    mapper.thread(), 
                                     mapper.genomes(),
+                                    mapper.getCigars(),
+                                    mapper.thread(), 
                                     p1
                                    );
         time2 = sysTime() - time2;
@@ -459,6 +494,7 @@ int map(Mapper<TDna, TSpec> & mapper, int p1)
     }
     mapper.index().clear(); 
     mapper.printCordsRaw2();
+    print_align_sam(mapper);
     print_clip_gvf(mapper);
     return 0;
 }

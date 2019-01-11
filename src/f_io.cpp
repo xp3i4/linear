@@ -123,69 +123,70 @@ int align2cigar_(Align<String<Dna5>,ArrayGaps> & align,
     }
     return 0;
 }
-
-///print one gff record
-/*
-int print_gff_(GffFileOut & out, 
-               CharString ref,
-               CharString source,
-               CharString type,
-               uint64_t beginPos,
-               uint64_t endPos,
-               uint64_t strand,
-               int score,
-               StringSet<CharString> tagNames, 
-               StringSet<CharString> tagValues
-              )
-{
-    GffRecord record;
-    record.ref = ref;
-    record.source = source;
-    record.type = type;
-    record.beginPos = beginPos;
-    record.endPos = endPos;
-    record.strand = strand;
-    record.score = score;
-    append(record.tagNames, tagNames);
-    append(record.tagValues, tagValues);
-    writeRecord(out, record);
-    return 0;
-}
-*/
-
-
-/**
- *concat two blocks specified by 'start' and 'end' to cigar according to align1 and align2
- * NOTE:j 
- *
-int aligns2cigar_(Align<String<Dna5>,ArrayGaps> & align1, 
-                 Align<String<Dna5>,ArrayGaps> & align2,
-                 uint64_t start1,
-                 uint64_t start2,
+int align2cigar(Align<String<Dna5>,ArrayGaps> & align, 
                  std::string & cigar, 
                  std::string & mutations)
 {
-    
-    typedef Align<String<Dna5>, ArrayGaps> TAlign;
-    typedef Row<TAlign>::Type TRow; 
-    TRow & row11 = row(align1, 0);
-    TRow & row12 = row(align1, 1);
-    
-    int x1 = start2;
-    int x2 = start1 + toSourcePosition(align1, length(row11) - 1) + 1 // + 1 to get region [,)
-    int y1 = y2;
-    int y2 = start1 + toSourcePosition(align1, length(row12) - 1) + 1;
-    
-    if (x1 > x2 || y1 > y2)
-    {
-        return 1;
-    }
-    
-    
-
-    return 0;
+    align2cigar_(align, cigar, mutations);
 }
-*/
+void align2cigar_(String<CigarElement< > > &cigar,
+        Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps1,
+        Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps2,
+        unsigned splicedGapThresh
+        )
+{
+    typedef Row<Align<String<Dna5>,ArrayGaps> >::Type TRow;
+    typename Iterator<TRow>::Type it1 = begin(gaps1);
+    typename Iterator<TRow>::Type it2 = begin(gaps2);
 
-
-
+    char op = '?', lastOp = ' ';
+    unsigned numOps = 0;
+    for (; !atEnd(it1) && !atEnd(it2); goNext(it1), goNext(it2))
+    {
+        if (isGap(it1))
+        {
+            if (isGap(it2))
+                op = 'P';
+            else if (isClipped(it2))
+                op = '?';
+            else
+                op = 'I';
+        }
+        else if (isClipped(it1))
+        {
+            op = '?';
+        }
+        else
+        {
+            if (isGap(it2))
+                op = 'D';
+            else if (isClipped(it2))
+                op = 'S';
+            else
+//                op = ((TVal1)*it1 == (TVal2)*it2)? '=': 'X';
+                op = 'M';
+        }
+        if (lastOp != op)
+        {
+            if (lastOp == 'D' && numOps >= (unsigned)splicedGapThresh)
+                lastOp = 'N';
+            if (numOps > 0)
+                appendValue(cigar, CigarElement<>(lastOp, numOps));
+            numOps = 0;
+            lastOp = op;
+        }
+        ++numOps;
+    }
+    SEQAN_ASSERT_EQ(atEnd(it1), atEnd(it2));
+    if (lastOp == 'D' && numOps >= splicedGapThresh)
+        lastOp = 'N';
+    if (numOps > 0)
+        appendValue(cigar, CigarElement<>(op, numOps));
+}
+void align2cigar(String<CigarElement< > > &cigar,
+                 Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps1,
+                 Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps2
+                )
+{
+    align2cigar_(cigar, gaps1, gaps2, 1000);
+}
