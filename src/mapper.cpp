@@ -100,6 +100,7 @@ void Mapper<TDna, TSpec>::printCords()
     std::cerr << "    End writing results. Time[s]" << sysTime() - time << std::endl;
 }
 int print_align_sam_(StringSet<String<String<CigarElement<> > > > & cigars, 
+                     StringSet<String<uint64_t> > & cordSet,
                      StringSet<CharString> & readsId, 
                      StringSet<CharString> & genomesId,
                      std::ofstream & of,
@@ -112,12 +113,11 @@ int print_align_sam_(StringSet<String<String<CigarElement<> > > > & cigars,
     for (int i = 0; i < length(cigars); i++)
     {
         record.qName = readsId[i];
-        record.seq = genomesId[i];
+        //record.rID = _getSA_i2(_DefaultCord.getCordX(cordSet[i]));
         for (int j = 0; j < length(cigars[i]); j++)
         {
-            record.cigar = cigars[i][j]; //cigars[i][j];
+            record.cigar = cigars[i][j]; 
             writeRecord(bamFileOut, record);
-        std::cout << "[]::print_sam_ " << i << " " << j << "\n";
         }
     }
     of.close();
@@ -126,6 +126,7 @@ template <typename TDna, typename TSpec>
 int print_align_sam(Mapper<TDna, TSpec> & mapper)
 {
     print_align_sam_(mapper.getCigars(),
+                     mapper.cords(),
                      mapper.readsId(),
                      mapper.genomesId(),
                      mapper.getOf(),
@@ -427,7 +428,7 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index & index,
                 path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
             }   
             gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, 300, 192, p1);
-            align_cords(seqs[0], reads[j], comStr, cordsTmp[c], cigarsTmp[c]);
+            align_cords(seqs, reads[j], comStr, cordsTmp[c], cigarsTmp[c]);
         }   
         c += 1;
     } 
@@ -516,6 +517,7 @@ int main(int argc, char const ** argv)
     //mapper.print_vcf();
     std::cerr << "  Result Files: \033[1;31m" << options.oPath << "\033[0m" << std::endl;
     std::cerr << "                \033[1;31m" << (mapper.getOutputPrefix() + ".gvf") << "\033[0m" << std::endl;
+    std::cerr << "                \033[1;31m" << (mapper.getOutputPrefix() + ".sam") << "\033[0m" << std::endl;
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
     return 0;
 }

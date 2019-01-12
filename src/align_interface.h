@@ -12,6 +12,12 @@ int const s3 = -1; //gap
 
 int thd_align_score = 350 /*depends on score_scheme*/;
 
+struct CirgarRecord
+{
+    String<CigarElement<char, unsigned> > cigar;
+    int genomeId;    
+};
+
 /**
  * debug utility
  */
@@ -216,13 +222,14 @@ int align_cord (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
                 String<Dna5> & read, 
                 String<Dna5> & comrevRead,
                 uint64_t & cord,
-                int band = window_size / 2
+                int block_size = window_size,
+                int band = block_size / 2
                )
 {
     uint64_t genomeStart = _getSA_i2(_DefaultCord.getCordX(cord));
-    uint64_t genomeEnd = genomeStart + window_size;
+    uint64_t genomeEnd = genomeStart + block_size;
     uint64_t readStart = _DefaultCord.getCordY(cord);
-    uint64_t readEnd = readStart + window_size;
+    uint64_t readEnd = readStart + block_size;
     uint64_t strand = _DefaultCord.getCordStrand (cord);
     double time = sysTime();
     align_block(row1, row2, genome, read, comrevRead, strand, genomeStart, genomeEnd, readStart, readEnd, band);
@@ -517,24 +524,26 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
  * Each cord is aligned and will be clipped into segments if necessary. 
  */
 int align_cords_(String<Align<String<Dna5>, ArrayGaps> > & aligners,
-                 String<Dna5> & genome,
+                 StringSet<String<Dna5> >& genomes,
                  String<Dna5> & read, 
                  String<Dna5> & comrevRead,
                  String<uint64_t> & cords,
-                 int band = window_size / 2
+                 int block_size = window_size,
+                 int band = block_size / 2
                 ) 
 {
     typedef Row<Align<String<Dna5>, ArrayGaps> >::Type TRow;
     Align<String<Dna5>, ArrayGaps> aligner;
-    int head_end = window_size >> 2;// * 0.25
-    int tail_start = window_size - (window_size >> 2);
+    int head_end = block_size >> 2;// * 0.25
+    int tail_start = block_size - (block_size >> 2);
     int si = -1, ri = 0; //cliped segment and row id
     resize(rows(aligner), 2); 
     TRow & row1 = row(aligner, 0);
     TRow & row2 = row(aligner, 1);
     for (int i = 1; i < (int)length(cords); i++)
     {
-        align_cord (row1, row2, genome, read, comrevRead, cords[i]);
+        int g_id = _getSA_i1(_DefaultCord.getCordX(cords[i]));
+        align_cord (row1, row2, genomes[g_id], read, comrevRead, cords[i]);
         clip_head_ (row1, row2, head_end);
         clip_tail_ (row1, row2, tail_start);
 //TODO clip within each block if necessary
@@ -559,28 +568,31 @@ int align_cords_(String<Align<String<Dna5>, ArrayGaps> > & aligners,
             ri = 0;
             si++ ;
             appendValue(aligners, aligner);
+            align2cigar(cigar_records[si].cigar, 
+                        row(aligner, 0), 
+                        row(aligner, 1));
         }
     }
 }
 
-int align_cords(String<Dna5> & genome,
+int align_cords(StringSet<String<Dna5> >& genomes,
                 String<Dna5> & read, 
                 String<Dna5> & comrevRead,
                 String<uint64_t> & cords,
-                String<String<CigarElement<char, unsigned> > > & cigars,
-                int band = window_size / 2
+                String<CigarRecord> & cigar_records,
+                int block_size = window_size,
+                int band = block_size / 2
                ) 
 {
     clear (cigars);
     String<Align<String<Dna5>, ArrayGaps> > aligners;
-    std::string cigar, mutations;
-    align_cords_(aligners, genome, read, comrevRead, cords);
+    align_cords_(aligners, genomes, read, comrevRead, cords);
     resize(cigars, length(aligners));
     for (int i = 0; i < length(aligners); i++) //ith segment 
     {
         for (int j = 0; j < (int)length(rows(aligners[i])); j += 2) //jth group of row
         {
-            align2cigar(cigars[i], 
+            align2cigar(cigar_records[i].cigar, 
                         row(aligners[i], j), 
                         row(aligners[i], j + 1));
         }
