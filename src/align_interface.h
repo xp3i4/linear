@@ -180,7 +180,8 @@ int align_mergeCords_band (String<uint64_t> & cords,
         }
     }
 }
-inline int align_block_(Align<String<Dna5>, ArrayGaps> & aligner,
+inline int align_block (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
+                        Row<Align<String<Dna5>, ArrayGaps> >::Type & row2,
                         String<Dna5> & genome,
                         String<Dna5> & read,
                         String<Dna5> & comrevRead,
@@ -189,7 +190,8 @@ inline int align_block_(Align<String<Dna5>, ArrayGaps> & aligner,
                         uint64_t genomeEnd,
                         uint64_t readStart,
                         uint64_t readEnd,
-                        int band)
+                        int band
+                       )
 {
     std::cout << "align len " << readStart << " " << readEnd << "\n";
     Infix<String<Dna5> >::Type infix1;  
@@ -203,32 +205,13 @@ inline int align_block_(Align<String<Dna5>, ArrayGaps> & aligner,
         infix2 = infix(read, readStart, std::min(readEnd, length(read)));  
     }
     infix1 = infix(genome, genomeStart, std::min(genomeEnd, length(genome)));   
-
-    assignSource (row(aligner, 0), infix1);  
-    assignSource (row(aligner, 1), infix2); 
-    double time = sysTime ();
-    int score = globalAlignment(aligner, Score<int, Simple> (s1, s2, s3), AlignConfig<true, true, true, true>(), -band, band);
-    double dt1 = sysTime() - time;
-    int score2 = globalAlignmentScore(infix1, infix2, Score<int, Simple> (s1, s2, s3), AlignConfig<true, true, true, true>(), -band, band);
-    double dt2 = sysTime() - time;
-    std::cout << "[]::align_block_ " << dt1 << " " << dt2 << "\n";
-    std::cout << "[]::align_block " << " score " << score << " " << genomeStart << " " << genomeEnd << " " << readStart << " " << readEnd << " " << strand << " " << band << "\n" ;
+    assignSource (row1, infix1);  
+    assignSource (row2, infix2); 
+    int score = globalAlignment(row1, row2, Score<int, Simple> (s1, s2, s3), AlignConfig<true, true, true, true>(), -band, band);
     return 0; //score;
 }
-inline int align_block(Align<String<Dna5>, ArrayGaps> & aligner,
-					   String<Dna5> & genome,
-                       String<Dna5> & read,
-                       String<Dna5> & comrevRead,
-                       uint64_t strand,
-                       uint64_t genomeStart,
-                       uint64_t genomeEnd,
-                       uint64_t readStart,
-                       uint64_t readEnd,
-                       int band)
-{
-	return align_block_(aligner, genome, read, comrevRead, strand, genomeStart, genomeEnd, readStart, readEnd, band);
-}
-int align_cord (Align<String<Dna5>, ArrayGaps> & aligner,
+int align_cord (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
+                Row<Align<String<Dna5>, ArrayGaps> >::Type & row2,
 				String<Dna5> & genome,
                 String<Dna5> & read, 
                 String<Dna5> & comrevRead,
@@ -242,7 +225,7 @@ int align_cord (Align<String<Dna5>, ArrayGaps> & aligner,
     uint64_t readEnd = readStart + window_size;
     uint64_t strand = _DefaultCord.getCordStrand (cord);
     double time = sysTime();
-    align_block(aligner, genome, read, comrevRead, strand, genomeStart, genomeEnd, readStart, readEnd, band);
+    align_block(row1, row2, genome, read, comrevRead, strand, genomeStart, genomeEnd, readStart, readEnd, band);
 }
 /**
  *  return score of two chars
@@ -278,9 +261,8 @@ inline int getScore_(char r1_char,
  * Clip head or tails \in [0, l) of the aligner within the lxl window.
  * This function is to clip the well aligned region in the aligner.
  */
-int clip_head_(Align<String<Dna5>,ArrayGaps> & aligner, 
-			   int row_i,
-			   int row_j,
+int clip_head_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
+               Row<Align<String<Dna5>, ArrayGaps> >::Type & row2,
 			   int g_end //view coordinates
 			  )
 {
@@ -288,8 +270,6 @@ int clip_head_(Align<String<Dna5>,ArrayGaps> & aligner,
 	typedef Row<TAlign>::Type TRow; 
     typedef Iterator<TRow>::Type TRowIterator;
 
-	TRow & row1 = row(aligner, row_i);
-    TRow & row2 = row(aligner, row_j);
     int window = 6;   //sliding window size
     int thd_clip = 5; //5 matches in the window
     int x = 0;
@@ -342,9 +322,8 @@ int clip_head_(Align<String<Dna5>,ArrayGaps> & aligner,
     return 0;
 }
 
-int clip_tail_(Align<String<Dna5>,ArrayGaps> & aligner, 
-			   int row_i,
-			   int row_j,
+int clip_tail_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
+               Row<Align<String<Dna5>, ArrayGaps> >::Type & row2,
 			   int g_start
 			  )
 {
@@ -353,8 +332,6 @@ int clip_tail_(Align<String<Dna5>,ArrayGaps> & aligner,
     typedef Iterator<TRow>::Type TRowIterator;
 
     TRowIterator it1, it2, it1_2, it2_2;
-	TRow & row1 = row(aligner, row_i);
-    TRow & row2 = row(aligner, row_j);
     int window = 6;
     int thd_clip = 5;
     int x = 0;
@@ -436,7 +413,6 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
         return 1;
     }
     //ouput source coordinates of align to buffer 
-    double time2 = sysTime();
     int64_t src1 = beginPosition(row21) + delta1;  //cord1_x
     int64_t intersect_view_Begin = toViewPosition(row11, src1);
     int64_t src2 = toSourcePosition(row12, intersect_view_Begin); 
@@ -492,15 +468,12 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
         int x2 = (align2[i] >> bit & mask);
         int y2 = (align2[i] & mask);
     }
-    //std::cout << "1align1\n";
-    double time3 = sysTime() - time2;
 
     int thd_merge_x = 2, thd_merge_y = 2;
     int flag = 0, start_j = 0;
     int x1 = (align1[0] >> bit) & mask;
     int y1 = align1[0] & mask;flag = 0;
     int x1_next, y1_next;
-    
 	for (int i = 0; i < length(align1) - 1; i++)	
 	{
 		int64_t x1_next = (align1[i + 1] >> bit) & mask;
@@ -526,8 +499,6 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
                 setClippedBeginPosition(row22, clip2);
                 setClippedEndPosition(row11, clip1);
                 setClippedEndPosition(row12, clip1);
-                //std::cout << "[]::align_merge" << i << " " << x1 << " " << x2 << " " << y1 << " " << y2 << " " << clip1 << " " << clip2 << " " << delta1 << " " << delta2 << "\n";
-    std::cout << "xxx33 " << time3 << " " << sysTime() - time2 - time3 << "\n";
 				return 0;
 			}
 			else if (x2 - x1 > thd_merge_x|| y2 - y1 > thd_merge_x)
@@ -538,51 +509,58 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
         x1 = x1_next;
         y1 = y1_next;
 	}
-
+    return 1;
 }
-
-int align_cords(String<Align<String<Dna5>, ArrayGaps> > & aligners,
-                String<Dna5> & genome,
-                String<Dna5> & read, 
-                String<Dna5> & comrevRead,
-                String<uint64_t> & cords,
-                int band = window_size / 2
-               ) 
+/*
+ * The aligners[i] is the ith segment of clipped alignment
+ * The row (aligners[i], 2j) and row(aligners[i], 2j+1) are group of rows aligned.
+ * Each cord is aligned and will be clipped into segments if necessary. 
+ */
+int align_cords_(String<Align<String<Dna5>, ArrayGaps> > & aligners,
+                 String<Dna5> & genome,
+                 String<Dna5> & read, 
+                 String<Dna5> & comrevRead,
+                 String<uint64_t> & cords,
+                 int band = window_size / 2
+                ) 
 {
+    typedef Row<Align<String<Dna5>, ArrayGaps> >::Type TRow;
     Align<String<Dna5>, ArrayGaps> aligner;
-    resize(rows(aligner), 2); 
-    double time = sysTime() - time; 
-    std::cout << "xxalign_cords\n";
     int head_end = window_size >> 2;// * 0.25
     int tail_start = window_size - (window_size >> 2);
-    //std::string mutations, cigar;
-    for (int i = 1; i < length(cords); i++)
+    int si = -1, ri = 0; //cliped segment and row id
+    resize(rows(aligner), 2); 
+    TRow & row1 = row(aligner, 0);
+    TRow & row2 = row(aligner, 1);
+    for (int i = 1; i < (int)length(cords); i++)
     {
-        double time2 = sysTime();
-        align_cord (aligner, genome, read, comrevRead, cords[i]);
-        double time3 = sysTime() - time2;
-        clip_head_ (aligner, 0, 1, head_end);
-        clip_tail_ (aligner, 0, 1, tail_start);
-        appendValue(aligners, aligner);
-        if (i > 1)
+        align_cord (row1, row2, genome, read, comrevRead, cords[i]);
+        clip_head_ (row1, row2, head_end);
+        clip_tail_ (row1, row2, tail_start);
+//TODO clip within each block if necessary
+        if (!_DefaultCord.getCordStrand(cords[i - 1] ^ cords[i]) && 
+            !_DefaultHit.isBlockEnd(cords[i - 1]))
         {
-//TODO:: align if different strand
-            //if (!_DefaultCord.getCordStrand(cords[i - 1] ^ cords[i]))
-            clipMerge_aligner(row(aligners[i - 2], 0), 
-                              row(aligners[i - 2], 1),
-                              row(aligners[i - 1], 0),
-                              row(aligners[i - 1], 1), 
+            int flag = clipMerge_aligner(
+                              row(aligners[si], ri), 
+                              row(aligners[si], ri + 1),
+                              row1, row2,
                               _getSA_i2(_DefaultCord.getCordX(cords[i - 1])),
                               _getSA_i2(_DefaultCord.getCordX(cords[i])),
                               _DefaultCord.getCordY(cords[i - 1]),
                               _DefaultCord.getCordY(cords[i])
                              );
-            //std::cout << aligners[i - 2] << "\n";
+            appendValue(rows(aligners[si]), row1);
+            appendValue(rows(aligners[si]), row2);
+            ri += 2;
         }
-        std::cout << "clip33 " << time3 << " " << sysTime() - time2 - time3 << "\n";
-        //align2cigar_(row(aligners[i - 2], 0), row(aligners[i - 2], 1), cigar, mutations);
+        else
+        {
+            ri = 0;
+            si++ ;
+            appendValue(aligners, aligner);
+        }
     }
-    std::cout << "[]::align_cords " << " " << sysTime() - time << "\n";
 }
 
 int align_cords(String<Dna5> & genome,
@@ -593,31 +571,18 @@ int align_cords(String<Dna5> & genome,
                 int band = window_size / 2
                ) 
 {
+    clear (cigars);
     String<Align<String<Dna5>, ArrayGaps> > aligners;
-    BamAlignmentRecord record;
     std::string cigar, mutations;
-    align_cords(aligners,
-                genome, 
-                read, 
-                comrevRead,
-                cords);
-    int count = 0;
-    for (int i = 1; i < length(cords); i++)
-    {//NOTE::cords[0] is virtual node
-        if (_DefaultHit.isBlockEnd(cords[i])) 
-        {
-            count++;
-        }
-    }
-    resize(cigars, count);
-    count = 0;
-    for (int i = 0; i < length(aligners); i++)
+    align_cords_(aligners, genome, read, comrevRead, cords);
+    resize(cigars, length(aligners));
+    for (int i = 0; i < length(aligners); i++) //ith segment 
     {
-        align2cigar(cigars[count], row(aligners[i], 0), row(aligners[i], 1));
-        //getCigarStringx();
-        if (_DefaultHit.isBlockEnd(cords[i + 1]))
-        { 
-            count++;
+        for (int j = 0; j < (int)length(rows(aligners[i])); j += 2) //jth group of row
+        {
+            align2cigar(cigars[i], 
+                        row(aligners[i], j), 
+                        row(aligners[i], j + 1));
         }
     }
 }
@@ -699,15 +664,17 @@ inline uint64_t clip_window (String<Dna5> & genome,
 	                         int score_flag = 1
 	                        )
 { 
-    double t1 = sysTime();
+    typedef Row<Align<String<Dna5>,ArrayGaps> >::Type TRow;
     Align<String<Dna5>,ArrayGaps> aligner;
     resize(rows(aligner), 2); 
-    double t2 = sysTime();
+    TRow row1 = row(aligner, 0);
+    TRow row2 = row(aligner, 1);
     for (int i = genomeStart; i < genomeEnd; i++)
     {
         std::cout << *(begin(genome) + i);
     }
-    int score = align_block_ (aligner,
+    int score = align_block  (row1,
+                              row2,
                               genome, 
                               read, 
                               comrevRead,
@@ -718,8 +685,6 @@ inline uint64_t clip_window (String<Dna5> & genome,
                               readEnd,
                               band
                             );
-    double dt = sysTime() - t1;
-    std::cout << "clip_window_ score " << score << "\n";
     int g_range = (int) genomeEnd - genomeStart;
     if (score < thd_align_score / (int) window_size * g_range && score_flag)
     {
@@ -730,7 +695,6 @@ inline uint64_t clip_window (String<Dna5> & genome,
     uint64_t returnCord = _DefaultCord.createCord(_createSANode(genomeId, genomeStart + clip_ref), 
                                                   readStart + clip_read, 
                                                   strand);
-    std::cout << "[]::clip_window time percent " << dt / (sysTime() - t1) << " " << (t2 - t1) / dt << "\n";
     return returnCord;
 }
 
