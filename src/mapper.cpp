@@ -99,7 +99,7 @@ void Mapper<TDna, TSpec>::printCords()
     std::cerr << ">Write results to disk        " << count << std::endl;
     std::cerr << "    End writing results. Time[s]" << sysTime() - time << std::endl;
 }
-int print_align_sam_(StringSet<String<String<CigarElement<> > > > & cigars, 
+int print_align_sam_(StringSet<String< CigarRecord > > & cigars, 
                      StringSet<String<uint64_t> > & cordSet,
                      StringSet<CharString> & readsId, 
                      StringSet<CharString> & genomesId,
@@ -116,7 +116,7 @@ int print_align_sam_(StringSet<String<String<CigarElement<> > > > & cigars,
         //record.rID = _getSA_i2(_DefaultCord.getCordX(cordSet[i]));
         for (int j = 0; j < length(cigars[i]); j++)
         {
-            record.cigar = cigars[i][j]; 
+            record.cigar = cigars[i][j].cigar; 
             writeRecord(bamFileOut, record);
         }
     }
@@ -352,7 +352,7 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index & index,
                    StringSet<String<uint64_t> > & cords,
                    StringSet<String<uint64_t> > & clips,
                    StringSet<String<TDna> > & seqs,
-                   StringSet<String<String<CigarElement< > > > >& cigars,
+                   StringSet<String<CigarRecord> >& cigars,
                    unsigned & threads,
                    int p1
                   )
@@ -386,7 +386,7 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index & index,
     StringSet<String<uint64_t> >  cordsTmp;
     StringSet< String<short> > f1;
     StringSet<String<uint64_t> > clipsTmp;
-    StringSet<String<String<CigarElement<> > > > cigarsTmp;
+    StringSet<String<CigarRecord> > cigarsTmp;
     unsigned thd_id =  omp_get_thread_num();
     if (thd_id < length(reads) - size2 * threads)
     {
