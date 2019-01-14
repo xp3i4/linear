@@ -539,14 +539,14 @@ int align_cords (StringSet<String<Dna5> >& genomes,
     int ri = 0, ri_pre = 2; //cliped segment and row id
     int g_id = -1;
     resize(rows(aligner), 4); 
+
     for (int i = 1; i < (int)length(cords); i++)
     {
         g_id = _getSA_i1(_DefaultCord.getCordX(cords[i]));
-        align_cord (row(aligner, ri), row(aligner, ri), 
+        align_cord (row(aligner, ri), row(aligner, ri + 1), 
                     genomes[g_id], read, comrevRead, cords[i]);
         clip_head_ (row(aligner, ri), row(aligner, ri + 1), head_end);
         clip_tail_ (row(aligner, ri), row(aligner, ri + 1), tail_start);
-        /*
         if (!_DefaultCord.getCordStrand(cords[i - 1] ^ cords[i]) && 
             !_DefaultHit.isBlockEnd(cords[i - 1]))
         {
@@ -560,13 +560,15 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                               _DefaultCord.getCordY(cords[i - 1]),
                               _DefaultCord.getCordY(cords[i])
                              );
+            
             align2cigar(back(cigar_records).cigar, 
                         row(aligner, ri_pre), 
                         row(aligner, ri_pre + 1));
             back(cigar_records).g_Id = g_id;
+            
         }
         else
-        {  
+        {   
             if (i > 1)
             {
                 align2cigar(back(cigar_records).cigar, 
@@ -577,14 +579,11 @@ int align_cords (StringSet<String<Dna5> >& genomes,
             appendValue(cigar_records, cigar);
         }
         std::swap (ri, ri_pre);
-        */
     }
-    /*
     align2cigar(back(cigar_records).cigar, 
                 row(aligner, ri_pre), 
                 row(aligner, ri_pre + 1));
     back(cigar_records).g_Id = g_id;
-    */
     return 0;
 }
                             
