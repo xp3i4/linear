@@ -17,4 +17,9 @@ void align2cigar(String<CigarElement< > > &cigar,
                  Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps1,
                  Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps2
                 );
+void writeSam(std::ofstream & target,
+              BamAlignmentRecord const & record,
+              CharString genome_id,
+              CharString genome_id_next = "*"
+             );
 #endif

@@ -12,12 +12,17 @@ int const s3 = -1; //gap
 
 int thd_align_score = 350 /*depends on score_scheme*/;
 
-struct CigarRecord
+int inline setBamRecord (BamAlignmentRecord & bam_record,
+                    Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
+                    Row<Align<String<Dna5>, ArrayGaps> >::Type & row2, 
+                    int g_id,
+                    int g_beginPos
+                   )
 {
-    String<CigarElement<char, unsigned> > cigar;
-    int g_Id;   //genome Id 
-};
-
+    align2cigar(bam_record.cigar, row1, row2);
+    bam_record.rID = g_id;
+    bam_record.beginPos = g_beginPos; 
+}
 /**
  * debug utility
  */
@@ -519,30 +524,31 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     return 1;
 }
 /*
- * The aligners[i] is the ith segment of clipped alignment
- * The row (aligners[i], 2j) and row(aligners[i], 2j+1) are group of rows aligned.
- * Each cord is aligned and will be clipped into segments if necessary. 
+ * Align cords and output cigar string.
+ * Each cord will be clipped if necessary. 
  */
 int align_cords (StringSet<String<Dna5> >& genomes,
                  String<Dna5> & read, 
                  String<Dna5> & comrevRead,
                  String<uint64_t> & cords,
-                 String<CigarRecord> & cigar_records,
+                 String<BamAlignmentRecord> & bam_records,
                  int block_size = window_size,
                  int band = window_size / 2
                 ) 
 {
     Align<String<Dna5>, ArrayGaps> aligner;
-    CigarRecord cigar;
+    BamAlignmentRecord bam_record;
     int head_end = block_size >> 2;// * 0.25
     int tail_start = block_size - (block_size >> 2);
     int ri = 0, ri_pre = 2; //cliped segment and row id
     int g_id = -1;
+    int g_beginPos = 0;
     resize(rows(aligner), 4); 
 
     for (int i = 1; i < (int)length(cords); i++)
     {
         g_id = _getSA_i1(_DefaultCord.getCordX(cords[i]));
+        g_beginPos = _getSA_i2(_DefaultCord.getCordX(cords[i]));
         align_cord (row(aligner, ri), row(aligner, ri + 1), 
                     genomes[g_id], read, comrevRead, cords[i]);
         clip_head_ (row(aligner, ri), row(aligner, ri + 1), head_end);
@@ -560,30 +566,32 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                               _DefaultCord.getCordY(cords[i - 1]),
                               _DefaultCord.getCordY(cords[i])
                              );
-            
-            align2cigar(back(cigar_records).cigar, 
-                        row(aligner, ri_pre), 
-                        row(aligner, ri_pre + 1));
-            back(cigar_records).g_Id = g_id;
-            
+            setBamRecord(back(bam_records),
+                           row(aligner, ri_pre), 
+                           row(aligner, ri_pre + 1),
+                           g_id,
+                           g_beginPos);
         }
-        else
+        else //else clip the alignment (append a new row in cigar_record)
         {   
             if (i > 1)
             {
-                align2cigar(back(cigar_records).cigar, 
-                            row(aligner, ri_pre), 
-                            row(aligner, ri_pre + 1));
-                back(cigar_records).g_Id = g_id;
+                setBamRecord(back(bam_records),
+                               row(aligner, ri_pre), 
+                               row(aligner, ri_pre + 1),
+                               g_id,
+                               g_beginPos);
             }
-            appendValue(cigar_records, cigar);
+            bam_record.flag = (bam_record.flag & (~16)) | (_DefaultCord.getCordStrand(cords[i]) << 4); 
+            appendValue(bam_records, bam_record);
         }
-        std::swap (ri, ri_pre);
+        std::swap (ri, ri_pre); //swap the current and pre row id in the aligner.
     }
-    align2cigar(back(cigar_records).cigar, 
-                row(aligner, ri_pre), 
-                row(aligner, ri_pre + 1));
-    back(cigar_records).g_Id = g_id;
+    setBamRecord(back(bam_records),
+               row(aligner, ri_pre), 
+               row(aligner, ri_pre + 1),
+               g_id,
+               g_beginPos); //handle the last cord 
     return 0;
 }
                             

@@ -190,3 +190,82 @@ void align2cigar(String<CigarElement< > > &cigar,
 {
     align2cigar_(cigar, gaps1, gaps2, 1000);
 }
+
+//Lightweight sam function of Seqan::write(bamAlignmentRecord)
+void writeSam(std::ofstream & target,
+              BamAlignmentRecord const & record,
+              CharString genome_id,
+              CharString genome_id_next
+            )
+{
+    write(target, record.qName);
+    writeValue(target, '\t');
+
+    appendNumber(target, record.flag);
+    writeValue(target, '\t');
+
+    write(target, genome_id);
+
+    writeValue(target, '\t');
+
+    SEQAN_ASSERT_EQ((__int32)BamAlignmentRecord::INVALID_POS + 1, (__int32)0);
+    appendNumber(target, record.beginPos + 1);
+
+    writeValue(target, '\t');
+
+    appendNumber(target, static_cast<__uint16>(record.mapQ));
+    writeValue(target, '\t');
+
+    if (empty(record.cigar))
+        writeValue(target, '*');
+    else
+        for (unsigned i = 0; i < length(record.cigar); ++i)
+        {
+            appendNumber(target, record.cigar[i].count);
+            writeValue(target, record.cigar[i].operation);
+        }
+
+    writeValue(target, '\t');
+
+    if (record.rNextId == BamAlignmentRecord::INVALID_REFID)
+        writeValue(target, '*');
+    else if (record.rID == record.rNextId)
+        writeValue(target, '=');
+    else
+        write(target, genome_id_next);
+
+    writeValue(target, '\t');
+
+    appendNumber(target, record.pNext + 1);
+
+    writeValue(target, '\t');
+
+    if (record.tLen == BamAlignmentRecord::INVALID_LEN)
+        writeValue(target, '0');
+    else
+        appendNumber(target, record.tLen);
+
+    writeValue(target, '\t');
+
+    if (empty(record.seq))
+        writeValue(target, '*');  // Case of empty seq string / "*".
+    else
+        write(target, record.seq);
+
+    writeValue(target, '\t');
+
+
+    if (empty(record.qual))  // Case of empty quality string / "*".
+        writeValue(target, '*');
+    else
+        write(target, record.qual);
+
+    if (!empty(record.tags))
+    {
+        writeValue(target, '\t');
+        appendTagsBamToSam(target, record.tags);
+    }
+
+    writeValue(target, '\n');
+}
+

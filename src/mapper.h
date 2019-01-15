@@ -68,7 +68,7 @@ class Mapper {
     unsigned _thread;
     String<int> rlens;
     StringSet<String<uint64_t> > clip_set;
-    StringSet<String<CigarRecord> > cigars;
+    StringSet<String<BamAlignmentRecord> > bam_records;
     std::string outputPrefix;
 
 public:
@@ -102,7 +102,7 @@ public:
     String<int> & readLens(){return rlens;}
     std::ofstream & getOf() {return of;}
     std::string & getOutputPrefix(){return outputPrefix;}
-    StringSet<String<CigarRecord> > & getCigars() {return cigars;}
+    StringSet<String<BamAlignmentRecord> > & getBamRecords() {return bam_records;}
 };
 
 #endif
