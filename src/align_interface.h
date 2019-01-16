@@ -556,6 +556,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
     for (int i = 1; i < (int)length(cords); i++)
     {
 //TODO::need to algin gaps 
+//TODO::soft and hard clip for cigar at the begin and end 
         g_id = _getSA_i1(_DefaultCord.getCordX(cords[i]));
         g_beginPos = _getSA_i2(_DefaultCord.getCordX(cords[i]));
         strand = _DefaultCord.getCordStrand(cords[i]);
