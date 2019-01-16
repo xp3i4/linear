@@ -2310,6 +2310,7 @@ inline int64_t c_clip_(String<Dna5> & genome,
     int thd_merge2 = 20;
     int thd_width = 10;
     uint64_t g_anchor_val = 0;
+    /*tmp commented for debug
     g_anchor_val = c_clip_anchors_(g_anchor, 
                                    gs_start, 
                                    gr_start, 
@@ -2326,7 +2327,8 @@ inline int64_t c_clip_(String<Dna5> & genome,
     uint64_t clip = _DefaultCord.createCord(_createSANode(genomeId, gs_start + dx), 
                                             gr_start + dy, 
                                             gr_strand);
-
+*/
+/*tmp
     int extend_window = 100;
     int band_gap = 5; 
     int thd_gap_shape = 5;
@@ -2363,6 +2365,7 @@ inline int64_t c_clip_(String<Dna5> & genome,
                                             gr_strand); 
     }
     return clip;
+    */
 
 }
 /**
@@ -2503,7 +2506,7 @@ inline int g_alignGap_(String<Dna5> & seq,
                 band = int(90.0 * delta / window_size);
                 crstrand = _defaultTile.getStrand(tile2);
                 std::cout << "[]::g_align_gap_lrc _sv_exists" << cgstart << " " << cgend << " " << crstart << " " << crend << " " << (sv_flags[i] & g_sv_r) << " " << (sv_flags[i+1] & g_sv_l) << " " << i << " " << length(sv_flags) - 1<< "\n";
-                clip = clip_window (seq, read, comstr, genomeId, cgstart, cgend, crstart, crend, crstrand, band, 1); 
+                //clip = clip_window (seq, read, comstr, genomeId, cgstart, cgend, crstart, crend, crstrand, band, 1); 
                 ///kmer clip without alignment
                 clip = c_clip_ (seq, read, comstr, cgstart, cgend, crstart, crend, crstrand, genomeId, g_hs, g_hs_anchor, band, p1, 1);   
                 std::cout << "xxgnomeid " << _getSA_i1(_DefaultCord.getCordX(clip)) << "\n";
