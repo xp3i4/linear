@@ -186,8 +186,6 @@ struct Anchors{
     
     AnchorString set;
 
-    
-
     void init(AnchorType val, unsigned k);
     void init(int length);
     void init();

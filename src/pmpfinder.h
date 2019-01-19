@@ -1011,7 +1011,10 @@ inline unsigned getIndexMatchAll(typename PMCore<TDna, TSpec>::Index & index,
                             }
                             pre = index.ysa[pos];
                         }
-                        ++pos;
+                        if (++pos > length(index.ysa) - 1)
+                        {
+                            break;
+                        }
                     }
                 }
             }
@@ -1125,7 +1128,7 @@ inline uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, 
     int64_t list[200000]={0};
     unsigned lcount = 0;
     //printf("[debug]::getAnchorMatchList %d\n", anchors.length());
-    for (unsigned k = 1; k <= anchors.length(); k++)
+    for (unsigned k = 1; k < anchors.length(); k++)
     {
 //TODO 0.1 should be replaced by a cutoff in marpparm
         if (anchors[k] - ak > (((unsigned)(0.1 * readLen)) << 20))//mapParm.anchorDeltaThr)

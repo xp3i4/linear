@@ -497,7 +497,7 @@ int map(Mapper<TDna, TSpec> & mapper, int p1)
     }
     mapper.index().clear(); 
     mapper.printCordsRaw2();
-    //print_align_sam(mapper);
+    print_align_sam(mapper);
     print_clip_gvf(mapper);
     return 0;
 }

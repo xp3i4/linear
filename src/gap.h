@@ -1477,20 +1477,17 @@ inline int g_mapHs_(String<Dna5> & seq,
     //std::cout << "[g_mapHs_]::gs,r start " << gs_start << " " << gs_end << " " << gr_start << " " << gr_end << "\n";
     std::sort (begin(g_hs), begin(g_hs) + g_hs_end);
     int p1 = 0, p2 = 0;
-    for (int k = 0; k < g_hs_end; k++)
+    for (int k = 1; k < g_hs_end; k++)
     {
         //std::cout << "[g_mapHs_] " << k << " " << ((g_hs[k] >> 31) & 3) << " " << (g_hs[k] >> 33) << " " << (g_hs[k] & ((1ULL << 30) - 1)) << "\n";
         switch (g_hs_getXT(g_hs[k] ^ g_hs[k - 1]))
         {
-            case 0:
-                //std::cout << "case 0\n";
+            case 0:       //x1 = x2 both from genome or read
                 break;
-            case 1:
-                //std::cout <<"case 1 \n";
+            case 1:       //x1 = x2 one from genome the other from read
                 p2 = k;
                 break;
-            default:
-                //std::cout << "case 2 " << p1 << " " << p2 << " " << k << "\n";
+            default:      //anchor current block before process next block 
                 g_hs_anchor_end = g_mapHs_setAnchors_(g_hs, g_hs_anchor, p1, p2, k, length(read) - 1, g_hs_anchor_end);
                 p1 = k;
                 p2 = k; 
@@ -1542,18 +1539,19 @@ const unsigned c_shape_len3 = 4; //base-level clipping gap shape
  * stream seq creating hs
  */
 inline int c_stream_(String<Dna5> & seq,
-                        String<uint64_t> & g_hs, 
-                        uint64_t start, 
-                        uint64_t end, 
-                        int g_hs_start, 
-                        int step,  
-                        uint64_t type)
+                     String<uint64_t> & g_hs, 
+                     uint64_t start, 
+                     uint64_t end, 
+                     int g_hs_start, 
+                     int step,  
+                     uint64_t type)
 {
     Shape<Dna5, Minimizer<c_shape_len> >  shape;
     hashInit_hs(shape, begin(seq) + start);
     int count = 0; 
     int i = 0; 
     uint64_t val = 0;
+
     for (uint64_t k = start; k < end; k++)
     {
         val = hashNext_hs(shape, begin(seq) + k);
@@ -1663,7 +1661,7 @@ inline int c_create_anchors_ (String<uint64_t> & g_hs,
 {
     int p1 = 0, p2 = 0;
     int g_anchor_end = 0;
-    for (int k = 0; k < g_hs_end; k++)
+    for (int k = 1; k < g_hs_end; k++)
     {
         switch (g_hs_getXT(g_hs[k] ^ g_hs[k - 1]))
         {
@@ -2257,13 +2255,13 @@ inline int64_t c_clip_(String<Dna5> & genome,
             int clip_direction = 1
             )
 {
-    std::cout << "[]::c_clip_ start " << gs_start << " " << gs_end << " " << gr_start << " " << gr_end << "\n";
+    //std::cerr << "[]::c_clip_ start " << gs_start << " " << gs_end << " " << gr_start << " " << gr_end << "\n";
     //clear(g_anchor);
     String<Dna5> & seq1 = genome;
     String<Dna5> * p = (gr_strand)?(&comstr):(&read);
     String<Dna5> & seq2 = *p;
     ///clip scaffold
-    int g_hs_end = c_stream_(seq1, g_hs, gs_start, gs_end, g_hs_end, 1, 0);
+    int g_hs_end = c_stream_(seq1, g_hs, gs_start, gs_end, 0, 1, 0);
         g_hs_end = c_stream_(seq2, g_hs, gr_start, gr_end, g_hs_end, 1, 1);
     std::sort (begin(g_hs), begin(g_hs) + g_hs_end);
     int band_level = 3; //>>3 = /8 = * 12.5% error rate 
