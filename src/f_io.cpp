@@ -30,24 +30,6 @@ std::string getFileName(const std::string& s, char sep, int flag) {
     }
     return s;
 }
-
-std::string & operator<< (std::string & s, int i)
-{
-    s += std::to_string(i);
-    return s;
-}
-
-std::string & operator<< (std::string & s, char s2)
-{
-    s += s2;
-    return s;
-}
-
-std::string & operator<< (std::string & s, std::string s2)
-{
-    s += s2;
-    return s;
-}
 void align2cigar_(String<CigarElement< > > &cigar,
         Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps1,
         Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps2,

@@ -579,7 +579,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                               _DefaultCord.getCordY(cords[i - 1]),
                               _DefaultCord.getCordY(cords[i])
                              );
-//TODO clip if merge failed
+//TODO clip and realigned if merge failed
             setBamRecord(back(bam_records),
                            row(aligner, ri_pre), 
                            row(aligner, ri_pre + 1),
@@ -613,10 +613,19 @@ int align_cords (StringSet<String<Dna5> >& genomes,
     std::cout << "align_time " << t2/(sysTime() - t3) << "\n";
     return 0;
 }
-                            
+/*
+void clip_cigar_(String<CigarElement<> > & cigars)
+{
+    for (unsigned i = 0; i < length(cigars); i++)
+    {
+
+    }
+}
+*/                           
 /**
- * Clip breakpoint \in [w, l - w),w = 30, of the aligner within the lxl window
- * direction: clip direction  > 0  -----------mmmmmmmmm,  < 0 mmmmmmmmmmm--------; where 'm' is match
+ * Clip breakpoint \in [w, l - w),w = 30, within the lxl window
+ * Direction: if  > 0  -----------mmmmmmmmm,  if < 0 mmmmmmmmmmm--------; 
+ * where 'm' represents well aligned part
  */
 int clip_window_(Align<String<Dna5>,ArrayGaps> & aligner, 
 				 int g_start,
@@ -675,7 +684,8 @@ int clip_window_(Align<String<Dna5>,ArrayGaps> & aligner,
 }
 /**
  * Clip break point of the alignment of genome and read within the lxl window 
- * direction: clip direction  > 0  -----------mmmmmmmmm,  < 0 mmmmmmmmmmm--------; where 'm' is match
+ * direction: clip direction  > 0  -----------mmmmmmmmm,  < 0 mmmmmmmmmmm--------; 
+ * where 'm' is match
  */
 inline uint64_t clip_window (String<Dna5> & genome,
 	                         String<Dna5> & read,
