@@ -177,7 +177,7 @@ int align_mergeCords_band (String<uint64_t> & cords,
             //appendValue(bands, start_cords);
             //appendValue(bands, end_cords);
         //}
-        std::cout << "[]::align_mergeCords_band2 " << lower_band << " " << upper_band << "\n";
+        //std::cout << "[]::align_mergeCords_band2 " << lower_band << " " << upper_band << "\n";
         if (_DefaultHit.isBlockEnd(cords[i]))
         {
         	upper_band = ~0;
@@ -187,7 +187,7 @@ int align_mergeCords_band (String<uint64_t> & cords,
         		x_start = _getSA_i2(_DefaultCord.getCordX(cords[i]));
         		y_start = _DefaultCord.getCordY(cords[i]);
         	}
-        	std::cout << "xxxmerge " << i << "\n";
+        	//std::cout << "xxxmerge " << i << "\n";
         }
     }
 }
@@ -204,7 +204,7 @@ inline int align_block (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
                         int band
                        )
 {
-    std::cout << "align len " << readStart << " " << readEnd << "\n";
+    //std::cout << "align len " << readStart << " " << readEnd << "\n";
     double t = sysTime();
     Infix<String<Dna5> >::Type infix1;  
     Infix<String<Dna5> >::Type infix2;  
@@ -221,7 +221,7 @@ inline int align_block (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     assignSource (row2, infix2); 
     double t1 = sysTime();
     int score = globalAlignment(row1, row2, Score<int, Simple> (s1, s2, s3), AlignConfig<true, true, true, true>(), -band, band);
-    std::cout << "align_time_block " << (sysTime() - t1) / (sysTime() - t) << "\n";
+    //std::cout << "align_time_block " << (sysTime() - t1) / (sysTime() - t) << "\n";
     return 0; //score;
 }
 int align_cord (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,

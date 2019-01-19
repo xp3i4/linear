@@ -1560,7 +1560,7 @@ inline int c_stream_(String<Dna5> & seq,
         if (++count == step)  //collecting every step bases
         {
             //TODO: k - getT(shape)
-            std::cout << "[]::val " << std::bitset<64>(val) << "\n";
+            //std::cout << "[]::val " << std::bitset<64>(val) << "\n";
             g_hs_setGhs_(g_hs[g_hs_start + i++], val, type, 0, k);
             //std::cout << "[]::c_stream_ " << k << " " << start << " " << k - start<< "\n";
             count = 0;
@@ -1631,7 +1631,7 @@ inline int c_create_anchor_block_ (String<uint64_t> & g_hs,
         dx_lower = x_lower - anchor_x;
         dx_upper = x_upper - anchor_x;
     }
-    std::cout << "[]::create_anchorsx " << dx_lower << " " << dx_upper << "\n";
+    //std::cout << "[]::create_anchorsx " << dx_lower << " " << dx_upper << "\n";
     for (int i = p1; i < p2; i++) 
     {
         int dx = g_hs_getCord(g_hs[i]) - anchor_x;
@@ -1642,7 +1642,7 @@ inline int c_create_anchor_block_ (String<uint64_t> & g_hs,
             if (d_anchor <= std::max(std::abs(dx) >> band_level, band_lower) && dx < dx_upper && dx > dx_lower)
             //if ( dx < dx_upper && dx > dx_lower)
             {
-                std::cout << "[]::c_create_anchors_ " << anchor_x << " " << anchor_y << " " << dx << " " << dy << " " << d_anchor << " |dx| >> band_level " << (std::abs(dx) >> band_level) << " " << band_level << " " << band_lower<< "\n";
+                //std::cout << "[]::c_create_anchors_ " << anchor_x << " " << anchor_y << " " << dx << " " << dy << " " << d_anchor << " |dx| >> band_level " << (std::abs(dx) >> band_level) << " " << band_level << " " << band_lower<< "\n";
                 c_2Anchor_(g_anchor[g_anchor_end++], g_hs[i], g_hs[j]);
             }
         }   
@@ -1723,7 +1723,7 @@ inline int64_t c_clip_anchors_ (String<uint64_t> & anchor,
     std::sort (begin(anchor), begin(anchor) + anchor_end);
     for (int k = 0; k < anchor_end + 1; k++)
     {
-        std::cout << "[]::anv << " << (int64_t)(g_hs_anchor_getAnchor(anchor[k]) - gs_start + gr_start) << " " << int64_t(g_hs_anchor_getX(anchor[k]) - gs_start) << " " << g_hs_anchor_getY(anchor[k]) << "\n";
+        //std::cout << "[]::anv << " << (int64_t)(g_hs_anchor_getAnchor(anchor[k]) - gs_start + gr_start) << " " << int64_t(g_hs_anchor_getX(anchor[k]) - gs_start) << " " << g_hs_anchor_getY(anchor[k]) << "\n";
         uint64_t dx = std::abs(g_anchor_dx_(anchor[k], anchor[k + 1]));
         uint64_t dy = g_hs_anchor_getY(anchor[k + 1] - anchor[k]);
         int64_t da = g_anchor_da_(anchor[k], anchor[k + 1]);
@@ -1737,7 +1737,7 @@ inline int64_t c_clip_anchors_ (String<uint64_t> & anchor,
             //{
                 //last_k = start_k;
                 last_k = k - ct_conts ;
-                std::cout << "[]::ax << " << (int64_t)(g_hs_anchor_getAnchor(anchor[last_k]) - gs_start + gr_start) << " " << g_hs_anchor_getX(anchor[last_k]) << " " << ct_conts << "\n";
+                //std::cout << "[]::ax << " << (int64_t)(g_hs_anchor_getAnchor(anchor[last_k]) - gs_start + gr_start) << " " << g_hs_anchor_getX(anchor[last_k]) << " " << ct_conts << "\n";
                 uint64_t x = g_hs_anchor_getX(anchor[last_k]) - gs_start;
                 uint64_t y = g_hs_anchor_getY(anchor[last_k]) - gr_start;
                 //operation I: data structure of anchor is changed 
@@ -1765,7 +1765,7 @@ inline int64_t c_clip_anchors_ (String<uint64_t> & anchor,
         int sum_conts = c_conts;
         int seg_len = 0;
         int flag = 0;
-        std::cout <<"[]::axit new " << x0 << " " << y0 << " " << sum_conts << " <<<<<<<<<<<<<<<<<\n";
+        //std::cout <<"[]::axit new " << x0 << " " << y0 << " " << sum_conts << " <<<<<<<<<<<<<<<<<\n";
         int start = i + 1;
         int dj = 0;
         int64_t end_record = 0;
@@ -1781,7 +1781,7 @@ inline int64_t c_clip_anchors_ (String<uint64_t> & anchor,
                 sum_conts += c_conts;
                 seg_len += x1 - x0;
                 sc += c_sc_(pre_c_conts, x1 - x0);
-                std::cout <<"[]::axit " << x1 << " " << y1 << " " << d_anc << " conts " << c_conts << " " << x1 - pre_end << " " << pre_c_conts << " " << x1 - x0 << " "<< sc << "\n";
+                //std::cout <<"[]::axit " << x1 << " " << y1 << " " << d_anc << " conts " << c_conts << " " << x1 - pre_end << " " << pre_c_conts << " " << x1 - x0 << " "<< sc << "\n";
                 x0 = x1; y0 = y1;
                 pre_end = x1 + c_conts;
                 ++dj;
@@ -1800,13 +1800,13 @@ inline int64_t c_clip_anchors_ (String<uint64_t> & anchor,
         {
             max_ac = anchor[i];
             max_sc = sc;
-            std::cout << "[]return ax " << (max_ac >> bit) << " " << (max_ac & mask1) << "\n";
+     //       std::cout << "[]return ax " << (max_ac >> bit) << " " << (max_ac & mask1) << "\n";
             return int64_t((((max_ac >> bit) & mask1) << 32) + (max_ac & mask1));
         }
-        std::cout << "[]::axit3 " << sum_conts << " " << seg_len << " " << sc << "\n";
+        //std::cout << "[]::axit3 " << sum_conts << " " << seg_len << " " << sc << "\n";
         it -= dj;
     } 
-    std::cout << "[]::ax sc <<<<<<<<<<<<<<<<<<< " << max_sc << " " << (max_ac >> bit) << " " << (max_ac >> bit) + gs_start << " " << (max_ac & mask1) << "\n";
+    //std::cout << "[]::ax sc <<<<<<<<<<<<<<<<<<< " << max_sc << " " << (max_ac >> bit) << " " << (max_ac >> bit) + gs_start << " " << (max_ac & mask1) << "\n";
     return 0;
 }
 
@@ -1889,7 +1889,6 @@ inline uint64_t c_clip_anchors_precise(String<uint64_t> & anchor,
     std::sort (begin(anchor), begin(anchor) + anchor_end);
     for (int k = 0; k < anchor_end; k++)
     {
-        std::cout << "[]::anv << " << (int64_t)(g_hs_anchor_getAnchor(anchor[k]) - gs_start + gr_start) << " " << int64_t(g_hs_anchor_getX(anchor[k]) - gs_start) << " " << int64_t(g_hs_anchor_getY(anchor[k]) - gr_start) << "\n";
         uint64_t dx = std::abs(g_anchor_dx_(anchor[k], anchor[k + 1]));
         uint64_t dy = g_hs_anchor_getY(anchor[k + 1] - anchor[k]);
         int64_t da = g_anchor_da_(anchor[k], anchor[k + 1]);
@@ -1900,7 +1899,6 @@ inline uint64_t c_clip_anchors_precise(String<uint64_t> & anchor,
         else
         {
             last_k = k - ct_conts ;
-            std::cout << "[]::ax << " << (int64_t)(g_hs_anchor_getAnchor(anchor[last_k]) - gs_start + gr_start) << " " << g_hs_anchor_getX(anchor[last_k]) << " " << ct_conts << "\n";
             uint64_t x = g_hs_anchor_getX(anchor[last_k]) - gs_start;
             uint64_t y = g_hs_anchor_getY(anchor[last_k]) - gr_start;
             anchor[it++] = (x << bit) + ((ct_conts + 1) << g_hs_anchor_bit1) + y;
@@ -1909,10 +1907,7 @@ inline uint64_t c_clip_anchors_precise(String<uint64_t> & anchor,
         }
     }
     std::sort(begin(anchor), begin(anchor) + it, std::greater<uint64_t>());
-    for (int i = 0; i < it - 1; i++)
-    {
-        std::cout << "sort anchor it " << (anchor[i] >> bit) << " " << ((anchor[i] >> bit1) & mask1) << " " << (anchor[i] & mask1) << " " << it << " " << anchor_end << "\n";
-    }
+
     int64_t itgenome = 0;
     int64_t itread = 0;
     for (int i = 0; i < it - 1; i++)
@@ -1925,7 +1920,6 @@ inline uint64_t c_clip_anchors_precise(String<uint64_t> & anchor,
         int64_t nxt_end = x0 + c_conts;
         int sum_conts = c_conts;
         int seg_len = 0;
-        std::cout <<"[]::axit new " << x0 << " " << y0 << " " << sum_conts << " <<<<<<<<<<<<<<<<<\n";
         int dj = 0;
         int width_count = 0;
         int64_t x1;
@@ -1947,7 +1941,6 @@ inline uint64_t c_clip_anchors_precise(String<uint64_t> & anchor,
                 sum_conts += c_conts;
                 seg_len += x0 - x1;
                 sc += c_sc_(nxt_c_conts, x0 - x1);
-                std::cout <<"[]::axit " << x1 << " " << y1 << " " << d_anc << " conts " << c_conts << " " << x1 - nxt_end << " " << nxt_c_conts << " " << x1 - x0 << " "<< sc << "\n";
                 x0 = x1; y0 = y1;
                 x_end = x1;
                 y_end = y1;
@@ -1960,16 +1953,13 @@ inline uint64_t c_clip_anchors_precise(String<uint64_t> & anchor,
             }
         }
         sc += c_sc_(nxt_c_conts, nxt_c_conts);
-        std::cout << "[]::axit3 " << sum_conts << " " << seg_len << " " << sc << "\n";
         it -= dj;
         if (sum_conts > 15)
         {
-            std::cout << "[]::sc2 " << sum_conts << "\n";
             itgenome = x_end;
             itread = y_end;
         }
     } 
-    std::cout << "[]::ax sc <<<<<<<<<<<<<<<<<<< " << itgenome << " " << itread << "\n";
     return (itgenome << 32) + itread;
 //    return 0;
     ///clip by sliding windows
@@ -2093,28 +2083,13 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
             if (c_isGapMatch_2anchor_(anchors[n], j, i, dv, tn[m - 1], tn[m], ln[m - 1], ln[m], c_shape_len3))
             {
                 n++;
-            std::cout << "[]::c_clip_extend_gap2_ v " 
-            << i << " "
-            << j << " "
-            << i_delta << " "
-            << " jEnd - jBegin =" << jEnd - jBegin << " "
-            << int2str(couts, hVal_read, 4) << " ";
-            std::cout << int2str(couts, hs[j - 1], 4) << " ";
-            std::cout << int2str(couts, hs[j], 4) << " "
-            << hVal_read << " " 
-            << " dv=" 
-            << dv << " " 
-            << tn[m - 1] << " "
-            << tn[m] << " " 
-            << ln[m - 1] << " " 
-            << ln[m] << " \n"; 
             }
             m++;
         }
     }
     //merge anchors 
     //extend mapping until clipping
-    std::cout << "[]::c_clip_extend_gap2_ anchors_len " << n << "\n";
+    //std::cout << "[]::c_clip_extend_gap2_ anchors_len " << n << "\n";
     if (n == 0)
     {
         return 0; //process the first block in anchors
@@ -2147,14 +2122,8 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
     {
         next_y = hs_len_read - c_shape_len3;
     }
-    std::cout << "clip<<<<<<<<<<<<<<<<" << hs_len_read << " " << next_y << "\n";
-    //direction::
-    //int w1 = 0, w2 = 1
-    //if (clip_direction == -1)
-    //{
-    //    w1 = n - 1;
-    //    w2 = -1;
-    //}
+    //std::cout << "clip<<<<<<<<<<<<<<<<" << hs_len_read << " " << next_y << "\n";
+
     for (int i = n - 1; i >= 0; i--)
     {
         //int i = w1 + k * w2; //flip k if the clip_direction is -1
@@ -2173,7 +2142,7 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
                     {
                         //direction::
                         drop_count += range;
-                        std::cout << "xxxxlen4 " << drop_count << " " << ex_y[0] << " " << g_hs_anchor_getY(anchors[i]) << "\n";
+                        //std::cout << "xxxxlen4 " << drop_count << " " << ex_y[0] << " " << g_hs_anchor_getY(anchors[i]) << "\n";
                         if (drop_count >= thd_merge_drop)
                         {
                             break;
@@ -2199,7 +2168,7 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
         {
             if (i == its[itsk + 1])//reach end of current block
             {
-                std::cout << "xxxxlen 1| " << i << " " << its[itsk + 1] << " " << itsk << " " << tmp_n << " " << ex_len << " " << drop_count << " \n";
+                //std::cout << "xxxxlen 1| " << i << " " << its[itsk + 1] << " " << itsk << " " << tmp_n << " " << ex_len << " " << drop_count << " \n";
                 if (tmp_n > 0)          //there exists new merges
                 {
                     for (int j = 0; j < tmp_n; j++)
@@ -2207,7 +2176,7 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
                         ex_x[j] = tmp_x[j];
                         ex_y[j] = tmp_y[j];
                     }
-                    std::cout << "ex tmp " << ex_len << "\n";
+                    //std::cout << "ex tmp " << ex_len << "\n";
                     ex_len = tmp_n;
                     tmp_n = 0;
                     flag = 1;
@@ -2215,14 +2184,14 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
                     i = its[itsEnd] + 1; 
                     pre_anchor = anchors[i];
                     itsk = 0;
-                    std::cout << "[]::c_clip_extend_gap2_ v merge End " << i << " " << itsk << "\n";
+                    //std::cout << "[]::c_clip_extend_gap2_ v merge End " << i << " " << itsk << "\n";
                 }
                 else 
                 {
                     if (itsk < 1 ) //if last block of current range
                     {
                         drop_count += c_shape_len3;
-                        std::cout << "xxxxlen 3| " << drop_count << " " << ex_x[0] << " " << ex_y[0] << "\n";
+                        //std::cout << "xxxxlen 3| " << drop_count << " " << ex_x[0] << " " << ex_y[0] << "\n";
                         if (drop_count >= thd_merge_drop) //large gap to clip
                         {
                             break; 
@@ -2246,7 +2215,7 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
             {
                 short x = short(g_hs_anchor_getX(anchors[i]));
                 short y = short(g_hs_anchor_getY(anchors[i]));
-                std::cout << "xxxxlen 2| " << i << " " << its[itsk + 1] << " " << x << " " << g_hs_anchor_getY(anchors[i]) << " " << ex_len << "\n";
+                //std::cout << "xxxxlen 2| " << i << " " << its[itsk + 1] << " " << x << " " << g_hs_anchor_getY(anchors[i]) << " " << ex_len << "\n";
                 for (int j = 0; j < ex_len; j++)
                 {
                     short delta_x = ex_x[j] - x;
@@ -2355,7 +2324,7 @@ inline int64_t c_clip_(String<Dna5> & genome,
     int dyt = (ex_d & ((1ULL << 32) - 1));
     dx -= extend_window - (ex_d >> 32);
     dy -= extend_window -dyt; 
-    std::cout << "[]::clip_result " << dx << " " << dy << " " << dyt << "\n";
+    //std::cout << "[]::clip_result " << dx << " " << dy << " " << dyt << "\n";
     if (p1 == 1) //p1 is for debug control
     {
 		clip = _DefaultCord.createCord(_createSANode(genomeId, gs_start + dx), 
@@ -2396,7 +2365,7 @@ inline int g_alignGap_(String<Dna5> & seq,
                         int p1
 )
 {
-    std::cout << "[]::g_align_gap_::begin " << length(tiles) << " " << r_end - r_start << " " << g_end - g_start << " " << r_start << " " << r_end << " " << length(read)<< "\n";
+    //std::cout << "[]::g_align_gap_::begin " << length(tiles) << " " << r_end - r_start << " " << g_end - g_start << " " << r_start << " " << r_end << " " << length(read)<< "\n";
     /// Insert a head tile and tail tile, so all tiles from the original tiles can be processed in one for loop
     /// The inserted head tile and tail tile will be removed at the end of the function, so it will affect the original tiles.
     
@@ -2434,7 +2403,7 @@ inline int g_alignGap_(String<Dna5> & seq,
             sv_flags[i - 1] |= g_sv_inv + g_sv_r;
             sv_flags[i] |= g_sv_inv + g_sv_l;
             sv_exists = 1;
-            std::cout << "[]::g_align_gap_::sv_type 1 " << "\n";
+            //std::cout << "[]::g_align_gap_::sv_type 1 " << "\n";
             continue;
         }
         int64_t distance_x = tile_distance_x(tiles[i - 1], tiles[i]);
@@ -2444,7 +2413,7 @@ inline int g_alignGap_(String<Dna5> & seq,
             sv_flags[i - 1] |= g_sv_ins + g_sv_r;
             sv_flags[i] |= g_sv_ins + g_sv_l;
             sv_exists = 1;
-            std::cout << "[]::g_align_gap_::sv_type 2 " << distance_x << " " << distance_y << "\n";
+            //std::cout << "[]::g_align_gap_::sv_type 2 " << distance_x << " " << distance_y << "\n";
             continue;
         }
         if (distance_y - distance_x > window_size)
@@ -2452,7 +2421,7 @@ inline int g_alignGap_(String<Dna5> & seq,
             sv_flags[i - 1] |= g_sv_del + g_sv_r;
             sv_flags[i] |= g_sv_del + g_sv_l;
             sv_exists = 1;
-            std::cout << "[]::g_align_gap_::sv_type 3 " << distance_x << " " << distance_y << "\n";
+            //std::cout << "[]::g_align_gap_::sv_type 3 " << distance_x << " " << distance_y << "\n";
         }
     }
     switch (direction)
@@ -2507,7 +2476,7 @@ inline int g_alignGap_(String<Dna5> & seq,
                 //clip = clip_window (seq, read, comstr, genomeId, cgstart, cgend, crstart, crend, crstrand, band, 1); 
                 ///kmer clip without alignment
                 clip = c_clip_ (seq, read, comstr, cgstart, cgend, crstart, crend, crstrand, genomeId, g_hs, g_hs_anchor, band, p1, 1);   
-                std::cout << "xxgnomeid " << _getSA_i1(_DefaultCord.getCordX(clip)) << "\n";
+                //std::cout << "xxgnomeid " << _getSA_i1(_DefaultCord.getCordX(clip)) << "\n";
                 appendValue (clips, clip);
             }
             if ((sv_flags[i] & g_sv_r) && !(sv_flags[i + 1] & g_sv_l))
@@ -2724,7 +2693,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
         {
             mapGap_(seqs, read, comstr, cords[i - 1], cords[i], 
                     g_hs, g_anchor, f1, f2, thd_gap, thd_tileSize, tiles, clips, g_align_closed, p1);
-        std::cout << "[]::mapGaps::map_middle " << _defaultTile.getX(cords[i]) - _defaultTile.getX(cords[i - 1]) << " " << length(tiles) * 144 << "\n";
+            //std::cout << "[]::mapGaps::map_middle " << _defaultTile.getX(cords[i]) - _defaultTile.getX(cords[i - 1]) << " " << length(tiles) * 144 << "\n";
             if (length(tiles) > 0)
             {
                 insert(cords, i, tiles);

@@ -434,7 +434,7 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index & index,
                 path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
             }   
             gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, 300, 192, p1);
-            align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
+            //align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
         }   
         c += 1;
     } 
@@ -447,10 +447,6 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index & index,
             append(bam_records, bam_records_tmp);
         }
     
-}
-for (int k = 0; k < length(gap_len); k++)
-{
-    std::cout << "[] gap len " << gap_len[k] << " " << red_len[k] << " " << float(gap_len[k]) / red_len[k] << "\n";
 }
     //std::cerr << "    End raw mapping. Time[s]: " << sysTime() - time << std::flush << std::endl;
     return 0;
