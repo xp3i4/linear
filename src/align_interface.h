@@ -476,19 +476,11 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
         it1++; 
         it2++;
     }
-    for (int i = 0; i < std::min(length(align1), length(align2)); i++)
-    {
-        int x1 = (align1[i] >> bit & mask);
-        int y1 = (align1[i] & mask);
-        int x2 = (align2[i] >> bit & mask);
-        int y2 = (align2[i] & mask);
-    }
 
     int thd_merge_x = 2, thd_merge_y = 2;
     int flag = 0, start_j = 0;
-    int x1 = (align1[0] >> bit) & mask;
-    int y1 = align1[0] & mask;flag = 0;
-    int x1_next, y1_next;
+    int64_t x1 = (align1[0] >> bit) & mask;
+    int64_t y1 = align1[0] & mask;flag = 0;
 	for (int i = 0; i < length(align1) - 1; i++)	
 	{
 		int64_t x1_next = (align1[i + 1] >> bit) & mask;
@@ -524,6 +516,7 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
         x1 = x1_next;
         y1 = y1_next;
 	}
+
     return 1;
 }
 void clipCigar(String<CigarElement<> > & cigar)
@@ -568,6 +561,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         if (!_DefaultCord.getCordStrand(cords[i - 1] ^ cords[i]) && 
             !_DefaultHit.isBlockEnd(cords[i - 1]))
         {
+            
             int flag = clipMerge_aligner(
                               row(aligner, ri_pre), 
                               row(aligner, ri_pre + 1),
@@ -578,15 +572,19 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                               _DefaultCord.getCordY(cords[i - 1]),
                               _DefaultCord.getCordY(cords[i])
                              );
+                             
 //TODO clip if merge failed
+            /*
             setBamRecord(back(bam_records),
                            row(aligner, ri_pre), 
                            row(aligner, ri_pre + 1),
                            g_id,
                            g_beginPos);
+                           */
         }
         else //else clip the alignment (append a new row in cigar_record)
         {   
+            /*
             if (i > 1)
             {
                 setBamRecord(back(bam_records),
@@ -594,21 +592,22 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                                row(aligner, ri_pre + 1),
                                g_id,
                                g_beginPos);
-                int n = length(read) * strand - _nStrand(strand) * (_DefaultCord.getCordY(cords[i]) + endPosition(row(aligner, ri + 1)));
-                appendValue(back(bam_records).cigar, CigarElement<>('S', n));
+                //int n = length(read) * strand - _nStrand(strand) * (_DefaultCord.getCordY(cords[i]) + endPosition(row(aligner, ri + 1)));
+                //appendValue(back(bam_records).cigar, CigarElement<>('S', n));
             }
+            */
             resize(bam_records, length(bam_records) + 1);
-            int n = length(read) * strand - _nStrand(strand) * (_DefaultCord.getCordY(cords[i]) + beginPosition(row(aligner, ri + 1)));
-            appendValue(back(bam_records).cigar, CigarElement<>('S', n));
-            back(bam_records).flag = (back(bam_records).flag & (~16)) | (_DefaultCord.getCordStrand(cords[i]) << 4); 
+            //int n = length(read) * strand - _nStrand(strand) * (_DefaultCord.getCordY(cords[i]) + beginPosition(row(aligner, ri + 1)));
+            //appendValue(back(bam_records).cigar, CigarElement<>('S', n));
+            //back(bam_records).flag = (back(bam_records).flag & (~16)) | (_DefaultCord.getCordStrand(cords[i]) << 4); 
         }
         std::swap (ri, ri_pre); //swap the current and pre row id in the aligner.
     }
-    setBamRecord(back(bam_records),
-               row(aligner, ri_pre), 
-               row(aligner, ri_pre + 1),
-               g_id,
-               g_beginPos); //handle the last cord 
+    //setBamRecord(back(bam_records),
+    //           row(aligner, ri_pre), 
+    //           row(aligner, ri_pre + 1),
+    //           g_id,
+    //           g_beginPos); //handle the last cord 
     std::cout << "align_time " << t2/(sysTime() - t3) << "\n";
     return 0;
 }
