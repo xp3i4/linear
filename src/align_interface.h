@@ -574,17 +574,14 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                              );
                              
 //TODO clip if merge failed
-            /*
             setBamRecord(back(bam_records),
                            row(aligner, ri_pre), 
                            row(aligner, ri_pre + 1),
                            g_id,
                            g_beginPos);
-                           */
         }
         else //else clip the alignment (append a new row in cigar_record)
         {   
-            /*
             if (i > 1)
             {
                 setBamRecord(back(bam_records),
@@ -592,22 +589,21 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                                row(aligner, ri_pre + 1),
                                g_id,
                                g_beginPos);
-                //int n = length(read) * strand - _nStrand(strand) * (_DefaultCord.getCordY(cords[i]) + endPosition(row(aligner, ri + 1)));
-                //appendValue(back(bam_records).cigar, CigarElement<>('S', n));
+                int n = length(read) * strand - _nStrand(strand) * (_DefaultCord.getCordY(cords[i]) + endPosition(row(aligner, ri + 1)));
+                appendValue(back(bam_records).cigar, CigarElement<>('S', n));
             }
-            */
             resize(bam_records, length(bam_records) + 1);
-            //int n = length(read) * strand - _nStrand(strand) * (_DefaultCord.getCordY(cords[i]) + beginPosition(row(aligner, ri + 1)));
-            //appendValue(back(bam_records).cigar, CigarElement<>('S', n));
-            //back(bam_records).flag = (back(bam_records).flag & (~16)) | (_DefaultCord.getCordStrand(cords[i]) << 4); 
+            int n = length(read) * strand - _nStrand(strand) * (_DefaultCord.getCordY(cords[i]) + beginPosition(row(aligner, ri + 1)));
+            appendValue(back(bam_records).cigar, CigarElement<>('S', n));
+            back(bam_records).flag = (back(bam_records).flag & (~16)) | (_DefaultCord.getCordStrand(cords[i]) << 4); 
         }
         std::swap (ri, ri_pre); //swap the current and pre row id in the aligner.
     }
-    //setBamRecord(back(bam_records),
-    //           row(aligner, ri_pre), 
-    //           row(aligner, ri_pre + 1),
-    //           g_id,
-    //           g_beginPos); //handle the last cord 
+    setBamRecord(back(bam_records),
+               row(aligner, ri_pre), 
+               row(aligner, ri_pre + 1),
+               g_id,
+               g_beginPos); //handle the last cord 
     std::cout << "align_time " << t2/(sysTime() - t3) << "\n";
     return 0;
 }
