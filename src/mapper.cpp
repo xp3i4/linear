@@ -381,6 +381,8 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index & index,
     red_len[i] = 0;
 }
     //double time2 = sysTime();
+int su = 0;
+int64_t len = 0;
 #pragma omp parallel
 {
     unsigned size2 = length(reads) / threads;
@@ -409,7 +411,6 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index & index,
     String<uint64_t> bands;
     resize (g_hs, 1ULL << 20);
     resize (g_anchor, 1ULL<<20);
-
     #pragma omp for
     for (unsigned j = 0; j < length(reads); j++)
     {
