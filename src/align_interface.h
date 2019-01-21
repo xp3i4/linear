@@ -526,10 +526,46 @@ int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     
     return 2;
 }
-void clipCigar(String<CigarElement<> > & cigar)
-{
 
+int clip_cigar (String<CigarElement<> > & cigar)
+{
+    int x = 0, y = 0;
+    int score = 0; 
+    for (int i = 0; i < length(cigar); i++)
+    {
+
+        switch(cigar[i].operation)
+        {
+            case 'D':
+                x += cigar[i].count;
+                break;
+            case 'I':
+                y += cigar[i].count;
+                break;
+            case '=':
+                x += cigar[i].count;
+                y += cigar[i].count;
+                break;
+            case 'X':
+                x += cigar[i].count;
+                y += cigar[i].count;  
+                break;
+            case 'M':
+                return 1;        //'M' is not allowed in the function
+            case 'S': 
+                break;
+            case 'N':
+                break;
+            case 'P':
+                break;
+            default:
+                return 2;
+        }
+        std::cout << "[]::clip_cigar "  << " " << x << " " << y << " " << cigar[i].count << cigar[i].operation << "\n";
+    }
+    return 0;
 }
+
 /*
  * Align cords and output cigar string.
  * Each cord will be clipped if necessary. 
