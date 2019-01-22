@@ -235,7 +235,6 @@ inline bool Cord::print(typename Cord::CordSet const & cords, std::ostream & of,
     return true;
 }
 
-
 //======HIndex getIndexMatch()
 
 //WARNING:The length of read should be < 1MB;

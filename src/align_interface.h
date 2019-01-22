@@ -544,7 +544,6 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                 ) 
 {
     Align<String<Dna5>, ArrayGaps> aligner;
-    BamAlignmentRecord bam_record;
     int head_end = block_size >> 2;// * 0.25
     int tail_start = block_size - (block_size >> 2);
     int ri = 0, ri_pre = 2; //cliped segment and row id
@@ -553,8 +552,10 @@ int align_cords (StringSet<String<Dna5> >& genomes,
     int strand = 0;
     resize(rows(aligner), 4); 
     double t1, t2 = 0, t3 = sysTime();
-    BamAlignmentRecord new_bam_record;
-    resize(bam_records, 1);
+    if (length(cords) < 2) // cords is empty
+    {
+        return 0;
+    }
     for (int i = 1; i < (int)length(cords); i++)
     {
 //TODO::need to algin gaps 
@@ -583,11 +584,6 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                               _DefaultCord.getCordY(cords[i])
                              );
 //TODO clip if merge failed
-            if (length(bam_records) == 0)
-            {
-                std::cout << "[errro " << i << " \n";
-                return 0;
-            }
             setBamRecord(back(bam_records),
                            row(aligner, ri_pre), 
                            row(aligner, ri_pre + 1),
@@ -596,31 +592,27 @@ int align_cords (StringSet<String<Dna5> >& genomes,
 
         }
         
-       // else //else clip the alignment (append a new row in cigar_record)
-       // {   
-           // if (i > 1)
-           // {
-               /* 
+        else //else clip the alignment (append a new row in cigar_record)
+        {   
+            if (i > 1)
+            {
                 setBamRecord(back(bam_records),
                                row(aligner, ri_pre), 
                                row(aligner, ri_pre + 1),
                                g_id,
                                g_beginPos);
-                               */
                                
                 //int n = length(read) * strand - _nStrand(strand) * (_DefaultCord.getCordY(cords[i]) + endPosition(row(aligner, ri + 1)));
                 //appendValue(back(bam_records).cigar, CigarElement<>('S', n));
-            //}
-            //resize(bam_records, length(bam_records) + 1);
-            //clear(new_bam_record);
-            //appendValue(bam_records, new_bam_record);
+            }
+            resize(bam_records, length(bam_records) + 1);
             //int n = length(read) * strand - _nStrand(strand) * (_DefaultCord.getCordY(cords[i]) + beginPosition(row(aligner, ri + 1)));
             //appendValue(back(bam_records).cigar, CigarElement<>('S', n));
-            //back(bam_records).flag = (back(bam_records).flag & (~16)) | (_DefaultCord.getCordStrand(cords[i]) << 4); 
-        //}
+            back(bam_records).flag = (back(bam_records).flag & (~16)) | (_DefaultCord.getCordStrand(cords[i]) << 4); 
+        }
         std::swap (ri, ri_pre); //swap the current and pre row id in the aligner.
     }
-    setBamRecord(new_bam_record,
+    setBamRecord(back(bam_records),
                row(aligner, ri_pre), 
                row(aligner, ri_pre + 1),
                g_id,
