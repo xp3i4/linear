@@ -205,7 +205,6 @@ inline int align_block (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
                        )
 {
     //std::cout << "align len " << readStart << " " << readEnd << "\n";
-    double t = sysTime();
     Infix<String<Dna5> >::Type infix1;  
     Infix<String<Dna5> >::Type infix2;  
     if (strand)
@@ -219,9 +218,9 @@ inline int align_block (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     infix1 = infix(genome, genomeStart, std::min(genomeEnd, length(genome)));   
     assignSource (row1, infix1);  
     assignSource (row2, infix2); 
-    double t1 = sysTime();
     int score = globalAlignment(row1, row2, Score<int, Simple> (s1, s2, s3), AlignConfig<true, true, true, true>(), -band, band);
-    //std::cout << "align_time_block " << (sysTime() - t1) / (sysTime() - t) << "\n";
+    std::cout << "[]::align_block " << clippedBeginPosition(row1) << " " << clippedBeginPosition(row2) << std::endl;
+    std::cout << row1 << "\n" << row2 << "\n";
     return 0; //score;
 }
 int align_cord (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
@@ -290,12 +289,14 @@ int clip_head_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     int x = 0;
     int maxx = 0, maxxp = 0;
     int clip_start = clippedBeginPosition(row1);
+    int flag = 0;
+    int shift_head_len = -1;
     TRowIterator it1 = begin(row1);
     TRowIterator it2 = begin(row2);
     TRowIterator it1_2 = it1, it2_2 = it2; 
     if (clip_start > g_end - clip_start)
     {
-    	return 1;
+    	return -1;
     }
     for (int i = 0; i < window; i++)
     {
@@ -316,10 +317,16 @@ int clip_head_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     	}
     	if (*it1 == *it2)
     	{
+
     		++x;
     	}
     	if (*it1_2 == *it2_2)
     	{
+            if (!flag)
+            {
+                shift_head_len = k;     //get fist match as len of free gap at the head
+                flag = 1;
+            }
     		--x;
     	}
     	if (maxx < x)
@@ -334,7 +341,7 @@ int clip_head_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     }
 	setClippedBeginPosition(row1, maxxp);
 	setClippedBeginPosition(row2, maxxp);
-    return 0;
+    return shift_head_len;
 }
 
 int clip_tail_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
@@ -353,13 +360,15 @@ int clip_tail_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     int maxx = 0, maxxp = 0;
     int clip_start = clippedBeginPosition(row1);
     int clip_end = clippedEndPosition(row1);
+    int flag = 0;
+    int shift_tail_len = -1;
     it1 = end(row1) - 1;
    	it2 = end(row2) - 1;
    	it1_2 = it1;
    	it2_2 = it2;
     if (clip_end < g_start - clip_start)
     {
-    	return 1;
+    	return -1;
     }
     for (int i = 0; i < window; i++)
     {
@@ -384,6 +393,11 @@ int clip_tail_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     	}
     	if (*it1_2 == *it2_2)
     	{
+            if (!flag)
+            {
+                shift_tail_len = k;     //get fist match as len of free gap at the tail
+                flag = 1;
+            } 
     		--x;
     	}
     	if (maxx < x)
@@ -398,7 +412,7 @@ int clip_tail_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     }
     setClippedEndPosition(row1, maxxp);
     setClippedEndPosition(row2, maxxp);
-    return 0;
+    return shift_tail_len;
 }
 
 int clipMerge_aligner(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
