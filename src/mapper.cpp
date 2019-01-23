@@ -465,7 +465,7 @@ int map(Mapper<TDna, TSpec> & mapper, int p1)
     createFeatures(mapper.genomes(), f2, mapper.thread());
     SeqFileIn rFile(toCString(mapper.readPath()));
     unsigned k = 1, j = 0;
-    unsigned blockSize = p1; //50000;
+    unsigned blockSize = 50000;
     StringSet<String<char> > dotstatus;
     resize(dotstatus, 3);
     dotstatus[0] = ".   ";

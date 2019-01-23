@@ -22,4 +22,5 @@ void writeSam(std::ofstream & target,
               CharString genome_id,
               CharString genome_id_next = "*"
              );
+int clip_cigar (String<CigarElement<> > & cigar);
 #endif
