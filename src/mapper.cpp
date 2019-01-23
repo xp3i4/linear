@@ -381,6 +381,8 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index & index,
     red_len[i] = 0;
 }
     //double time2 = sysTime();
+int su = 0;
+int64_t len = 0;
 #pragma omp parallel
 {
     unsigned size2 = length(reads) / threads;
@@ -409,7 +411,6 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index & index,
     String<uint64_t> bands;
     resize (g_hs, 1ULL << 20);
     resize (g_anchor, 1ULL<<20);
-
     #pragma omp for
     for (unsigned j = 0; j < length(reads); j++)
     {
@@ -447,10 +448,6 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index & index,
             append(bam_records, bam_records_tmp);
         }
     
-}
-for (int k = 0; k < length(gap_len); k++)
-{
-    std::cout << "[] gap len " << gap_len[k] << " " << red_len[k] << " " << float(gap_len[k]) / red_len[k] << "\n";
 }
     //std::cerr << "    End raw mapping. Time[s]: " << sysTime() - time << std::flush << std::endl;
     return 0;
@@ -505,7 +502,6 @@ int map(Mapper<TDna, TSpec> & mapper, int p1)
     print_clip_gvf(mapper);
     return 0;
 }
-
 int main(int argc, char const ** argv)
 {
     double time = sysTime();
