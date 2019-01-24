@@ -54,6 +54,7 @@ struct CordBase
     typedef unsigned Size;
     
     Bit bit;
+    unsigned bit2;
     Mask mask;
     Mask maskx;
     Mask valueMask;
@@ -66,7 +67,8 @@ struct CordBase
     Mask valueMask_dstr;
     
     CordBase():
-        bit(20),    
+        bit(20),
+        bit2(60),
         mask(0xfffff),
         maskx(0xffffffffff),
         valueMask((1ULL<< 60) - 1),
@@ -105,7 +107,9 @@ struct Cord
     uint64_t getMaxLen(String<uint64_t> const &, uint64_t const & = _DefaultCordBase.mask);
     uint64_t shift(uint64_t & val, int64_t x, int64_t y, unsigned const & = _DefaultCordBase.bit); //add x and y
 
-    
+    bool isCordsOverlap(uint64_t & val1, uint64_t & val2, int64_t thd);
+    bool isBlockEnd(uint64_t &, uint64_t const & = _DefaultCordBase.bit2);
+
     bool print (CordString const &, std::ostream & = std::cout, CordBase const & = _DefaultCordBase) const;
     bool print (CordSet const &, std::ostream & = std::cout, CordBase const & = _DefaultCordBase) const;
     bool printAlignmentMatrix(CordSet const &,  CordBase const & ) const;
@@ -208,6 +212,18 @@ inline uint64_t Cord::getMaxLen(String<uint64_t> const & cord, uint64_t const & 
 inline uint64_t Cord::shift(uint64_t & val, int64_t x, int64_t y, unsigned const & bit) //add x and y
 {
     return uint64_t((int64_t)val + (x << bit) + y);
+}
+
+inline bool Cord::isCordsOverlap(uint64_t & val1, uint64_t val2, int64_t thd)
+{
+    int64_t dx = _DefaultCord.getCordX(val1 - val2);
+    int64_t dy = _DefaultCord.getCordY(val1 - val2);
+    return (dx < 0) && (dx > -thd) && (dy < 0) && (dy < -thd);
+}
+
+inline bool Cord::isBlockEnd(uint64_t & val, uint64_t const & flag)
+{
+    return val & flag;
 }
 
 inline bool Cord::print(typename Cord::CordString const & cords, std::ostream & of, CordBase const & cordBase) const

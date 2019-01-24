@@ -508,7 +508,22 @@ int merge_record_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     return flag;
 }
 
-int 
+inline void insetGaps(String<Pair<uint64_t, uint64_t> > & gaps
+              uint64_t & cords,
+              uint64_t dx,
+              uint64_t dy,
+              uint64_t thd_merge_gap
+             )
+{
+    if (_DefaultCord.isCordsOverlap(back(gaps).i2, cords, thd_merge_gap))
+    {
+        back(gaps).i2 = _DefaultCord.shift(cords, dx, dy);
+    }
+    else
+    {
+        appendValue(gaps, makePair(cords, _DefaultCord.shift(cords, dx, dy)));
+    }
+}
 
 /*
  * Align cords and output cigar string.
@@ -530,6 +545,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
     int g_id = -1;
     int g_beginPos = 0;
     int strand = 0;
+    int flag = 0;
     resize(rows(aligner), 4); 
     double t1, t2 = 0, t3 = sysTime();
     if (length(cords) < 2) // cords is empty
@@ -547,7 +563,6 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         g_id = _getSA_i1(_DefaultCord.getCordX(cords[i]));
         g_beginPos = _getSA_i2(_DefaultCord.getCordX(cords[i]));
         strand = _DefaultCord.getCordStrand(cords[i]);
-        t1 = sysTime();
         int score_align = 
             align_cord (row(aligner, ri), 
                         row(aligner, ri + 1), 
@@ -555,57 +570,61 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                         read, 
                         comrevRead, 
                         cords[i]);
-        t2 += sysTime() - t1;
         clip_head_ (row(aligner, ri), row(aligner, ri + 1), head_end);
         clip_tail_ (row(aligner, ri), row(aligner, ri + 1), tail_start);
 //TODO::drop poorly aligned cord and postprocess
-        if (drop_align_(row(aligner, ri), row(aligner, ri + 1), score_align))
-        {   //drop cords that cann't be aligned and insert a gap  
+        flag = drop_align_(row(aligner, ri), row(aligner, ri + 1), score_align)
+        if (!flag)
+        {//drop cords that cann't be aligned and insert a gap  
             insetGaps(); 
         }
-        if (!_DefaultCord.getCordStrand(cords[i - 1] ^ cords[i]) && 
-            !_DefaultHit.isBlockEnd(cords[i - 1]))
+        else
         {
-            int flag = merge_align_(
-                              row(aligner, ri_pre), 
-                              row(aligner, ri_pre + 1),
-                              row(aligner, ri),
-                              row(aligner, ri + 1),
-                              _getSA_i2(_DefaultCord.getCordX(cords[i - 1])),
-                              _getSA_i2(_DefaultCord.getCordX(cords[i])),
-                              _DefaultCord.getCordY(cords[i - 1]),
-                              _DefaultCord.getCordY(cords[i])
-                             );
-//TODO clip if merge failed
-            if (!flag)
+            if (!_DefaultCord.getCordStrand(cords[i - 1] ^ cords[i]) && 
+                !_DefaultHit.isBlockEnd(cords[i - 1]) && 
+                _DefaultCord.isCordsOverlap(cords[i - 1], cords[i], block_size - 10))
             {
-                setBamRecord(back(bam_records),
-                           row(aligner, ri_pre), 
-                           row(aligner, ri_pre + 1),
-                           g_id,
-                           g_beginPos);
-            }
-            else{
-                insetGaps (); // if clipMerge_aligner failed and record cigar iterator
-            }
-        }
-        else //else clip the alignment (append a new row in cigar_record)
-        {   
-            if (i > 1)
-            {
-                setBamRecord(back(bam_records),
+                flag = merge_align_(
+                                  row(aligner, ri_pre), 
+                                  row(aligner, ri_pre + 1),
+                                  row(aligner, ri),
+                                  row(aligner, ri + 1),
+                                  _getSA_i2(_DefaultCord.getCordX(cords[i - 1])),
+                                  _getSA_i2(_DefaultCord.getCordX(cords[i])),
+                                  _DefaultCord.getCordY(cords[i - 1]),
+                                  _DefaultCord.getCordY(cords[i])
+                                 );
+    //TODO clip if merge failed
+                if (!flag)
+                {
+                    setBamRecord(back(bam_records),
                                row(aligner, ri_pre), 
                                row(aligner, ri_pre + 1),
                                g_id,
                                g_beginPos);
-                               
-                //int n = length(read) * strand - _nStrand(strand) * (_DefaultCord.getCordY(cords[i]) + endPosition(row(aligner, ri + 1)));
-                //appendValue(back(bam_records).cigar, CigarElement<>('S', n));
+                }
+                else{
+                    insetGaps (gaps, cords[i], block_size, block_size); // if clipMerge_aligner failed and record cigar iterator
+                }
             }
-            resize(bam_records, length(bam_records) + 1);
-            //int n = length(read) * strand - _nStrand(strand) * (_DefaultCord.getCordY(cords[i]) + beginPosition(row(aligner, ri + 1)));
-            //appendValue(back(bam_records).cigar, CigarElement<>('S', n));
-            back(bam_records).flag = (back(bam_records).flag & (~16)) | (_DefaultCord.getCordStrand(cords[i]) << 4); 
+            else //else clip the alignment (append a new row in cigar_record)
+            {   
+                if (i > 1)
+                {
+                    setBamRecord(back(bam_records),
+                                   row(aligner, ri_pre), 
+                                   row(aligner, ri_pre + 1),
+                                   g_id,
+                                   g_beginPos);
+                                   
+                    //int n = length(read) * strand - _nStrand(strand) * (_DefaultCord.getCordY(cords[i]) + endPosition(row(aligner, ri + 1)));
+                    //appendValue(back(bam_records).cigar, CigarElement<>('S', n));
+                }
+                resize(bam_records, length(bam_records) + 1);
+                //int n = length(read) * strand - _nStrand(strand) * (_DefaultCord.getCordY(cords[i]) + beginPosition(row(aligner, ri + 1)));
+                //appendValue(back(bam_records).cigar, CigarElement<>('S', n));
+                back(bam_records).flag = (back(bam_records).flag & (~16)) | (_DefaultCord.getCordStrand(cords[i]) << 4); 
+            }
         }
         std::swap (ri, ri_pre); //swap the current and pre row id in the aligner.
     }
