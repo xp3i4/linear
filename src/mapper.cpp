@@ -73,32 +73,6 @@ int Mapper<TDna, TSpec>::createIndex(bool efficient)
     return 0;
 }
 
-template <typename TDna, typename TSpec>
-void Mapper<TDna, TSpec>::printCords()
-{
-    std::cerr << "Writing results to disk \r";
-    double time = sysTime();
-    unsigned strand;
-    unsigned count = 0;
-    for (unsigned k = 0; k < length(cordSet); k++)
-    {
-        count++;
-        if (empty(cordSet[k]))
-            of << k << " th Strand " << "2 length " << length(reads()[k]) << "\n";
-        else
-        {
-            if (_DefaultCord.getCordStrand(back(cordSet[k]))) 
-                strand = 1;
-            else 
-                strand = 0;
-            of << k << " th Strand " << strand << " length " << length(reads()[k]) << "\n";
-            _DefaultCord.print(cordSet[k], of);
-        }
-    }
-    of.close();
-    std::cerr << ">Write results to disk        " << count << std::endl;
-    std::cerr << "    End writing results. Time[s]" << sysTime() - time << std::endl;
-}
 int print_align_sam_header_ (StringSet<CharString> & genomesId,
                              StringSet<String<Dna5> > & genomes,
                              std::ofstream & of

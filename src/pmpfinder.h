@@ -109,11 +109,6 @@ struct Cord
 
     bool isCordsOverlap(uint64_t & val1, uint64_t & val2, int64_t thd);
     bool isBlockEnd(uint64_t &, uint64_t const & = _DefaultCordBase.flagEnd);
-
-    bool print (CordString const &, std::ostream & = std::cout, CordBase const & = _DefaultCordBase) const;
-    bool print (CordSet const &, std::ostream & = std::cout, CordBase const & = _DefaultCordBase) const;
-    bool printAlignmentMatrix(CordSet const &,  CordBase const & ) const;
-    
 }_DefaultCord; 
 
 inline typename Cord::CordType 
@@ -227,29 +222,11 @@ inline bool Cord::isBlockEnd(uint64_t & val, uint64_t const & flag)
     return val & flag;
 }
 
-inline bool Cord::print(typename Cord::CordString const & cords, std::ostream & of, CordBase const & cordBase) const
+inline uint64_t get_cord_x (uint64_t val) {return _getSA_i2(_DefaultCord.getCordX(val));}
+inline uint64_t get_cord_y (uint64_t val) {return _DefaultCord.getCordY(val);}
+inline uint64_t cmpRevCord(uint64_t val, uint64_t read_len)
 {
-    of << "length of cords " << length(cords) << std::endl;
-    for (unsigned j = 1; j < length(cords); j++)
-               of << getCordY(cords[j], cordBase.mask) << " " 
-                  << _getSA_i1(getCordX(cords[j], cordBase.bit)) << " "
-                  << _getSA_i2(getCordX(cords[j], cordBase.bit))  << std::endl;
-    of << std::endl;
-    return true;
-}
-
-
-
-inline bool Cord::print(typename Cord::CordSet const & cords, std::ostream & of, CordBase const & cordBase) const
-{
-    of << "Cord::print() " << std::endl;
-    unsigned j = 0;
-    for (auto && k : cords)
-    {
-        of << j++ << std::endl;
-        print(k, of, cordBase);
-    }
-    return true;
+    return (val - (get_cord_y(val) << 1) + read_len) ^ _DefaultCordBase.flag_strand;
 }
 
 //======HIndex getIndexMatch()
