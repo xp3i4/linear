@@ -54,7 +54,7 @@ struct CordBase
     typedef unsigned Size;
     
     Bit bit;
-    unsigned bit2;
+    uint64_t flagEnd;
     Mask mask;
     Mask maskx;
     Mask valueMask;
@@ -68,7 +68,7 @@ struct CordBase
     
     CordBase():
         bit(20),
-        bit2(60),
+        flagEnd((1ULL << 60)),
         mask(0xfffff),
         maskx(0xffffffffff),
         valueMask((1ULL<< 60) - 1),
@@ -108,7 +108,7 @@ struct Cord
     uint64_t shift(uint64_t & val, int64_t x, int64_t y, unsigned const & = _DefaultCordBase.bit); //add x and y
 
     bool isCordsOverlap(uint64_t & val1, uint64_t & val2, int64_t thd);
-    bool isBlockEnd(uint64_t &, uint64_t const & = _DefaultCordBase.bit2);
+    bool isBlockEnd(uint64_t &, uint64_t const & = _DefaultCordBase.flagEnd);
 
     bool print (CordString const &, std::ostream & = std::cout, CordBase const & = _DefaultCordBase) const;
     bool print (CordSet const &, std::ostream & = std::cout, CordBase const & = _DefaultCordBase) const;
@@ -214,11 +214,12 @@ inline uint64_t Cord::shift(uint64_t & val, int64_t x, int64_t y, unsigned const
     return uint64_t((int64_t)val + (x << bit) + y);
 }
 
-inline bool Cord::isCordsOverlap(uint64_t & val1, uint64_t val2, int64_t thd)
+inline bool Cord::isCordsOverlap(uint64_t & val1, uint64_t & val2, int64_t thd)
 {
-    int64_t dx = _DefaultCord.getCordX(val1 - val2);
-    int64_t dy = _DefaultCord.getCordY(val1 - val2);
-    return (dx < 0) && (dx > -thd) && (dy < 0) && (dy < -thd);
+    int64_t dx = _DefaultCord.getCordX(val2 - val1);
+    int64_t dy = _DefaultCord.getCordY(val2 - val1);
+    //std::cout << "[]::isCordsOverlap " << dx << " " << dy << " " << _DefaultCord.getCordX(val2) << " " << _DefaultCord.getCordX(val1) << " " << thd << "\n";
+    return (dx >= 0) && (dx < thd) && (dy >= 0) && (dy < thd);
 }
 
 inline bool Cord::isBlockEnd(uint64_t & val, uint64_t const & flag)
