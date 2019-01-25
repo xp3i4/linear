@@ -14,6 +14,29 @@ float s_score_density_thd = 2;// if < the value alignment of cords will be dropp
 int thd_align_score = 350 /*depends on score_scheme*/;
 
 uint64_t emptyCord = ~0;
+/*
+ * Structure of recods of start and end coordinates with aligner of gaps
+ * Each record of c_pairs has two rows in the a_rows;
+ * Gaps are defined as pairs of its start and end cords.
+ * NOTE::structure for align_cords() function, different from gaps defined in 'gaps.h';
+ */
+struct GapRecords
+{
+    typedef Row<Align<String<Dna5>, ArrayGaps> >::Type TRow;
+    typedef std::pair<uint64_t, uint64_t> TCPair;
+    typedef std::pair<TRow, TRow> TRPair;
+    typedef String<std::pair<uint64_t, uint64_t> > TCPairs;
+    typedef String<std::pair<TRow, TRow> > TRPairs;
+
+    TCPairs c_pairs;  //gap coordinate pair
+    TRPairs r_pairs;   //corresponding alinger 
+
+    TCPair & get_c_pair(int i) {return c_pairs[i];}
+    //get rows of first cord of i_th gaps
+    TRPair & get_r1_pair(int i){return r_pairs[i * 2];}
+    TRPair & get_r2_pair(int i){return r_pairs[i * 2 + 1];}
+};
+
 int inline setBamRecord (BamAlignmentRecord & bam_record,
                     Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
                     Row<Align<String<Dna5>, ArrayGaps> >::Type & row2, 
@@ -498,29 +521,41 @@ int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
 	}
     return 4;
 }
-inline void insertGaps(String<std::pair<uint64_t, uint64_t> > & gaps,
-              uint64_t cord1,    //current cord that is well aligned
-              uint64_t cord2, //last cord that is well aligned
-              int thd_merge_gap
-             )
+inline void insertGaps(GapRecords & gaps,
+                  uint64_t cord1,    //start coordinate of gap
+                  uint64_t cord2, // end coordinate
+                  Row<Align<String<Dna5>, ArrayGaps> >::Type & row11,
+                  Row<Align<String<Dna5>, ArrayGaps> >::Type & row12,
+                  Row<Align<String<Dna5>, ArrayGaps> >::Type & row21,
+                  Row<Align<String<Dna5>, ArrayGaps> >::Type & row22,
+                  int thd_merge_gap
+                 )
 {
-    if (empty(gaps))
+    typedef Row<Align<String<Dna5>,ArrayGaps> >::Type TRow;
+    if (empty(gaps.c_pairs))
     {
-        appendValue(gaps, std::pair<uint64_t, uint64_t>(cord1, cord2));
+        appendValue(gaps.c_pairs, std::pair<uint64_t, uint64_t>(cord1, cord2));
+        appendValue(gaps.r_pairs, std::pair<TRow, TRow>(row11, row12));
+        appendValue(gaps.r_pairs, std::pair<TRow, TRow>(row21, row22));
     }
     else 
     {
-        if (_DefaultCord.isCordsOverlap(back(gaps).second, cord1, thd_merge_gap))
+        if (_DefaultCord.isCordsOverlap(back(gaps.c_pairs).second, 
+                                        cord1, 
+                                        thd_merge_gap))
         {
-            back(gaps).second = cord2;
-            std::cerr << "done\n";
+            int i = length(gaps.c_pairs) - 1;
+            gaps.get_c_pair(i).second = cord1;
+            gaps.get_r2_pair(i).first = row21;
+            gaps.get_r2_pair(i).second = row22;
         }
         else
         {
-            appendValue(gaps, std::pair<uint64_t, uint64_t>(cord1, cord2));
+            appendValue(gaps.c_pairs, std::pair<uint64_t, uint64_t>(cord1, cord2));
+            appendValue(gaps.r_pairs, std::pair<TRow, TRow>(row11, row12));
+            appendValue(gaps.r_pairs, std::pair<TRow, TRow>(row21, row22));
         }
     }
-
 }
 
 int clip_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
@@ -601,7 +636,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                 ) 
 {
     Align<String<Dna5>, ArrayGaps> aligner;
-    String<std::pair<uint64_t, uint64_t> > gaps;
+    GapRecords gaps;
     String<uint64_t> cords_buffer;
     int head_end = block_size >> 2, tail_start = block_size - (block_size >> 2);
     int ri = 0, ri_pre = 2; //cliped segment and row id
@@ -658,11 +693,15 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                          );
         if (flag == 1) //not overlapped cords (disjoint)
         {
-            int dx = block_size >> 1;
+            int dx = block_size >> 1; //shift the cord to the gap cord;
             int dy = block_size >> 1;
             insertGaps(gaps, 
                        _DefaultCord.shift(preCord, dx, dy),
                        _DefaultCord.shift(cords[i], dx, dy),
+                       row(aligner, ri_pre), 
+                       row(aligner, ri_pre + 1),
+                       row(aligner, ri),
+                       row(aligner, ri + 1),
                        thd_merge_gap);
         }
         preCord = cords[i];
@@ -683,7 +722,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         */
         std::swap (ri, ri_pre); //swap the current and pre row id in the aligner.
     }
-    printGaps(gaps);
+    printGaps(gaps.c_pairs);
     //align_gaps(); 
     return 0;
 }
