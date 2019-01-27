@@ -5,10 +5,12 @@
 
 using namespace seqan;
 
-
+//TODO:: change score type
 int const s1 = 3; //match
 int const s2 = 0; //mismatch
 int const s3 = -1; //gap
+Score<int, Simple> score1_(s1, s2, s3);
+
 float s_score_density_thd = 2;// if < the value alignment of cords will be dropped
 
 int thd_align_score = 350 /*depends on score_scheme*/;
@@ -180,9 +182,10 @@ inline int align_block (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     int score = globalAlignment(row1, row2, Score<int, Simple> (s1, s2, s3), AlignConfig<true, true, true, true>(), -band, band);
     return score;
 }
-int align_cord (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
+
+int cord2row_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
                 Row<Align<String<Dna5>, ArrayGaps> >::Type & row2,
-				String<Dna5> & genome,
+                String<Dna5> & genome,
                 String<Dna5> & read, 
                 String<Dna5> & comrevRead,
                 uint64_t & cord,
@@ -194,41 +197,38 @@ int align_cord (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     uint64_t genomeEnd = genomeStart + block_size;
     uint64_t readStart = _DefaultCord.getCordY(cord);
     uint64_t readEnd = readStart + block_size;
-    uint64_t strand = _DefaultCord.getCordStrand (cord);
-    double time = sysTime();
-    int score = align_block(row1, row2, genome, read, comrevRead, strand, genomeStart, genomeEnd, readStart, readEnd, band);
-    return score;
-}
-/**
- *  return score of two chars
- */
-//static float ln[10] = {1,2,}
-inline int getScore_(char r1_char,
-                     char r2_char,
-                     int k,
-                     int x
-)
-{
-    int s_match = 8 * k;
-    int s_gap = -3 * k;
-    int s_mismatch = 0 * k;
-    if (r1_char == r2_char)
+    uint64_t strand = _DefaultCord.getCordStrand (cord);   
+    Infix<String<Dna5> >::Type infix1;  
+    Infix<String<Dna5> >::Type infix2;  
+    if (strand)
     {
-        x += s_match;
+        infix2 = infix(comrevRead, readStart, std::min(readEnd, length(read)));  
     }
     else
     {
-        if (r1_char == '-')
-        {
-            x += s_gap;
-        }
-        else
-        {
-            x += s_mismatch;
-        }
+        infix2 = infix(read, readStart, std::min(readEnd, length(read)));  
     }
-    return x;
+    infix1 = infix(genome, genomeStart, std::min(genomeEnd, length(genome)));       
+    assignSource (row1, infix1);  
+    assignSource (row2, infix2); 
+    return 0;
 }
+
+int align_cord (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
+                Row<Align<String<Dna5>, ArrayGaps> >::Type & row2,
+				String<Dna5> & genome,
+                String<Dna5> & read, 
+                String<Dna5> & comrevRead,
+                uint64_t & cord,
+                int block_size = window_size,
+                int band = window_size / 2
+               )
+{
+    cord2row_ (row1, row2, genome, read, comrevRead, cord, block_size, band);
+    int score = globalAlignment (row1, row2, Score<int, Simple> (s1, s2, s3), AlignConfig<true, true, true, true>(), -band, band);
+    return score;
+}
+
 /**
  * Clip head or tails \in [0, l) of the aligner within the lxl window.
  * This function is to clip the well aligned region in the aligner.
@@ -565,7 +565,7 @@ int clip_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
     typedef Align<String<Dna5>, ArrayGaps> TAlign;
     typedef Row<TAlign>::Type TRow; 
     typedef Iterator<TRow>::Type TRowIterator;
-/*
+
     int window = 6;   //sliding window size
     int thd_clip = 5; //5 matches in the window
     int x = 0;
@@ -576,6 +576,7 @@ int clip_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
     TRowIterator it1 = begin(row1);
     TRowIterator it2 = begin(row2);
     TRowIterator it1_2 = it1, it2_2 = it2; 
+    String<short> buffer;
     if (clip_start > g_end - clip_start)
     {
         return 1;
@@ -622,7 +623,6 @@ int clip_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
     }
     setClippedBeginPosition(row1, maxxp);
     setClippedBeginPosition(row2, maxxp);
-    */
     return 0;
 }
 
@@ -630,7 +630,7 @@ int align_gaps (GapRecords & gaps,
                 StringSet<String<Dna5> >& genomes,
                 String<Dna5> & read, 
                 String<Dna5> & comrevRead
-            )
+               )
 {
     if (empty(gaps.c_pairs))
     {
@@ -649,30 +649,43 @@ int align_gaps (GapRecords & gaps,
         int g_id = _getSA_i1 (_DefaultCord.getCordX(gap_start_cord));
         int head_end = block_size >> 2;
         int tail_start = block_size - (block_size >> 2);
+        int band = block_size / 2;
         align_cord (row(aligner, 0), 
                     row(aligner, 1), 
                     genomes[g_id], 
                     read, 
                     comrevRead, 
                     gap_start_cord, 
-                    block_size
+                    block_size,
+                    band
                 );
         flag |= clip_head_ (row(aligner, 0), row(aligner, 1), head_end);
         flag |= clip_tail_ (row(aligner, 0), row(aligner, 1), tail_start);
-        uint64_t cr_cord = cmpRevCord(gap_start_cord, length(read));
-        ailign_cord (row(aligner, 0), 
+
+            std:: cout << "[]::align_gaps " << gap_start_cord << " " << gap_end_cord << "\n" << aligner << "\n";
+        uint64_t gap_start_cord_cr = 0, gap_end_cord_cr = 0;
+        cmpRevCord(gap_start_cord, gap_end_cord, gap_start_cord_cr, gap_end_cord_cr, length(read));
+        LocalAlignmentEnumerator<Score<int>, Banded> enumerator(Score<int> (2, -1, -2, 1), -5, 5,  50); 
+        clearGaps(row(aligner, 0));
+        clearGaps(row(aligner, 1));
+        align_cord (row(aligner, 0), 
                     row(aligner, 1), 
                     genomes[g_id], 
                     read, 
                     comrevRead, 
-                    cr_cord,
-                    block_size
-                );
-        flag |= clip_head_ (row(aligner, 0), row(aligner, 1), head_end);
-        flag |= clip_tail_ (row(aligner, 0), row(aligner, 1), tail_start);
+                    gap_start_cord_cr,
+                    //window_size
+                    block_size,
+                    band
+               );
+        //while (nextLocalAlignment(aligner, enumerator))
+        //{
+            std:: cout << "[]::align_gaps " << gap_start_cord << " " << gap_end_cord << "\n" << aligner << "\n";
+        //}
+        //flag |= clip_head_ (row(aligner, 0), row(aligner, 1), head_end);
+        //flag |= clip_tail_ (row(aligner, 0), row(aligner, 1), tail_start);
         //clip_segs_()
         //merge_segs_();
-        std::cout << "[]::align_gaps " << gap_start_cord << " " << gap_end_cord << "\n" << aligner << "\n";
     }
     return 0;
 }
@@ -737,7 +750,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         //>debug section begin xxxxxxx
         if (i == 10)
             cords[i] += 50;
-        if (i > 46 && i < 53)
+        if (i > 40 && i < 56)
             cords[i] += 100;
         //<debug section end
         g_id = _getSA_i1(_DefaultCord.getCordX(cords[i]));
@@ -754,7 +767,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         flag |= clip_head_ (row(aligner, ri), row(aligner, ri + 1), head_end);
         flag |= clip_tail_ (row(aligner, ri), row(aligner, ri + 1), tail_start);
         flag |= drop_align_(row(aligner, ri), row(aligner, ri + 1), score_align);
-        std::cout << "[]::align_cords_1 " << i << " " << flag << " " << get_cord_y(cords[i]) << "\n";
+        std::cout << "[]::align_cords_1 " << i << " " << flag << " " << get_cord_y(cords[i]) << " " << get_cord_x(cords[i]) <<"\n";
         if (flag)
         {
             continue; //alignment quality check, drop poorly aligned 
@@ -772,7 +785,6 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                           cords[i],
                           block_size - 10
                          );
-        std::cout << "[]::align_cords_2 " << i << " " << flag << "\n";
         if (flag == 1) //not overlapped cords (disjoint)
         {
             int dx = block_size >> 1; //shift the cord to the gap cord;
@@ -816,7 +828,38 @@ void clip_cigar_(String<CigarElement<> > & cigars)
 
     }
 }
-*/                           
+*/ 
+
+/**
+ *  return score of two chars
+ */
+//static float ln[10] = {1,2,}
+inline int getScore_(char r1_char,
+                     char r2_char,
+                     int k,
+                     int x
+)
+{
+    int s_match = 8 * k;
+    int s_gap = -3 * k;
+    int s_mismatch = 0 * k;
+    if (r1_char == r2_char)
+    {
+        x += s_match;
+    }
+    else
+    {
+        if (r1_char == '-')
+        {
+            x += s_gap;
+        }
+        else
+        {
+            x += s_mismatch;
+        }
+    }
+    return x;
+}
 /**
  * Clip breakpoint \in [w, l - w),w = 30, within the lxl window
  * Direction: if  > 0  -----------mmmmmmmmm,  if < 0 mmmmmmmmmmm--------; 
