@@ -10,10 +10,12 @@ int const s1 = 3; //match
 int const s2 = 0; //mismatch
 int const s3 = -1; //gap
 Score<int, Simple> score1_(s1, s2, s3);
-
-float s_score_density_thd = 2;// if < the value alignment of cords will be dropped
-
+float s_score_density_thd = 2; //if < the value alignment of cords will be dropped
 int thd_align_score = 350 /*depends on score_scheme*/;
+
+typedef Align<String<Dna5>, ArrayGaps> TAlign;
+typedef Row<TAlign>::Type TRow; 
+typedef Iterator<TRow>::Type TRowIterator;
 
 uint64_t emptyCord = ~0;
 /*
@@ -30,15 +32,83 @@ struct GapRecords
     typedef String<std::pair<uint64_t, uint64_t> > TCPairs;
     typedef String<std::pair<TRow, TRow> > TRPairs;
 
-    TCPairs c_pairs;  //gap coordinate pair
+    TCPairs c_pairs;  //gap coordinate pair::cord 
     TRPairs r_pairs;   //corresponding alinger 
 
     TCPair & get_c_pair(int i) {return c_pairs[i];}
     //get rows of first cord of i_th gaps
     TRPair & get_r1_pair(int i){return r_pairs[i * 2];}
     TRPair & get_r2_pair(int i){return r_pairs[i * 2 + 1];}
+    int clear_(){
+        clear(c_pairs); 
+        clear(r_pairs);
+        return 0;
+    }
 };
-
+/**
+ *  return score of two chars
+ */
+//static float ln[10] = {1,2,}
+inline int getScore_(char r1_char,
+                     char r2_char,
+                     int k,
+                     int & x
+)
+{
+    int s_match = 8 * k;
+    int s_gap = -3 * k;
+    int s_mismatch = 0 * k;
+    if (r1_char == r2_char)
+    {
+        x += s_match;
+    }
+    else
+    {
+        if (r1_char == '-')
+        {
+            x += s_gap;
+        }
+        else
+        {
+            x += s_mismatch;
+        }
+    }
+    return x;
+}
+/**
+ *  return score of two chars
+ */
+//static float ln[10] = {1,2,}
+inline int getScore_(TRowIterator & it1,
+                     TRowIterator & it2,
+                     int k,
+                     int & x
+)
+{
+    int s_match = 8 * k;
+    int s_ins = -3 * k;
+    int s_del = -3 * k;
+    int s_mismatch = 0 * k;
+    if (*it1 == *it2)
+    {
+        x += s_match;
+    }
+    else
+    {
+        if (isGap(it1))
+        {
+            x += s_ins;
+        }
+        else
+        {
+            if (isGap(it2))
+                x += s_del;
+            else
+                x += s_mismatch;
+        }
+    }
+    return x;
+}
 int inline setBamRecord (BamAlignmentRecord & bam_record,
                     Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
                     Row<Align<String<Dna5>, ArrayGaps> >::Type & row2, 
@@ -385,7 +455,10 @@ int drop_align_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     }
     return 0;
 }
-
+/**
+ * Merge any size of two blocks which starts from cord1 and cord2.
+ * @parm rows are supposed to contain the alignment of the two blocks.
+ */
 int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
 				 Row<Align<String<Dna5>,ArrayGaps> >::Type & row12,
 				 Row<Align<String<Dna5>,ArrayGaps> >::Type & row21,
@@ -521,6 +594,34 @@ int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
 	}
     return 4;
 }
+
+inline void insertGaps(GapRecords & gaps,
+                  uint64_t cord1,    //start coordinate of gap
+                  uint64_t cord2,    //end coordinate of gap
+                  int thd_merge_gap
+                 )
+{
+    typedef Row<Align<String<Dna5>,ArrayGaps> >::Type TRow;
+    if (empty(gaps.c_pairs))
+    {
+        appendValue(gaps.c_pairs, std::pair<uint64_t, uint64_t>(cord1, cord2));
+    }
+    else 
+    {
+        if (_DefaultCord.isCordsOverlap(back(gaps.c_pairs).second, 
+                                        cord1, 
+                                        thd_merge_gap))
+        {
+            int i = length(gaps.c_pairs) - 1;
+            gaps.get_c_pair(i).second = cord2;
+        }
+        else
+        {
+            appendValue(gaps.c_pairs, std::pair<uint64_t, uint64_t>(cord1, cord2));
+        }
+    }
+}
+
 inline void insertGaps(GapRecords & gaps,
                   uint64_t cord1,    //start coordinate of gap
                   uint64_t cord2, // end coordinate
@@ -557,93 +658,207 @@ inline void insertGaps(GapRecords & gaps,
         }
     }
 }
-
+inline void _nextView2Src (
+                    Iterator<Row<Align<String<Dna5>, ArrayGaps>>::Type>::Type & it1,
+                    Iterator<Row<Align<String<Dna5>, ArrayGaps>>::Type>::Type & it2, 
+                    int64_t & src1, 
+                    int64_t & src2)
+{
+    if (!isGap(it1))
+    {
+        src1++;
+    }
+    if (!isGap(it2))
+    {
+        src2++;
+    }
+}
+/**
+ *  The size of the block to be clipped are supposed to > window_size,
+ *  since the function clips the middle part of the block excluding 
+ *  the head and tail part. Too small block cann't be well clipped. 
+ */
 int clip_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
-               Row<Align<String<Dna5>,ArrayGaps> >::Type & row2
-               )
+               Row<Align<String<Dna5>,ArrayGaps> >::Type & row2,
+               GapRecords & clip_records,
+               uint64_t gap_start_cord,
+               Score<int> & score_scheme,
+               int thd_clip_score,
+               int thd_accept_score,
+               int thd_clip_mini_region = 20,
+               int window = 30, //supposed to < 50
+               int delta = 3
+              )
 {
     typedef Align<String<Dna5>, ArrayGaps> TAlign;
     typedef Row<TAlign>::Type TRow; 
     typedef Iterator<TRow>::Type TRowIterator;
-
-    int window = 6;   //sliding window size
-    int thd_clip = 5; //5 matches in the window
     int x = 0;
-    int maxx = 0, maxxp = 0;
-    int clip_start = clippedBeginPosition(row1);
-    int flag = 0;
-    int shift_head_len = -1;
+    int thd_1 = 1;
+    int64_t src1 = beginPosition(row1);
+    int64_t src2 = beginPosition(row2);
     TRowIterator it1 = begin(row1);
     TRowIterator it2 = begin(row2);
     TRowIterator it1_2 = it1, it2_2 = it2; 
-    String<short> buffer;
-    if (clip_start > g_end - clip_start)
+    String<int> buffer;  //score at the intervals by delta
+    String<int> buffer_src1; 
+    String<int> buffer_src2; //alignment source coordiante
+    int clipped_len = clippedEndPosition(row1) 
+                    - clippedBeginPosition(row1);
+    int buf_len = 0;
+    int count = delta;
+    resize (buffer, clipped_len);
+    resize (buffer_src1, clipped_len);
+    resize (buffer_src2, clipped_len);
+    for (int k = 0; k < clipped_len; k++)
     {
-        return 1;
-    }
-    for (int i = 0; i < window; i++)
-    {
-        if (*it1 == *it2)
+        getScore_(it1, it2, 1, x);
+        _nextView2Src(it1, it2, src1, src2);
+        if (count++ == delta)
         {
-            ++x;
-        }
-        it1++;
-        it2++;
-    }
-    for (int k = 0; k < g_end; k++)
-    {
-        if (x >= thd_clip)
-        {
-            setClippedBeginPosition(row1, k);
-            setClippedBeginPosition(row2, k);
-            return 0;
-        }
-        if (*it1 == *it2)
-        {
-            ++x;
-        }
-        if (*it1_2 == *it2_2)
-        {
-            if (!flag)
-            {
-                shift_head_len = k;     //get fist match as len of free gap at the head
-                flag = 1;
-            }
-            --x;
-        }
-        if (maxx < x)
-        {
-            maxx = x;
-            maxxp = k;
+            buffer[buf_len] = x; //+ thd_1 * (std::abs(src1 - src1_2 - src2 + src2_2));
+            buffer_src1[buf_len] = src1;
+            buffer_src2[buf_len] = src2;
+            buf_len++;
+            count = 1;
         }
         ++it1;
         ++it2;
-        ++it1_2;
-        ++it2_2;
     }
-    setClippedBeginPosition(row1, maxxp);
-    setClippedBeginPosition(row2, maxxp);
+//TODO::change the score so it will not clip long ins or dels.
+    resize (buffer, buf_len);
+    int clip_begin = 0; int clip_end = 0;
+    int prebp = 0; //pre-breakpoint counter of buffer
+    int bp = prebp;
+    int bp_sc1 = beginPosition(row1), bp_sc2 = beginPosition(row2); //breakpoint of source 
+    int prebp_sc1 = bp_sc1, prebp_sc2 = bp_sc2;
+    int d_w = window / delta;
+    int d_m = thd_clip_mini_region / delta ;
+//TODO!!::clip the fist and last segment
+    int last_ = length(buffer) - std::max(d_w, d_m);
+    for (int i = d_w + 1; i < last_ ; i++)
+    {
+        int d_score = buffer[i + d_w] - (buffer[i] << 1) + buffer[i - d_w];
+        if (std::abs(d_score) > thd_clip_score || i == last_ - 1) 
+        {
+            bp = i;
+            int max_d_score = d_score;
+            int d_j = std::min(i + d_m, (int)length(buffer) - d_w);
+            for (int j = i + 1; j < d_j; j++)
+            {
+                d_score = buffer[j + d_w] - (buffer[j] << 1) + buffer[j - d_w]; 
+                if (d_score > max_d_score)
+                {
+                    bp = j;
+                    max_d_score = d_score;
+                } 
+            } //get the maximal clip_score in region specified thd_clip_mini_region 
+              //when the first d_score satisifed appear
+            bp_sc1 = buffer_src1[bp];
+            bp_sc2 = buffer_src2[bp];
+
+            std::cout << "[]::clip_segs_ " 
+                      << prebp * delta << " "
+                      << bp * delta << " "
+                      << bp_sc1 << " "
+                      << bp_sc2 << " "
+                      << (buffer[bp] - buffer[prebp])/ (bp - prebp + 1) << " "
+                      << toViewPosition(row1, bp_sc1) << " "
+                      << toViewPosition(row2, bp_sc2) << " "
+                      << get_cord_x(gap_start_cord) << " "
+                      << get_cord_y(gap_start_cord) << "\n"; 
+//TODO::score to accecpt the segs, need to make score more reasonable
+            if ((buffer[bp] - buffer[prebp]) / (bp - prebp + 1) > thd_accept_score)
+            {
+                insertGaps(clip_records, 
+                    _DefaultCord.shift(gap_start_cord, prebp_sc1, prebp_sc2),
+                    _DefaultCord.shift(gap_start_cord, bp_sc1, bp_sc2),
+                    0);
+            }
+            prebp_sc1 = bp_sc1;
+            prebp_sc2 = bp_sc2; 
+            prebp = bp;
+            i += d_j - i;
+        }
+    }
     return 0;
 }
+int merge_segs_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
+                Row<Align<String<Dna5>, ArrayGaps> >::Type & row2, 
+                GapRecords & gaps,
+                GapRecords & clip_records,
+                uint64_t gap_start_cord, 
+                uint64_t gap_end_cord
+               )
+{
+    typedef Align<String<Dna5>, ArrayGaps> TAlign;
+    typedef Row<TAlign>::Type TRow; 
 
+    std::cout << "[] " << length(clip_records.c_pairs) << "\n";
+    if (empty(clip_records.c_pairs))
+    {
+        return 0;
+    }
+    for (int i = 0; i < length(clip_records.c_pairs); i++)
+    {
+        uint64_t cord1 = clip_records.get_c_pair(i).first;
+        uint64_t cord2 = clip_records.get_c_pair(i).second;
+        std::cout << "[]::merge_segs_ " 
+                  << get_cord_x(cord1) - clippedBeginPosition(row1) << " "
+                  << get_cord_y(cord1) << " "
+                  << get_cord_x(cord2) << " "
+                  << get_cord_y(cord2) << " "
+                  << "\n";
+    }
+    /*
+    merge_align_(gaps.get_r1_pair().first, 
+                 gaps.get_r1_pair().second,
+                 row(aligner, 0), 
+                 row(aligner,1),
+                 thd_cord_overlap
+                );
+    //clip_records
+    setClippedBeginPosition();
+    setClippedEndPosition();
+    merge_align_(row(aligner, 0), 
+                 row(aligner,1), 
+                 gaps.get_r2_pair().first, 
+                 gaps.get_r2_pair().second,
+                 thd_cord_overlap
+                );
+    for (int i = 0; i < length(clip_records); i++)    
+    {
+    }
+    */
+    return 0;
+}
 int align_gaps (GapRecords & gaps,
                 StringSet<String<Dna5> >& genomes,
                 String<Dna5> & read, 
-                String<Dna5> & comrevRead
+                String<Dna5> & comrevRead,
+                Score<int> & score_scheme,
+                int thd_clip_score,
+                int thd_accept_score
                )
 {
     if (empty(gaps.c_pairs))
     {
         return 0;
     }
-
+    std::cout << "[]align_gaps\n ";
     Align<String<Dna5>, ArrayGaps> aligner;
     resize(rows(aligner), 2);
+    GapRecords clip_records;
     int flag = 0;
     for (int i = 0; i < length(gaps.c_pairs); i++)
     {
+
         uint64_t gap_start_cord = gaps.get_c_pair(i).first;
         uint64_t gap_end_cord = gaps.get_c_pair(i).second;
+        //TODO <debug
+        if (_DefaultCord.getCordStrand(gap_start_cord ^ gap_end_cord))
+            continue;
+        //
         int block_size = std::max(get_cord_x(gap_end_cord - gap_start_cord),
                                   get_cord_y(gap_end_cord - gap_start_cord));
         int g_id = _getSA_i1 (_DefaultCord.getCordX(gap_start_cord));
@@ -662,12 +877,9 @@ int align_gaps (GapRecords & gaps,
         flag |= clip_head_ (row(aligner, 0), row(aligner, 1), head_end);
         flag |= clip_tail_ (row(aligner, 0), row(aligner, 1), tail_start);
 
-            std:: cout << "[]::align_gaps " << gap_start_cord << " " << gap_end_cord << "\n" << aligner << "\n";
+/*
         uint64_t gap_start_cord_cr = 0, gap_end_cord_cr = 0;
         cmpRevCord(gap_start_cord, gap_end_cord, gap_start_cord_cr, gap_end_cord_cr, length(read));
-        LocalAlignmentEnumerator<Score<int>, Banded> enumerator(Score<int> (2, -1, -2, 1), -5, 5,  50); 
-        clearGaps(row(aligner, 0));
-        clearGaps(row(aligner, 1));
         align_cord (row(aligner, 0), 
                     row(aligner, 1), 
                     genomes[g_id], 
@@ -678,14 +890,25 @@ int align_gaps (GapRecords & gaps,
                     block_size,
                     band
                );
-        //while (nextLocalAlignment(aligner, enumerator))
-        //{
-            std:: cout << "[]::align_gaps " << gap_start_cord << " " << gap_end_cord << "\n" << aligner << "\n";
-        //}
-        //flag |= clip_head_ (row(aligner, 0), row(aligner, 1), head_end);
-        //flag |= clip_tail_ (row(aligner, 0), row(aligner, 1), tail_start);
-        //clip_segs_()
-        //merge_segs_();
+        flag |= clip_head_ (row(aligner, 0), row(aligner, 1), head_end);
+        flag |= clip_tail_ (row(aligner, 0), row(aligner, 1), tail_start);
+        */
+        std::cout << aligner << "\n";
+        clip_records.clear_();
+        clip_segs_(row(aligner, 0), 
+                   row(aligner, 1), 
+                   clip_records, 
+                   gap_start_cord, 
+                   score_scheme, 
+                   thd_clip_score,
+                   thd_accept_score
+                  );
+        merge_segs_(row(aligner, 0), 
+                    row(aligner, 1), 
+                    gaps,
+                    clip_records,
+                    gap_start_cord, 
+                    gap_end_cord);
     }
     return 0;
 }
@@ -750,7 +973,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         //>debug section begin xxxxxxx
         if (i == 10)
             cords[i] += 50;
-        if (i > 40 && i < 56)
+        if (i > 46 && i < 53)
             cords[i] += 100;
         //<debug section end
         g_id = _getSA_i1(_DefaultCord.getCordX(cords[i]));
@@ -817,7 +1040,10 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         std::swap (ri, ri_pre); //swap the current and pre row id in the aligner.
     }
     printGaps(gaps.c_pairs);
-    align_gaps(gaps, genomes, read, comrevRead); 
+    Score<int> score_scheme;
+    int thd_clip_score = 90;
+    int thd_accept_score = 16;
+    align_gaps(gaps, genomes, read, comrevRead, score_scheme, thd_clip_score, thd_accept_score); 
     return 0;
 }
 /*
@@ -829,37 +1055,6 @@ void clip_cigar_(String<CigarElement<> > & cigars)
     }
 }
 */ 
-
-/**
- *  return score of two chars
- */
-//static float ln[10] = {1,2,}
-inline int getScore_(char r1_char,
-                     char r2_char,
-                     int k,
-                     int x
-)
-{
-    int s_match = 8 * k;
-    int s_gap = -3 * k;
-    int s_mismatch = 0 * k;
-    if (r1_char == r2_char)
-    {
-        x += s_match;
-    }
-    else
-    {
-        if (r1_char == '-')
-        {
-            x += s_gap;
-        }
-        else
-        {
-            x += s_mismatch;
-        }
-    }
-    return x;
-}
 /**
  * Clip breakpoint \in [w, l - w),w = 30, within the lxl window
  * Direction: if  > 0  -----------mmmmmmmmm,  if < 0 mmmmmmmmmmm--------; 
