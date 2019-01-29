@@ -4,7 +4,11 @@
 //#include <seqan/align_parallel.h>
 
 using namespace seqan;
-
+/**
+ * seqan::view coordinate and source coordinate transformation NOTES
+ * setClippedBeginPosition(row1, c1)
+ * @c1 := current_view_coordinate + clippedBeginPosition(row1)
+ */
 //TODO:: change score type
 int const s1 = 3; //match
 int const s2 = 0; //mismatch
@@ -32,13 +36,21 @@ struct GapRecords
     typedef String<std::pair<uint64_t, uint64_t> > TCPairs;
     typedef String<std::pair<TRow, TRow> > TRPairs;
 
-    TCPairs c_pairs;  //gap coordinate pair::cord 
-    TRPairs r_pairs;   //corresponding alinger 
+    TCPairs c_pairs;  //pair of start and end coordinate of gaps 
+    TRPairs r_pairs;  //pair of alingments of blocks contains the start and end of gaps 
+    uint64_t dx, dy;  //shift from start and end of gaps to the start and end of of the alignment
 
     TCPair & get_c_pair(int i) {return c_pairs[i];}
-    //get rows of first cord of i_th gaps
-    TRPair & get_r1_pair(int i){return r_pairs[i * 2];}
-    TRPair & get_r2_pair(int i){return r_pairs[i * 2 + 1];}
+    TRPair & get_r1_pair(int i){return r_pairs[i * 2];} //get rows of first(start) cord of i_th gaps
+    TRPair & get_r2_pair(int i){return r_pairs[i * 2 + 1];} //get rows of second(end) cord of i_th gaps
+    uint64_t getHeadCord(int i) 
+    {
+        return _DefaultCord.shift(c_pairs[i].first, -dx, -dy);
+    }
+    uint64_t getTailCord(int i) 
+    {
+        return _DefaultCord.shift(c_pairs[i].first, dx, dy);
+    }
     int clear_(){
         clear(c_pairs); 
         clear(r_pairs);
@@ -458,7 +470,9 @@ int drop_align_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
 /**
  * Merge any size of two blocks which starts from cord1 and cord2.
  * @parm rows are supposed to contain the alignment of the two blocks.
+ * @parm rows are compared and merged from the corresponding clippedBeginPosition() to clippedEndPosition() 
  */
+
 int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
 				 Row<Align<String<Dna5>,ArrayGaps> >::Type & row12,
 				 Row<Align<String<Dna5>,ArrayGaps> >::Type & row21,
@@ -577,7 +591,7 @@ int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
 			if (std::abs(x1 - x2) < thd_merge_x && std::abs(y1 - y2) < thd_merge_y)
 			{
                 int clip1 = (align1[i] >> bit2 & mask);
-                int clip2 = align2[j] >> bit2 & mask;
+                int clip2 = (align2[j] >> bit2 & mask);
                 setClippedBeginPosition(row21, clip2);
                 setClippedBeginPosition(row22, clip2);
                 setClippedEndPosition(row11, clip1);
@@ -729,7 +743,7 @@ int clip_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
     resize (buffer, buf_len);
     int clip_begin = 0; int clip_end = 0;
     int prebp = 0; //pre-breakpoint counter of buffer
-    int bp = prebp;
+    int bp = prebp; //bp * delta = view coordinate
     int bp_sc1 = beginPosition(row1), bp_sc2 = beginPosition(row2); //breakpoint of source 
     int prebp_sc1 = bp_sc1, prebp_sc2 = bp_sc2;
     int d_w = window / delta;
@@ -770,9 +784,11 @@ int clip_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
 //TODO::score to accecpt the segs, need to make score more reasonable
             if ((buffer[bp] - buffer[prebp]) / (bp - prebp + 1) > thd_accept_score)
             {
+                uint64_t d_shift = bp * delta + clippedBeginPosition(row1);
+                uint64_t d_shift_pre = prebp * delta + clippedBeginPosition(row1);
                 insertGaps(clip_records, 
-                    _DefaultCord.shift(gap_start_cord, prebp_sc1, prebp_sc2),
-                    _DefaultCord.shift(gap_start_cord, bp_sc1, bp_sc2),
+                    _DefaultCord.shift(gap_start_cord, d_shift_pre, d_shift_pre),
+                    _DefaultCord.shift(gap_start_cord, d_shift, d_shift),
                     0);
             }
             prebp_sc1 = bp_sc1;
@@ -783,12 +799,24 @@ int clip_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
     }
     return 0;
 }
+/**
+ * Merge segs in one gap record and clip segs of the middle part.
+ * @row11 @row12 alignment of the gap
+ * @row21 @row22 alignment of the head and tail block the gap is merged to
+ * @gaps contains all gap records. 
+   Eeach gap record includes coords and alignments of its pre and succssor well  aligned cords
+ */
 int merge_segs_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
                 Row<Align<String<Dna5>, ArrayGaps> >::Type & row2, 
-                GapRecords & gaps,
+                Row<Align<String<Dna5>, ArrayGaps> >::Type & row_s1,
+                Row<Align<String<Dna5>, ArrayGaps> >::Type & row_s2, 
+                Row<Align<String<Dna5>, ArrayGaps> >::Type & row_e1,
+                Row<Align<String<Dna5>, ArrayGaps> >::Type & row_e2,  
                 GapRecords & clip_records,
                 uint64_t gap_start_cord, 
-                uint64_t gap_end_cord
+                uint64_t gap_end_cord,
+                uint64_t merge_start_cord,
+                uint64_t merge_end_cord 
                )
 {
     typedef Align<String<Dna5>, ArrayGaps> TAlign;
@@ -799,6 +827,44 @@ int merge_segs_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     {
         return 0;
     }
+    //cords of the first and last aligned seges of the gaps
+    uint64_t cord1 = clip_records.get_c_pair(0).first;
+    uint64_t cord2 = clip_records.get_c_pair(0).second;
+    //setClippedBeginPosition(row1, get_cord_x(cord1));
+    //setClippedEndPosition(row2, get_cord_x(cord2));
+/*
+    merge_align_(gaps.get_r1_pair().first, 
+                 gaps.get_r1_pair().second,
+                 row(aligner, 0), 
+                 row(aligner,1),
+                 thd_cord_overlap
+                );
+                */
+                
+    std::cout << "[]::merge_segs_ first" 
+              << get_cord_x(cord1 - gap_start_cord) - clippedBeginPosition(row1) << " "
+              << get_cord_y(cord1) << " "
+              << get_cord_x(cord2) << " "
+              << get_cord_y(cord2) << " "
+              << "\n"; 
+    cord1 = back(clip_records.c_pairs).first;
+    cord2 = back(clip_records.c_pairs).second;
+    setClippedBeginPosition(row1, get_cord_x(cord1));
+    setClippedEndPosition(row2, get_cord_x(cord2));
+    /*
+    merge_align_(gaps.get_r1_pair().first, 
+                 gaps.get_r1_pair().second,
+                 row(aligner, 0), 
+                 row(aligner,1),
+                 thd_cord_overlap
+                ); 
+                */
+    std::cout << "[]::merge_segs_ last" 
+              << get_cord_x(cord1 - gap_start_cord) << " "
+              << get_cord_y(cord1) << " "
+              << get_cord_x(cord2) << " "
+              << get_cord_y(cord2) << " "
+              << "\n";
     for (int i = 0; i < length(clip_records.c_pairs); i++)
     {
         uint64_t cord1 = clip_records.get_c_pair(i).first;
@@ -905,10 +971,16 @@ int align_gaps (GapRecords & gaps,
                   );
         merge_segs_(row(aligner, 0), 
                     row(aligner, 1), 
-                    gaps,
+                    gaps.get_r1_pair(i).first,   //alignment of start cord
+                    gaps.get_r1_pair(i).second,
+                    gaps.get_r2_pair(i).first,   //alignment of end cord
+                    gaps.get_r2_pair(i).second, 
                     clip_records,
                     gap_start_cord, 
-                    gap_end_cord);
+                    gap_end_cord,
+                    gaps.getHeadCord(i),
+                    gaps.getTailCord(i)
+                    );
     }
     return 0;
 }
