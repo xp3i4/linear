@@ -50,7 +50,7 @@ public:
     }
     uint64_t getJointTailCord(int i) 
     {
-        return _DefaultCord.shift(c_pairs[i].second, dx, dy);
+        return _DefaultCord.shift(c_pairs[i].second, -dx, -dy);
     }
     int clear_(){
         clear(c_pairs); 
@@ -534,6 +534,11 @@ int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     if (!_DefaultCord.isCordsOverlap(cord1, cord2, thd_cord_overlap) ||
         _DefaultCord.getCordStrand(cord1 ^ cord2))  //sv: gap or reverse
     {
+        std::cout << "[]::merge_align_ " 
+                  << thd_cord_overlap << " "
+                  << get_cord_x(cord1) << " "
+                  << get_cord_x(cord2) << " "
+                  << "\n";
         return 1;
     }
     int bit = 20, bit2 = 40;
@@ -623,13 +628,15 @@ int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     int flag = 0, start_j = 0;
     int64_t x1 = (align1[0] >> bit) & mask;
     int64_t y1 = align1[0] & mask;flag = 0;
+    int sum = 0;
 	for (int i = 0; i < length(align1) - 1; i++)	
 	{
 		int64_t x1_next = (align1[i + 1] >> bit) & mask;
 		int64_t y1_next = align1[i + 1] & mask;
         flag = 0;
 		for (int j = start_j; j < length(align2); j++)	
-		{
+	    {
+            sum++;
 			int64_t x2 = align2[j] >> bit & mask;
 			int64_t y2 = align2[j] & mask;
             if (!flag)
@@ -648,6 +655,7 @@ int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
                 setClippedBeginPosition(row22, clip2);
                 setClippedEndPosition(row11, clip1);
                 setClippedEndPosition(row12, clip1);
+                std::cout << "[]::merge_align_ " << sum << "\n";
 				return 0;
 			}
 			else if (x2 - x1 > thd_merge_x|| y2 - y1 > thd_merge_x)
@@ -777,6 +785,7 @@ int clip_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
     typedef Iterator<TRow>::Type TRowIterator;
     int x = 0;
     int thd_1 = 1;
+    int flag = 0;
     int64_t src1 = beginPosition(row1);
     int64_t src2 = beginPosition(row2);
     TRowIterator it1 = begin(row1);
@@ -807,6 +816,7 @@ int clip_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
             buffer[buf_len] = x; //+ thd_1 * (std::abs(src1 - src1_2 - src2 + src2_2));
             buffer_src1[buf_len] = src1;
             buffer_src2[buf_len] = src2;
+            //std::cout << "buffer " << buffer_src2[buf_len] << " " << buf_len << "\n";
             buf_len++;
             count = 1;
         }
@@ -869,14 +879,31 @@ int clip_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
                           << toViewPosition(row2, bp_sc2) << " "
                           << get_cord_x(gap_start_cord) << " "
                           << get_cord_y(gap_start_cord) << "\n"; 
-                clip_beginPos = bp * delta + clippedBeginPosition(row1);
-                clip_endPos = prebp * delta + clippedBeginPosition(row1);
+                clip_beginPos = prebp * delta + clipped_begin;
+                clip_endPos = bp * delta + clipped_begin;
                 if (ct_clips == 0)
                 {
                     uint64_t headCord = _DefaultCord.shift(gap_start_cord, prebp_sc1, prebp_sc2);
-                    //setClippedPositions(row1, row2, clip_beginPos, clip_endPos);
-                    //merge_align_(row_jh1, row_jh2, row1, row2, cord_jh, headCord);
-                    //setClippedPositions(row1, row2, clipped_begin, clipped_end);
+                    setClippedPositions(row1, row2, clip_beginPos, clip_endPos);
+                    flag = merge_align_(row_jh1, row_jh2, row1, row2, cord_jh, headCord);
+              std::cout << "[]::clip_segs_h " 
+              << get_cord_x(cord_jh) << " "
+              << get_cord_y(cord_jh) << " " 
+              << get_cord_x(headCord) << " " 
+              << get_cord_y(headCord) << " flag=" 
+              << flag << " " 
+              << _DefaultCord.getCordStrand(headCord ^ cord_jt) << " "
+              << clip_beginPos << " "
+              << clip_endPos << " "
+              << beginPosition(row1) << " "
+              << beginPosition(row2) << " "
+              << endPosition(row1) << " "
+              << endPosition(row2) << "row \n"
+              << row1 << " \n"
+              << row2 << " \n"
+              << row_jh1 << "\n"
+              << row_jh2 
+              <<"\n";
                 }
                 last_accept_prebp_sc1 = prebp_sc1;
                 last_accept_prebp_sc2 = prebp_sc2;
@@ -889,21 +916,33 @@ int clip_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
             prebp = bp;
             i += d_j - i;
         }
-
     }
-    clip_beginPos = last_accept_bp_view * delta + clippedBeginPosition(row1);
-    clip_endPos = last_accept_prebp_view * delta + clippedBeginPosition(row1); 
-    uint64_t tailCord = _DefaultCord.shift(gap_start_cord, last_accept_prebp_sc1, last_accept_prebp_sc2);
+    clip_beginPos = last_accept_prebp_view * delta + clipped_begin;
+    clip_endPos = last_accept_bp_view * delta + clipped_begin; 
+    uint64_t tailCord = gap_start_cord;
     setClippedPositions(row1, row2, clip_beginPos, clip_endPos);
 
-    int flag = merge_align_(row1, row2, row_jt1, row_jt2, tailCord, cord_jt); 
-    std::cout << "[]::clip_segs_ 2 " 
+    flag = merge_align_(row1, row2, row_jt1, row_jt2, tailCord, cord_jt); 
+    std::cout << "[]::clip_segs_t " 
               << get_cord_x(tailCord) << " " 
               << get_cord_y(tailCord) << " " 
               << flag << " " 
               << _DefaultCord.getCordStrand(tailCord ^ cord_jt) << " "
               << get_cord_x(cord_jt) << " "
               << get_cord_y(cord_jt) << " " 
+              << last_accept_bp_view << " view "
+              << buffer_src1[last_accept_bp_view] << " "
+              << buffer_src2[last_accept_bp_view] << " "
+              << clip_beginPos << " "
+              << clip_endPos << " "
+              << beginPosition(row1) << " "
+              << beginPosition(row2) << " "
+              << endPosition(row1) << " "
+              << endPosition(row2) << " \n"
+              << row1 << " \n"
+              << row2 << " \n"
+              << row_jt1 << "\n"
+              << row_jt2 
               <<"\n";
     return 0;
 }
@@ -942,7 +981,7 @@ int align_gaps (GapRecords & gaps,
         int g_id = _getSA_i1 (_DefaultCord.getCordX(gap_start_cord));
         int head_end = block_size >> 2;
         int tail_start = block_size - (block_size >> 2);
-        int band = block_size / 2;
+        int band = block_size >> 1;
         align_cord (row(aligner, 0), 
                     row(aligner, 1), 
                     genomes[g_id], 
@@ -952,8 +991,8 @@ int align_gaps (GapRecords & gaps,
                     block_size,
                     band
                 );
-        flag |= clip_head_ (row(aligner, 0), row(aligner, 1), head_end);
-        flag |= clip_tail_ (row(aligner, 0), row(aligner, 1), tail_start);
+        //flag |= clip_head_ (row(aligner, 0), row(aligner, 1), head_end);
+        //flag |= clip_tail_ (row(aligner, 0), row(aligner, 1), tail_start);
 
 /*TODO::align inverse
         uint64_t gap_start_cord_cr = 0, gap_end_cord_cr = 0;
@@ -971,7 +1010,7 @@ int align_gaps (GapRecords & gaps,
         flag |= clip_head_ (row(aligner, 0), row(aligner, 1), head_end);
         flag |= clip_tail_ (row(aligner, 0), row(aligner, 1), tail_start);
         */
-        std::cout << aligner << "\n";
+//        std::cout << aligner << "\n" 
         clip_records.clear_();
         clip_segs_(row(aligner, 0), 
                    row(aligner, 1), 
@@ -1101,7 +1140,10 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                        thd_merge_gap,
                        dx,
                        dy);
-            std::cerr << _DefaultCord.getCordStrand(preCord) << " " << _DefaultCord.getCordStrand(cords[i]) << "\n";
+            std::cout << "[]::align_cords cord_i " 
+                      << get_cord_x(gaps.getJointTailCord(length(gaps.c_pairs) - 1)) << " "
+                      << get_cord_x(cords[i]) << " \n" 
+                      << "\n";
         }
         preCord = cords[i];
         //std::cout << "[]::align_cords_2 " << i << " " << flag << " " << preCord << " " << cords[i] << "\n";
