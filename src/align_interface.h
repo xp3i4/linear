@@ -515,12 +515,13 @@ int drop_align_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
  * @parm rows are supposed to contain the alignment of the two blocks.
  * @parm rows are compared and merged from the corresponding clippedBeginPosition() to clippedEndPosition() 
  */
-int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
+int merge_align__(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
 				 Row<Align<String<Dna5>,ArrayGaps> >::Type & row12,
 				 Row<Align<String<Dna5>,ArrayGaps> >::Type & row21,
 				 Row<Align<String<Dna5>,ArrayGaps> >::Type & row22,
 				 uint64_t & cord1,  
-				 uint64_t & cord2
+				 uint64_t & cord2,
+                 std::pair<int, int> & clips
 				)
 {
 	typedef Align<String<Dna5>, ArrayGaps> TAlign;
@@ -651,10 +652,7 @@ int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
 			{
                 int clip1 = (align1[i] >> bit2 & mask);
                 int clip2 = (align2[j] >> bit2 & mask);
-                setClippedBeginPosition(row21, clip2);
-                setClippedBeginPosition(row22, clip2);
-                setClippedEndPosition(row11, clip1);
-                setClippedEndPosition(row12, clip1);
+                clips.first = clip1; clips.second = clip2;
                 std::cout << "[]::merge_align_ " << sum << "\n";
 				return 0;
 			}
@@ -667,6 +665,28 @@ int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
         y1 = y1_next;
 	}
     return 4;
+}
+int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
+                 Row<Align<String<Dna5>,ArrayGaps> >::Type & row12,
+                 Row<Align<String<Dna5>,ArrayGaps> >::Type & row21,
+                 Row<Align<String<Dna5>,ArrayGaps> >::Type & row22,
+                 uint64_t & cord1,  
+                 uint64_t & cord2
+                )
+{
+    std::pair<int, int> clips;
+    
+    int flag = merge_align__(row11, row12, row21, row22, cord1, cord2, clips);
+    if (!flag)
+    {
+        int clip1 = clips.first;
+        int clip2 = clips.second;
+        setClippedBeginPosition(row21, clip2);
+        setClippedBeginPosition(row22, clip2);
+        setClippedEndPosition(row11, clip1);
+        setClippedEndPosition(row12, clip1);
+    }
+    return flag;
 }
 
 inline void insertGaps(GapRecords & gaps,
