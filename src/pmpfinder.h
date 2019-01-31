@@ -206,7 +206,10 @@ inline uint64_t Cord::getMaxLen(String<uint64_t> const & cord, uint64_t const & 
 
 inline uint64_t Cord::shift(uint64_t & val, int64_t x, int64_t y, unsigned const & bit) //add x and y
 {
-    return uint64_t((int64_t)val + (x << bit) + y);
+    if (x < 0)
+        return val - ((-x) << bit) + y;
+    else
+        return val + (x << bit) + y;
 }
 
 inline bool Cord::isCordsOverlap(uint64_t & val1, uint64_t & val2, int64_t thd)
