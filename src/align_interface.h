@@ -1124,7 +1124,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                           preCord, 
                           cords[i]
                          );
-        if (!flag) //merge failed 
+        if (flag) //merge failed 
         {
             int dx = block_size >> 1; //shift the cord to the gap cord;
             int dy = block_size >> 1;
@@ -1138,13 +1138,14 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                        thd_merge_gap,
                        dx,
                        dy);
-            appendValue (bam_records, emptyBamRecord);
+            //appendValue (bam_records, emptyBamRecord);
             flag2 = 1;
             std::cout << "[]::align_cords cord_i " 
                       << get_cord_x(gaps.getJointTailCord(length(gaps.c_pairs) - 1)) << " "
                       << get_cord_x(cords[i]) << " \n" 
                       << "\n";
         }
+        /*
         else
         {
             if (!flag2) // when the rows_pre are not gap_tailJoint cord.
@@ -1154,10 +1155,11 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                          row(aligner, ri_pre + 1),
                          g_id,
                          g_beginPos
-                        )
+                        );
             }
             flag2 = 0;
         }
+        */
         preCord = cords[i];
         //std::cout << "[]::align_cords_2 " << i << " " << flag << " " << preCord << " " << cords[i] << "\n";
         std::swap (ri, ri_pre); //swap the current and pre row id in the aligner.
