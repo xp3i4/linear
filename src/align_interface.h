@@ -677,6 +677,7 @@ int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
 inline void insertGaps(GapRecords & gaps,
                   uint64_t cord1,    //start coordinate of gap
                   uint64_t cord2,    //end coordinate of gap
+                  int bam_segs_id,
                   int thd_merge_gap,
                   int dx_,
                   int dy_
@@ -685,7 +686,7 @@ inline void insertGaps(GapRecords & gaps,
     if (empty(gaps.c_pairs))
     {
         appendValue(gaps.c_pairs, std::pair<uint64_t, uint64_t>(cord1, cord2));
-        appendValue(gap.bam_segs_id, bam_segs_id);
+        appendValue(gaps.bam_segs_id, bam_segs_id);
 
     }
     else 
@@ -699,7 +700,7 @@ inline void insertGaps(GapRecords & gaps,
         else
         {
             appendValue(gaps.c_pairs, std::pair<uint64_t, uint64_t>(cord1, cord2));
-            appendValue(gap.bam_segs_id, bam_segs_id);
+            appendValue(gaps.bam_segs_id, bam_segs_id);
         }
     }
     gaps.dx = dx_;
@@ -713,8 +714,8 @@ inline void insertGaps(GapRecords & gaps,
                   Row<Align<String<Dna5>, ArrayGaps> >::Type & row12,
                   Row<Align<String<Dna5>, ArrayGaps> >::Type & row21,
                   Row<Align<String<Dna5>, ArrayGaps> >::Type & row22,
-                  int thd_merge_gap,
                   int bam_segs_id,
+                  int thd_merge_gap,
                   int dx_,
                   int dy_ 
                  )
@@ -724,7 +725,7 @@ inline void insertGaps(GapRecords & gaps,
         appendValue(gaps.c_pairs, std::pair<uint64_t, uint64_t>(cord1, cord2));
         appendValue(gaps.r_pairs, std::pair<TRow, TRow>(row11, row12));
         appendValue(gaps.r_pairs, std::pair<TRow, TRow>(row21, row22));
-        appendValue(gap.bam_segs_id, bam_segs_id);
+        appendValue(gaps.bam_segs_id, bam_segs_id);
     }
     else 
     {
@@ -741,7 +742,7 @@ inline void insertGaps(GapRecords & gaps,
             appendValue(gaps.c_pairs, std::pair<uint64_t, uint64_t>(cord1, cord2));
             appendValue(gaps.r_pairs, std::pair<TRow, TRow>(row11, row12));
             appendValue(gaps.r_pairs, std::pair<TRow, TRow>(row21, row22));
-            appendValue(gap.bam_segs_id, bam_segs_id);
+            appendValue(gaps.bam_segs_id, bam_segs_id);
         }
     }
     gaps.dx = dx_;
@@ -1011,9 +1012,9 @@ int align_gaps (String<BamAlignmentRecord> & bam_records,
             << get_cord_y(gap_end_cord) << " " 
             << "\n";
 
-            align_cord (row(aligner, j), row(aligner, j + 1), genomes[g_id], read, comrevRead, gap_start_cord, block_size,band);
-            clip_segs_(row(aligner, j), 
-                       row(aligner, j + 1), 
+            align_cord (row(aligner, 2 * j), row(aligner, 2 * j + 1), genomes[g_id], read, comrevRead, gap_start_cord, block_size,band);
+            clip_segs_(row(aligner, 2 * j), 
+                       row(aligner, 2 * j + 1), 
                        gaps.get_r1_pair(i).first,
                        gaps.get_r1_pair(i).second,
                        gaps.get_r2_pair(i).first,
@@ -1033,8 +1034,7 @@ int align_gaps (String<BamAlignmentRecord> & bam_records,
         {
             for (int k = 0; k < length(clip_records[j]); k++)
             {
-                //setBamRecord(row(aligner, j))
-
+                //setBamRecord(row(aligner, 2 * j), row(aligner, 2 * j + 1));
                 std::cout << "[]::align_gaps clip " << clip_records[j][k].first << " " << clip_records[j][k].second << "\n";
             }
         }
@@ -1149,6 +1149,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                        row(aligner, ri_pre + 1),
                        row(aligner, ri),
                        row(aligner, ri + 1),
+                       length(bam_records) - 1,
                        thd_merge_gap,
                        dx,
                        dy);
