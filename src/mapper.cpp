@@ -99,13 +99,8 @@ int print_align_sam_record_(StringSet<String< BamAlignmentRecord > > & records,
             records[i][j].qName = readsId[i];
             CharString g_id = genomesId[records[i][j].rID];
             writeSam(of, records[i][j], g_id);
-    std::cout << "[]::print sam " << length(records) << " "
-                << length(records[i]) << " "
-                << records[i][j].rID << " "
-                << "\n";
         }
     }
-
 }
 template <typename TDna, typename TSpec>
 int print_align_sam (Mapper<TDna, TSpec> & mapper)

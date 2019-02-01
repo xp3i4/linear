@@ -62,6 +62,12 @@ public:
     }
 };
 
+class BamAlignmentRecordLink : public BamAlignmentRecord 
+{
+public:
+    int next;
+}
+
 void setClippedBeginPositions(TRow & row1, TRow & row2, int beginPos)
 {
     setClippedBeginPosition(row1, beginPos);
@@ -169,11 +175,9 @@ inline int getScore2_(TRowIterator & it1,
     }
     return x;
 }
-int inline setBamRecord (BamAlignmentRecord & bam_record,
+int inline insertBamRecordCigar (BamAlignmentRecord & bam_record,
                     Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
                     Row<Align<String<Dna5>, ArrayGaps> >::Type & row2, 
-                    int g_id,
-                    int g_beginPos,
                     int pos = -1
                    )
 {
@@ -191,6 +195,17 @@ int inline setBamRecord (BamAlignmentRecord & bam_record,
         align2cigar(tmp, row1, row2);
         insert (bam_record.cigar, pos, tmp);
     }
+    return 0;
+}
+int inline setBamRecord (BamAlignmentRecord & bam_record,
+                    Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
+                    Row<Align<String<Dna5>, ArrayGaps> >::Type & row2, 
+                    int g_id,
+                    int g_beginPos,
+                    int pos = -1
+                   )
+{
+    insertBamRecordCigar(bam_record, row1, row2, pos);
     bam_record.rID = g_id;
     bam_record.beginPos = g_beginPos; 
     return 0;
@@ -918,49 +933,106 @@ int merge_gap_segs_(String<BamAlignmentRecord> & bam_records,
                 String<uint64_t> & gap_start_cords,
                 uint64_t cord_jh,
                 uint64_t cord_jt,
-                int bam_seg_id_head,
-                int bam_seg_id_tail
+                int bam_id_seg_h,
+                int bam_id_seg_t
               )
 {
     BamAlignmentRecord bam_record;
-    std::pair<int, int> clips;
-    int flag = -1;
+    std::pair<int, int> clips_h, clips_t;
+    int flag_h = -1, flag_t = -1;
+    int head_i = -1, tail_i = -1;
+    int clip_start, clip_end;
     uint64_t g_id, g_beginPos;
     if (empty(clip_records))
     {
         return 0;
     }
-    for (int i = 0; i < flag&&length(clip_records); i++) //head cord of 2 strands;
+    for (int i = 0; i < length(clip_records); i++) //scan 2 strands of head;
     {
-        setClippedPositions(row(aligner, 2 * i), row(aligner, 2 * i + 1), clip_records[0][i].first, clip_records[0][i].second);
-        flag = merge_align_(row_jh1, row_jh2, row(aligner, 2 * i), row(aligner, 2 * i + 1), cord_jh, gap_start_cords[i]); 
+        setClippedBeginPositions(row(aligner, 2 * i), 
+                                 row(aligner, 2 * i + 1), 
+                                 clip_records[0][i].first, 
+                                 clip_records[0][i].second
+                                );
+        flag_h = merge_align__(row_jh1, 
+                               row_jh2, 
+                               row(aligner, 2 * i), 
+                               row(aligner, 2 * i + 1), 
+                               cord_jh, 
+                               gap_start_cords[i], 
+                               clips_h
+                              ); 
+        if (!flag_h) //merge done
+        {
+            head_i = i;
+            break;
+        }
     }
-    g_id = _getSA_i1(_DefaultCord.getCordX(cord_jh));
-    g_beginPos = get_cord_x (cord_jh) + beginPosition(row_jh1);
-    setBamRecord(bam_records[bam_seg_id_head], row_jh1, row_jh2, g_id, g_beginPos);
-    flag = -1;
-    for (int i = 0; i < flag&&length(clip_records); i++) //tail cord of 2 strands; 
+    for (int i = 0; i < length(clip_records); i++) //2 strands of tail; 
     {
-        setClippedPositions(row(aligner, 2 * i), row(aligner, 2 * i + 1), back(clip_records)[i].first, back(clip_records)[i].second);
-        flag = merge_align_(row(aligner, 2 * i), row(aligner, 2 * i + 1), row_jt1, row_jt2, cord_jh, gap_start_cords[i]); 
+        setClippedPositions(row(aligner, 2 * i), 
+                            row(aligner, 2 * i + 1), 
+                            back(clip_records)[i].first, 
+                            back(clip_records)[i].second
+                           );
+        flag_t = merge_align__(row(aligner, 2 * i), 
+                               row(aligner, 2 * i + 1), 
+                               row_jt1, 
+                               row_jt2, 
+                               cord_jh, 
+                               gap_start_cords[i], 
+                               clips_t
+                              ); 
+        if (!flag_t)
+        {
+            tail_i = i;
+            break;
+        }
     }
-    g_id = _getSA_i1(_DefaultCord.getCordX(cord_jt));
-    g_beginPos = get_cord_x (cord_jt) + beginPosition(row_jt1);
-    setBamRecord(bam_records[bam_seg_id_tail], row_jt1, row_jt2, g_id, g_beginPos, 0); //insert cigar at the begin of original cigar
-    /*
-    if (length(clip_records[i] == 1)) 
+    if (tail_i != head_i) // Tail and head cords are not allowed to have different strands
     {
+        return 2 
+    }
+    int merge_i = head_i;
+    setClippedBeginPositions(row_jh1, row_jh2, clips_h.first);
+    setClippedBeginPositions(row_jt1, row_jt2, clips_t.second);
+    insertBamRecordCigar(bam_records[bam_id_seg_h], row_jh1, row_jh2);
+    insertBamRecordCigar(bam_records[bam_id_seg_t], row_jt1, row_jt2, 0); //insert head_joint and tail_joint cigar at end or at the start of each bam records 
+    if (length(clip_records[merge_i] == 1)) 
+    {
+        setClippedPositions(row(aligner, 2 * merge_i), row(aligner, 2 * merge_i + 1), clips_h.second, clips.first); 
 
+        insertBamRecordCigar(bam_records[bam_segs_id_h], row(aligner, 2 * merge_i), row(aligner, 2 * merge_i + 1)) //append at the end
+        
+        return 0;
     }
-    else if (length(clip_records[i]) > 1)
+    else if (length(clip_records[merge_i]) > 1)
     {
-
+        if (flag_h > 0) //merge head fail 
+        {
+            clip_start = 0; 
+        }
+        else 
+        {
+            setClippedBeginPositions(row(aligner, 2 * merge_i), row(aligner, 2 * merge_i + 1), clips_h.second); 
+            insertBamRecordCigar(bam_records[bam_segs_id_h], row(aligner, 2 * merge_i), row(aligner, 2 * merge_i + 1)) //append at the end
+            clip_start = 1;
+        }
+        if (flag_t > 0) //merge tail fail
+        {
+            clip_end = length(clip_records); 
+        }
+        else 
+        {
+            setClippedPositions(row(aligner, 2 * tail_i), row(aligner, 2 * merge_i + 1), clips_t.first);
+            insertBamRecordCigar(bam_records[bam_segs_id_t], row(aligner, 2 * merge_i), row(aligner, 2 * merge_i + 1), 0) //insert at the front 
+            clip_end = length(clip_records) - 1;
+        } 
     }
-    */
     std::cout << "[]::merge_segs_ flag " << flag << "\n"; 
     for (int j = 0; j < length(clip_records); j++)
     {
-        for (int k = 0; k < length(clip_records[j]); k++)
+        for (int k = clip_start; k < clip_records; k++)
         {
             setClippedPositions(row(aligner, 2 * j), row (aligner, 2 * j + 1), clip_records[j][k].first, clip_records[j][k].second);
             uint64_t g_id = _getSA_i1(_DefaultCord.getCordX(gap_start_cords[j]));
