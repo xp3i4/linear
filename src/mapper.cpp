@@ -102,6 +102,24 @@ int print_align_sam_record_(StringSet<String< BamAlignmentRecord > > & records,
         }
     }
 }
+int print_align_sam_record_(StringSet<String< BamAlignmentRecordLink> > & records, 
+                     StringSet<String<uint64_t> > & cordSet,
+                     StringSet<CharString> & readsId, 
+                     StringSet<CharString> & genomesId,
+                     std::ofstream & of
+                    )
+{
+    for (int i = 0; i < length(records); i++)
+    {
+        for (int j = 0; j < length(records[i]); j++)
+        {
+            records[i][j].qName = readsId[i];
+            CharString g_id = genomesId[records[i][j].rID];
+            int dt = writeSam(of, records[i], j, g_id);
+            std::cout << "write_sam " << j << " " << dt << "\n";
+        }
+    }
+}
 template <typename TDna, typename TSpec>
 int print_align_sam (Mapper<TDna, TSpec> & mapper)
 {
@@ -332,7 +350,7 @@ int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index & index,
                    StringSet<String<uint64_t> > & cords,
                    StringSet<String<uint64_t> > & clips,
                    StringSet<String<TDna> > & seqs,
-                   StringSet<String<BamAlignmentRecord> >& bam_records,
+                   StringSet<String<BamAlignmentRecordLink> >& bam_records,
                    unsigned & threads,
                    int p1
                   )
@@ -368,7 +386,7 @@ int64_t len = 0;
     StringSet<String<uint64_t> >  cordsTmp;
     StringSet< String<short> > f1;
     StringSet<String<uint64_t> > clipsTmp;
-    StringSet<String<BamAlignmentRecord> > bam_records_tmp;
+    StringSet<String<BamAlignmentRecordLink> > bam_records_tmp;
     unsigned thd_id =  omp_get_thread_num();
     if (thd_id < length(reads) - size2 * threads)
     {

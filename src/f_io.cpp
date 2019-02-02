@@ -8,8 +8,26 @@
 #include <iostream>
 #include <fstream>
 #include "f_io.h"
+
 using namespace seqan;
 
+BamAlignmentRecordLink::BamAlignmentRecordLink()
+{
+    next_id = -1;
+    BamAlignmentRecord();
+}
+void BamAlignmentRecordLink::addNext(int id)
+{
+    next_id = id;
+}
+int BamAlignmentRecordLink::isEnd() const 
+{
+    return next_id < 0;
+}
+int BamAlignmentRecordLink::next() const 
+{
+    return next_id;
+}
 std::string getFileName(const std::string& s, char sep, int flag) {
 
     if (flag == 1)
@@ -209,3 +227,91 @@ void writeSam(std::ofstream & target,
     writeValue(target, '\n');
 }
 
+//Lightweight sam function of Seqan::write(bamAlignmentRecord)
+int writeSam(std::ofstream & target,
+              String<BamAlignmentRecordLink> const & records,
+              int & it,
+              CharString genome_id,
+              CharString genome_id_next
+            )
+{
+    int it_count = -1;
+    BamAlignmentRecordLink const & record = records[it];
+    write(target, record.qName);
+    writeValue(target, '\t');
+
+    appendNumber(target, record.flag);
+    writeValue(target, '\t');
+
+    write(target, genome_id);
+
+    writeValue(target, '\t');
+
+    SEQAN_ASSERT_EQ((__int32)BamAlignmentRecord::INVALID_POS + 1, (__int32)0);
+    appendNumber(target, record.beginPos + 1);
+
+    writeValue(target, '\t');
+
+    appendNumber(target, static_cast<__uint16>(record.mapQ));
+    writeValue(target, '\t');
+
+    if (empty(record.cigar))
+        writeValue(target, '*');
+    else
+        while (1)
+        {
+            for (unsigned i = 0; i < length(records[it].cigar); ++i)
+            {
+                appendNumber(target, records[it].cigar[i].count);
+                writeValue(target, records[it].cigar[i].operation);
+            }
+            it_count++;
+            if (records[it].isEnd())
+                break;
+            else 
+                it = records[it].next();
+        }
+    writeValue(target, '\t');
+
+    if (record.rNextId == BamAlignmentRecord::INVALID_REFID)
+        writeValue(target, '*');
+    else if (record.rID == record.rNextId)
+        writeValue(target, '=');
+    else
+        write(target, genome_id_next);
+
+    writeValue(target, '\t');
+
+    appendNumber(target, record.pNext + 1);
+
+    writeValue(target, '\t');
+
+    if (record.tLen == BamAlignmentRecord::INVALID_LEN)
+        writeValue(target, '0');
+    else
+        appendNumber(target, record.tLen);
+
+    writeValue(target, '\t');
+
+    if (empty(record.seq))
+        writeValue(target, '*');  // Case of empty seq string / "*".
+    else
+        write(target, record.seq);
+
+    writeValue(target, '\t');
+
+
+    if (empty(record.qual))  // Case of empty quality string / "*".
+        writeValue(target, '*');
+    else
+        write(target, record.qual);
+
+    if (!empty(record.tags))
+    {
+        writeValue(target, '\t');
+        appendTagsBamToSam(target, record.tags);
+    }
+
+    writeValue(target, '\n');
+    return it_count;
+}

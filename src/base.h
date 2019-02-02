@@ -466,6 +466,7 @@ struct MapperBase
     typedef typename PMRecord<TDna>::RecSeq MSeq; 
     typedef typename PMRecord<TDna>::RecSeqs MSeqs;
 };
+
 /*
 template <typename TDna = typename MapperBase<>::DefaultAlphabet, 
     typename TSpec = typename MapperBase<>::DefaultShape>
