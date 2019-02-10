@@ -116,7 +116,6 @@ int print_align_sam_record_(StringSet<String< BamAlignmentRecordLink> > & record
             records[i][j].qName = readsId[i];
             CharString g_id = genomesId[records[i][j].rID];
             int dt = writeSam(of, records[i], j, g_id);
-            std::cout << "write_sam " << j << " " << dt << "\n";
         }
     }
 }
