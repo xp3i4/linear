@@ -228,10 +228,10 @@ inline bool Cord::isBlockEnd(uint64_t & val, uint64_t const & flag)
 inline uint64_t get_cord_x (uint64_t val) {return _getSA_i2(_DefaultCord.getCordX(val));}
 inline uint64_t get_cord_y (uint64_t val) {return _DefaultCord.getCordY(val);}
 inline void cmpRevCord(uint64_t val1, 
-                           uint64_t val2,
-                           uint64_t & cr_val1,
-                           uint64_t & cr_val2,
-                           uint64_t read_len)
+                    uint64_t val2,
+                    uint64_t & cr_val1,
+                    uint64_t & cr_val2,
+                    uint64_t read_len)
 {
     cr_val1 = (val1 - get_cord_y(val1) + read_len - get_cord_y(val2)) ^ _DefaultCordBase.flag_strand;
     cr_val2 = (val2 - get_cord_y(val1) + read_len - get_cord_y(val2)) ^ _DefaultCordBase.flag_strand;

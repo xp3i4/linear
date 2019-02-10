@@ -59,7 +59,15 @@ void align2cigar_(String<CigarElement< > > &cigar,
     typename Iterator<TRow>::Type it2 = begin(gaps2);
 
     char op = '?', lastOp = ' ';
+    char last_op;
     unsigned numOps = 0;
+    unsigned last_count;
+    if (!empty(cigar))
+    {
+        last_op = back(cigar).operation;
+        last_count = back(cigar).count;
+    }
+    int flag = 0;
     for (; !atEnd(it1) && !atEnd(it2); goNext(it1), goNext(it2))
     {
         if (isGap(it1))
@@ -90,7 +98,24 @@ void align2cigar_(String<CigarElement< > > &cigar,
             if (lastOp == 'D' && numOps >= (unsigned)splicedGapThresh)
                 lastOp = 'N';
             if (numOps > 0)
-                appendValue(cigar, CigarElement<>(lastOp, numOps));
+            {
+                if (!flag)
+                {
+                    if (last_op == lastOp)
+                    {
+                        back(cigar).count += numOps;
+                    } 
+                    else
+                    {
+                        appendValue(cigar, CigarElement<>(lastOp, numOps));
+                    }
+                    flag = 1;
+                }
+                else
+                {
+                    appendValue(cigar, CigarElement<>(lastOp, numOps));
+                } 
+            }
             numOps = 0;
             lastOp = op;
         }
@@ -258,10 +283,27 @@ int writeSam(std::ofstream & target,
     if (empty(record.cigar))
         writeValue(target, '*');
     else
+    {
+        int end = 0;
         while (1)
         {
             for (unsigned i = 0; i < length(records[it].cigar); ++i)
             {
+                switch (records[it].cigar[i].operation)
+                {
+                    case 'D':
+                        end += records[it].cigar[i].count;
+                        break;
+                    case 'M':
+                        end += records[it].cigar[i].count;
+                        break;
+                }
+                /*
+                writeValue(target, ' ');
+                appendNumber(target, end);
+                writeValue(target, ' ');
+                */
+
                 appendNumber(target, records[it].cigar[i].count);
                 writeValue(target, records[it].cigar[i].operation);
             }
@@ -271,6 +313,8 @@ int writeSam(std::ofstream & target,
             else 
                 it = records[it].next();
         }
+        std::cout << "[]::print_sam " << end << "\n";
+    }
     writeValue(target, '\t');
 
     if (record.rNextId == BamAlignmentRecord::INVALID_REFID)
@@ -314,4 +358,57 @@ int writeSam(std::ofstream & target,
 
     writeValue(target, '\n');
     return it_count;
+}
+
+int insertCigar(String<CigarElement< > > &cigar1, 
+                int pos,
+                String<CigarElement< > > &cigar2
+         )
+{
+    int p = pos;
+    if (empty(cigar1))
+    {
+        cigar1 = cigar2;
+        return 0;
+    }
+    if (pos < 0)
+    {
+        return 1;
+    }
+    else if (pos > length(cigar1))  
+    {
+        p = length(cigar1);
+    }
+    if (p == 0)
+    {
+        if (cigar1[0].operation == back(cigar2).operation)
+        {
+            cigar1[0].count += back(cigar2).count;
+            eraseBack(cigar2);
+            insert(cigar1, p, cigar2);
+        }
+        return 0;
+    }
+    if (p == length(cigar1))
+    {
+        if (back(cigar1).operation == cigar2[0].operation)
+        {
+            cigar2[0].count += back(cigar1).count;
+            eraseBack(cigar1);
+            append(cigar1, cigar2, p);
+        }
+        return 0;
+    }
+    if (cigar1[p - 1].operation == cigar2[0].operation) 
+    {
+        cigar1[p - 1].count += cigar2[0].count;
+        erase(cigar2, 0);
+    }
+    if (cigar1[p].operation == back(cigar2).operation) 
+    {
+        cigar1[p - 1].count += back(cigar2).count;
+        eraseBack(cigar2);
+    }
+    insert(cigar1, p, cigar2);
+    return 0;
 }

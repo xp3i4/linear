@@ -21,7 +21,6 @@ std::string & operator<< (std::string & s, char s2);
 std::string & operator<< (std::string & s, std::string s2);
 
 std::string getFileName(const std::string&, char sep = '/', int flag = 1);
-
 void align2cigar(String<CigarElement< > > &cigar,
                  Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps1,
                  Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps2
@@ -38,4 +37,9 @@ int writeSam(std::ofstream & target,
               CharString genome_id_next = "*"
              );
 int clip_cigar (String<CigarElement<> > & cigar);
+
+int insertCigar(String<CigarElement< > > &cigar1, 
+                int pos,
+                String<CigarElement< > > &cigar2
+         ); //insert cirgar2 to cigar1 at pos
 #endif
