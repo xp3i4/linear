@@ -444,7 +444,7 @@ int align_cord (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
                 int local_flag = 1
                )
 {
-    uint64_t cord_end = _DefaultCord.shift(cord, window_size, window_size);
+    uint64_t cord_end = _DefaultCord.shift(cord, block_size, block_size);
     int score = align_cord (row1, row2, genome, read, comrevRead, cord, cord_end, band, local_flag);
     return score;
 }
