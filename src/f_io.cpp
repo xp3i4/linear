@@ -395,7 +395,7 @@ int insertCigar(String<CigarElement< > > &cigar1,
         {
             cigar2[0].count += back(cigar1).count;
             eraseBack(cigar1);
-            append(cigar1, cigar2, p);
+            append(cigar1, cigar2);
         }
         return 0;
     }
