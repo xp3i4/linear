@@ -105,7 +105,7 @@ struct Cord
     //void setHead(uint64_t &, uint64_t const &, uint64_t const & = _DefaultCordBase.headFlag);
     void setMaxLen(String<uint64_t> &, uint64_t const &, uint64_t const & = _DefaultCordBase.mask);
     uint64_t getMaxLen(String<uint64_t> const &, uint64_t const & = _DefaultCordBase.mask);
-    uint64_t shift(uint64_t & val, int64_t x, int64_t y, unsigned const & = _DefaultCordBase.bit); //add x and y
+    uint64_t shift(uint64_t const & val, int64_t x, int64_t y, unsigned const & = _DefaultCordBase.bit); //add x and y
 
     bool isCordsOverlap(uint64_t & val1, uint64_t & val2, int64_t thd);
     bool isBlockEnd(uint64_t &, uint64_t const & = _DefaultCordBase.flagEnd);
@@ -204,7 +204,7 @@ inline uint64_t Cord::getMaxLen(String<uint64_t> const & cord, uint64_t const & 
     return cord[0] & mask;
 }
 
-inline uint64_t Cord::shift(uint64_t & val, int64_t x, int64_t y, unsigned const & bit) //add x and y
+inline uint64_t Cord::shift(uint64_t const & val, int64_t x, int64_t y, unsigned const & bit) //add x and y
 {
     if (x < 0)
         return val - ((-x) << bit) + y;
@@ -236,6 +236,11 @@ inline void cmpRevCord(uint64_t val1,
     cr_val1 = (val1 - get_cord_y(val1) + read_len - get_cord_y(val2)) ^ _DefaultCordBase.flag_strand;
     cr_val2 = (val2 - get_cord_y(val1) + read_len - get_cord_y(val2)) ^ _DefaultCordBase.flag_strand;
 }
+inline uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y)
+{
+    return (val & (~_DefaultCordBase.valueMask)) + (x << _DefaultCordBase.bit) + y;
+}
+
 
 //======HIndex getIndexMatch()
 

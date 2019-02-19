@@ -42,4 +42,8 @@ int insertCigar(String<CigarElement< > > &cigar1,
                 int pos,
                 String<CigarElement< > > &cigar2
          ); //insert cirgar2 to cigar1 at pos
+std::pair<int, int> countCigar(String<CigarElement<> > & cigar);
+void printRows(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
+               Row<Align<String<Dna5>,ArrayGaps> >::Type & row2);
+
 #endif

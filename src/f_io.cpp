@@ -90,8 +90,8 @@ void align2cigar_(String<CigarElement< > > &cigar,
             else if (isClipped(it2))
                 op = 'S';
             else
-//                op = (*it1 == *it2)? '=': 'X';
-                op = 'M';
+                op = (*it1 == *it2)? '=': 'X';
+//                op = 'M';
         }
         if (lastOp != op)
         {
@@ -411,4 +411,88 @@ int insertCigar(String<CigarElement< > > &cigar1,
     }
     insert(cigar1, p, cigar2);
     return 0;
+}
+
+std::pair<int, int> countCigar(String<CigarElement<> > & cigar)
+{
+    int len1 = 0, len2 = 0;
+    for (int i = 0; i < length(cigar); i++)
+    {
+        //std::cerr << cigar[i].operation << cigar[i].count << " ";
+        switch (cigar[i].operation)
+        {
+            case 'D':
+                len1 += cigar[i].count;
+                break;
+            case 'I':
+                len2 += cigar[i].count;
+                break;
+            case '=':
+                len1 += cigar[i].count;
+                len2 += cigar[i].count;
+                break;
+            case 'X':
+                len1 += cigar[i].count;
+                len2 += cigar[i].count;
+                break;
+            default:
+                break;  
+        }
+    }
+    //std::cerr << "\n";
+    return std::pair<int,int>(len1, len2);
+}
+
+void printRows(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
+               Row<Align<String<Dna5>,ArrayGaps> >::Type & row2)
+{
+    int len = std::min (clippedEndPosition(row1) - clippedBeginPosition(row1),
+                        clippedEndPosition(row2) - clippedBeginPosition(row2));
+    std::string line0, line00, line1, line2, line3, line4;
+    int css1 = 0, css2 = 0;
+    for (int i = 0; i < len; i++)
+    {
+        if (row1[i] != '-')
+        {
+            css1++;
+        }
+        if (row2[i] != '-')
+        {
+            css2++;
+        }
+        if (i % 10 == 9)
+        {
+            append (line1, ":");
+        }
+        else if (i % 5 == 4)
+        {
+            append (line1, ".");
+        }
+        else
+        {
+            append (line1, " ");
+        }
+        appendValue(line2, row1[i]);
+        if (row1[i] == row2[i])
+        {
+            append (line3, "|");
+        }
+        else
+        {
+            append (line3, " ");
+        }
+        appendValue(line4, row2[i]);
+        if (i % 50 == 49)
+        {
+            line1 += "  " + std::to_string(i + 1) + " " + std::to_string(css1) + " " + std::to_string(css2);
+            std::cout << line1 << "\n" << line2 << "\n" << line3 << "\n" << line4 << "\n\n";
+            line1.clear();
+            line2.clear();
+            line3.clear();
+            line4.clear();
+        }
+    }
+    clear(line0);
+    clear(line00);
+    std::cout << "\n";
 }
