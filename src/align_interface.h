@@ -2,7 +2,7 @@
 #define LINEAR_HEADER_ALIGNER_H
 
 //#include <seqan/align_parallel.h>
-
+//TODO seqand::setclippedpositoin retrieve source postion that's not efficient
 using namespace seqan;
 /**
  * seqan::view coordinate and source coordinate transformation NOTES
@@ -1493,10 +1493,11 @@ int align_cords (StringSet<String<Dna5> >& genomes,
     int g_id = -1, g_beginPos = 0, strand = 0, flag = 0;
     int thd_merge_gap = block_size; // two adjacent gaps will be merged to one if < it
     int flag2 = 1;
+    int clip_flag = 0;
     int d_overlap_x;
     int d_overlap_y;
-    int thd_max_dx = block_size * 2; //For head and tail cords of a new segs, their size will be increased based on the window_size, so that there can be enough overlap region to be clippped.
-    int64_t d_cx, d_cy;
+    int thd_max_dshift = block_size * 3; //For head and tail cords of a new segs, their size will be increased based on the window_size, so that there can be enough overlap region to be clippped.
+    float thd_ddx = (float)band / block_size / 8; //TODO::8 needs tunning
     uint64_t pre_aligned_cord = emptyCord; //last well aligend and accepted cord
     clear (bam_records);
     resize(cords_buffer, 2);
@@ -1526,8 +1527,6 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         //<debug section end
         int newseg_flag = 0;
         flag = 0;
-        d_cx = block_size;
-        d_cy = block_size;
         g_id = _getSA_i1(_DefaultCord.getCordX(cords[i]));
         g_beginPos = get_cord_x (cords[i]);
         strand = _DefaultCord.getCordStrand(cords[i]);
@@ -1536,15 +1535,19 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         if (_DefaultCord.isBlockEnd(cords[i - 1])) 
         {
             //TODO:: to extend the first cord to be aligned
+            int dy = std::min(thd_max_dshift, (int)get_cord_y(cords[i]));
+            int dx = dy + thd_ddx * dy;
+            cord_start = _DefaultCord.shift (cords[i], -dx, -dy);
             pre_aligned_cord = emptyCord; //merge_align_ return 0 if pre_aligned_cord is empty
             newseg_flag |= 1;
+            clip_flag = -1;
         }
         else 
         {
             if (_DefaultCord.getCordStrand (cords[i] ^ pre_aligned_cord))
             {
                 newseg_flag |= 2;
-                int dx = std::min ((int)get_cord_x (cords[i] - pre_aligned_cord), thd_max_dx);
+                int dx = std::min ((int)get_cord_x (cords[i] - pre_aligned_cord), thd_max_dshift);
                 int dy = std::min (dx, (int)get_cord_y(pre_aligned_cord));
                 cord_start = _DefaultCord.shift(cords[i], -dx, -dy);
             }
@@ -1556,7 +1559,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         }
         else if (_DefaultCord.getCordStrand(cords[i] ^ cords[i + 1]))
         {
-            int dx = std::min((int)get_cord_x (cords[i + 1] - cords[i]), thd_max_dx);
+            int dx = std::min((int)get_cord_x (cords[i + 1] - cords[i]), thd_max_dshift);
             int dy = std::min(dx, int(length(read) - get_cord_y(cords[i])));
             cord_end = _DefaultCord.shift(cord_end, dx, dy);
             std::cout << "cord_shift " << dx << " " << dy << " " << get_cord_y(cord_end) << " " <<get_cord_x(cord_end) << "\n";
@@ -1608,92 +1611,79 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                           pre_aligned_cord, 
                           cord_start 
                          );
-        std::cout << "merge_status " << i << " " << flag << " " << cord_start << " " << cord_end << "\n";
-        if (flag & 2) // reverse strand
+        std::cout << "merge_status " << i << " " << flag << " " << get_cord_x(cord_start) << " " << cord_end << "\n";
+        if (flag) //merge failed
         {
-        //TODO!!!::if there is gap between inversion end
-        //and clip before insert new. g_beginPos wrong
-        //TODO clip tail of ri_pre and head of ri;
-        //<<debug
-        std::cout << "printRows_0 " << get_cord_x(pre_cord_start) << " " << get_cord_x(pre_cord_end) << " " << get_cord_x(cord_start)<< "\n";
-            printRows(row(aligner, ri_pre),
-                      row(aligner, ri_pre + 1));
-            printRows(row(aligner, ri),
-                      row(aligner, ri + 1));
-        //>>debug
-            clip_segs(row(aligner, ri_pre),
-                      row(aligner, ri_pre + 1),
-                      pre_cord_start,
-                      _gap_parm,
-                      1
-                    );
-            insertBamRecordCigar(back(bam_records), 
-                                 row(aligner, ri_pre),
-                                 row(aligner, ri_pre + 1));
-            //appendValue(bam_records, emptyBamRecord);
-            //back(bam_records).rID = g_id;
-
-            clip_segs(row(aligner, ri),
-                      row(aligner, ri + 1),
-                      cord_start,
-                      _gap_parm,
-                      -1);
-            //<<<debug
-            std::cout << "printRows_1 " << get_cord_x(pre_aligned_cord) << " " <<  clippedEndPosition(row(aligner, ri_pre)) << "\n";
-            printRows(row(aligner, ri_pre),
-                      row(aligner, ri_pre + 1));
-            std::cout << "printRows_2 " << get_cord_x(cord_start) << clippedBeginPosition(row(aligner, ri)) << "\n";
-            printRows(row(aligner, ri),
-                      row(aligner, ri + 1));
-            //>>>debug
-            insertNewEmptyBamRecord(bam_records,
-                               g_id,
-                               get_cord_x(cord_start) + beginPosition(row(aligner, ri)),
-                               0);
-            if (strand)
-                back(bam_records).flag |= bam_flag_rvcmp | bam_flag_suppl;
+            if (flag & 2) // reverse strand
+            {
+            //TODO!!!::if there is gap between inversion end
+            //and clip before insert new. g_beginPos wrong
+            //TODO clip tail of ri_pre and head of ri;
+                clip_segs(row(aligner, ri_pre),
+                          row(aligner, ri_pre + 1),
+                          pre_cord_start,
+                          _gap_parm,
+                          1
+                        );
+                insertBamRecordCigar(back(bam_records), 
+                                     row(aligner, ri_pre),
+                                     row(aligner, ri_pre + 1));
+                clip_flag = -1;
+                clip_segs(row(aligner, ri),
+                          row(aligner, ri + 1),
+                          cord_start,
+                          _gap_parm,
+                          -1);
+                insertNewEmptyBamRecord(bam_records,
+                            g_id,
+                            get_cord_x(cord_start) + beginPosition(row(aligner, ri)),
+                            strand?(bam_flag_rvcmp | bam_flag_suppl):bam_flag_suppl
+                        );
+            }
+            else  
+            {
+                int dx = block_size >> 1; //shift the cord to the gap cord;
+                int dy = block_size >> 1;
+                insertGaps(gaps, 
+                           _DefaultCord.shift(pre_aligned_cord, dx, dy),
+                           _DefaultCord.shift(cord_start, dx, dy),
+                           row(aligner, ri_pre), 
+                           row(aligner, ri_pre + 1),
+                           row(aligner, ri),
+                           row(aligner, ri + 1),
+                           length(bam_records) - 1,
+                           thd_merge_gap,
+                           dx,
+                           dy);
+                insertNewEmptyBamRecord(bam_records,
+                                   g_id,
+                                   get_cord_x(cord_start) + beginPosition(row(aligner, ri)),
+                                   _DefaultCord.getCordStrand(cords[i]));
+                flag2 = 1;
+            }
         }
-        else if (flag) //merge failed 
-        {
-            std::cout << "[]mergeflag " << i << " " << flag << "\n";
-            int dx = block_size >> 1; //shift the cord to the gap cord;
-            int dy = block_size >> 1;
-            insertGaps(gaps, 
-                       _DefaultCord.shift(pre_aligned_cord, dx, dy),
-                       _DefaultCord.shift(cord_start, dx, dy),
-                       row(aligner, ri_pre), 
-                       row(aligner, ri_pre + 1),
-                       row(aligner, ri),
-                       row(aligner, ri + 1),
-                       length(bam_records) - 1,
-                       thd_merge_gap,
-                       dx,
-                       dy);
-            appendValue (bam_records, emptyBamRecord);
-            back(bam_records).rID = g_id;
-            back(bam_records).beginPos = get_cord_x(cord_start) + beginPosition(row(aligner, ri));
-            flag2 = 1;
-        }
-        else if (flag == 0) //merge successfully or pre_aligned_cord is emptyBamRecord
+        else //merge successfully or pre_aligned_cord is emptyBamRecord
         {
             if (!flag2) // when the pre_aligned_cord are not gap_tailJoint cord.
             {
                 if (empty(bam_records))
                 {
                     //TODO!!! change g_beginPos clipped
+                    int pre_strand = _DefaultCord.getCordStrand(pre_aligned_cord);
                     clip_segs(row(aligner, ri_pre),
                       row(aligner, ri_pre + 1),
                       cord_start,
                       _gap_parm,
-                      -1
+                      clip_flag
                     );
                     insertNewBamRecord(bam_records, 
-                         row(aligner, ri_pre), 
-                         row(aligner, ri_pre + 1),
-                         g_id,
-                         g_beginPos,
-                         strand
-                        );
+                       row(aligner, ri_pre), 
+                       row(aligner, ri_pre + 1),
+                       g_id,
+                       get_cord_x(pre_aligned_cord) + beginPosition(row(aligner, ri_pre)),
+                       pre_strand? (bam_flag_rvcmp | bam_flag_suppl):bam_flag_suppl
+                    );
+                    clip_flag = 0;
                 } 
                 else
                 {
