@@ -1596,7 +1596,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         std::cout << "merge_status " << i << " " << flag << " " << get_cord_x(cord_start) << " " << cord_end << " " << _DefaultCord.isBlockEnd(cord_start)<< "\n";
         if (flag) //merge failed:= 1.reverse strand or 2.gaps
         {
-            if (flag & 2) // reverse strand
+            if (flag & 2) //case1: reverse strand
             {
             //TODO!!!::if there is gap between inversion end
             //and clip before insert new. g_beginPos wrong
@@ -1621,7 +1621,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                             strand?(bam_flag_rvcmp | bam_flag_suppl):bam_flag_suppl
                         );
             }
-            else  
+            else  //case2: gaps
             {
                 int dx = block_size >> 1; //shift the cord to the gap cord;
                 int dy = block_size >> 1;
@@ -1656,33 +1656,25 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                                 get_cord_x(cord_start) + beginPosition(row(aligner, ri)),
                                 _DefaultCord.getCordStrand(cords[i]));
                 std::cout << "beginPos " << get_cord_x(cord_start) << " " << beginPosition(row(aligner, ri));
-                if (_DefaultCord.isBlockEnd(cord_start))
-                {
-                    clip_segs(row(aligner, ri),
-                            row(aligner, ri + 1),
-                            cord_start,
-                            _gap_parm,
-                            1);
-                    insertBamRecordCigar(back(bam_records), 
-                            row(aligner, ri), 
-                            row(aligner, ri + 1));
-                } 
             }
             else 
             {
-                if (_DefaultCord.isBlockEnd(cord_start))
-                {
-                   clip_segs(row(aligner, ri),
-                            row(aligner, ri + 1),
-                            cord_start,
-                            _gap_parm,
-                            1);
-                } 
                 insertBamRecordCigar(back(bam_records), 
                             row(aligner, ri_pre), 
                             row(aligner, ri_pre + 1));
             }
         }
+        if (_DefaultCord.isBlockEnd(cord_start))
+        {
+            clip_segs(row(aligner, ri),
+                    row(aligner, ri + 1),
+                    cord_start,
+                    _gap_parm,
+                    1);
+            insertBamRecordCigar(back(bam_records), 
+                    row(aligner, ri), 
+                    row(aligner, ri + 1));
+        } 
         pre_cord_start = cord_start;
         pre_cord_end = cord_end;
         std::swap (ri, ri_pre); //swap the current and pre row id in the aligner.
