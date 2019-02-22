@@ -263,7 +263,7 @@ void Mapper<TDna, TSpec>::printCordsRaw2()
                 }
                 
                 of  << mark  << _DefaultCord.getCordY(cordSet[k][j]) << " " 
-                    << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j])) << " " << d2 << " " << d << " \n";
+                    << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j])) << " " << d2 << " " << d << " " << j << " \n";
                 cordCount++;
                 fflag = 0;
             }
