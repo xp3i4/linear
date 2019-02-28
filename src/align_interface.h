@@ -174,38 +174,124 @@ inline int getScore_(TRowIterator & it1,
     }
     return x;
 }
+
+inline int cumulate_match_sc__ (int l, int s)
+{
+    int j = 5;
+    int maxk = 5;
+    return std::min((l / j + 1), maxk) * s;
+}
+/*
+ * @flag:=[1]bit|[31]type
+ * bit:= 0 continuse, 1 seg breakpoint
+ * type:= match 0, mismatch 2, ins 4, del 8, gap open 16
+ */
 inline int getScore2_(TRowIterator & it1,
                      TRowIterator & it2,
-                     int & len,
-                     int & type,
-                     int k,
-                     int & x
+                     Score<int, Simple> score_scheme,
+                     int & l1, //match
+                     int & l2, //mismatch
+                     int & l3, //ins
+                     int & l4, //del
+                     int & l5, //gap_open
+                     int & x,
+                     int & sege_flag,
+                     int & type_flag
 )
 {
-    int s_match = 2 * k;
-    int s_ins = -1 * k;
-    int s_del = -1 * k;
-    int s_mismatch = 0 * k;
+    int s1 = score_scheme.data_match; 
+    int s2 = score_scheme.data_mismatch;
+    int s3 = score_scheme.data_gap_extend;
+    int s4 = score_scheme.data_gap_open;
+    int thd_continuous_gap = 2;
     if (*it1 == *it2)
     {
-        x += s_match * len;
+        x += cumulate_match_sc__(l1, s1);
+        l1++;
+        l2 = 0;
+        l5 = 0;
+        if (type_flag != 1)
+        {
+            type_flag = 1; 
+            sege_flag = 1;
+        }
+        else
+        {
+            sege_flag = 0;
+        }
     }
     else
     {
         if (isGap(it1))
         {
-            x += s_ins;
+            x += s3;
+            l1 = l2 = l4 = l5 = 0;
+            l3++;
+            if (type_flag != 2)
+            {
+                type_flag = 2; 
+                sege_flag = 1;
+            }
+            else
+            {
+                sege_flag = 0;
+            }
         }
         else
         {
             if (isGap(it2))
-                x += s_del;
+            {
+                x += s3;
+                l1 = l2 = l5 = l3 = 0;
+                l4++;
+                if (type_flag != 4)
+                {
+                    type_flag = 4; 
+                    sege_flag = 1;
+                }
+                else
+                {
+                    sege_flag = 0;
+                }                
+            }
             else
-                x += s_mismatch;
+            {
+                x += s2;
+                l1 = l5 = 0;
+                l2++;
+                if (type_flag != 8)
+                {
+                    type_flag = 8; 
+                    sege_flag = 1;
+                }
+                else
+                {
+                    sege_flag = 0;
+                }    
+            }
         }
     }
     return x;
 }
+inline int getScore2_(TRowIterator & it1,
+                     TRowIterator & it2,
+                     Score<int, Simple> score_scheme,
+                     String<int> & ls,
+                     int & x,
+                     int & sege_flag,
+                     int & type_flag)
+{
+    if (length(ls) < 5)
+    {
+        resize (ls, 5);
+        for (int i = 0; i < length(ls); i++)
+        {
+            ls[i] = 0;
+        }
+    }
+    return getScore2_(it1, it2, score_scheme, ls[0], ls[1], ls[2], ls[3], ls[4], x, sege_flag, type_flag);
+}
+
 /*
  * insert cigar to the original cigar 
  */
@@ -946,8 +1032,11 @@ int clip_gap_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
     TRowIterator it2 = begin(row2);
     TRowIterator it1_2 = it1, it2_2 = it2; 
     String<int> buffer;      //score at the intervals by delta
+    String<int> buffer_s;
+    String<int> buffer_it;
     String<int> buffer_src1; 
     String<int> buffer_src2; //alignment source coordiante
+    String<int> xlen;
     int clipped_end = clippedEndPosition(row1); 
     int clipped_begin = clippedBeginPosition(row1);
     int clipped_len = clipped_end - clipped_begin;
@@ -957,20 +1046,35 @@ int clip_gap_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
     }
     int buf_len = 0;
     int count = delta;
+    int mth_len = 0, ins_len = 0, del_len = 0, mis_len = 0;
+    int y = 0;
+    int seg_flag = 0;
+    int d_seg_flag = 0;
+    int type_flag = 0; 
     resize (buffer, clipped_len);
+    resize (buffer_s, clipped_len);
+    resize (buffer_it, clipped_len);
     resize (buffer_src1, clipped_len);
     resize (buffer_src2, clipped_len);
-    int mth_len = 0, ins_len = 0, del_len = 0, mis_len = 0;
     for (int k = 0; k < clipped_len; k++)
     {
         getScore_(it1, it2, 1, x);
+        getScore2_(it1, it2, Score<int>(1,-1,-1,-1), xlen, y, seg_flag, type_flag);
         _nextView2Src(it1, it2, src1, src2);
+        d_seg_flag |= seg_flag;
         if (count++ == delta)
         {
-            buffer[buf_len] = x; //+ thd_1 * (std::abs(src1 - src1_2 - src2 + src2_2));
-            buffer_src1[buf_len] = src1;
-            buffer_src2[buf_len] = src2;
-            buf_len++;
+            if (d_seg_flag)
+            {
+                buffer[buf_len] = x; //+ thd_1 * (std::abs(src1 - src1_2 - src2 + src2_2));
+                buffer_s[buf_len] = y;
+                buffer_it[buf_len] = k;
+                buffer_src1[buf_len] = src1;
+                buffer_src2[buf_len] = src2;
+                std::cout << "clip_2 " << k << " " << y << " " << (float)y / k << " " << xlen[0] << " " << d_seg_flag << "\n";
+                buf_len++;
+            }
+            d_seg_flag = 0;
             count = 1;
         }
         ++it1;
@@ -988,6 +1092,11 @@ int clip_gap_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
     std::pair<int, int> clip_pair;
     std::pair<int, int> clip_pair_src1;
     std::pair<int, int> clip_pair_src2;
+    int d_win = 20;
+    for (int i = 0; i < length(buffer) - d_win; i++)
+    {
+        std::cout << "den_clip " << buffer_it[i] << " " << (float)(buffer_s[i + d_win] - buffer_s[i]) << " " << (buffer_it[i + d_win] - buffer_it[i]) << "\n";
+    }
     for (int i = d_w + 1; i < last_ ; i++)
     {
         int d_score_left = buffer[i] - buffer[i - d_w];
