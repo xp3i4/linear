@@ -13,7 +13,7 @@ using namespace seqan;
 int const s1 = 3; //match
 int const s2 = 0; //mismatch
 int const s3 = -1; //gap
-Score<int, Simple> score1_(s1, s2, s3);
+Score<int, Simple> _align_score_ (8, -3, -3);
 float s_score_density_thd = 2; //if < the value alignment of cords will be dropped
 float s_score_window_thd = 0.75;
 int thd_align_score = 350 /*depends on score_scheme*/;
@@ -69,17 +69,35 @@ public:
 
 struct GapParm
 {
-    int thd_clip_score = 80;
-    int thd_reject_score = 130;
-    int thd_accept_score = 140;
-    int thd_accept_density = 16; 
+    int thd_clip_score;
+    int thd_reject_score;
+    int thd_accept_score;
+    int thd_accept_density; 
     GapParm ():
         thd_clip_score(80),
         thd_reject_score(130),
         thd_accept_score(140),
         thd_accept_density(16)
     {}
-} _gap_parm;
+    void setGapParm (Score<int, Simple> score_scheme, float err_rej, float err_acc, int window)
+    {
+        int s1 = score_scheme.data_match;
+        int s2 = score_scheme.data_mismatch;
+        int s3 = score_scheme.data_gap_extend;
+
+        //thd_clip_score =  
+        thd_reject_score = window * ((1 - err_rej) * s1 + err_rej * std::min(s2, s3));
+        thd_accept_score = window * ((1 - err_acc) * s1 + err_acc * std::min(s2, s3));
+        thd_clip_score = std::abs (thd_accept_score - thd_reject_score);
+        thd_accept_density = (1 - err_acc) * s1 + err_acc * std::min(s2, s3);
+        std::cerr << "gap_parm " << thd_reject_score << " " << thd_accept_score << " " << thd_clip_score << " " << thd_accept_density << "\n\n";
+    }
+    GapParm (Score<int, Simple> score_scheme, float err_rej, float err_acc, int window):
+    GapParm ()
+    {
+        setGapParm(score_scheme, err_rej, err_acc, window);
+    }
+} _gap_parm(_align_score_, 0.3, 0.18, 30);
 
 void setClippedBeginPositions(TRow & row1, TRow & row2, int beginPos)
 {
@@ -919,7 +937,6 @@ int clip_gap_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
               )
 {
     std::cout << "[]::clip_records\n";
-    std::cout << row1 << "\n" << row2 << "\n";
     int x = 0;
     int thd_1 = 1;
     int flag = 0;
@@ -976,8 +993,10 @@ int clip_gap_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
         int d_score_left = buffer[i] - buffer[i - d_w];
         int d_score_right = buffer[i + d_w] - buffer[i];
         int d_score = buffer[i + d_w] - (buffer[i] << 1) + buffer[i - d_w];
+        std::cout << "clip_gap_segs_ return " << i << " " << d_score << " " << d_score_left << " " << d_score_right << "\n";
         if ((std::abs(d_score) > thd_clip_score && 
-             std::min(d_score_left, d_score_right) < thd_reject_score)|| 
+             std::min(d_score_left, d_score_right) < thd_reject_score &&
+             std::max(d_score_left, d_score_right) > thd_accept_score)|| 
              i == last_ - 1) 
         {
             bp = i;
@@ -991,7 +1010,7 @@ int clip_gap_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
                     bp = j;
                     max_d_score = std::abs(d_score);
                 } 
-            } //process of getting the maximal clip_score in the region specified by thd_clip_mini_region will be triggered 
+            } //getting the maximal clip_score in the region specified by thd_clip_mini_region will be triggered 
               //when the first d_score satisifed appear
 
 //TODO::score to accecpt the segs, need to make score more reasonable
@@ -1007,7 +1026,7 @@ int clip_gap_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
                 appendValue(clip_records_src1, clip_pair_src1);
                 appendValue(clip_records_src2, clip_pair_src2);
                 ++ct_clips;
-            }
+                }
             prebp = bp;
             i += d_j - i;
         }
@@ -1098,6 +1117,7 @@ int merge_gap_segs_(String<BamAlignmentRecordLink> & bam_records,
     clip_ends = length(clip_records);
     clear(crv_gaps_src1);
     clear(crv_gaps_src2);
+    std::cout << "xxxclip " << length(clip_records) << "\n";
     if (clip_ends == 0)
     {
         return 1;
@@ -1195,13 +1215,13 @@ int merge_gap_segs_(String<BamAlignmentRecordLink> & bam_records,
     }
     //Following loop try to clip segs left into standalone bam records
     int strand = _DefaultCord.getCordStrand(gap_start_cord);
+       std::cout << "[]::merge_gap_segs_3 " << get_cord_x(gap_start_cord) + beginPosition(row(aligner, 0)) << clip_starts << " " << clip_ends << "\n";
     for (int j = clip_starts; j < clip_ends; j++)
     {
         setClippedPositions(row(aligner, 0), row (aligner, 1), clip_records[j].first, clip_records[j].second);
         g_id = _getSA_i1(_DefaultCord.getCordX(gap_start_cord));
         g_beginPos = clip_records_src1[j].first; 
         insertNewBamRecord(bam_records, row(aligner, 0), row(aligner, 1), g_id, g_beginPos, strand);
-        std::cout << "[]::merge_gap_segs_3 " << get_cord_x(gap_start_cord) + beginPosition(row(aligner, 0)) << "\n";
     }
     for (int j = 0; j < length(clip_records_src1) - 1; j++)
     {
@@ -1227,10 +1247,7 @@ int align_gap (String<BamAlignmentRecordLink> & bam_records,
                 uint64_t gap_start_cord,
                 uint64_t gap_end_cord,
                 int i, // calculate i th gap in gaps
-                int thd_clip_score,
-                int thd_reject_score,
-                int thd_accept_score,
-                int thd_accept_density,
+                GapParm & gap_parm,
                 bool merge_flag = true
                )
 {
@@ -1290,11 +1307,12 @@ int align_gap (String<BamAlignmentRecordLink> & bam_records,
                clip_records_src1,
                clip_records_src2,
                gap_start_cord, 
-               thd_clip_score,
-               thd_reject_score,
-               thd_accept_score,
-               thd_accept_density
+               gap_parm.thd_clip_score,
+               gap_parm.thd_reject_score,
+               gap_parm.thd_accept_score,
+               gap_parm.thd_accept_density
               );
+    std::cout << "xclip " << length(clip_records) << "\n";
     if (merge_flag)
     {
         flag = merge_gap_segs_(bam_records, 
@@ -1348,10 +1366,7 @@ int align_gaps (String<BamAlignmentRecordLink> & bam_records,
                 String<Dna5> & read, 
                 String<Dna5> & comrevRead,
                 Score<int> & score_scheme,
-                int thd_clip_score,
-                int thd_reject_score,
-                int thd_accept_score,
-                int thd_accept_density
+                GapParm & gap_parm
                )
 {
     int thd_dx = 50;
@@ -1389,10 +1404,7 @@ int align_gaps (String<BamAlignmentRecordLink> & bam_records,
                   gap_start_cord,
                   gap_end_cord,
                   i,
-                  thd_clip_score,
-                  thd_reject_score,
-                  thd_accept_score,
-                  thd_accept_density,
+                  gap_parm,
                   true
                 );
         for (int j = 0; j < length(crv_gaps_src1); j++)
@@ -1418,10 +1430,7 @@ int align_gaps (String<BamAlignmentRecordLink> & bam_records,
                       cr_gap_start_cord,
                       cr_gap_end_cord,
                       j,      //not used
-                      thd_clip_score,
-                      thd_reject_score,
-                      thd_accept_score,
-                      thd_accept_density,
+                      gap_parm,
                       false
                 );   
         }
@@ -1632,7 +1641,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
             continue; //alignment quality check, drop poorly aligned 
         }
         printRows(row(aligner, ri), row(aligner, ri + 1), i);
-        std::cout << "merge_status " << i << " " << flag << " " << get_cord_x(cord_start) << " " << get_cord_x(cords[i]) << " " << _DefaultCord.isBlockEnd(cord_start)<< "\n";
+        std::cout << "merge_status " << i << " " << flag << " " << get_cord_x(cord_start) << " " << get_cord_x(cords[i]) << " " << _DefaultCord.isBlockEnd(cord_start)<< " " << get_cord_strand(cords[i]) <<"\n";
         if (_DefaultCord.isBlockEnd(pre_cord_start))
         {
             clip_segs(row(aligner, ri),
@@ -1698,6 +1707,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                           cord_start,
                           _gap_parm,
                           -1);
+                std::cout << "strand_clips " << beginPosition(row(aligner, ri_pre)) << " " << endPosition(row(aligner, ri_pre)) << " " << beginPosition(row(aligner, ri)) << " " << endPosition(row(aligner, ri))<< "\n";
             }
             insertNewEmptyBamRecord(bam_records,
                             g_id,
@@ -1735,7 +1745,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
     int thd_reject_score = 130;
     int thd_accept_score = 140;
     int thd_accept_density = 16;
-    align_gaps(bam_records, gaps, genomes, read, comrevRead, score_scheme, thd_clip_score, thd_reject_score, thd_accept_score, thd_accept_density); 
+    align_gaps(bam_records, gaps, genomes, read, comrevRead, score_scheme, _gap_parm); 
     return 0;
 }
 
