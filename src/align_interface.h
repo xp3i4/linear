@@ -69,35 +69,18 @@ public:
 
 struct GapParm
 {
-    int thd_clip_score;
-    int thd_reject_score;
-    int thd_accept_score;
-    int thd_accept_density; 
+    float thd_clip_score;
+    int thd_clip_win;
+    int thd_clip_interval;
+    Score<int, Simple> thd_clip_scheme;
     GapParm ():
-        thd_clip_score(80),
-        thd_reject_score(130),
-        thd_accept_score(140),
-        thd_accept_density(16)
-    {}
-    void setGapParm (Score<int, Simple> score_scheme, float err_rej, float err_acc, int window)
+        thd_clip_score(0.7),   //density score: clip when density is < 0.8
+        thd_clip_win(15),      //calculate density within the window
+        thd_clip_interval(30)  //the mini distanse between two clips.
     {
-        int s1 = score_scheme.data_match;
-        int s2 = score_scheme.data_mismatch;
-        int s3 = score_scheme.data_gap_extend;
-
-        //thd_clip_score =  
-        thd_reject_score = window * ((1 - err_rej) * s1 + err_rej * std::min(s2, s3));
-        thd_accept_score = window * ((1 - err_acc) * s1 + err_acc * std::min(s2, s3));
-        thd_clip_score = std::abs (thd_accept_score - thd_reject_score);
-        thd_accept_density = (1 - err_acc) * s1 + err_acc * std::min(s2, s3);
-        std::cerr << "gap_parm " << thd_reject_score << " " << thd_accept_score << " " << thd_clip_score << " " << thd_accept_density << "\n\n";
+        thd_clip_scheme = Score<int> (1, -1, -1, -1);
     }
-    GapParm (Score<int, Simple> score_scheme, float err_rej, float err_acc, int window):
-    GapParm ()
-    {
-        setGapParm(score_scheme, err_rej, err_acc, window);
-    }
-} _gap_parm(_align_score_, 0.3, 0.18, 30);
+} _gap_parm;
 
 void setClippedBeginPositions(TRow & row1, TRow & row2, int beginPos)
 {
@@ -297,7 +280,6 @@ inline int getScore2_(TRowIterator & it1,
     }
     return getScore2_(it1, it2, score_scheme, ls[0], ls[1], ls[2], ls[3], ls[4], x, sege_flag, type_flag);
 }
-
 /*
  * insert cigar to the original cigar 
  */
@@ -1019,17 +1001,14 @@ int clip_gap_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
                String<std::pair<int, int> > & clip_records_src1,//source1 coordinate
                String<std::pair<int, int> > & clip_records_src2,//source2 coordinate
                uint64_t gap_start_cord,
-               int thd_clip_score,
-               int thd_reject_score,
-               int thd_accept_score,
+               Score<int, Simple> thd_clip_scheme,
                float thd_dens_clip_score,
-               int thd_clip_mini_region = 20,
-               int window = 30, //supposed to < 50
+               int thd_clip_win,
+               int thd_min_clip_interval,
                int delta = 3
               )
 {
     std::cout << "[]::clip_records\n";
-    int thd_d_win = 20;
     int x = 0;
     int buf_len = 0;
     int seg_flag = 0;
@@ -1048,13 +1027,13 @@ int clip_gap_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
     int clipped_end = clippedEndPosition(row1); 
     int clipped_begin = clippedBeginPosition(row1);
     int clipped_len = clipped_end - clipped_begin;
-    if (clipped_len < window * 3)
+    if (clipped_len < thd_clip_win * 3)
     {
         return 1;
     }
     for (int k = 0; k < clipped_len; k++)
     {
-        getScore2_(it1, it2, Score<int>(1,-1,-1,-1), xlen, x, seg_flag, type_flag);
+        getScore2_(it1, it2, thd_clip_scheme, xlen, x, seg_flag, type_flag);
         _nextView2Src(it1, it2, src1, src2);
         d_seg_flag |= seg_flag;
 
@@ -1080,8 +1059,6 @@ int clip_gap_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
     int di = 0;
     int clip_direction;
     //TODO wrap 
-    int thd_min_clip_interval = thd_d_win;  
-    thd_dens_clip_score = 0.8;
     int pre_len = length(clip_records);
     int pre_start_i = -1;
     int flag_end = 0;
@@ -1090,7 +1067,7 @@ int clip_gap_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
         flag_end = 1;
         for (int j = di; j < length(buffer_s); j++)
         {
-            if (buffer_it[j] - buffer_it[i] > thd_d_win)
+            if (buffer_it[j] - buffer_it[i] > thd_clip_win)
             {
                 di = j;
                 flag_end = 0;
@@ -1140,6 +1117,8 @@ int clip_gap_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
                     back(clip_records_src1).second = clip_pair_src1.second;
                     back(clip_records_src2).second = clip_pair_src2.second;
                     clip_direction *= -1;
+                    std::cout << "121<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< " << clip_pair.first << " " << clip_pair.second << " " << thd_min_clip_interval << " " << flag_end <<"\n";
+                    std::cout << "den_clip " << i << " " << buffer_s[i] << " " << thd_min_clip_interval << " " <<  buffer_it[i] << " " << buffer_it[di] << " " << dens_ << "\n";
                     continue;
                 }
             } 
@@ -1152,11 +1131,11 @@ int clip_gap_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
             } 
             std::cout << "12<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< " << clip_pair.second - clip_pair.first << " " << thd_min_clip_interval << " " << flag_end <<"\n";
         }
-        std::cout << "den_clip " << i << " " << thd_dens_clip_score << " " << thd_min_clip_interval << " " <<  buffer_it[i] << " " << buffer_it[di] << " " << dens_ << "\n";
+        std::cout << "den_clip " << i << " " << buffer_s[i] << " " << thd_min_clip_interval << " " <<  buffer_it[i] << " " << buffer_it[di] << " " << dens_ << "\n";
     }
     for (int i = pre_len; i < length(clip_records); i++)
     {
-        std::cout << "[]::clip_records3 " << clip_records[i].first - clipped_begin << " " << clip_records[i].second - clipped_begin << "\n";
+        std::cout << "[]::clip_records3 " << clip_records[i].first - clipped_begin << " " << clip_records[i].second - clipped_begin << " " << clip_records_src2[i].first << " " << clip_records_src2[i].second<< "\n";
     }
     return 0;
 }
@@ -1183,10 +1162,10 @@ int clip_segs(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
                    clip_records_src1, 
                    clip_records_src2, 
                    gap_start_cord, 
+                   gap_parm.thd_clip_scheme,
                    gap_parm.thd_clip_score, 
-                   gap_parm.thd_reject_score, 
-                   gap_parm.thd_accept_score, 
-                   gap_parm.thd_accept_density
+                   gap_parm.thd_clip_win, 
+                   gap_parm.thd_clip_interval
                 );
     if (empty(clip_records))
     {
@@ -1323,6 +1302,7 @@ int merge_gap_segs_(String<BamAlignmentRecordLink> & bam_records,
     else if (flag_h && !flag_t)
     {
         setClippedPositions(row(aligner, 0), row(aligner, 1), back(clip_records).first, clips_t.first);
+        std::cout << "bamxxx " << bam_id_seg_t << " " << length(bam_records) << "\n";
         insertBamRecordCigar(bam_records[bam_id_seg_t], row(aligner, 0), row(aligner, 1), 0); //insert at the front 
         bam_records[bam_id_seg_t].beginPos = back(clip_records_src1).first;
         appendValue (crv_gaps_src1, std::pair<int, int>(beginPosition(row_jh1), clip_records_src1[0].first));
@@ -1430,12 +1410,15 @@ int align_gap (String<BamAlignmentRecordLink> & bam_records,
                clip_records_src1,
                clip_records_src2,
                gap_start_cord, 
+               gap_parm.thd_clip_scheme,
                gap_parm.thd_clip_score,
-               gap_parm.thd_reject_score,
-               gap_parm.thd_accept_score,
-               gap_parm.thd_accept_density
+               gap_parm.thd_clip_win,
+               gap_parm.thd_clip_interval
               );
-    std::cout << "xclip " << length(clip_records) << "\n";
+    std::cout << "xclip " << length(clip_records) << gaps.getBamSegIdHead(i) << " " << gaps.getBamSegIdTail(i) << "\n";
+    //<<<<debug
+        //merge_flag = 0;
+    //>>>>debug
     if (merge_flag)
     {
         flag = merge_gap_segs_(bam_records, 
@@ -1809,7 +1792,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                            dx,
                            dy);
                 //appendValue (gaps, tmp);
-                std::cout << "insertgaps " << i << " " << get_cord_y(pre_cord_start) << " " << get_cord_y(cords[i]) << " " << get_cord_y(cord_start) << " " << get_cord_y(cord_end) << "\n";
+                std::cout << "insertgaps " << i << " " << get_cord_y(pre_cord_start) << " " << get_cord_y(cords[i]) << " " << get_cord_y(cord_start) << " " << get_cord_y(cord_end) << " " << length(bam_records) - 1 << "\n";
                 //printRows(row(aligner, ri_pre), row(aligner, ri_pre + 1));
                 //printRows(row(aligner, ri), row(aligner, ri + 1));
             }
