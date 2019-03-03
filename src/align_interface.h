@@ -181,6 +181,12 @@ inline int cumulate_match_sc__ (int l, int s)
     int maxk = 5;
     return std::min((l / j + 1), maxk) * s;
 }
+inline int cumulate_gap_sc__ (int l, int s)
+{
+    int j = 2;
+    int maxk = 5;
+    return std::min((l / j + 1), maxk) * s;
+}
 /*
  * @flag:=[1]bit|[31]type
  * bit:= 0 continuse, 1 seg breakpoint
@@ -212,19 +218,19 @@ inline int getScore2_(TRowIterator & it1,
         l5 = 0;
         if (type_flag != 1)
         {
-            type_flag = 1; 
             sege_flag = 1;
         }
         else
         {
             sege_flag = 0;
         }
+        type_flag = 1;
     }
     else
     {
         if (isGap(it1))
         {
-            x += s3;
+            x += cumulate_gap_sc__(l3, s4);
             l1 = l2 = l4 = l5 = 0;
             l3++;
             if (type_flag != 2)
@@ -241,7 +247,7 @@ inline int getScore2_(TRowIterator & it1,
         {
             if (isGap(it2))
             {
-                x += s3;
+                x += cumulate_gap_sc__(l4, s4);
                 l1 = l2 = l5 = l3 = 0;
                 l4++;
                 if (type_flag != 4)
@@ -1016,24 +1022,26 @@ int clip_gap_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
                int thd_clip_score,
                int thd_reject_score,
                int thd_accept_score,
-               int thd_accept_density,
+               float thd_dens_clip_score,
                int thd_clip_mini_region = 20,
                int window = 30, //supposed to < 50
                int delta = 3
               )
 {
     std::cout << "[]::clip_records\n";
+    int thd_d_win = 20;
     int x = 0;
-    int thd_1 = 1;
-    int flag = 0;
+    int buf_len = 0;
+    int seg_flag = 0;
+    int d_seg_flag = 0;
+    int type_flag = 0; 
     int64_t src1 = beginPosition(row1);
     int64_t src2 = beginPosition(row2);
     TRowIterator it1 = begin(row1);
     TRowIterator it2 = begin(row2);
     TRowIterator it1_2 = it1, it2_2 = it2; 
-    String<int> buffer;      //score at the intervals by delta
-    String<int> buffer_s;
-    String<int> buffer_it;
+    String<int> buffer_s; //buffer of score
+    String<int> buffer_it; //buffer of iter
     String<int> buffer_src1; 
     String<int> buffer_src2; //alignment source coordiante
     String<int> xlen;
@@ -1044,105 +1052,111 @@ int clip_gap_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
     {
         return 1;
     }
-    int buf_len = 0;
-    int count = delta;
-    int mth_len = 0, ins_len = 0, del_len = 0, mis_len = 0;
-    int y = 0;
-    int seg_flag = 0;
-    int d_seg_flag = 0;
-    int type_flag = 0; 
-    resize (buffer, clipped_len);
-    resize (buffer_s, clipped_len);
-    resize (buffer_it, clipped_len);
-    resize (buffer_src1, clipped_len);
-    resize (buffer_src2, clipped_len);
     for (int k = 0; k < clipped_len; k++)
     {
-        getScore_(it1, it2, 1, x);
-        getScore2_(it1, it2, Score<int>(1,-1,-1,-1), xlen, y, seg_flag, type_flag);
+        getScore2_(it1, it2, Score<int>(1,-1,-1,-1), xlen, x, seg_flag, type_flag);
         _nextView2Src(it1, it2, src1, src2);
         d_seg_flag |= seg_flag;
-        if (count++ == delta)
+
+        if (k % delta == delta - 1)
         {
             if (d_seg_flag)
             {
-                buffer[buf_len] = x; //+ thd_1 * (std::abs(src1 - src1_2 - src2 + src2_2));
-                buffer_s[buf_len] = y;
-                buffer_it[buf_len] = k;
-                buffer_src1[buf_len] = src1;
-                buffer_src2[buf_len] = src2;
-                std::cout << "clip_2 " << k << " " << y << " " << (float)y / k << " " << xlen[0] << " " << d_seg_flag << "\n";
-                buf_len++;
+                appendValue(buffer_s, x);
+                appendValue(buffer_it, k);
+                appendValue(buffer_src1, src1);
+                appendValue(buffer_src2, src2);
             }
             d_seg_flag = 0;
-            count = 1;
         }
         ++it1;
         ++it2;
     }
 //TODO::change the score so it will not clip long ins or dels.
-    resize (buffer, buf_len);
-    int prebp = 0; //pre-breakpoint counter of buffer
-    int bp = prebp; //bp * delta = view coordinate
-    int d_w = window / delta;
-    int d_m = thd_clip_mini_region / delta ;
 //TODO!!::clip the fist and last segment
-    int last_ = length(buffer) - std::max(d_w, d_m);
-    int ct_clips = 0;  //count number of clip records
     std::pair<int, int> clip_pair;
     std::pair<int, int> clip_pair_src1;
     std::pair<int, int> clip_pair_src2;
-    int d_win = 20;
-    for (int i = 0; i < length(buffer) - d_win; i++)
+    int di = 0;
+    int clip_direction;
+    //TODO wrap 
+    int thd_min_clip_interval = thd_d_win;  
+    thd_dens_clip_score = 0.8;
+    int pre_len = length(clip_records);
+    int pre_start_i = -1;
+    int flag_end = 0;
+    for (int i = 0; i < length(buffer_s) && !flag_end; i++)
     {
-        std::cout << "den_clip " << buffer_it[i] << " " << (float)(buffer_s[i + d_win] - buffer_s[i]) << " " << (buffer_it[i + d_win] - buffer_it[i]) << "\n";
-    }
-    for (int i = d_w + 1; i < last_ ; i++)
-    {
-        int d_score_left = buffer[i] - buffer[i - d_w];
-        int d_score_right = buffer[i + d_w] - buffer[i];
-        int d_score = buffer[i + d_w] - (buffer[i] << 1) + buffer[i - d_w];
-        std::cout << "clip_gap_segs_ return " << i << " " << d_score << " " << d_score_left << " " << d_score_right << "\n";
-        if ((std::abs(d_score) > thd_clip_score && 
-             std::min(d_score_left, d_score_right) < thd_reject_score &&
-             std::max(d_score_left, d_score_right) > thd_accept_score)|| 
-             i == last_ - 1) 
+        flag_end = 1;
+        for (int j = di; j < length(buffer_s); j++)
         {
-            bp = i;
-            int max_d_score = std::abs(d_score);
-            int d_j = std::min(i + d_m, (int)length(buffer) - d_w);
-            for (int j = i + 1; j < d_j; j++)
+            if (buffer_it[j] - buffer_it[i] > thd_d_win)
             {
-                d_score = buffer[j + d_w] - (buffer[j] << 1) + buffer[j - d_w]; 
-                if (std::abs(d_score) > max_d_score)
+                di = j;
+                flag_end = 0;
+                break;
+            }
+        }
+        float dens_ = float(buffer_s[di] - buffer_s[i]) / (buffer_src1[di] - buffer_src1[i]);
+        if (i == 0) //initiate the first seg or clip_direction at first.
+        {
+            if (dens_ > thd_dens_clip_score) 
+            {
+                clip_pair.first = buffer_it[0] + clipped_begin;
+                clip_pair_src1.first = get_cord_x(gap_start_cord) + buffer_src1[0];
+                clip_pair_src2.first = get_cord_y(gap_start_cord) + buffer_src2[0];
+                clip_direction = 1;
+                pre_start_i = 0;
+            std::cout << "21<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
+            }
+            else
+            {
+                clip_direction = -1; 
+            }
+            std::cout << "i == 0 " << dens_ << " " << thd_dens_clip_score << " " << clip_direction << "\n";
+            continue;
+        }
+        else if ((dens_ > thd_dens_clip_score) && (clip_direction == -1)) //clip start of seg
+        {
+            clip_pair.first = buffer_it[i] + clipped_begin;
+            clip_pair_src1.first = get_cord_x(gap_start_cord) + buffer_src1[i];
+            clip_pair_src2.first = get_cord_y(gap_start_cord) + buffer_src2[i];
+            clip_direction *= -1;
+            pre_start_i = i;
+            std::cout << "11<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< " << dens_ << " " << thd_dens_clip_score << " " << clip_direction << "\n";
+        }
+        else if ((dens_ < thd_dens_clip_score || flag_end) && clip_direction == 1) //clip end of seg
+        {
+            int i_ = flag_end ? di : i; 
+            clip_pair.second = buffer_it[i_] + clipped_begin;
+            clip_pair_src1.second = get_cord_x(gap_start_cord) + buffer_src1[i_];
+            clip_pair_src2.second = get_cord_y(gap_start_cord) + buffer_src2[i_];
+            if (!empty(clip_records) > 0 && clip_pair.first - back(clip_records).second <= thd_min_clip_interval)
+            {
+                float dens_avg = float(buffer_s[i_] - buffer_s[pre_start_i]) / (buffer_src1[i_] - buffer_src1[pre_start_i]);
+                if (dens_avg > thd_dens_clip_score)
                 {
-                    bp = j;
-                    max_d_score = std::abs(d_score);
-                } 
-            } //getting the maximal clip_score in the region specified by thd_clip_mini_region will be triggered 
-              //when the first d_score satisifed appear
-
-//TODO::score to accecpt the segs, need to make score more reasonable
-            if ((buffer[bp] - buffer[prebp]) / (bp - prebp + 1) > thd_accept_density)
+                    back(clip_records).second = clip_pair.second;
+                    back(clip_records_src1).second = clip_pair_src1.second;
+                    back(clip_records_src2).second = clip_pair_src2.second;
+                    clip_direction *= -1;
+                    continue;
+                }
+            } 
+            if (clip_pair.second - clip_pair.first > thd_min_clip_interval)
             {
-                clip_pair.first = prebp * delta + clipped_begin;
-                clip_pair.second = bp * delta + clipped_begin;
-                clip_pair_src1.first = get_cord_x(gap_start_cord) + buffer_src1[prebp];
-                clip_pair_src1.second = get_cord_x(gap_start_cord) + buffer_src1[bp];
-                clip_pair_src2.first = get_cord_y(gap_start_cord) + buffer_src2[prebp];
-                clip_pair_src2.second = get_cord_y(gap_start_cord) + buffer_src2[bp];
                 appendValue(clip_records, clip_pair);
                 appendValue(clip_records_src1, clip_pair_src1);
-                appendValue(clip_records_src2, clip_pair_src2);
-                ++ct_clips;
-                }
-            prebp = bp;
-            i += d_j - i;
+                appendValue(clip_records_src2, clip_pair_src2); 
+                clip_direction *= -1;
+            } 
+            std::cout << "12<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< " << clip_pair.second - clip_pair.first << " " << thd_min_clip_interval << " " << flag_end <<"\n";
         }
+        std::cout << "den_clip " << i << " " << thd_dens_clip_score << " " << thd_min_clip_interval << " " <<  buffer_it[i] << " " << buffer_it[di] << " " << dens_ << "\n";
     }
-    for (int i = 0; i < length(clip_records); i++)
+    for (int i = pre_len; i < length(clip_records); i++)
     {
-        std::cout << "[]::clip_records3 " << clip_records[i].first << " " << clip_records[i].second << "\n";
+        std::cout << "[]::clip_records3 " << clip_records[i].first - clipped_begin << " " << clip_records[i].second - clipped_begin << "\n";
     }
     return 0;
 }
