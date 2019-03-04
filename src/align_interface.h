@@ -757,8 +757,8 @@ int merge_align__(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
         return r_flag;
     } 
     int bit = 20, bit2 = 40;
-    uint64_t start11 = _getSA_i2(_DefaultCord.getCordX(cord1));
-    uint64_t start21 = _getSA_i2(_DefaultCord.getCordX(cord2));
+    uint64_t start11 = get_cord_x(cord1);
+    uint64_t start21 = get_cord_x(cord2);
     uint64_t start12 = _DefaultCord.getCordY(cord1);
     uint64_t start22 = _DefaultCord.getCordY(cord2);
     int64_t mask = (1ULL << bit) - 1;
@@ -768,20 +768,12 @@ int merge_align__(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     TRowIterator it1, it2;
     if (endPosition(row11) < beginPosition(row21) + delta1 ||
         endPosition(row12) < beginPosition(row22) + delta2 ||
+        beginPosition(row11) > beginPosition(row21) + delta1 ||
+        beginPosition(row12) > beginPosition(row22) + delta2 || 
         endPosition(row11) > endPosition(row21) + delta1 ||
-        endPosition(row12) > endPosition(row22) + delta2 
+        endPosition(row12) > endPosition(row22) + delta2
        )
     {
-        std::cout << "[]xxx " 
-                  << endPosition(row11) << " " 
-                  << endPosition(row12) << " " 
-                  << endPosition(row21) << " " 
-                  << beginPosition(row21) << " "
-                  << delta1 << " "
-                  << endPosition(row22) << " "
-                  << beginPosition(row22) << " "
-                  << delta2 << " "
-                  << "\n";
         return 4 | 1;
     }
     //ouput source coordinates of align to buffer 
