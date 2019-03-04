@@ -1388,6 +1388,7 @@ int align_gap (String<BamAlignmentRecordLink> & bam_records,
                   << tmp_aligner;
     }
     */
+    //<<<debug
     std::cout << "[]::align_gaps 2 " 
               << get_cord_x(gap_start_cord) << " "
               << get_cord_x(gap_start_cord) + block_size << " "
@@ -1397,7 +1398,8 @@ int align_gap (String<BamAlignmentRecordLink> & bam_records,
               << _DefaultCord.getCordStrand(gap_start_cord) << " "
               << band << " "
               << "\n" 
-              << aligner;
+    printRows(row(aligner, 0), row(aligner, 1));
+    //>>>debug
     clip_gap_segs_(row(aligner, 0), 
                row(aligner, 1), 
                clip_records, 
