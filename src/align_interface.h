@@ -289,6 +289,7 @@ int inline insertBamRecordCigar (BamAlignmentRecord & bam_record,
                     int pos = -1
                    )
 {
+    std::cout <<"xxxxxxxxxxxxxxxxinscigar\n";
     if (pos < 0)
     {
         align2cigar(bam_record.cigar, row1, row2);
@@ -301,6 +302,7 @@ int inline insertBamRecordCigar (BamAlignmentRecord & bam_record,
         }
         String<CigarElement< > > tmp;
         align2cigar(tmp, row1, row2);
+        std::cout << "inscigar " << length(tmp) << "\n";
         insertCigar(bam_record.cigar, pos, tmp);
     }
     return 0;
@@ -1302,7 +1304,7 @@ int merge_gap_segs_(String<BamAlignmentRecordLink> & bam_records,
     else if (flag_h && !flag_t)
     {
         setClippedPositions(row(aligner, 0), row(aligner, 1), back(clip_records).first, clips_t.first);
-        std::cout << "bamxxx " << bam_id_seg_t << " " << length(bam_records) << "\n";
+        std::cout << "bamxxx " << bam_id_seg_t << " " << length(bam_records) << " " << back(clip_records).first << " " << clips_t.first << "\n";
         insertBamRecordCigar(bam_records[bam_id_seg_t], row(aligner, 0), row(aligner, 1), 0); //insert at the front 
         bam_records[bam_id_seg_t].beginPos = back(clip_records_src1).first;
         appendValue (crv_gaps_src1, std::pair<int, int>(beginPosition(row_jh1), clip_records_src1[0].first));
