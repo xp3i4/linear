@@ -69,14 +69,16 @@ public:
 
 struct GapParm
 {
-    float thd_clip_score;
-    int thd_clip_win;
-    int thd_clip_interval;
+    int thd_clip_score;
+    int thd_reject_score;
+    int thd_accept_score;
+    float thd_accept_density;
     Score<int, Simple> thd_clip_scheme;
     GapParm ():
-        thd_clip_score(0.7),   //density score: clip when density is < 0.8
-        thd_clip_win(15),      //calculate density within the window
-        thd_clip_interval(30)  //the mini distanse between two clips.
+        thd_clip_score(80),   //density score: clip when density is < 0.8
+        thd_reject_score(130),      //calculate density within the window
+        thd_accept_score(140),  //the mini distanse between two clips.
+        thd_accept_density(16)
     {
         thd_clip_scheme = Score<int> (1, -1, -1, -1);
     }
@@ -109,7 +111,7 @@ inline int getScore_(char r1_char,
 {
     int s_match = 8 * k;
     int s_gap = -3 * k;
-    int s_mismatch = 0 * k;
+    int s_mismatch = -3 * k;
     if (r1_char == r2_char)
     {
         x += s_match;
@@ -133,10 +135,10 @@ inline int getScore_(TRowIterator & it1,
                      int & x
 )
 {
-    int s_match = 8 * k;
-    int s_ins = -3 * k;
-    int s_del = -3 * k;
-    int s_mismatch = 0 * k;
+    int s_match = 8;
+    int s_ins = -3;
+    int s_del = -3;
+    int s_mismatch = 0;
     if (*it1 == *it2)
     {
         x += s_match;
@@ -995,144 +997,120 @@ int clip_gap_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
                String<std::pair<int, int> > & clip_records_src1,//source1 coordinate
                String<std::pair<int, int> > & clip_records_src2,//source2 coordinate
                uint64_t gap_start_cord,
-               Score<int, Simple> thd_clip_scheme,
-               float thd_dens_clip_score,
-               int thd_clip_win,
-               int thd_min_clip_interval,
+               int thd_clip_score,
+               int thd_reject_score,
+               int thd_accept_score,
+               float thd_accept_density,
+               int thd_clip_mini_region = 20,
+               int window = 30, //supposed to < 50
                int delta = 3
               )
 {
+    //<<debug
     std::cout << "[]::clip_records\n";
+    printRows(row1, row2);
+    //>>debug
     int x = 0;
-    int buf_len = 0;
-    int seg_flag = 0;
-    int d_seg_flag = 0;
-    int type_flag = 0; 
+    int thd_1 = 1;
+    int flag = 0;
     int64_t src1 = beginPosition(row1);
     int64_t src2 = beginPosition(row2);
     TRowIterator it1 = begin(row1);
     TRowIterator it2 = begin(row2);
     TRowIterator it1_2 = it1, it2_2 = it2; 
-    String<int> buffer_s; //buffer of score
-    String<int> buffer_it; //buffer of iter
+    String<int> buffer;      //score at the intervals by delta
     String<int> buffer_src1; 
     String<int> buffer_src2; //alignment source coordiante
-    String<int> xlen;
     int clipped_end = clippedEndPosition(row1); 
     int clipped_begin = clippedBeginPosition(row1);
     int clipped_len = clipped_end - clipped_begin;
-    if (clipped_len < thd_clip_win * 3)
+    if (clipped_len < window * 3)
     {
         return 1;
     }
+    int buf_len = 0;
+    int count = delta;
+    resize (buffer, clipped_len);
+    resize (buffer_src1, clipped_len);
+    resize (buffer_src2, clipped_len);
+    int mth_len = 0, ins_len = 0, del_len = 0, mis_len = 0;
     for (int k = 0; k < clipped_len; k++)
     {
-        getScore2_(it1, it2, thd_clip_scheme, xlen, x, seg_flag, type_flag);
+        getScore_(it1, it2, 1, x);
         _nextView2Src(it1, it2, src1, src2);
-        d_seg_flag |= seg_flag;
-
-        if (k % delta == delta - 1)
+        if (count++ == delta)
         {
-            if (d_seg_flag)
-            {
-                appendValue(buffer_s, x);
-                appendValue(buffer_it, k);
-                appendValue(buffer_src1, src1);
-                appendValue(buffer_src2, src2);
-            }
-            d_seg_flag = 0;
+            buffer[buf_len] = x; //+ thd_1 * (std::abs(src1 - src1_2 - src2 + src2_2));
+            buffer_src1[buf_len] = src1;
+            buffer_src2[buf_len] = src2;
+            buf_len++;
+            count = 1;
         }
         ++it1;
         ++it2;
     }
 //TODO::change the score so it will not clip long ins or dels.
+    resize (buffer, buf_len);
+    int prebp = 0; //pre-breakpoint counter of buffer
+    int bp = prebp; //bp * delta = view coordinate
+    int d_w = window / delta;
+    int d_m = thd_clip_mini_region / delta ;
 //TODO!!::clip the fist and last segment
+    int last_ = length(buffer) - std::max(d_w, d_m);
+    int ct_clips = 0;  //count number of clip records
     std::pair<int, int> clip_pair;
     std::pair<int, int> clip_pair_src1;
     std::pair<int, int> clip_pair_src2;
-    int di = 0;
-    int clip_direction;
-    //TODO wrap 
-    int pre_len = length(clip_records);
-    int pre_start_i = -1;
-    int flag_end = 0;
-    for (int i = 0; i < length(buffer_s) && !flag_end; i++)
+    for (int i = d_w + 1; i < last_ ; i++)
     {
-        flag_end = 1;
-        for (int j = di; j < length(buffer_s); j++)
+        int d_score_left = buffer[i] - buffer[i - d_w];
+        int d_score_right = buffer[i + d_w] - buffer[i];
+        int d_score = buffer[i + d_w] - (buffer[i] << 1) + buffer[i - d_w];
+        std::cout << "clip_gaps_segs::tri " << i << " " << d_score << " " << d_score_left << " " << d_score_right << "\n";
+        if ((std::abs(d_score) > thd_clip_score && 
+             std::min(d_score_left, d_score_right) < thd_reject_score)|| 
+             i == last_ - 1) 
         {
-            if (buffer_it[j] - buffer_it[i] > thd_clip_win)
+            bp = i;
+            int max_d_score = std::abs(d_score);
+            int d_j = std::min(i + d_m, (int)length(buffer) - d_w);
+            for (int j = i + 1; j < d_j; j++)
             {
-                di = j;
-                flag_end = 0;
-                break;
-            }
-        }
-        float dens_ = float(buffer_s[di] - buffer_s[i]) / (buffer_src1[di] - buffer_src1[i]);
-        if (i == 0) //initiate the first seg or clip_direction at first.
-        {
-            if (dens_ > thd_dens_clip_score) 
-            {
-                clip_pair.first = buffer_it[0] + clipped_begin;
-                clip_pair_src1.first = get_cord_x(gap_start_cord) + buffer_src1[0];
-                clip_pair_src2.first = get_cord_y(gap_start_cord) + buffer_src2[0];
-                clip_direction = 1;
-                pre_start_i = 0;
-            std::cout << "21<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
-            }
-            else
-            {
-                clip_direction = -1; 
-            }
-            std::cout << "i == 0 " << dens_ << " " << thd_dens_clip_score << " " << clip_direction << "\n";
-            continue;
-        }
-        else if ((dens_ > thd_dens_clip_score) && (clip_direction == -1)) //clip start of seg
-        {
-            clip_pair.first = buffer_it[i] + clipped_begin;
-            clip_pair_src1.first = get_cord_x(gap_start_cord) + buffer_src1[i];
-            clip_pair_src2.first = get_cord_y(gap_start_cord) + buffer_src2[i];
-            clip_direction *= -1;
-            pre_start_i = i;
-            std::cout << "11<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< " << dens_ << " " << thd_dens_clip_score << " " << clip_direction << "\n";
-        }
-        else if ((dens_ < thd_dens_clip_score || flag_end) && clip_direction == 1) //clip end of seg
-        {
-            int i_ = flag_end ? di : i; 
-            clip_pair.second = buffer_it[i_] + clipped_begin;
-            clip_pair_src1.second = get_cord_x(gap_start_cord) + buffer_src1[i_];
-            clip_pair_src2.second = get_cord_y(gap_start_cord) + buffer_src2[i_];
-            if (!empty(clip_records) > 0 && clip_pair.first - back(clip_records).second <= thd_min_clip_interval)
-            {
-                float dens_avg = float(buffer_s[i_] - buffer_s[pre_start_i]) / (buffer_src1[i_] - buffer_src1[pre_start_i]);
-                if (dens_avg > thd_dens_clip_score)
+                d_score = buffer[j + d_w] - (buffer[j] * 2) + buffer[j - d_w]; 
+                if (std::abs(d_score) > max_d_score)
                 {
-                    back(clip_records).second = clip_pair.second;
-                    back(clip_records_src1).second = clip_pair_src1.second;
-                    back(clip_records_src2).second = clip_pair_src2.second;
-                    clip_direction *= -1;
-                    std::cout << "121<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< " << clip_pair.first << " " << clip_pair.second << " " << thd_min_clip_interval << " " << flag_end <<"\n";
-                    std::cout << "den_clip " << i << " " << buffer_s[i] << " " << thd_min_clip_interval << " " <<  buffer_it[i] << " " << buffer_it[di] << " " << dens_ << "\n";
-                    continue;
-                }
-            } 
-            if (clip_pair.second - clip_pair.first > thd_min_clip_interval)
+                    bp = j;
+                    max_d_score = std::abs(d_score);
+                } 
+            } //retrieve the max clip_score within the thd_clip_mini_region 
+            float dens_ = (float)(buffer[bp] - buffer[prebp]) / (bp - prebp + 1);
+            std::cout << "clip_gaps_segs::tri <<<<<<<<<<<<<<<,," << i << " " << d_score << " " << dens_ <<"\n";
+//TODO::score to accecpt the segs, need to make score more reasonable
+            if (dens_ > thd_accept_density)
             {
+                clip_pair.first = prebp * delta + clipped_begin;
+                clip_pair.second = bp * delta + clipped_begin;
+                clip_pair_src1.first = get_cord_x(gap_start_cord) + buffer_src1[prebp];
+                clip_pair_src1.second = get_cord_x(gap_start_cord) + buffer_src1[bp];
+                clip_pair_src2.first = get_cord_y(gap_start_cord) + buffer_src2[prebp];
+                clip_pair_src2.second = get_cord_y(gap_start_cord) + buffer_src2[bp];
                 appendValue(clip_records, clip_pair);
                 appendValue(clip_records_src1, clip_pair_src1);
-                appendValue(clip_records_src2, clip_pair_src2); 
-                clip_direction *= -1;
-            } 
-            std::cout << "12<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< " << clip_pair.second - clip_pair.first << " " << thd_min_clip_interval << " " << flag_end <<"\n";
+                appendValue(clip_records_src2, clip_pair_src2);
+                ++ct_clips;
+            }
+            prebp = bp;
+            i += d_j - i;
         }
-        std::cout << "den_clip " << i << " " << buffer_s[i] << " " << thd_min_clip_interval << " " <<  buffer_it[i] << " " << buffer_it[di] << " " << dens_ << "\n";
     }
-    for (int i = pre_len; i < length(clip_records); i++)
+    for (int i = 0; i < length(clip_records); i++)
     {
-        std::cout << "[]::clip_records3 " << clip_records[i].first - clipped_begin << " " << clip_records[i].second - clipped_begin << " " << clip_records_src2[i].first << " " << clip_records_src2[i].second<< "\n";
+        std::cout << "[]::clip_records3 " << clip_records[i].first << " " << clip_records[i].second << "\n";
     }
     return 0;
 }
+
+
 /*
  * Clip head or tail by calling the clip_gaps_segs. (though not efficient) 
  * @direction -1 head, 1 tail
@@ -1156,10 +1134,10 @@ int clip_segs(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
                    clip_records_src1, 
                    clip_records_src2, 
                    gap_start_cord, 
-                   gap_parm.thd_clip_scheme,
-                   gap_parm.thd_clip_score, 
-                   gap_parm.thd_clip_win, 
-                   gap_parm.thd_clip_interval
+                   gap_parm.thd_clip_score,
+                   gap_parm.thd_reject_score, 
+                   gap_parm.thd_accept_score, 
+                   gap_parm.thd_accept_density
                 );
     if (empty(clip_records))
     {
@@ -1397,7 +1375,7 @@ int align_gap (String<BamAlignmentRecordLink> & bam_records,
               << block_size << " "
               << _DefaultCord.getCordStrand(gap_start_cord) << " "
               << band << " "
-              << "\n" 
+              << "\n"; 
     printRows(row(aligner, 0), row(aligner, 1));
     //>>>debug
     clip_gap_segs_(row(aligner, 0), 
@@ -1406,10 +1384,10 @@ int align_gap (String<BamAlignmentRecordLink> & bam_records,
                clip_records_src1,
                clip_records_src2,
                gap_start_cord, 
-               gap_parm.thd_clip_scheme,
                gap_parm.thd_clip_score,
-               gap_parm.thd_clip_win,
-               gap_parm.thd_clip_interval
+               gap_parm.thd_reject_score,
+               gap_parm.thd_accept_score,
+               gap_parm.thd_accept_density
               );
     std::cout << "xclip " << length(clip_records) << gaps.getBamSegIdHead(i) << " " << gaps.getBamSegIdTail(i) << "\n";
     //<<<<debug
