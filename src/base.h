@@ -11,7 +11,7 @@ const unsigned base_delta_ = 32;
 const unsigned base_threshold_= 30; 
 const unsigned base_kmer_step_ = 1000;
 const uint64_t base_llt_max_ = ~0;
-     
+
 struct Options{
     unsigned    kmerLen;
     unsigned    MiKmLen;
@@ -31,16 +31,16 @@ struct Options{
     int p1;
 
     Options();
-    std::string getGenomePath(); 
-    std::string getReadPath();
-    std::string getOutputPath();
+    std::string getGenomePath() const; 
+    std::string getReadPath() const;
+    std::string getOutputPath() const;
     int print();
 }; 
 struct RecordBase
 {
     typedef Dna5 DefaultAlphabet;
     typedef CharString RecId;
-    typedef String<TDna> RecSeq; 
+    typedef String<Dna5> RecSeq; 
 };
 
 struct PMRecord
@@ -62,26 +62,11 @@ struct PMRecord
 };
 
 
-struct ResBase{
-    typedef unsigned SeqLen;
-    typedef typename uint64_t SeqId;
-    typedef typename uint64_t MapPos;
-    typedef typename uint64_t MapScore;
-    typedef typename uint64_t HitType;
-    typedef bool MapStrand;
-
-    static const unsigned bit = 32;
-    static const uint64_t mask = (1ULL << bit) - 1;
-    static const unsigned hitBit = AnchorBase::bit;
-    static const unsigned hitMask = AnchorBase::mask;
-    //static const uint64_t hitStrandFlag = 0x8ffffffff;
-    //static const uint64_t hitEndFlag = 0x4ffffffff;
-};
 
 struct AnchorBase{
     typedef uint64_t AnchorType;
-    const unsigned bit = 20;
-    const uint64_t mask = (1ULL<<bit) - 1;
+    static const unsigned bit = 20;
+    static const uint64_t mask = (1ULL<<bit) - 1;
 };
 
 struct Anchors{
@@ -103,18 +88,26 @@ struct Anchors{
     void sort(Iter begin, Iter end);
     void sortPos2(Iter begin, Iter end);
     void appendValue(AnchorType val);
-    unsigned size() const;
     AnchorType & operator [](unsigned p);
     Iter begin(); 
     Iter end();
     unsigned length();
 };
 
-struct PMCore
-{
-    typedef HIndex<base_shape_len_> Index;
-    typedef StringSet<StringDna5> Seqs;
-    typedef Anchors Anchors;
+struct ResBase{
+    typedef unsigned SeqLen;
+    typedef uint64_t SeqId;
+    typedef uint64_t MapPos;
+    typedef uint64_t MapScore;
+    typedef uint64_t HitType;
+    typedef bool MapStrand;
+
+    static const unsigned bit = 32;
+    static const uint64_t mask = (1ULL << bit) - 1;
+    static const unsigned hitBit = 20;
+    static const unsigned hitMask = (1ULL << hitBit) - 1;
+    //static const uint64_t hitStrandFlag = 0x8ffffffff;
+    //static const uint64_t hitEndFlag = 0x4ffffffff;
 };
 
 struct PMRes
@@ -129,7 +122,7 @@ struct PMRes
 };
 
 inline uint64_t _nStrand(uint64_t strand);
-inline uint64_t _flipCoord (uint64_t coord, uint64_t len, uint64_t strand)
+inline uint64_t _flipCoord (uint64_t coord, uint64_t len, uint64_t strand);
 
 struct MapParm{
     unsigned    blockSize;
@@ -159,25 +152,11 @@ struct MapParm{
     MapParm(MapParm & parm);
     void setMapParm(Options & options);
     void print ();
-}_DefaultMapParm;
-
-struct MapperBase
-{
-    typedef Dna5 DefaultAlphabet;
-    typedef Minimizer<base_shape_len_> DefaultShape;
-    typedef PMRecord MRecord;
-    typedef PMRes    MRes;
-    typedef MapParm   MParm;
-    typedef PMCore    MCore;
-    typedef typename PMCore::Index MIndex;
-    typedef typename PMCore::Anchors MAnchors;
-    typedef typename PMRecord::RecSeq MSeq; 
-    typedef typename PMRecord::RecSeqs MSeqs;
 };
 
-static const String<Dna5> _complt = "tgcan";
-inline void _compltStr(String<Dna5> & str, String<Dna5> & res)
+inline void _compltStr(String<Dna5> & str, String<Dna5> & res);
 
-seqan::ArgumentParser::ParseResult
+seqan::ArgumentParser::ParseResult 
 parseCommandLine(Options & options, int argc, char const ** argv);
+
 #endif

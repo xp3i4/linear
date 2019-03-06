@@ -36,28 +36,24 @@
 #define SEQAN_HEADER_BASE_H
 
 #include <seqan/seq_io.h>
-#include <seqan/stream.h>
-#include <seqan/index.h>
-#include <seqan/store.h>
-#include <seqan/basic.h>
+//#include <seqan/stream.h>
+//#include <seqan/index.h>
+//#include <seqan/store.h>
+//#include <seqan/basic.h>
 #include <seqan/arg_parse.h>
-#include <seqan/vcf_io.h>
-#include <iostream>
-#include <fstream>
-#include <math.h>
-#include <bitset>
-#include <climits>
-#include <thread>
-#include <chrono>
-#include <atomic>   
-#include <iomanip>
-#include <functional>   // for std::ref()
-#include <chrono>
-#include <thread>
-#include <ctime>
-   
-#include "shape_extend.h"
-#include "index_extend.h"
+//#include <seqan/vcf_io.h>
+//#include <iostream>
+//#include <fstream>
+//#include <math.h>
+//#include <bitset>
+//#include <climits>
+//#include <thread>
+//#include <chrono>
+//#include <atomic>   
+//#include <iomanip>
+//#include <functional>   // for std::ref()
+//#include <ctime>
+#include "base.h"
 
 using namespace seqan;
 
@@ -238,8 +234,8 @@ int PMRecord::loadRecord(Options & options)
         }
         #pragma omp section
         {
-            PMRecord<TDna>::RecId tmp_id;
-            PMRecord<TDna>::RecSeq tmp_seq;
+            PMRecord::RecId tmp_id;
+            PMRecord::RecSeq tmp_seq;
             while (!atEnd(gFile))
             {
                 clear (tmp_id);
@@ -282,7 +278,7 @@ inline void Anchors::init(int length)
 
 inline void Anchors::init()
 {
-    init(AnchorType(0), size());
+    init(AnchorType(0), 0);
 }
 
 inline void Anchors::setAnchor(unsigned p, 
@@ -335,11 +331,7 @@ inline void Anchors::appendValue(Anchors::AnchorType val)
 {
     seqan::appendValue(set,val);
 }
-unsigned Anchors::size() const 
-{
-    return AnchorBase::size;
-};
-AnchorType & Anchors::operator [](unsigned p)
+uint64_t & Anchors::operator [](unsigned p)
 {
     return set[p];
 };

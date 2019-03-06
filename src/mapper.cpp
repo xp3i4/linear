@@ -33,6 +33,26 @@
 // ==========================================================================
 
 #include <csignal>
+#include <seqan/seq_io.h>
+#include <seqan/stream.h>
+#include <seqan/index.h>
+#include <seqan/store.h>
+#include <seqan/basic.h>
+#include <seqan/arg_parse.h>
+#include <seqan/vcf_io.h>
+#include <iostream>
+#include <fstream>
+#include <math.h>
+#include <bitset>
+#include <climits>
+#include <thread>
+#include <chrono>
+#include <atomic>   
+#include <iomanip>
+#include <functional>   // for std::ref()
+#include <chrono>
+#include <thread>
+#include <ctime>
 #include "mapper.h"
 
 using namespace seqan; 

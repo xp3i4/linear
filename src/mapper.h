@@ -42,10 +42,22 @@
 #ifndef SEQAN_HEADER_PACMAPPER_H
 #define SEQAN_HEADER_PACMAPPER_H
 
-template <typename TDna = typename MapperBase<>::DefaultAlphabet, 
-    typename TSpec = typename MapperBase<>::DefaultShape>
+struct MapperBase
+{
+    typedef Dna5 DefaultAlphabet;
+    typedef Minimizer<base_shape_len_> DefaultShape;
+    typedef PMRecord MRecord;
+    typedef PMRes    MRes;
+    typedef MapParm   MParm;
+    typedef PMCore    MCore;
+    typedef typename HIndex<base_shape_len_>  MIndex;
+    typedef typename Anchors MAnchors;
+    typedef typename PMRecord::RecSeq MSeq; 
+    typedef typename PMRecord::RecSeqs MSeqs;
+};
+
 class Mapper {
-    typedef MapperBase<TDna, TSpec>  Base;
+    typedef MapperBase Base;
     typedef typename Base::MRecord   Record;
     typedef typename Base::MParm     Parm;
     typedef typename Base::MIndex    Index;
