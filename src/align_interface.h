@@ -1446,7 +1446,8 @@ int align_gaps (String<BamAlignmentRecordLink> & bam_records,
                 String<Dna5> & read, 
                 String<Dna5> & comrevRead,
                 Score<int> & score_scheme,
-                GapParm & gap_parm
+                GapParm & gap_parm,
+                int p
                )
 {
     int thd_dx = 50;
@@ -1466,6 +1467,9 @@ int align_gaps (String<BamAlignmentRecordLink> & bam_records,
     resize(rows(aligner), 2);
     resize(rows(aligner), 2);
     for (int i = 0; i < length(gaps.c_pairs); i++)
+//>>debug
+    //for (int i = 0; i < p; i++)
+//<<debug
     { 
         clear(crv_gaps_src1);
         clear(crv_gaps_src2);
@@ -1659,12 +1663,12 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         /*
         if (i == 10)
             cords[i] += 50;
-            */
         if (i > p && i < 50)
         {
             std::cout << "shift cord " << i << " " << get_cord_x(cords[i]) << "\n";
             cords[i] += 400;
         }
+        */
         //<debug section end
         int check_flag = 0;
         flag = 0;
@@ -1825,7 +1829,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
     int thd_reject_score = 130;
     int thd_accept_score = 140;
     int thd_accept_density = 16;
-    align_gaps(bam_records, gaps, genomes, read, comrevRead, score_scheme, _gap_parm); 
+    align_gaps(bam_records, gaps, genomes, read, comrevRead, score_scheme, _gap_parm, p); 
     return 0;
 }
 
