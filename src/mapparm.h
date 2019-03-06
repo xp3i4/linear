@@ -37,12 +37,12 @@
 
 //efficient 
 MapParm parm1 ( 
-        Const_::_BLOCKSIZE,     //blockSize,
+        base_block_size_,     //blockSize,
         //Const_::_DELTA,          //delta(Const_::_DELTA),
         64,                          //delta
-        Const_::_THRESHOLD,     //threshold(Const_::_THRESHOLD),
-        Const_::_KMERSTEP,       //kmerStep(Const_::_KMERSTEP),
-        Const_::_SHAPELEN,      //shapeLen(Const_::_SHAPELEN),
+        base_threshold_,     //threshold(Const_::_THRESHOLD),
+        base_kmer_step_,       //kmerStep(Const_::_KMERSTEP),
+        base_shape_len_,      //shapeLen(Const_::_SHAPELEN),
         1,                      //senstivity(0),
         0,                      //anchorDeltaThr(),
         1000,                   //minReadLen(1000),
@@ -59,11 +59,11 @@ MapParm parm1 (
 
 //normal
 MapParm parm0 ( 
-        Const_::_BLOCKSIZE,     //blockSize,
-        Const_::_DELTA,          //delta(Const_::_DELTA),
-        Const_::_THRESHOLD,     //threshold(Const_::_THRESHOLD),
-        Const_::_KMERSTEP,       //kmerStep(Const_::_KMERSTEP),
-        Const_::_SHAPELEN,      //shapeLen(Const_::_SHAPELEN),
+        base_block_size_,     //blockSize,
+        base_delta_,          //delta(Const_::_DELTA),
+        base_threshold_,     //threshold(Const_::_THRESHOLD),
+        base_kmer_step_,       //kmerStep(Const_::_KMERSTEP),
+        base_shape_len_,      //shapeLen(Const_::_SHAPELEN),
         0,                      //senstivity(0),
         0,                      //anchorDeltaThr(),
         1000,                   //minReadLen(1000),
@@ -81,12 +81,12 @@ MapParm parm0 (
 
 //sensitive
 MapParm parm2 ( 
-        Const_::_BLOCKSIZE,     //blockSize,
+        base_block_size_,     //blockSize,
         //Const_::_DELTA,          //delta(Const_::_DELTA),
         64,                      //delta
-        Const_::_THRESHOLD,     //threshold(Const_::_THRESHOLD),
-        Const_::_KMERSTEP,       //kmerStep(Const_::_KMERSTEP),
-        Const_::_SHAPELEN,      //shapeLen(Const_::_SHAPELEN),
+        base_threshold_,     //threshold(Const_::_THRESHOLD),
+        base_kmer_step_,       //kmerStep(Const_::_KMERSTEP),
+        base_shape_len_,      //shapeLen(Const_::_SHAPELEN),
         2,                      //senstivity(0),
         0,                      //anchorDeltaThr(),
         1000,                   //minReadLen(1000),
@@ -105,11 +105,11 @@ MapParm parm2 (
 
 
 MapParm parmt ( 
-        Const_::_BLOCKSIZE,     //blockSize,
-        Const_::_DELTA,          //delta(Const_::_DELTA),
-        Const_::_THRESHOLD,     //threshold(Const_::_THRESHOLD),
-        Const_::_KMERSTEP,       //kmerStep(Const_::_KMERSTEP),
-        Const_::_SHAPELEN,      //shapeLen(Const_::_SHAPELEN),
+        base_block_size_,     //blockSize,
+        base_delta_,          //delta(Const_::_DELTA),
+        base_threshold_,     //threshold(Const_::_THRESHOLD),
+        base_kmer_step_,       //kmerStep(Const_::_KMERSTEP),
+        base_shape_len_,      //shapeLen(Const_::_SHAPELEN),
         0,                      //senstivity(0),
         0,                      //anchorDeltaThr(),
         1000,                   //minReadLen(1000),
