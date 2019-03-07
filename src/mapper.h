@@ -37,7 +37,7 @@
 #include "base.h"
 #include "f_io.h"
 #include "pmpfinder.h"
-#include "align_interface.h"
+//#include "align_interface.h"
 #include "gap.h"
 #include "mapparm.h"
 struct MapperBase

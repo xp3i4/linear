@@ -32,6 +32,7 @@ struct CordBase
     Size cell_size;
     Mask headFlag;
     Mask valueMask_dstr;
+    unsigned bit_id;
     
     CordBase();
 
@@ -60,10 +61,11 @@ uint64_t get_cord_x (uint64_t val);
 uint64_t get_cord_y (uint64_t val); 
 uint64_t get_cord_strand (uint64_t val);
 uint64_t get_cord_id (uint64_t val);
+uint64_t create_id_x (uint64_t id, uint64_t x);
+uint64_t create_cord (uint64_t id, uint64_t cordx, uint64_t cordy, uint64_t strand);
 
 void cmpRevCord(uint64_t val1, uint64_t val2, uint64_t & cr_val1, uint64_t & cr_val2, uint64_t read_len);
-inline uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y);
-typename CordBase::Flag Cord::getCordStrand(uint64_t const & cord, unsigned const & strand = _DefaultCordBase.flag_bit) const;
+uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y);
 
 //WARNING:The length of read should be < 1MB;
 static const float band_width = 0.25;

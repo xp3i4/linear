@@ -51,7 +51,8 @@ CordBase::CordBase():
         cell_bit(4),
         cell_size(16),
         headFlag((1ULL<<63)),
-        valueMask_dstr(valueMask | flag_strand)
+        valueMask_dstr(valueMask | flag_strand),
+        bit_id (40)
 {}
     
 inline uint64_t 
@@ -156,7 +157,7 @@ inline uint64_t Cord::shift(uint64_t const & val, int64_t x, int64_t y, unsigned
 inline bool Cord::isCordsOverlap(uint64_t & val1, uint64_t & val2, int64_t thd)
 {
     int64_t dx = _DefaultCord.getCordX(val2 - val1);
-    int64_t dy = _DefaultCord.getCordY(val2 - val1);
+    int64_t dy = get_cord_y(val2 - val1);
     //std::cout << "[]::isCordsOverlap " << dx << " " << dy << " " << _DefaultCord.getCordX(val2) << " " << _DefaultCord.getCordX(val1) << " " << thd << "\n";
     return (dx >= 0) && (dx < thd) && (dy >= 0) && (dy < thd);
 }
@@ -169,6 +170,15 @@ inline bool Cord::isBlockEnd(uint64_t & val, uint64_t const & flag)
 inline uint64_t get_cord_x (uint64_t val) {return _getSA_i2(_DefaultCord.getCordX(val));}
 inline uint64_t get_cord_y (uint64_t val) {return _DefaultCord.getCordY(val);}
 inline uint64_t get_cord_strand (uint64_t val) {return _DefaultCord.getCordStrand(val);}
+inline uint64_t get_cord_id (uint64_t val) {return _getSA_i1(_DefaultCord.getCordX(val));}
+inline uint64_t create_id_x(uint64_t const id, uint64_t const x)
+{
+    return (id << _DefaultCordBase.bit_id) + x;
+}
+inline uint64_t create_cord (uint64_t id, uint64_t cordx, uint64_t cordy, uint64_t strand)
+{
+    return _DefaultCord.createCord(create_id_x (id, cordx), cordy, strand);
+}
 
 inline void cmpRevCord(uint64_t val1, 
                     uint64_t val2,
@@ -304,11 +314,11 @@ inline unsigned _windowDist(Iterator<String<short> >::Type const & it1,
 
 inline bool nextCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & cord)
 {
-    uint64_t cordLY = _DefaultCord.getCordY(back(cord));
+    uint64_t cordLY = get_cord_y(back(cord));
     while (++currentIt < length(hit)) 
     {
         uint64_t tmpCord = _DefaultCord.hit2Cord(hit[currentIt]);
-        if(_DefaultCord.getCordY(tmpCord) > cordLY + window_delta)
+        if(get_cord_y(tmpCord) > cordLY + window_delta)
         {
             appendValue(cord, tmpCord);
             return true;
@@ -360,10 +370,10 @@ inline bool previousWindow(String<short> & f1,
     {
         if ( x_suf - x_min > med)
         {
-            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand));
+            appendValue(cord, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand));
         }
         else
-            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
+            appendValue(cord, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
     }
     return true;
 }
@@ -401,10 +411,10 @@ inline bool previousWindow(String<short> & f1,
     {
         if ( x_suf - x_min > med)
         {
-            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand));
+            appendValue(cord, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand));
         }
         else
-            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
+            appendValue(cord, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
     }
     score += min;
     return true;
@@ -445,11 +455,11 @@ inline uint64_t previousWindow(String<short> & f1,
     {
         if ( x_suf - x_min > med)
         {
-            return _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand);
+            return _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand);
         }
         else
         {
-            return _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
+            return _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         } 
     }
     return 0;
@@ -460,7 +470,7 @@ inline uint64_t previousWindow(String<short> & f1, String<short> & f2, uint64_t 
     return previousWindow(f1, 
                           f2, 
                           _DefaultCord.getCordX(cord),
-                          _DefaultCord.getCordY(cord), 
+                          get_cord_y(cord), 
                           _DefaultCord.getCordStrand(cord), window_threshold);
 }
 
@@ -497,11 +507,11 @@ inline bool nextWindow(String<short> &f1,
     else 
         if ( x_min - x_pre > med)
         {
-            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y), strand));
+            appendValue(cord, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y), strand));
         }
         else
         {
-            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
+            appendValue(cord, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
         }
     return true;
 }
@@ -539,11 +549,11 @@ inline bool nextWindow(String<short> &f1,
     else 
         if ( x_min - x_pre > med)
         {
-            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y), strand));
+            appendValue(cord, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y), strand));
         }
         else
         {
-            appendValue(cord, _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
+            appendValue(cord, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
         }
     score += min;
     return true;
@@ -584,18 +594,18 @@ inline uint64_t nextWindow(String<short> & f1,
     else 
         if ( x_min - x_pre > med)
         {
-            return _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y), strand);
+            return _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y), strand);
         }
         else
         {
-            return _DefaultCord.createCord(_createSANode(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
+            return _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         }
     return 0;
 }
 
 inline uint64_t nextWindow(String<short> & f1, String<short> & f2, uint64_t cord, unsigned window_threshold)
 {
-    return nextWindow(f1, f2, _DefaultCord.getCordX(cord), _DefaultCord.getCordY(cord), _DefaultCord.getCordStrand(cord), window_threshold);
+    return nextWindow(f1, f2, _DefaultCord.getCordX(cord), get_cord_y(cord), _DefaultCord.getCordStrand(cord), window_threshold);
 }
 
 inline bool extendWindow(String<short> &f1, String<short> & f2, String<uint64_t> & cord, uint64_t strand)
@@ -618,8 +628,8 @@ inline bool path(String<Dna5> & read, String<uint64_t> hit, StringSet<String<sho
     if(!initCord(hit, currentIt, cords))
         return false;
     createFeatures(begin(read), end(read), f1);
-    unsigned genomeId = _getSA_i1(_DefaultCord.getCordX(cords[0]));
-    while (_DefaultCord.getCordY(back(cords)) < length(read) - window_size)
+    unsigned genomeId = get_cord_id(cords[0]);
+    while (get_cord_y(back(cords)) < length(read) - window_size)
     {
         extendWindow(f1, f2[genomeId], cords, _DefaultCord.getCordStrand(back(cords)));
         if(!nextCord(hit, currentIt, cords))
@@ -648,7 +658,7 @@ void checkPath(StringSet<String<Dna5> > & cords, StringSet<String<Dna5> > const 
         if(empty(*it))
             count++;
         else
-            if (_DefaultCord.getCordY(back(*it)) + window_size * 2 < length(read))
+            if (get_cord_y(back(*it)) + window_size * 2 < length(read))
             {
                 count++;
             }
@@ -722,7 +732,7 @@ void _printHit(String<uint64_t>  & hit)
         std::cout << "[P]::_printHit() " 
               << _getSA_i1(_DefaultCord.getCordX(_DefaultCord.hit2Cord(hit[k]))) << " " 
               << _getSA_i2(_DefaultCord.getCordX(_DefaultCord.hit2Cord(hit[k]))) << " " 
-              << _DefaultCord.getCordY(hit[k]) << "\n";
+              << get_cord_y(hit[k]) << "\n";
         if (_DefaultHit.isBlockEnd(hit[k]))
         {
             std::cout << "[P]::_printHit() end\n";
@@ -1192,7 +1202,7 @@ inline bool nextCord(typename Iterator<String<uint64_t> >::Type & it,
         return false;
     while(!_DefaultHit.isBlockEnd(*(it - 1)))
     {
-        if(_DefaultCord.getCordY(*(it))>_DefaultCord.getCordY(back(cord)) +  window_delta) 
+        if(get_cord_y(*(it))>get_cord_y(back(cord)) +  window_delta) 
         {
             appendValue(cord, _DefaultCord.hit2Cord(*(it)));
             ++it;
@@ -1232,7 +1242,7 @@ inline bool nextCord(typename Iterator<String<uint64_t> >::Type & it,
     
     while(!_DefaultHit.isBlockEnd(*(it - 1)))
     {
-        if(_DefaultCord.getCordY(*(it))>_DefaultCord.getCordY(back(cord)) +  window_delta) 
+        if(get_cord_y(*(it))>get_cord_y(back(cord)) +  window_delta) 
         {
             appendValue(cord, _DefaultCord.hit2Cord(*(it)));
             ++it;
@@ -1279,7 +1289,7 @@ inline bool nextCord(typename Iterator<String<uint64_t> >::Type & it,
     
     while(!_DefaultHit.isBlockEnd(*(it - 1)))
     {
-        if(_DefaultCord.getCordY(*(it))>_DefaultCord.getCordY(back(cord)) +  window_delta) 
+        if(get_cord_y(*(it))>get_cord_y(back(cord)) +  window_delta) 
         {
             appendValue(cord, _DefaultCord.hit2Cord_dstr(*(it)));
             ++it;
@@ -1321,9 +1331,9 @@ inline bool extendWindowAll(String<short> &f1,
                             uint64_t & strand)
 {
     uint64_t preCordY = (_DefaultHit.isBlockEnd(cord[length(cord) - 2]))?
-    0:_DefaultCord.getCordY(back(cord)) + window_delta;
+    0:get_cord_y(back(cord)) + window_delta;
     unsigned len = length(cord) - 1;
-    while (preCordY<= _DefaultCord.getCordY(back(cord)) && 
+    while (preCordY<= get_cord_y(back(cord)) && 
         previousWindow(f1, f2, cord, score, strand)){}
     for (unsigned k = len; k < ((length(cord) + len) >> 1); k++) 
     {
@@ -1339,10 +1349,10 @@ inline bool isOverlap (uint64_t cord1, uint64_t cord2, int revscomp_const)
     uint64_t strand1 = _DefaultCord.getCordStrand(cord1);
     uint64_t strand2 = _DefaultCord.getCordStrand(cord2);
     int64_t x1 = _DefaultCord.getCordX(cord1);
-    //int64_t y1 = revscomp_const * strand1 - _nStrand(strand1) * _DefaultCord.getCordY(cord1);
+    //int64_t y1 = revscomp_const * strand1 - _nStrand(strand1) * get_cord_y(cord1);
     int64_t y1 = _DefaultCord.getCordY (cord1);
     int64_t x2 = _DefaultCord.getCordX(cord2);
-    //int64_t y2 = revscomp_const * strand2 - _nStrand(strand2) * _DefaultCord.getCordY(cord2);
+    //int64_t y2 = revscomp_const * strand2 - _nStrand(strand2) * get_cord_y(cord2);
     int64_t y2 = _DefaultCord.getCordY (cord2);
     (void) revscomp_const;
     return std::abs(x1 - x2) < window_size && std::abs(y1 - y2) < window_size && (!(strand1 ^ strand2));
@@ -1355,9 +1365,9 @@ inline bool isPreGap (uint64_t cord1, uint64_t cord2, int revscomp_const)
     //uint64_t strand1 = _DefaultCord.getCordStrand(cord1);
     //uint64_t strand2 = _DefaultCord.getCordStrand(cord2);
     int64_t x1 = _DefaultCord.getCordX(cord1);
-    //int64_t y1 = _DefaultCord.getCordY(cord1);
+    //int64_t y1 = get_cord_y(cord1);
     int64_t x2 = _DefaultCord.getCordX(cord2);
-    //int64_t y2 = _DefaultCord.getCordY(cord2);
+    //int64_t y2 = get_cord_y(cord2);
     //return (x1 + window_size > x2 || y1 + window_size > y2) && (std::abs(x1 - x2) > window_size || std::abs(y1 - y2) > window_size);
     (void) revscomp_const;
     //std::cout << "[]::isPreGap " << x1 + window_size << " " << x2 << "\n";
@@ -1389,7 +1399,7 @@ inline int extendPatch(StringSet<String<short> > & f1,
                         )
 {
     unsigned window_threshold = 30;
-    //std::cout << "[]::extendPatch::coord cord1y " << _DefaultCord.getCordY(cord1) << " cord2y " << _DefaultCord.getCordY(cord2) << " " << _DefaultCord.getCordStrand(cord1 ^ cord2) << "\n";
+    //std::cout << "[]::extendPatch::coord cord1y " << get_cord_y(cord1) << " cord2y " << get_cord_y(cord2) << " " << _DefaultCord.getCordStrand(cord1 ^ cord2) << "\n";
     if (isOverlap(cord1, cord2, revscomp_const))
     {
         return 0;
@@ -1405,20 +1415,20 @@ inline int extendPatch(StringSet<String<short> > & f1,
     */
     uint64_t strand1 = _DefaultCord.getCordStrand(pcord);
     uint64_t strand2 = _DefaultCord.getCordStrand(scord);
-    uint64_t genomeId1 = _getSA_i1(_DefaultCord.getCordX(pcord));
-    uint64_t genomeId2 = _getSA_i1(_DefaultCord.getCordX(scord));
+    uint64_t genomeId1 = get_cord_id(pcord);
+    uint64_t genomeId2 = get_cord_id(scord);
     int len = 0;
     uint64_t cord = pcord;
     String<uint64_t> tmp;
-    //std::cout << "[]::extendPatch pcord " << _DefaultCord.getCordY(cord) << " " << _DefaultCord.getCordY(scord) << "\n";
+    //std::cout << "[]::extendPatch pcord " << get_cord_y(cord) << " " << get_cord_y(scord) << "\n";
     while (isPreGap(cord, scord, revscomp_const))
     {
-        //std::cout << "[]::extendWindow::n cord " << _DefaultCord.getCordY(cord) << "\n";
+        //std::cout << "[]::extendWindow::n cord " << get_cord_y(cord) << "\n";
         cord = nextWindow (f1[strand1], f2[genomeId1], cord, window_threshold);
         if (cord)
         {
             appendValue (tmp, cord);
-            //std::cout << "[]::extendWidnow::n append " << _DefaultCord.getCordY(back(tmp)) << " " << _DefaultCord.getCordX(back(tmp)) << " " << strand1 << " " << strand2 << "\n";
+            //std::cout << "[]::extendWidnow::n append " << get_cord_y(back(tmp)) << " " << _DefaultCord.getCordX(back(tmp)) << " " << strand1 << " " << strand2 << "\n";
         }
         else
         {
@@ -1437,13 +1447,13 @@ inline int extendPatch(StringSet<String<short> > & f1,
     cord = scord;
     while (isSucGap(cord, nw, revscomp_const))
     {
-        //std::cout << "[]::extendWindow::p cord " << _DefaultCord.getCordY(cord) << "\n";
+        //std::cout << "[]::extendWindow::p cord " << get_cord_y(cord) << "\n";
         cord = previousWindow(f1[strand2], f2[genomeId2], cord, window_threshold);
         if (cord)
         {
             //TODO do another round previousWindow if cord = 0.
             appendValue (tmp, cord);
-            //std::cout << "[]::extendWidnow::p append " << _DefaultCord.getCordY(cord) << " " << _DefaultCord.getCordX(cord) << " " << _DefaultCord.getCordY (nw) << " " << _DefaultCord.getCordX(nw) << "\n";
+            //std::cout << "[]::extendWidnow::p append " << get_cord_y(cord) << " " << _DefaultCord.getCordX(cord) << " " << _DefaultCord.getCordY (nw) << " " << _DefaultCord.getCordX(nw) << "\n";
         }
         else
         {
@@ -1478,7 +1488,7 @@ inline bool pathAll(String<Dna5> & read,
     if(initCord(it, hitEnd, preBlockPtr, cords))
     {
         do{
-            extendWindowAll(f1, f2[_getSA_i1(_DefaultCord.getCordX(back(cords)))], cords, score);
+            extendWindowAll(f1, f2[get_cord_id(back(cords))], cords, score;
         }
         while (nextCord(it, hitEnd, preBlockPtr, cords));
         return endCord(cords, preBlockPtr);   
@@ -1504,7 +1514,7 @@ inline bool pathAll(String<Dna5> & read,
     if(initCord(it, hitEnd, preBlockPtr, cords))
     {
         do{
-            extendWindowAll(f1, f2[_getSA_i1(_DefaultCord.getCordX(back(cords)))], cords, score);
+            extendWindowAll(f1, f2[get_cord_id(back(cords))], cords, score;
         }
         while (nextCord(it, hitEnd, preBlockPtr, cords, cordLenThr, strand, score));
         return endCord(cords, preBlockPtr, cordLenThr, strand, score);   
@@ -1534,7 +1544,7 @@ inline bool pathAll(String<Dna5> & read,
     if(initCord(it, hitEnd, preBlockPtr, cords))
     {
         do{
-            extendWindowAll(f1, f2[_getSA_i1(_DefaultCord.getCordX(back(cords)))], cords, score);
+            extendWindowAll(f1, f2[get_cord_id(back(cords))], cords, score;
         }
         while (nextCord(it, hitEnd, preBlockPtr, cords, cordLenThr, strand, score));
         return endCord(cords, preBlockPtr, cordLenThr, strand, score);   
@@ -1562,7 +1572,7 @@ inline bool path_dst(
     {
         do{
             uint64_t strand = _DefaultCord.getCordStrand(back(cords));
-            extendWindowAll(f1[strand], f2[_getSA_i1(_DefaultCord.getCordX(back(cords)))], cords, score, strand);
+            extendWindowAll(f1[strand], f2[get_cord_id(back(cords))], cords, score, strand);
         }
         while (nextCord(it, hitEnd, preBlockPtr, cords, cordLenThr, score));
         return endCord(cords, preBlockPtr, cordLenThr, score);   
