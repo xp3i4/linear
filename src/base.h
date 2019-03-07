@@ -1,6 +1,11 @@
 #ifndef LINEAR_HEADER_F_IO_H
 #define LINEAR_HEADER_F_IO_H
 
+#include <seqan/seq_io.h>
+#include <seqan/stream.h>
+#include <seqan/basic.h>
+#include <iostream>
+
 using namespace seqan;
 
 const float base_alpha_ = 0.75;
@@ -154,9 +159,7 @@ struct MapParm{
     void print ();
 };
 
-inline void _compltStr(String<Dna5> & str, String<Dna5> & res);
-
-seqan::ArgumentParser::ParseResult 
-parseCommandLine(Options & options, int argc, char const ** argv);
+void _compltStr(String<Dna5> & str, String<Dna5> & res);
+void _compltRvseStr(String<Dna5> & str, String<Dna5> & res);
 
 #endif

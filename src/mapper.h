@@ -31,6 +31,8 @@
 // ==========================================================================
 // Author: cxpan <chenxu.pan@fu-berlin.de>
 // ==========================================================================
+#ifndef SEQAN_HEADER_PACMAPPER_H
+#define SEQAN_HEADER_PACMAPPER_H
 
 #include "base.h"
 #include "f_io.h"
@@ -38,10 +40,6 @@
 #include "align_interface.h"
 #include "gap.h"
 #include "mapparm.h"
-
-#ifndef SEQAN_HEADER_PACMAPPER_H
-#define SEQAN_HEADER_PACMAPPER_H
-
 struct MapperBase
 {
     typedef Dna5 DefaultAlphabet;
@@ -65,7 +63,7 @@ class Mapper {
     typedef typename Base::MRes      Res;
     typedef typename Base::MSeq      Seq;
     typedef typename Base::MSeqs     Seqs;
-    typedef typename Cord::CordSet   CordSet;
+    typedef StringSet<String<uint64_t> > CordSet;
     typedef typename Cord::CordType  CordType;
     typedef typename Res::HitSet     HitSet;
     typedef typename Res::HitType    HitType; 

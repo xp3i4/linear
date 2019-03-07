@@ -1,6 +1,7 @@
 #ifndef LINEAR_HEADER_F_IO_H
 #define LINEAR_HEADER_F_IO_H
 
+#include <seqan/bam_io.h>
 using namespace seqan;
 
 class BamAlignmentRecordLink : public BamAlignmentRecord 
@@ -14,7 +15,6 @@ public:
     int isEnd() const;
     int next() const;
 };
-
 
 std::string & operator<< (std::string & s, int i);
 std::string & operator<< (std::string & s, char s2);
