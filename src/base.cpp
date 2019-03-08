@@ -55,10 +55,15 @@ using namespace seqan;
 //===================================================================
 // variable and type def
 //===================================================================
+const unsigned base_shape_len_ = 25;
+const float base_alpha_ = 0.75;
+const unsigned base_block_size_ = 100;
+const unsigned base_delta_ = 32; 
+const unsigned base_threshold_= 30; 
+const unsigned base_kmer_step_ = 1000;
+const uint64_t base_llt_max_ = ~0;
 
 Options::Options():
-        kmerLen(base_shape_len_),
-        MiKmLen(base_shape_weight_),
         rPath(""),
         gPath(""),
         oPath("mapper_result.txt"),
@@ -72,9 +77,7 @@ std::string Options::getOutputPath() const {return oPath;};
 int Options::print()
 {
     
-    std::cerr << "kmerLen " << kmerLen << std::endl
-              << "MiKmLen " << MiKmLen << std::endl
-              << "reads path " << rPath << std::endl
+    std::cerr << "reads path " << rPath << std::endl
               << "genomes Path " << gPath << std::endl
               << "output path " << oPath << std::endl
               << "Sensitive " << Sensitive << std::endl;

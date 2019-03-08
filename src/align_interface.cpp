@@ -3,7 +3,6 @@
 //#include <seqan/align_parallel.h>
 #include <utility> 
 #include "align_interface.h"
-#include "f_io.h"
 //TODO seqand::setclippedpositoin retrieve source postion that's not efficient
 using namespace seqan;
 /**

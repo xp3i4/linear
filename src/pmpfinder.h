@@ -1,5 +1,6 @@
 #ifndef SEQAN_HEADER_PMP_FINDER_H
 #define SEQAN_HEADER_PMP_FINDER_H
+#include "index_util.h"
 
 using namespace seqan;
 
@@ -33,30 +34,48 @@ struct CordBase
     Mask headFlag;
     Mask valueMask_dstr;
     unsigned bit_id;
-    
     CordBase();
-
-}_DefaultCordBase;
+};
+extern CordBase _DefaultCordBase;
 
 struct Cord
 {
-    uint64_t getCordX(uint64_t const &, unsigned const &, uint64_t const &) const;
-    uint64_t getCordY(uint64_t const &, uint64_t const &) const;
-    uint64_t createCord(uint64_t const &, uint64_t const &, uint64_t const &, unsigned const &, unsigned const &) const ;
-    uint64_t hit2Cord(uint64_t const &, unsigned const &, uint64_t const &, uint64_t const &) const;
-    uint64_t hit2Cord_dstr(uint64_t const &, unsigned const &, uint64_t const &, uint64_t const &) const;
-    uint64_t cord2Cell(uint64_t const &, unsigned const &) const;
-    uint64_t cell2Cord(uint64_t const &, unsigned const &) const;
-    void setCordEnd(uint64_t &, uint64_t const &, uint64_t const &);
-    uint64_t getCordStrand(uint64_t const &, unsigned const &) const;
-    uint64_t isCordEnd(uint64_t const &, uint64_t const &)const;
+    uint64_t getCordX(uint64_t const &, unsigned const & = _DefaultCordBase.bit, uint64_t const & = _DefaultCordBase.maskx) const;
+    uint64_t getCordY(uint64_t const & cord, uint64_t const & mask = _DefaultCordBase.mask) const;
+    uint64_t createCord(uint64_t const & x, 
+                 uint64_t const & y, 
+                 uint64_t const & strand,
+                 unsigned const & bit = _DefaultCordBase.bit, 
+                 unsigned const & bit2 = _DefaultCordBase.flag_bit) const;
+    uint64_t hit2Cord(uint64_t const & hit, 
+               unsigned const & bit = _DefaultCordBase.bit, 
+               uint64_t const & mask = _DefaultCordBase.mask,
+               uint64_t const & mask2 = _DefaultCordBase.valueMask
+              ) const;
+    uint64_t hit2Cord_dstr(uint64_t const & hit, 
+               unsigned const & bit = _DefaultCordBase.bit, 
+               uint64_t const & mask = _DefaultCordBase.mask,
+               uint64_t const & mask2 = _DefaultCordBase.valueMask_dstr
+              ) const;
+    uint64_t cord2Cell(uint64_t const & cord, 
+                unsigned const & bit = _DefaultCordBase.cell_bit) const;
+    uint64_t cell2Cord(uint64_t const & cell, 
+                unsigned const & bit = _DefaultCordBase.cell_bit) const;
+    void setCordEnd(uint64_t & cord,
+            typename CordBase::Flag const & strand = _DefaultCordBase.flag_strand,
+            typename CordBase::Flag const & end = _DefaultCordBase.flag_end);
+    uint64_t getCordStrand(uint64_t const & cord,
+            unsigned const & strand = _DefaultCordBase.flag_bit) const;
+    uint64_t isCordEnd(uint64_t const & cord,
+                typename CordBase::Flag const & end = _DefaultCordBase.flag_end) const;
     void setMaxLen(String<uint64_t> &, uint64_t const &, uint64_t const & = _DefaultCordBase.mask);
     uint64_t getMaxLen(String<uint64_t> const &, uint64_t const & = _DefaultCordBase.mask);
     uint64_t shift(uint64_t const & val, int64_t x, int64_t y, unsigned const & = _DefaultCordBase.bit); //add x and y
 
     bool isCordsOverlap(uint64_t & val1, uint64_t & val2, int64_t thd);
     bool isBlockEnd(uint64_t &, uint64_t const & = _DefaultCordBase.flagEnd);
-}_DefaultCord; 
+};
+extern Cord _DefaultCord; 
 uint64_t get_cord_x (uint64_t val);
 uint64_t get_cord_y (uint64_t val); 
 uint64_t get_cord_strand (uint64_t val);
@@ -67,42 +86,46 @@ uint64_t create_cord (uint64_t id, uint64_t cordx, uint64_t cordy, uint64_t stra
 void cmpRevCord(uint64_t val1, uint64_t val2, uint64_t & cr_val1, uint64_t & cr_val2, uint64_t read_len);
 uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y);
 
+unsigned _windowDist(Iterator<String<short> >::Type const & it1, 
+                        Iterator<String<short> >::Type const & it2);
 //WARNING:The length of read should be < 1MB;
-static const float band_width = 0.25;
-static const unsigned cmask = ((uint64_t)1<<20) - 1;
-static const unsigned cell_size = 16;
-static const unsigned cell_num = 12;
-static const unsigned window_size = cell_size * cell_num; //16*12
-static const unsigned window_delta = window_size * (1 - 2 * band_width);
-static const unsigned sup = cell_num;
-static const unsigned med =ceil((1 - band_width) * cell_num);
-static const unsigned inf = ceil((1 - 2 * band_width) * cell_num);
+extern const float band_width;
+extern const unsigned cmask;
+extern const unsigned cell_size;
+extern const unsigned cell_num;
+extern const unsigned window_size; //16*12
+extern const unsigned window_delta;
+extern const unsigned sup;
+extern const unsigned med;
+extern const unsigned inf;
 
-static const unsigned initx = 5; 
-static const unsigned inity = 5;
+extern const unsigned initx; 
+extern const unsigned inity;
 
-//======================================================
-static const unsigned scriptStep=16;
-static const unsigned scriptBit=4;
-static const unsigned scriptWindow=5; //script_length = 2^scriptWindow
-static const unsigned scriptWindow2 = scriptWindow << 1;
-static const unsigned scriptWindow3 = scriptWindow2 + scriptWindow;
-static const int scriptCount[5] = {1, 1<<scriptWindow, 1 <<(scriptWindow * 2), 0, 0};
-static const int scriptMask = (1 << scriptWindow) - 1;
-static const int scriptMask2 = scriptMask << scriptWindow;
-static const int scriptMask3 = scriptMask2 << scriptWindow;
+extern const unsigned scriptStep;
+extern const unsigned scriptBit;
+extern const unsigned scriptWindow; //script_length = 2^scriptWindow
+extern const unsigned scriptWindow2;
+extern const unsigned scriptWindow3;
+extern const int scriptCount[5];
+extern const int scriptMask;
+extern const int scriptMask2;
+extern const int scriptMask3;
 
-static const uint64_t hmask = (1ULL << 20) - 1;
+extern const uint64_t hmask;
 /**
  * ATTENTION TODO parameter needs tuning: will affect speed, gap extension, clip
  */
-static const unsigned windowThreshold = 36; // 36;
+extern const unsigned windowThreshold; // 36;
 /**
  *   struct hit:
  *   extend the structure Cord;
  *   NA[2]|strand[1]|head[1]|genome pos[40]|read pos[20]
  *   NodeType: 1 Head, 0 Body
  */
+void createFeatures(TIter5 const &, TIter5 const &, String<short> & );
+void createFeatures(StringSet<String<Dna5> > &, StringSet<String<short> > &, unsigned);
+
 
 struct HitBase
 {
@@ -111,15 +134,9 @@ struct HitBase
     uint64_t flag;
     uint64_t flag2;
     uint64_t mask;
-    
-    HitBase():
-        bit(60),
-        bit2(61),
-        flag(1ULL<<bit),
-        flag2(1ULL<<bit2),
-        mask(flag - 1)
-        {}
-}_DefaultHitBase;
+    HitBase();
+};
+extern HitBase _DefaultHitBase;
 
 struct Hit
 {
@@ -133,6 +150,30 @@ struct Hit
     bool isBlockEnd(uint64_t &, uint64_t const & = _DefaultHitBase.flag);
     unsigned getStrand(uint64_t const &, uint64_t const & = _DefaultHitBase.flag2);
 
-}_DefaultHit;
+};
+extern Hit _DefaultHit;
+
+uint64_t mnMapReadList( LIndex  & index,
+                        String<Dna5> & read,
+                        Anchors & anchors,
+                        MapParm & mapParm,
+                        String<uint64_t> & hit);
+bool path_dst(
+             typename Iterator<String<uint64_t> >::Type hitBegin, 
+             typename Iterator<String<uint64_t> >::Type hitEnd, 
+             StringSet<String<short> > & f1,
+             StringSet<String<short> > & f2, 
+             String<uint64_t> & cords,
+             float const & cordLenThr
+            );
+
+int extendPatch(StringSet<String<short> > & f1, 
+                StringSet<String<short> > & f2, 
+                  String<uint64_t> & cords,
+                  int k,
+                  uint64_t cord1,
+                  uint64_t cord2,
+                  int revscomp_const
+                );
 
 #endif

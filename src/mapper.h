@@ -35,45 +35,15 @@
 #define SEQAN_HEADER_PACMAPPER_H
 
 #include "base.h"
+#include "index_util.h"
 #include "f_io.h"
-#include "pmpfinder.h"
-//#include "align_interface.h"
-#include "gap.h"
 #include "mapparm.h"
-struct MapperBase
-{
-    typedef Dna5 DefaultAlphabet;
-    typedef Minimizer<base_shape_len_> DefaultShape;
-    typedef PMRecord MRecord;
-    typedef PMRes    MRes;
-    typedef MapParm   MParm;
-    typedef PMCore    MCore;
-    typedef typename HIndex<base_shape_len_>  MIndex;
-    typedef typename Anchors MAnchors;
-    typedef typename PMRecord::RecSeq MSeq; 
-    typedef typename PMRecord::RecSeqs MSeqs;
-};
 
 class Mapper {
-    typedef MapperBase Base;
-    typedef typename Base::MRecord   Record;
-    typedef typename Base::MParm     Parm;
-    typedef typename Base::MIndex    Index;
-    typedef typename Base::MAnchors  Anchors;
-    typedef typename Base::MRes      Res;
-    typedef typename Base::MSeq      Seq;
-    typedef typename Base::MSeqs     Seqs;
-    typedef StringSet<String<uint64_t> > CordSet;
-    typedef typename Cord::CordType  CordType;
-    typedef typename Res::HitSet     HitSet;
-    typedef typename Res::HitType    HitType; 
-    typedef Align<String<Dna5>,ArrayGaps> TAlign;
-
-    Record  record;
-    Parm    parm;
-    Res     res;
-    Index   qIndex;
-    CordSet cordSet;
+    PMRecord      record;
+    MapParm     parm;
+    LIndex      qIndex;
+    StringSet<String<uint64_t> > cordSet;
     std::ofstream of;
     unsigned _thread;
     String<int> rlens;
@@ -84,20 +54,13 @@ class Mapper {
 public:
     Mapper();
     Mapper(Options & options);
-    Seqs & reads() {return record.seq1;}             
-    Seqs & genomes() {return record.seq2;}             
-    Parm & mapParm() {return parm;}
-    Res & result() {return res;}
-    Index & index() {return qIndex;}
-    HitSet & hits() {return res.hits;}             //returns hit set
-    CordSet & cords() {return cordSet;}            //returns cord set 
+    StringSet<String<Dna5> > & reads() {return record.seq1;}             
+    StringSet<String<Dna5> > & genomes() {return record.seq2;}             
+    MapParm & mapParm() {return parm;}
+    LIndex & index() {return qIndex;}
+    StringSet<String<uint64_t> > & cords() {return cordSet;}            //returns cord set 
     
-    void printHits();
-    void printBestHitsStart();
-    void printResult();
-    void printParm();
     void printCords(std::ostream & );
-    void printCords();
     void printCordsRaw();
     void printCordsRaw2();
     int print_vcf();

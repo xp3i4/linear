@@ -3,10 +3,9 @@
 
 #include <seqan/bam_io.h>
 using namespace seqan;
-int class1 = 10;
+
 class BamAlignmentRecordLink : public BamAlignmentRecord 
-{ // Used as String<BamAlignmentRecordLink>, in which cigars of different records
-  // can be concated without memory modification.
+{ 
 public:
     int next_id; //next records id
 

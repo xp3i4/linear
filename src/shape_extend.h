@@ -34,6 +34,8 @@
 
 #ifndef SEQAN_HEADER_SHAPE_PM_H
 #define SEQAN_HEADER_SHAPE_PM_H
+//#include <seqan/basic.h>
+//#include <seqan/index.h>
 
 namespace seqan{
 

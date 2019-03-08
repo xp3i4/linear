@@ -35,10 +35,36 @@
 #include <seqan/sequence.h>
 #include <seqan/stream.h>
 #include "base.h"
-#include "index_util.h"
 #include "pmpfinder.h"
 
 using namespace seqan;
+
+const float band_width = 0.25;
+const unsigned cmask = ((uint64_t)1<<20) - 1;
+const unsigned cell_size = 16;
+const unsigned cell_num = 12;
+const unsigned window_size = cell_size * cell_num; //16*12
+const unsigned window_delta = window_size * (1 - 2 * band_width);
+const unsigned sup = cell_num;
+const unsigned med =ceil((1 - band_width) * cell_num);
+const unsigned inf = ceil((1 - 2 * band_width) * cell_num);
+
+const unsigned initx = 5; 
+const unsigned inity = 5;
+
+const unsigned scriptStep=16;
+const unsigned scriptBit=4;
+const unsigned scriptWindow=5; //script_length = 2^scriptWindow
+const unsigned scriptWindow2 = scriptWindow << 1;
+const unsigned scriptWindow3 = scriptWindow2 + scriptWindow;
+const int scriptCount[5] = {1, 1<<scriptWindow, 1 <<(scriptWindow * 2), 0, 0};
+const int scriptMask = (1 << scriptWindow) - 1;
+const int scriptMask2 = scriptMask << scriptWindow;
+const int scriptMask3 = scriptMask2 << scriptWindow;
+
+const uint64_t hmask = (1ULL << 20) - 1;
+const unsigned windowThreshold = 36; // 36;
+
 CordBase::CordBase():
         bit(20),
         flagEnd(1ULL << 60),
@@ -54,18 +80,29 @@ CordBase::CordBase():
         valueMask_dstr(valueMask | flag_strand),
         bit_id (40)
 {}
-    
+CordBase _DefaultCordBase;   
+Cord _DefaultCord;
+HitBase::HitBase():
+        bit(60),
+        bit2(61),
+        flag(1ULL<<bit),
+        flag2(1ULL<<bit2),
+        mask(flag - 1)
+{}
+HitBase _DefaultHitBase;
+Hit _DefaultHit;
+
 inline uint64_t 
 Cord::getCordX(uint64_t const & cord, 
-               unsigned const & bit  = _DefaultCordBase.bit,
-               uint64_t const & mask = _DefaultCordBase.maskx) const
+               unsigned const & bit,
+               uint64_t const & mask) const
 {
     return (cord >> bit) & mask; 
 }
 
 inline uint64_t 
 Cord::getCordY(uint64_t const & cord, 
-               uint64_t const & mask = _DefaultCordBase.mask) const 
+               uint64_t const & mask) const 
 {
     return cord & mask;
 }
@@ -74,17 +111,17 @@ inline uint64_t
 Cord::createCord(uint64_t const & x, 
                  uint64_t const & y, 
                  uint64_t const & strand,
-                 unsigned const & bit = _DefaultCordBase.bit, 
-                 unsigned const & bit2 = _DefaultCordBase.flag_bit) const
+                 unsigned const & bit, 
+                 unsigned const & bit2) const
 {
     return (x << bit) + y + (strand << bit2);
 }
 
 inline uint64_t 
 Cord::hit2Cord(uint64_t const & hit, 
-               unsigned const & bit = _DefaultCordBase.bit, 
-               uint64_t const & mask = _DefaultCordBase.mask,
-               uint64_t const & mask2 = _DefaultCordBase.valueMask
+               unsigned const & bit, 
+               uint64_t const & mask,
+               uint64_t const & mask2
               ) const
 {
     return (hit + ((hit & mask) << bit)) & mask2;
@@ -92,43 +129,43 @@ Cord::hit2Cord(uint64_t const & hit,
 
 inline uint64_t 
 Cord::hit2Cord_dstr(uint64_t const & hit, 
-               unsigned const & bit = _DefaultCordBase.bit, 
-               uint64_t const & mask = _DefaultCordBase.mask,
-               uint64_t const & mask2 = _DefaultCordBase.valueMask_dstr
+               unsigned const & bit, 
+               uint64_t const & mask,
+               uint64_t const & mask2
               ) const
 {
     return (hit + ((hit & mask) << bit)) & mask2;
 }
 
 inline uint64_t Cord::cord2Cell(uint64_t const & cord, 
-                unsigned const & bit = _DefaultCordBase.cell_bit) const
+                unsigned const & bit) const
 {
     return cord >> bit;
 }
 
 inline uint64_t Cord::cell2Cord(uint64_t const & cell, 
-                unsigned const & bit = _DefaultCordBase.cell_bit) const
+                unsigned const & bit) const
 {
     return cell << bit;
 }
 
 inline void Cord::setCordEnd(uint64_t & cord,
-            typename CordBase::Flag const & strand = _DefaultCordBase.flag_strand,
-            typename CordBase::Flag const & end = _DefaultCordBase.flag_end)
+            typename CordBase::Flag const & strand,
+            typename CordBase::Flag const & end)
 {
     cord |= strand | end;
 }
 
 inline typename CordBase::Flag 
 Cord::getCordStrand(uint64_t const & cord,
-            unsigned const & strand = _DefaultCordBase.flag_bit) const
+            unsigned const & strand) const
 {
     return (cord >> strand) & 1ULL;
 }
 
 inline typename CordBase::Flag 
 Cord::isCordEnd(uint64_t const & cord,
-                typename CordBase::Flag const & end = _DefaultCordBase.flag_end) const
+                typename CordBase::Flag const & end) const
 {
     return cord & end;
 }
@@ -1082,31 +1119,6 @@ inline uint64_t mnMapReadList( LIndex  & index,
     //printf("done getinxmatchall\n");
     return getAnchorMatchList(anchors, length(read), mapParm, hit);
 }
-/*
- * this is initCord for single strand (without strand flag) index
-inline bool initCord(typename Iterator<String<uint64_t> >::Type & it, 
-                     typename Iterator<String<uint64_t> >::Type & hitEnd,
-                     unsigned & preCordStart,
-                     String<uint64_t> & cord)
-{
-        
-    if (empty(cord))
-    {
-        appendValue(cord, 0);
-        _DefaultHit.setBlockEnd(cord[0]);
-    }
-
-    if (it == hitEnd)
-        return false;
-    else
-    {
-        appendValue(cord, _DefaultCord.hit2Cord(*(it)));
-        ++it;
-        preCordStart = length(cord) - 1;   
-    }
-    return true;
-}
-*/
 
 /*
  * this is initCord for double strand index(with flag in cord value)

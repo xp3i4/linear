@@ -44,7 +44,7 @@ add_definitions (-DSEQAN_REVISION="${SEQAN_REVISION}")
 add_definitions (-DSEQAN_DATE="${SEQAN_DATE}")
 
 # Update the list of file names below if you add source files to your application.
-add_executable (linear mapper.cpp index_extend.h shape_extend.h mapparm.h gap.h pmpfinder.h align_interface.h f_io.h)
+add_executable (linear mapper.cpp index_extend.h shape_extend.h mapparm.h gap.h pmpfinder.h f_io.h align_interface.h )
 
 add_library(linear_base STATIC base.cpp)
 add_library(linear_index_util STATIC index_util.cpp)

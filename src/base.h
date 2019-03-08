@@ -1,5 +1,5 @@
-#ifndef LINEAR_HEADER_F_IO_H
-#define LINEAR_HEADER_F_IO_H
+#ifndef LINEAR_HEADER_BASE_H
+#define LINEAR_HEADER_BASE_H
 
 #include <seqan/seq_io.h>
 #include <seqan/stream.h>
@@ -8,18 +8,15 @@
 
 using namespace seqan;
 
-const float base_alpha_ = 0.75;
-const unsigned base_shape_len_ = 25;
-const unsigned base_shape_weight_ = 17;
-const unsigned base_block_size_ = 100;
-const unsigned base_delta_ = 32; 
-const unsigned base_threshold_= 30; 
-const unsigned base_kmer_step_ = 1000;
-const uint64_t base_llt_max_ = ~0;
+extern const unsigned base_shape_len_;
+extern const float base_alpha_;
+extern const unsigned base_block_size_;
+extern const unsigned base_delta_; 
+extern const unsigned base_threshold_; 
+extern const unsigned base_kmer_step_;
+extern const uint64_t base_llt_max_;
 
 struct Options{
-    unsigned    kmerLen;
-    unsigned    MiKmLen;
     typename    std::string rPath;
     typename    std::string gPath;
     typename    std::string oPath;
@@ -159,6 +156,7 @@ struct MapParm{
     void print ();
 };
 
+int readRecords_block (StringSet<CharString> & ids, StringSet<String<Dna5> > & reads, String<int> & lens, SeqFileIn & fin, int blockSize);
 void _compltStr(String<Dna5> & str, String<Dna5> & res);
 void _compltRvseStr(String<Dna5> & str, String<Dna5> & res);
 

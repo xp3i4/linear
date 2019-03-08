@@ -50,11 +50,13 @@
 #include <atomic>   
 #include <iomanip>
 #include <functional>   // for std::ref()
-#include <chrono>
-#include <thread>
 #include <ctime>
-#include "mapper.h"
+#include "index_util.h"
+#include "pmpfinder.h"
+#include "gap.h"
 #include "f_io.h"
+#include "align_interface.h"
+#include "mapper.h"
 
 using namespace seqan; 
 
@@ -152,10 +154,9 @@ parseCommandLine(Options & options, int argc, char const ** argv)
 
 }
 
-template <typename TDna, typename TSpec>
-Mapper<TDna, TSpec>::Mapper(Options & options):
+Mapper::Mapper(Options & options):
     record(options),
-    qIndex(genomes()),
+    qIndex(genomes()), 
     of(toCString(options.getOutputPath()))
 {
     outputPrefix = getFileName(getFileName(options.getReadPath()), '.', 0);
@@ -180,8 +181,7 @@ Mapper<TDna, TSpec>::Mapper(Options & options):
     _thread = options.thread;
 }
 
-template <typename TDna, typename TSpec>
-int Mapper<TDna, TSpec>::createIndex(bool efficient)
+int Mapper::createIndex(bool efficient)
 {
     std::cerr << ">>Create index \r";
     createHIndex(genomes(), qIndex, _thread, efficient);
@@ -245,8 +245,7 @@ int print_align_sam_record_(StringSet<String< BamAlignmentRecordLink> > & record
         }
     }
 }
-template <typename TDna, typename TSpec>
-int print_align_sam (Mapper<TDna, TSpec> & mapper)
+int print_align_sam (Mapper & mapper)
 {
     std::string filePath = mapper.getOutputPrefix() + ".sam";
     mapper.getOf().open(toCString(filePath));
@@ -263,8 +262,7 @@ int print_align_sam (Mapper<TDna, TSpec> & mapper)
     mapper.getOf().close();
 }
 
-template <typename TDna, typename TSpec>
-void Mapper<TDna, TSpec>::printCordsRaw()
+void Mapper::printCordsRaw()
 {
     double time = sysTime();
     //unsigned strand;
@@ -297,8 +295,7 @@ void Mapper<TDna, TSpec>::printCordsRaw()
 /**
  * print all cords with cordinates
  */
-template <typename TDna, typename TSpec>
-void Mapper<TDna, TSpec>::printCordsRaw2()
+void Mapper::printCordsRaw2()
 {
     std::cerr << ">>Write results to disk        \r";
     double time = sysTime();
@@ -453,35 +450,32 @@ int print_clip_gvf_(StringSet<String<uint64_t> > & clips,
     return 0;
 }
 
-template <typename TDna, typename TSpec>
-int print_clip_gff(Mapper<TDna, TSpec> & mapper)
+int print_clip_gff(Mapper & mapper)
 {
     print_clip_gff_(mapper.getClips(), mapper.readsId(), mapper.getOf(), mapper.getOutputPrefix());
     return 0;
 }
 
-template <typename TDna, typename TSpec>
-int print_clip_gvf(Mapper<TDna, TSpec> & mapper)
+int print_clip_gvf(Mapper & mapper)
 {
     print_clip_gvf_(mapper.getClips(), mapper.readsId(), mapper.genomesId(), mapper.getOf(), mapper.getOutputPrefix());
     return 0;
 }
 
-template <typename TDna, typename TSpec>
-int rawMap_dst2_MF(typename PMCore<TDna, TSpec>::Index & index,
+int rawMap_dst2_MF(LIndex & index,
                    StringSet<String<short> > & f2,
-                   typename PMRecord<TDna>::RecSeqs & reads,
+                   StringSet<String<Dna5> > & reads,
                    MapParm & mapParm,
                    StringSet<String<uint64_t> > & cords,
                    StringSet<String<uint64_t> > & clips,
-                   StringSet<String<TDna> > & seqs,
+                   StringSet<String<Dna5> > & seqs,
                    StringSet<String<BamAlignmentRecordLink> >& bam_records,
                    unsigned & threads,
                    int p1
                   )
 {
   
-    typedef typename PMRecord<TDna>::RecSeq Seq;
+    typedef String<Dna5> Seq;
     //double time=sysTime();
     float senThr = mapParm.senThr / window_size;
     float cordThr = mapParm.cordThr / window_size;
@@ -507,7 +501,7 @@ int64_t len = 0;
     Seq comStr;
     //Anchors anchors(Const_::_LLTMax, AnchorBase::size);
     Anchors anchors;
-    typename PMRes::HitString crhit;
+    String<uint64_t> crhit;
     StringSet<String<uint64_t> >  cordsTmp;
     StringSet< String<short> > f1;
     StringSet<String<uint64_t> > clipsTmp;
@@ -541,14 +535,14 @@ int64_t len = 0;
             createFeatures(begin(comStr), end(comStr), f1[1]);
             anchors.init(1);
             clear(crhit);
-            mnMapReadList<TDna, TSpec>(index, reads[j], anchors, mapParm, crhit);
+            mnMapReadList(index, reads[j], anchors, mapParm, crhit);
             path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
             if (_DefaultCord.getMaxLen(cordsTmp[c]) < length(reads[j]) * senThr)
             {
                 clear(cordsTmp[c]);
                 anchors.init(1);
                 clear(crhit);
-                mnMapReadList<TDna, TSpec>(index, reads[j], anchors, complexParm, crhit);
+                mnMapReadList(index, reads[j], anchors, complexParm, crhit);
                 path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
             }   
             gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, 300, 192, p1);
@@ -573,8 +567,7 @@ int64_t len = 0;
 /*
  *[]::map
  */
-template <typename TDna, typename TSpec>
-int map(Mapper<TDna, TSpec> & mapper, int p1)
+int map(Mapper & mapper, int p1)
 {
     //printStatus();
     StringSet<String<short> > f2;
@@ -598,7 +591,7 @@ int map(Mapper<TDna, TSpec> & mapper, int p1)
         std::cerr <<  ">>Map::mapping  block "<< k << " Size " << length(mapper.reads()) << " " << dotstatus[j++ % length(dotstatus)] << "\r";
         time1 = sysTime() - time1;
         double time2 = sysTime();
-        rawMap_dst2_MF<TDna, TSpec>(mapper.index(), 
+        rawMap_dst2_MF(mapper.index(), 
                                     f2, 
                                     mapper.reads(), 
                                     mapper.mapParm(), 
@@ -629,7 +622,7 @@ int main(int argc, char const ** argv)
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res == seqan::ArgumentParser::PARSE_ERROR;
     std::cerr << "Encapsulated version: Mapping reads efficiently" << std::endl;
-    Mapper<> mapper(options);
+    Mapper mapper(options);
     omp_set_num_threads(mapper.thread());
     map(mapper, options.p1);
 

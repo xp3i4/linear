@@ -432,7 +432,7 @@ template <typename TObject, unsigned TSPAN, unsigned TWEIGHT>
     }
 
 template <typename TObj, unsigned TSpan, unsigned TWeight>
-void _qgramClearDir(Index<StringSet<String<TObj> >, IndexQGram<Minimizer<TSpan, TWeight>, OpenAddressing> > & index)
+inline void _qgramClearDir(Index<StringSet<String<TObj> >, IndexQGram<Minimizer<TSpan, TWeight>, OpenAddressing> > & index)
 {
     typedef Shape<Dna, Minimizer<TSpan, TWeight> > TM_Shape;
     typedef typename Value<TM_Shape>::Type HValue;
@@ -703,10 +703,9 @@ _radixSort(TIter const & begin,  TIter const & end,
 }
 */
 
-template <typename TIter>
-inline void 
 //_radixSort(Iterator<TObj>::Type const & begin, Iterator<TObj>::Type const & end, Compare compare)
-_radixSort(TIter const & begin,  TIter const & end, 
+template <typename TIter>
+inline void _radixSort(TIter const & begin,  TIter const & end, 
             unsigned const p_bit, unsigned const & l)
 {
     unsigned  l_move = 64, r_move = 64 - p_bit;
@@ -1079,7 +1078,7 @@ void _qgramCountQGrams(Index<StringSet<String<TObj> >, IndexQGram<Minimizer<TSpa
 }
 
 template <typename TObj, unsigned TSpan, unsigned TWeight>
-void _createQGramIndex(Index<StringSet<String<TObj> >, IndexQGram<Minimizer<TSpan, TWeight>, OpenAddressing > >& index, StringSet<String<TObj> > & seq)
+inline void _createQGramIndex(Index<StringSet<String<TObj> >, IndexQGram<Minimizer<TSpan, TWeight>, OpenAddressing > >& index, StringSet<String<TObj> > & seq)
 {
     double time = sysTime(); 
     //std::cerr << "    createQGramIndexDirOnly() sysTime(): " << std::endl;
@@ -1092,7 +1091,7 @@ void _createQGramIndex(Index<StringSet<String<TObj> >, IndexQGram<Minimizer<TSpa
 }
 
 template <typename TObj, unsigned TSpan, unsigned TWeight>
-void _createQGramIndex(Index<StringSet<String<TObj> >, IndexQGram<Minimizer<TSpan, TWeight>, OpenAddressing > >& index)
+inline void _createQGramIndex(Index<StringSet<String<TObj> >, IndexQGram<Minimizer<TSpan, TWeight>, OpenAddressing > >& index)
 {
     double time = sysTime(); 
     //std::cerr << "    createQGramIndexDirOnly() sysTime(): " << std::endl;
@@ -1312,7 +1311,7 @@ XString::XString(uint64_t const & seqlen)
     _fullSize(seqlen);
 }
 
-uint64_t XString::_fullSize(uint64_t const & seqlen, float const & alpha)
+inline uint64_t XString::_fullSize(uint64_t const & seqlen, float const & alpha)
 {
     uint64_t len = 1ULL; 
     while ((len) < seqlen * alpha)
@@ -1324,7 +1323,7 @@ uint64_t XString::_fullSize(uint64_t const & seqlen, float const & alpha)
     return len;
 }
 
-void XString::clear()
+inline void XString::clear()
 {
     seqan::clear(xstring);
     shrinkToFit(xstring);
@@ -1817,7 +1816,7 @@ inline bool _hsSortX(TIt const & begin, TIt const & end, unsigned const & xValBi
 }
 
 template <typename TIter>//, typename Comp>
-void insertSort(TIter const & begin, TIter const & end)//, Comp const & comp)
+inline void insertSort(TIter const & begin, TIter const & end)//, Comp const & comp)
 {
     typename Value<TIter>::Type key;
     
@@ -1884,7 +1883,7 @@ inline void _hsSort(TIter const & begin, TIter const & end, unsigned const & sha
  * serial creat hash array
  */
 template <unsigned SHAPELEN>
-bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<SHAPELEN> > & shape)
+inline bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<SHAPELEN> > & shape)
 {
     double time = sysTime();
     uint64_t preX = ~0;
@@ -2063,7 +2062,7 @@ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs,
  * state::warnning. for seq contains 'N', error. since the k in openmp doesn't change correctly
  */
 template <unsigned SHAPELEN>
-bool _createHsArray(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<SHAPELEN> > & shape, unsigned & threads, bool efficient = true)
+inline bool _createHsArray(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<SHAPELEN> > & shape, unsigned & threads, bool efficient = true)
 {
     double time = sysTime();
     uint64_t hsRealEnd = 0;
@@ -2300,7 +2299,7 @@ bool _createHsArray2_MF(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, 
  * state::debug succ for seq without 'N', seq containing 'N' not tested 
  */
 template <unsigned SHAPELEN>
-bool _createHsArray2_MF(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<SHAPELEN> > & shape, unsigned & threads)
+inline bool _createHsArray2_MF(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<SHAPELEN> > & shape, unsigned & threads)
 {
     std::cerr << "[prallel_createHsArray2_MF]\n";
     double time = sysTime();
@@ -2664,7 +2663,7 @@ inline uint64_t gethDir(XString const & xstr, uint64_t const & hval)
  * serial sort ysa 
  */
 template <unsigned TSPAN, unsigned TWEIGHT>
-bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir)
+inline bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir)
 {
 //-k
     uint64_t k = _DefaultHs.getHeadPtr(hs[0]);
@@ -2791,7 +2790,7 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir)
 /*
  * parallel sort ysa
 template <unsigned TSPAN, unsigned TWEIGHT>
-bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir, unsigned threads)
+inline bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir, unsigned threads)
 {
 
     uint64_t k = _DefaultHs.getHeadPtr(hs[0]);
@@ -2935,7 +2934,7 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
  * this function is for index only collecting minihash value [minindex]
  */
 template <unsigned TSPAN, unsigned TWEIGHT>
-bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir, unsigned threads)
+inline bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir, unsigned threads)
 {
 
     uint64_t k = _DefaultHs.getHeadPtr(hs[0]);
@@ -3079,7 +3078,7 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
 /*
  * create index and keep genome sequence, used for full alignment 
 template <unsigned SHAPELEN>
-bool _createQGramIndexDirSA_parallel(StringSet<String<Dna5> > & seq, 
+inline bool _createQGramIndexDirSA_parallel(StringSet<String<Dna5> > & seq, 
 XString & xstr, String<uint64_t> & hs,  Shape<Dna5, Minimizer<SHAPELEN> > & shape, 
 uint64_t & indexEmptyDir, unsigned & threads)    
 {
@@ -3096,7 +3095,7 @@ uint64_t & indexEmptyDir, unsigned & threads)
  * free geonme sequence during creating, for raw map
  */
 template <unsigned SHAPELEN>
-bool _createQGramIndexDirSA_parallel(StringSet<String<Dna5> > & seq, 
+inline bool _createQGramIndexDirSA_parallel(StringSet<String<Dna5> > & seq, 
 XString & xstr, String<uint64_t> & hs,  Shape<Dna5, Minimizer<SHAPELEN> > & shape, 
 uint64_t & indexEmptyDir, unsigned & threads, bool efficient)    
 {
@@ -3110,7 +3109,7 @@ uint64_t & indexEmptyDir, unsigned & threads, bool efficient)
 }
 
 template <unsigned SHAPELEN>
-bool _createQGramIndexDirSA(StringSet<String<Dna5> > const & seq, XString & xstr, 
+inline bool _createQGramIndexDirSA(StringSet<String<Dna5> > const & seq, XString & xstr, 
 String<uint64_t> & hs,  Shape<Dna5, Minimizer<SHAPELEN> > & shape, uint64_t & indexEmptyDir)    
 {
     typedef Shape<Dna5, Minimizer<SHAPELEN> > ShapeType;
@@ -3122,7 +3121,7 @@ String<uint64_t> & hs,  Shape<Dna5, Minimizer<SHAPELEN> > & shape, uint64_t & in
 }
 
 template <typename TDna, unsigned span>
-bool createHIndex(StringSet<String<TDna> > & seq, HIndex<span> & index, unsigned & threads, bool efficient)
+inline bool createHIndex(StringSet<String<TDna> > & seq, HIndex<span> & index, unsigned & threads, bool efficient)
 {
   //  if (threads > 1)
   //  {
@@ -3137,7 +3136,7 @@ bool createHIndex(StringSet<String<TDna> > & seq, HIndex<span> & index, unsigned
 
 
 template <typename TDna, unsigned TSpan>
-bool _createQGramIndex(HIndex<TSpan> & index, StringSet<String<TDna> > & seq, unsigned threads = 1)
+inline bool _createQGramIndex(HIndex<TSpan> & index, StringSet<String<TDna> > & seq, unsigned threads = 1)
 {
     return _createQGramIndexDirSA(seq, index.xstr, index.ysa, index.shape, index.emptyDir);
 }

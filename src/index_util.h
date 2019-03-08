@@ -6,11 +6,10 @@
 #include "index_extend.h"
 
 using namespace seqan;
-
-class LIndex : public HIndex<base_shape_len_>{
-};
+typedef HIndex<25> LIndex;
 
 bool create_index(StringSet<String<Dna5> > & seq, LIndex & index, unsigned & threads, bool efficient);
+
 
 //inline uint64_t getXDir(LIndex const & index, uint64_t const & xval, uint64_t const & yval)
 
