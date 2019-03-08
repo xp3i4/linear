@@ -43,8 +43,6 @@ add_definitions (-DSEQAN_APP_VERSION="${SEQAN_APP_VERSION}")
 add_definitions (-DSEQAN_REVISION="${SEQAN_REVISION}")
 add_definitions (-DSEQAN_DATE="${SEQAN_DATE}")
 
-# Update the list of file names below if you add source files to your application.
-add_executable (linear mapper.cpp index_extend.h shape_extend.h mapparm.h gap.h pmpfinder.h f_io.h align_interface.h )
 
 add_library(linear_base STATIC base.cpp)
 add_library(linear_index_util STATIC index_util.cpp)
@@ -53,14 +51,17 @@ add_library(linear_gap STATIC gap.cpp)
 add_library(linear_fio STATIC f_io.cpp)
 add_library(linear_align STATIC align_interface.cpp)
 
-# Add dependencies found by find_package (SeqAn).
-target_link_libraries (linear ${SEQAN_LIBRARIES} linear_base linear_index_util linear_gap linear_pmpfinder linear_fio linear_align)
+add_executable (linear mapper.cpp mapper.h base.h index_util.h pmpfinder.h gap.h align_interface.h f_io.h) 
+target_link_libraries (linear ${SEQAN_LIBRARIES} linear_base linear_index_util linear_pmpfinder linear_gap linear_fio linear_align)
 
 
 # Add CXX flags found by find_package (SeqAn).
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS} ${CXX11_CXX_FLAGS}")
-
+SET(GCC_COVERAGE_COMPILE_FLAGS "-fprofile-arcs -ftest-coverage")
+SET(GCC_COVERAGE_LINK_FLAGS    "-lgcov")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS} ${CXX11_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
+set (CMAKE_EXE_LINKER_FLAGS "${GCC_COVERAGE_LINK_FLAGS}")
 set (CMAKE_BUILD_TYPE Release)
+message (${CMAKE_CXX_FLAGS})
 #set (CMAKE_BUILD_TYPE Debug)
 
 # ----------------------------------------------------------------------------

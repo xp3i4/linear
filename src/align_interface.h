@@ -1,7 +1,6 @@
 #ifndef LINEAR_HEADER_ALIGN_INT_H
 #define LINEAR_HEADER_ALIGN_INT_H
 #include <seqan/align.h>
-#include "pmpfinder.h"
 #include "f_io.h"
 
 using namespace seqan;
@@ -37,7 +36,8 @@ struct GapParm
     float thd_accept_density;
     Score<int, Simple> thd_clip_scheme;
     GapParm ();
-} _gap_parm;
+};
+extern GapParm _gap_parm;
 
 int align_cords (StringSet<String<Dna5> >& genomes,
                  String<Dna5> & read, 

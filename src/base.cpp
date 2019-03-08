@@ -32,10 +32,6 @@
 // Author: cxpan <chenxu.pan@fu-berlin.de>
 // ==========================================================================
 
-#ifndef SEQAN_HEADER_BASE_H
-#define SEQAN_HEADER_BASE_H
-
-
 //#include <seqan/index.h>
 //#include <seqan/store.h>
 //#include <fstream>
@@ -377,5 +373,3 @@ inline void _compltRvseStr(String<Dna5> & str, String<Dna5> & res)
         //std::cout << (unsigned)ordValue(str[length(str) - k - 1]) << std::endl;
     }
 }
-
-#endif

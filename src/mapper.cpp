@@ -51,12 +51,10 @@
 #include <iomanip>
 #include <functional>   // for std::ref()
 #include <ctime>
-#include "index_util.h"
+#include "mapper.h"
 #include "pmpfinder.h"
 #include "gap.h"
-#include "f_io.h"
 #include "align_interface.h"
-#include "mapper.h"
 
 using namespace seqan; 
 
@@ -280,6 +278,7 @@ void Mapper::printCordsRaw()
                 {
                     of <<"@S1_"<< k+1 << " " << length(reads()[k]) << " "
                     << _DefaultCord.getCordY(cordSet[k][j]) << " " << length(cordSet[k]) << " x " 
+                    << getsai1 (k) << " "
                     << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j])) << " " << cordCount << " "
                     << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << " " 
                     << "\n";   

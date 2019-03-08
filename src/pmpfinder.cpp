@@ -38,7 +38,8 @@
 #include "pmpfinder.h"
 
 using namespace seqan;
-
+int getsai1(int k)
+{return 1;}
 const float band_width = 0.25;
 const unsigned cmask = ((uint64_t)1<<20) - 1;
 const unsigned cell_size = 16;

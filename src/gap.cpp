@@ -661,7 +661,7 @@ inline uint64_t g_hs_anchor_2Tile (uint64_t & anchor, uint64_t & main_strand, ui
 
 inline int64_t tile_distance_x (uint64_t tile1, uint64_t tile2)
 {
-    return (int64_t)(_getSA_i2(_defaultTile.getX(tile2))) - (int64_t)(_getSA_i2(_defaultTile.getX(tile1)));
+    return (int64_t)(get_cord_x(tile2)) - (int64_t)(get_cord_x(tile1));
 }
 
 inline int64_t tile_distance_y (uint64_t tile1, uint64_t tile2)

@@ -9,7 +9,6 @@ project (linear CXX)
 # Begin of dependency detection
 # ----------------------------------------------------------------------------
 
-message (${CMAKE_CURRENT_SOURCE_DIR})
 if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/seqan/include/seqan/version.h")
     set (CMAKE_INCLUDE_PATH
         ${CMAKE_CURRENT_SOURCE_DIR}/seqan/include/

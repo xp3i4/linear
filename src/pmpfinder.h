@@ -1,5 +1,6 @@
 #ifndef SEQAN_HEADER_PMP_FINDER_H
 #define SEQAN_HEADER_PMP_FINDER_H
+#include "base.h"
 #include "index_util.h"
 
 using namespace seqan;
@@ -149,7 +150,6 @@ struct Hit
                      uint64_t const & = _DefaultHitBase.flag2);
     bool isBlockEnd(uint64_t &, uint64_t const & = _DefaultHitBase.flag);
     unsigned getStrand(uint64_t const &, uint64_t const & = _DefaultHitBase.flag2);
-
 };
 extern Hit _DefaultHit;
 
@@ -176,4 +176,5 @@ int extendPatch(StringSet<String<short> > & f1,
                   int revscomp_const
                 );
 
+int getsai1(int k);
 #endif

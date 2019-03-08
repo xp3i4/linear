@@ -1,7 +1,5 @@
-#ifndef LINEAR_HEADER_ALIGNER_H
-#define LINEAR_HEADER_ALIGNER_H
-//#include <seqan/align_parallel.h>
 #include <utility> 
+#include "pmpfinder.h"
 #include "align_interface.h"
 //TODO seqand::setclippedpositoin retrieve source postion that's not efficient
 using namespace seqan;
@@ -26,7 +24,7 @@ uint16_t bam_flag_suppl = 2048;
 typedef Align<String<Dna5>, ArrayGaps> TAlign;
 typedef Row<TAlign>::Type TRow; 
 typedef Iterator<TRow>::Type TRowIterator;
-
+extern GapParm _gap_parm;
 uint64_t emptyCord = ~0;
 /*
  * Structure of recods of start and end coordinates with aligner of gaps
@@ -1921,5 +1919,3 @@ inline uint64_t clip_window (String<Dna5> & genome,
     uint64_t returnCord = create_cord(genomeId, genomeStart + clip_ref, readStart + clip_read, strand);
     return returnCord;
 }
-
-#endif 
