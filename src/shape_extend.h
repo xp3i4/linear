@@ -39,12 +39,6 @@ inline void resize(LShape & me, unsigned new_span, unsigned new_weight)
     me.weight = new_weight;
 }   
 
-template <unsigned span> 
-struct MASK
-{
-    static const uint64_t VALUE = (1ULL << span) - 1;
-};
-
 static const uint64_t COMP4 = 3;
 static const int  ordC = 3;
 

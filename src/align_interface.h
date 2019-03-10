@@ -2,7 +2,6 @@
 #define LINEAR_HEADER_ALIGN_INT_H
 #include <seqan/align.h>
 #include "f_io.h"
-
 using namespace seqan;
 class GapRecords
 {

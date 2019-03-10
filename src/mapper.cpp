@@ -32,24 +32,9 @@
 // Author: cxpan <chenxu.pan@fu-berlin.de>
 // ==========================================================================
 
-#include <csignal>
-#include <seqan/seq_io.h>
-#include <seqan/stream.h>
-#include <seqan/index.h>
-#include <seqan/store.h>
-#include <seqan/basic.h>
 #include <seqan/arg_parse.h>
-#include <seqan/vcf_io.h>
 #include <iostream>
 #include <fstream>
-#include <math.h>
-#include <bitset>
-#include <climits>
-#include <thread>
-#include <chrono>
-#include <atomic>   
-#include <iomanip>
-#include <functional>   // for std::ref()
 #include <ctime>
 #include "mapper.h"
 #include "pmpfinder.h"
@@ -623,7 +608,7 @@ int main(int argc, char const ** argv)
     std::cerr << "Encapsulated version: Mapping reads efficiently" << std::endl;
     Mapper mapper(options);
     omp_set_num_threads(mapper.thread());
-    map(mapper, options.p1);
+    //map(mapper, options.p1);
 
     //mapper.print_vcf();
     std::cerr << "  Result Files: \033[1;31m" << options.oPath << "\033[0m" << std::endl;

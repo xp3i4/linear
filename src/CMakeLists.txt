@@ -58,7 +58,8 @@ target_link_libraries (linear ${SEQAN_LIBRARIES} linear_base linear_index_util l
 # Add CXX flags found by find_package (SeqAn).
 SET(GCC_COVERAGE_COMPILE_FLAGS "-fprofile-arcs -ftest-coverage")
 SET(GCC_COVERAGE_LINK_FLAGS    "-lgcov")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS} ${CXX11_CXX_FLAGS}")
+#SET(COMP_PROF_FLAGS "-ftime-report")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS} ${CXX11_CXX_FLAGS} ${COMP_PROF_FLAGS}")
 set (CMAKE_BUILD_TYPE Release)
 #set (CMAKE_BUILD_TYPE Debug)
 
