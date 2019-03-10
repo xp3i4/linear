@@ -25,32 +25,32 @@ struct GNodeBase
 
 struct GNode
 {
-    inline void setValue (uint64_t & val, uint64_t const & xval, 
+     void setValue (uint64_t & val, uint64_t const & xval, 
                    uint64_t const & strand, uint64_t const & coordinate, 
                    uint64_t const & sbit = _defaultGNodeBase.sBitLen,
                    uint64_t const & cbit = _defaultGNodeBase.cBitLen)
     {
         val = (xval << (cbit + sbit)) + (strand << cbit) + coordinate;
     }
-    inline uint64_t makeValue (uint64_t const & xval, uint64_t & strand, uint64_t const & coordinate, 
+     uint64_t makeValue (uint64_t const & xval, uint64_t & strand, uint64_t const & coordinate, 
                         uint64_t const & sbit = _defaultGNodeBase.sBitLen,
                         uint64_t const & cbit = _defaultGNodeBase.cBitLen)
     {
         return (xval << (cbit + sbit)) + (strand << cbit) + coordinate;
     }
-    inline uint64_t getXValue (uint64_t const & xval, 
+     uint64_t getXValue (uint64_t const & xval, 
                         uint64_t const & bit = _defaultGNodeBase.cBitLen + _defaultGNodeBase.sBitLen, 
                         uint64_t const & xmask = _defaultGNodeBase.xmask)
     {
         return (xval >> bit) & xmask;
     }
-    inline uint64_t getStrand (uint64_t const & xval, 
+     uint64_t getStrand (uint64_t const & xval, 
                         uint64_t const & bit = _defaultGNodeBase.cBitLen, 
                         uint64_t const & mask = _defaultGNodeBase.smask)
     {
         return (xval >> bit) & mask;
     }
-    inline uint64_t getCoord (uint64_t const & xval, 
+     uint64_t getCoord (uint64_t const & xval, 
                         uint64_t const & mask = _defaultGNodeBase.cmask)
     {
         return (xval & mask);
@@ -149,14 +149,14 @@ struct gapbase_
 
 struct Gap_
 {
-    inline uint64_t getGStart(uint64_t & val, 
+     uint64_t getGStart(uint64_t & val, 
                        uint64_t const & bit = _defaultgapbase_.rBitLen + _defaultgapbase_.bBitLen, 
                        uint64_t const & mask = _defaultgapbase_.gmask, 
                        uint64_t const & bbit = _defaultgapbase_.bBit)
     {
         return ((val >> bit) & mask) << bbit;
     }
-    inline uint64_t getRStart(uint64_t & val, 
+     uint64_t getRStart(uint64_t & val, 
                        uint64_t const & bit = _defaultgapbase_.bBitLen, 
                        uint64_t const & mask = _defaultgapbase_.rmask,
                        uint64_t const & bbit = _defaultgapbase_.bBit)
@@ -164,14 +164,14 @@ struct Gap_
     {
         return ((val >> bit) & mask) << bbit;
     }
-    inline uint64_t getGEnd(uint64_t & val, 
+     uint64_t getGEnd(uint64_t & val, 
                     uint64_t const & bit = _defaultgapbase_.gBitLen, 
                     uint64_t const & smask = _defaultgapbase_.smask,
                     uint64_t const & gmask = _defaultgapbase_.gmask)
     {
         return ((val >> bit) & smask) + (val & gmask);
     }
-    inline uint64_t makeValue (uint64_t start, uint64_t len, 
+     uint64_t makeValue (uint64_t start, uint64_t len, 
                     uint64_t const & bit = _defaultgapbase_.gBitLen)
     {
        return (start << bit) + len;
@@ -193,30 +193,30 @@ struct gapbase_
 
 struct Gap_
 {
-    inline uint64_t getId (uint64_t & val, 
+     uint64_t getId (uint64_t & val, 
                            uint64_t const & bit = _defaultgapbase_.cBitLen + _defaultgapbase_.bBitLen,
                            uint64_t const & mask = _defaultgapbase_.bmask)
     {
         return (val >> bit) & mask;
     }
-    inline uint64_t getStart(uint64_t & val, 
+     uint64_t getStart(uint64_t & val, 
                       uint64_t const & bit = _defaultgapbase_.bBitLen, 
                       uint64_t const & mask = _defaultgapbase_.cmask)
     {
         return (val >> bit) & mask;
     }
-    inline uint64_t getEnd(uint64_t & val, 
+     uint64_t getEnd(uint64_t & val, 
                     uint64_t const & bit = _defaultgapbase_.bBitLen, 
                     uint64_t const & cmask = _defaultgapbase_.cmask,
                     uint64_t const & bmask = _defaultgapbase_.bmask)
     {
         return ((val >> bit) & cmask) + (val & bmask);
     }
-    inline uint64_t getLength (uint64_t & val, uint64_t const & mask = _defaultgapbase_.bmask)
+     uint64_t getLength (uint64_t & val, uint64_t const & mask = _defaultgapbase_.bmask)
     {
         return val & mask;
     }
-    inline uint64_t makeValue (uint64_t start, uint64_t len, 
+     uint64_t makeValue (uint64_t start, uint64_t len, 
                         uint64_t const & bit = _defaultgapbase_.bBitLen)
     {
         return (start << bit) + len;
@@ -227,27 +227,27 @@ struct Gap
 {
     uint64_t gap1; //seq
     uint64_t gap2; //read
-    inline uint64_t getId1()
+     uint64_t getId1()
     {
         return _defaultGap_.getId(gap1);
     }
-    inline uint64_t getId2()
+     uint64_t getId2()
     {
         return _defaultGap_.getId(gap2);
     }
-    inline uint64_t getStart1 ()
+     uint64_t getStart1 ()
     {
         return _defaultGap_.getStart (gap1);
     }
-    inline uint64_t getStart2 ()
+     uint64_t getStart2 ()
     {
         return _defaultGap_.getStart (gap2);
     }
-    inline uint64_t getEnd1 ()
+     uint64_t getEnd1 ()
     {
         return _defaultGap_.getEnd (gap1);
     }
-    inline uint64_t getEnd2 ()
+     uint64_t getEnd2 ()
     {
         return _defaultGap_.getEnd (gap2);
     }
@@ -260,14 +260,14 @@ struct Gap
         gap1 = _defaultGap_.makeValue (start1, end1 - start1);
         gap2 = _defaultGap_.makeValue (start2, end2 - start2);   
     }
-    inline void setValue (uint64_t start1, uint64_t end1, uint64_t start2, uint64_t end2)
+     void setValue (uint64_t start1, uint64_t end1, uint64_t start2, uint64_t end2)
     {    
         gap1 = _defaultGap_.makeValue (start1, end1 - start1);
         gap2 = _defaultGap_.makeValue (start2, end2 - start2);   
     }
 };
 
-inline Gap makeGap (uint64_t start1, uint64_t end1, uint64_t start2, uint64_t end2)
+ Gap makeGap (uint64_t start1, uint64_t end1, uint64_t start2, uint64_t end2)
 {    
     Gap gap (start1, end1, start2, end2);
     return gap;
@@ -315,29 +315,29 @@ struct ACoordBase
 
 struct ACoord
 {
-    inline uint64_t makeValue(uint64_t cf, uint64_t cr,  uint64_t strand,
+     uint64_t makeValue(uint64_t cf, uint64_t cr,  uint64_t strand,
                        uint64_t const & sbit = _defaultACoordBase.sBit,
                        uint64_t const & bit = _defaultACoordBase.cBitLen) 
     {
         return (strand << sbit) + ((cf + _nStrand(strand) * cr) << bit) + cr;
     }
-    inline uint64_t reverseAnchor(uint64_t & anchor, uint64_t const & mask = _defaultACoordBase.amask)
+     uint64_t reverseAnchor(uint64_t & anchor, uint64_t const & mask = _defaultACoordBase.amask)
     {
         return (-anchor) & mask;
     }
-    inline uint64_t getAnchor (uint64_t val, 
+     uint64_t getAnchor (uint64_t val, 
                         uint64_t const & mask = _defaultACoordBase.amask, 
                         uint64_t const & bit = _defaultACoordBase.cBitLen,
                         uint64_t const & mask2 = (1ULL << _defaultACoordBase.sBit)) 
     {
         return (val & mask2) + ((val >> bit) & mask);
     }
-    inline uint64_t getCoord (uint64_t val, 
+     uint64_t getCoord (uint64_t val, 
                        uint64_t const & mask = _defaultACoordBase.cmask)
     {
         return val & mask;
     }
-    inline uint64_t getX (uint64_t val, 
+     uint64_t getX (uint64_t val, 
                    uint64_t const & bit = _defaultACoordBase.cBitLen, 
                    uint64_t const & mask = _defaultACoordBase.amask, 
                    uint64_t const & bit2 = _defaultACoordBase.sBit,
@@ -346,7 +346,7 @@ struct ACoord
     {
         return ((val >> bit) & mask) + _nStrand((val >> bit2) & 1) * (val & mask3);
     }
-    inline uint64_t getY (uint64_t val)
+     uint64_t getY (uint64_t val)
     {
         return getCoord(val);
     }
@@ -366,28 +366,28 @@ struct TileBase
 
 struct Tile
 {
-    inline uint64_t getX (uint64_t val, 
+     uint64_t getX (uint64_t val, 
                    uint64_t const & bit = _defaultTileBase.yBitLen,  
                    uint64_t const & mask = _defaultTileBase.xmask)
     {
         return (val >> bit) & mask;
     }
-    inline uint64_t getY (uint64_t val, 
+     uint64_t getY (uint64_t val, 
                    uint64_t const & mask = _defaultTileBase.ymask)
     {
         return val & mask;
     }
-    inline uint64_t makeValue(uint64_t x, uint64_t y, uint64_t const & bit = _defaultTileBase.yBitLen)
+     uint64_t makeValue(uint64_t x, uint64_t y, uint64_t const & bit = _defaultTileBase.yBitLen)
     {
         return (x << bit) + y;
     }
-    inline uint16_t getStrand (uint64_t val,
+     uint16_t getStrand (uint64_t val,
                             uint64_t bit = _defaultTileBase.strandBit
                               )
     {
         return (val >> bit) & 1;
     }
-    inline uint64_t slide (uint64_t val, 
+     uint64_t slide (uint64_t val, 
                            uint64_t x, 
                            uint64_t y,
                            uint64_t bit = _defaultTileBase.yBitLen)
@@ -397,7 +397,7 @@ struct Tile
     
 }_defaultTile;
 
-inline uint64_t acoord2Tile(uint64_t val, 
+ uint64_t acoord2Tile(uint64_t val, 
                          uint64_t const & bit = _defaultACoordBase.cBitLen,
                          uint64_t const & bit2 = _defaultACoordBase.sBit,
                          uint64_t const & mask = _defaultACoordBase.cmask)
@@ -579,22 +579,22 @@ int const g_align_left = -1;
 int const g_align_closed = 0;
 int const g_align_right = 1;
 
-inline uint64_t g_hs_anchor_getCord (uint64_t anchor)
+ uint64_t g_hs_anchor_getCord (uint64_t anchor)
 {
     return anchor & g_hs_anchor_mask1;
 }
 
-inline uint64_t g_hs_anchor_getAnchor (uint64_t anchor)
+ uint64_t g_hs_anchor_getAnchor (uint64_t anchor)
 {
     return (anchor >> g_hs_anchor_bit1) & g_hs_anchor_mask5;
 }
 
-inline uint64_t g_hs_anchor_getX (uint64_t val)
+ uint64_t g_hs_anchor_getX (uint64_t val)
 {
     return ((val >> g_hs_anchor_bit1) & g_hs_anchor_mask3) + (val & g_hs_anchor_mask1);
 }
 
-inline uint64_t g_hs_anchor_getY (uint64_t val)
+ uint64_t g_hs_anchor_getY (uint64_t val)
 {
     return val & g_hs_anchor_mask1;
 }
@@ -605,7 +605,7 @@ inline uint64_t g_hs_anchor_getY (uint64_t val)
 static const uint64_t g_hs_mask2 = (1ULL << 30) - 1;
 static const uint64_t g_hs_mask3 = (1ULL << 32) - 1;
 
-inline void g_hs_setGhs_(uint64_t & val, 
+ void g_hs_setGhs_(uint64_t & val, 
                          uint64_t xval, 
                          uint64_t type, 
                          uint64_t strand, 
@@ -614,12 +614,12 @@ inline void g_hs_setGhs_(uint64_t & val,
     val = (xval << 33) + (type<< 31) + (strand << 30) + coord;
 }
 
-inline int64_t g_hs_getCord(uint64_t & val)
+ int64_t g_hs_getCord(uint64_t & val)
 {
     return int64_t(val & g_hs_mask2);
 }
 
-inline void g_hs_setAnchor_(uint64_t & val, 
+ void g_hs_setAnchor_(uint64_t & val, 
                             uint64_t const & hs1, /*genome*/
                             uint64_t const & hs2, /*read*/
                             uint64_t revscomp_const)
@@ -631,18 +631,18 @@ inline void g_hs_setAnchor_(uint64_t & val,
     //std::cout << "[]::g_hs_setAnchor_ " << hs2 << " " << (g_hs_anchor_getY(val)) << " " << (hs2 & g_hs_mask2) << " "<< revscomp_const << " " << strand << "\n";
 }
 ///get xvalue and type
-inline uint64_t g_hs_getXT (uint64_t const & val)
+ uint64_t g_hs_getXT (uint64_t const & val)
 {
     return (val >> 31) & g_hs_mask3;
 }
 
-inline uint64_t g_hs_getX (uint64_t const & val)
+ uint64_t g_hs_getX (uint64_t const & val)
 {
     uint64_t mask = ((1ULL << 30) - 1);
     return (val >> 33) & mask;
 }
 
-inline uint64_t g_hs_anchor_2Tile (uint64_t & anchor, uint64_t & main_strand, uint64_t revscomp_const)
+ uint64_t g_hs_anchor_2Tile (uint64_t & anchor, uint64_t & main_strand, uint64_t revscomp_const)
 {
     uint64_t strand = (anchor >> g_hs_anchor_bit2) & 1;
     /**
@@ -659,12 +659,12 @@ inline uint64_t g_hs_anchor_2Tile (uint64_t & anchor, uint64_t & main_strand, ui
 	return (((anchor + ((anchor & g_hs_anchor_mask1) << 20)) & g_hs_anchor_mask2) & g_hs_anchor_mask1_) + y + (strand << 61);
 }
 
-inline int64_t tile_distance_x (uint64_t tile1, uint64_t tile2)
+ int64_t tile_distance_x (uint64_t tile1, uint64_t tile2)
 {
     return (int64_t)(get_cord_x(tile2)) - (int64_t)(get_cord_x(tile1));
 }
 
-inline int64_t tile_distance_y (uint64_t tile1, uint64_t tile2)
+ int64_t tile_distance_y (uint64_t tile1, uint64_t tile2)
 {
     return (int64_t)(_defaultTile.getY(tile2)) - (int64_t)(_defaultTile.getY(tile1));
 }
@@ -743,7 +743,7 @@ int check_tiles_(String<uint64_t> & tiles, uint64_t g_start, uint64_t g_end)
 /*
  * collecting minimizer
  *
-inline int g_mapHs_kmer_(String<Dna5> & seq, 
+ int g_mapHs_kmer_(String<Dna5> & seq, 
                          String<uint64_t> & g_hs, 
                          uint64_t start, 
                          uint64_t end, 
@@ -787,7 +787,7 @@ inline int g_mapHs_kmer_(String<Dna5> & seq,
 /**
  * collecting k-mers in 'seq' to 'g_hs'
  */
-inline int g_mapHs_kmer_(String<Dna5> & seq, 
+ int g_mapHs_kmer_(String<Dna5> & seq, 
                          String<uint64_t> & g_hs, 
                          uint64_t start, 
                          uint64_t end, 
@@ -817,7 +817,7 @@ inline int g_mapHs_kmer_(String<Dna5> & seq,
 /**
  * Stream part of 'g_hs' and convert the elements into anchors
  */
-inline int g_mapHs_setAnchors_ (String<uint64_t> & g_hs, 
+ int g_mapHs_setAnchors_ (String<uint64_t> & g_hs, 
                             String<uint64_t> & g_anchor,
                             int p1, 
                             int p2, 
@@ -837,7 +837,7 @@ inline int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
 }
 /*
  * select the longest anchor: faster but lose accuracy
-inline void g_mapHs_anchor_ (String<uint64_t> & anchor, 
+ void g_mapHs_anchor_ (String<uint64_t> & anchor, 
                              String<uint64_t> & tile, 
                              int anchor_end, 
                              int thd_tileSize,
@@ -915,7 +915,7 @@ inline void g_mapHs_anchor_ (String<uint64_t> & anchor,
 /*
  * cluster all the anchor candidates within the gap: 
  */
-inline void g_mapHs_anchor_ (String<uint64_t> & anchor, 
+ void g_mapHs_anchor_ (String<uint64_t> & anchor, 
                              String<uint64_t> & tile, 
                              int anchor_end, 
                              int thd_tileSize,
@@ -987,7 +987,7 @@ inline void g_mapHs_anchor_ (String<uint64_t> & anchor,
  * ATTENTION: gr_start and gr_end is generated according to strand of the reference 
  * which is always regarded as the forward strand (strand = 0) rather than the main_strand
  */
-inline void g_mapHs_anchor_sv1_ (String<uint64_t> & anchor, 
+ void g_mapHs_anchor_sv1_ (String<uint64_t> & anchor, 
                                 String<uint64_t> & tiles, 
                                 StringSet<String<short> > & f1,
                                 StringSet<String<short> >& f2,
@@ -1218,7 +1218,7 @@ inline void g_mapHs_anchor_sv1_ (String<uint64_t> & anchor,
  * ATTENTION: gr_start and gr_end is generated according to strand of the reference 
  * which is always regarded as the forward strand (strand = 0) rather than the main_strand
  */
-inline void g_mapHs_anchor_sv2_ (String<uint64_t> & anchor, 
+ void g_mapHs_anchor_sv2_ (String<uint64_t> & anchor, 
                                 String<uint64_t> & tiles, 
                                 StringSet<String<short> > & f1,
                                 StringSet<String<short> >& f2,
@@ -1422,7 +1422,7 @@ inline void g_mapHs_anchor_sv2_ (String<uint64_t> & anchor,
 /**
  * wrapper
  */
-inline void g_mapHs_anchor_sv_ (String<uint64_t> & anchor, 
+ void g_mapHs_anchor_sv_ (String<uint64_t> & anchor, 
                                 String<uint64_t> & tiles, 
                                 StringSet<String<short> > & f1,
                                 StringSet<String<short> >& f2,
@@ -1446,7 +1446,7 @@ inline void g_mapHs_anchor_sv_ (String<uint64_t> & anchor,
  * gs_start, gr_end will be extended towards the right side, gs_end, gr_end will be extended towards the left side.
  * Cords between them will be extended towards both sides.
  */
-inline int g_mapHs_(String<Dna5> & seq, 
+ int g_mapHs_(String<Dna5> & seq, 
                     String<Dna5> & read,
                     String<Dna5> & comstr,    //complement revers of read
                     uint64_t gs_start, 
@@ -1509,7 +1509,7 @@ inline int g_mapHs_(String<Dna5> & seq,
 /**
  * utility for debugs
  */
-inline void g_print_tiles_(String<uint64_t> & tiles)
+ void g_print_tiles_(String<uint64_t> & tiles)
 {
     for (unsigned i = 0; i < length(tiles); i++)
     {
@@ -1517,11 +1517,11 @@ inline void g_print_tiles_(String<uint64_t> & tiles)
     }
 }
 
-inline int64_t g_anchor_dx_(uint64_t val1, uint64_t val2)
+ int64_t g_anchor_dx_(uint64_t val1, uint64_t val2)
 {
     return int64_t (g_hs_anchor_getX(val2) - g_hs_anchor_getX(val1));
 }
-inline int64_t g_anchor_da_(uint64_t val1, uint64_t val2)
+ int64_t g_anchor_da_(uint64_t val1, uint64_t val2)
 {
     return int64_t (g_hs_anchor_getAnchor(val2) - g_hs_anchor_getAnchor(val1));
 }
@@ -1534,7 +1534,7 @@ const unsigned c_shape_len3 = 4; //base-level clipping gap shape
 /**
  * stream seq creating hs
  */
-inline int c_stream_(String<Dna5> & seq,
+ int c_stream_(String<Dna5> & seq,
                      String<uint64_t> & g_hs, 
                      uint64_t start, 
                      uint64_t end, 
@@ -1563,14 +1563,14 @@ inline int c_stream_(String<Dna5> & seq,
     return g_hs_start + i;
 }
 
-inline void c_2Anchor_(uint64_t & val, uint64_t const & hs1, uint64_t const & hs2)
+ void c_2Anchor_(uint64_t & val, uint64_t const & hs1, uint64_t const & hs2)
 {
     ///hs1 genome, hs2 read
     uint64_t x = hs2 & g_hs_mask2; 
     val = (((hs1 - x) & (g_hs_mask2)) << g_hs_anchor_bit1) + x;
 }
 
-inline void c_2GapAnchor_(uint64_t & val, uint64_t const & hs1, uint64_t const & hs2, uint64_t gap_type)
+ void c_2GapAnchor_(uint64_t & val, uint64_t const & hs1, uint64_t const & hs2, uint64_t gap_type)
 {
     ///hs1 genome, hs2 read
     uint64_t x = hs2 & g_hs_mask2; 
@@ -1579,18 +1579,18 @@ inline void c_2GapAnchor_(uint64_t & val, uint64_t const & hs1, uint64_t const &
 
 //using de brujin sequence to calculate the clz and ctz
 int const clzb_4_index_[8] = {0, 0, 3, 1, 3, 2, 2, 1}; // de brujin sequence table / 2
-inline int clzb_4__ (uint64_t a)
+ int clzb_4__ (uint64_t a)
 {
     uint64_t tmp = a & ((~a) + 1);
     return clzb_4_index_[(tmp - (tmp >> 4) - (tmp >> 5)) & 255]; 
 }
 
-inline short clzb_4_(uint64_t a)
+ short clzb_4_(uint64_t a)
 {
     return (a)?__builtin_clz(unsigned (a)) / 2 - 12:4;
 }
 
-inline short ctzb_4_(uint64_t a)
+ short ctzb_4_(uint64_t a)
 {
     return (a)?__builtin_ctz(unsigned(a)) / 2:4;
 
@@ -1600,7 +1600,7 @@ inline short ctzb_4_(uint64_t a)
  * Stream a block of 'g_hs' within [p1,p2)x[p2,k), and convert the combination of elements into anchors with the following restrictions
  * |candidates_anchor - 'anchor' | < band
  */
-inline int c_create_anchor_block_ (String<uint64_t> & g_hs, 
+ int c_create_anchor_block_ (String<uint64_t> & g_hs, 
                                    String<uint64_t> & g_anchor,
                                    int p1, 
                                    int p2, 
@@ -1644,7 +1644,7 @@ inline int c_create_anchor_block_ (String<uint64_t> & g_hs,
     return g_anchor_end;
 }
 
-inline int c_create_anchors_ (String<uint64_t> & g_hs, 
+ int c_create_anchors_ (String<uint64_t> & g_hs, 
                               String<uint64_t> & g_anchor,
                               int g_hs_end,
                               int band_level,
@@ -1682,7 +1682,7 @@ inline int c_create_anchors_ (String<uint64_t> & g_hs,
  * ---------mmmmmmmmmm
  */
 int const sc_clip1[11]={0, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3};
-inline int64_t c_sc_(int val1, int val2)
+ int64_t c_sc_(int val1, int val2)
 {
     if ((float)val1 / val2 > 0.8)
         return val2 << 3; 
@@ -1690,7 +1690,7 @@ inline int64_t c_sc_(int val1, int val2)
         return val2 << 1;
 }
 
-inline int64_t c_clip_anchors_ (String<uint64_t> & anchor, 
+ int64_t c_clip_anchors_ (String<uint64_t> & anchor, 
                             uint64_t gs_start,
                             uint64_t gr_start,
                              int anchor_end,
@@ -1804,7 +1804,7 @@ inline int64_t c_clip_anchors_ (String<uint64_t> & anchor,
     return 0;
 }
 
-inline int c_isGapMatch_(int & x, int & it, uint64_t & dv, short& t1, short & t2, short & l1, short & l2, short k)
+ int c_isGapMatch_(int & x, int & it, uint64_t & dv, short& t1, short & t2, short & l1, short & l2, short k)
 {
     if (dv == 0)
     {
@@ -1831,7 +1831,7 @@ inline int c_isGapMatch_(int & x, int & it, uint64_t & dv, short& t1, short & t2
 /**
 * kmer of t1 is left to t2
 */
-inline int c_isGapMatch_2anchor_(uint64_t & anchor, uint64_t & x, uint64_t & y, uint64_t & dv, short& t1, short & t2, short & l1, short & l2, short k)
+ int c_isGapMatch_2anchor_(uint64_t & anchor, uint64_t & x, uint64_t & y, uint64_t & dv, short& t1, short & t2, short & l1, short & l2, short k)
 {
     if (dv == 0)  
     {
@@ -1855,7 +1855,7 @@ inline int c_isGapMatch_2anchor_(uint64_t & anchor, uint64_t & x, uint64_t & y, 
     }
     return 0;
 }
-inline uint64_t c_clip_anchors_precise(String<uint64_t> & anchor, 
+ uint64_t c_clip_anchors_precise(String<uint64_t> & anchor, 
                             uint64_t gs_start,
                             uint64_t gr_start,
                              int anchor_end,
@@ -2014,7 +2014,7 @@ if (t == 3)
     }
     return s;
 }
-inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
+ int c_clip_extend_gap2_( uint64_t & ex_d, // results
                                 String<uint64_t> & hs, 
                                 String<uint64_t> & anchors,
                                 Iterator<String<Dna5> >::Type itBegin_genome, 
@@ -2235,7 +2235,7 @@ inline int c_clip_extend_gap2_( uint64_t & ex_d, // results
 
 }
 
-inline int64_t c_clip_(String<Dna5> & genome, 
+ int64_t c_clip_(String<Dna5> & genome, 
             String<Dna5> & read,
             String<Dna5> & comstr,    //complement revers of read
             uint64_t gs_start, 
@@ -2338,7 +2338,7 @@ inline int64_t c_clip_(String<Dna5> & genome,
  *         \
  *   path1 path2
  */
-inline int g_alignGap_(String<Dna5> & seq,
+ int g_alignGap_(String<Dna5> & seq,
                         String<Dna5> & read,
                         String<Dna5> & comstr, //complement reverse of the read
                         String<uint64_t> & tiles,
@@ -2529,7 +2529,7 @@ inline int g_alignGap_(String<Dna5> & seq,
  *   seg1  gap  seg2
  *  +++++xxxxxxx-----  incorrect : different strands of seg1 and seg2
  */
-inline int mapGap_ (StringSet<String<Dna5> > & seqs,
+ int mapGap_ (StringSet<String<Dna5> > & seqs,
              String<Dna5> & read,
              String<Dna5> & comstr,
              uint64_t cord1, 
@@ -2596,7 +2596,7 @@ inline int mapGap_ (StringSet<String<Dna5> > & seqs,
  * |cord_n----------|infinity
  * |----gap tail----|
  *
-inline int mapGapTail_(StringSet<String<Dna5> > & seqs,
+ int mapGapTail_(StringSet<String<Dna5> > & seqs,
              String<Dna5> & read,
              String<Dna5> & comstr,
              uint64_t & cord_n, 

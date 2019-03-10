@@ -152,7 +152,7 @@ struct WINDOW_BIT_SIZE<Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >
 };
 
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec>
-inline SEQAN_HOST_DEVICE
+ SEQAN_HOST_DEVICE
 typename Size< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
 length(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > const &me)
 {
@@ -165,7 +165,7 @@ length(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > const &me)
 // ----------------------------------------------------------------------------
 
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec>
-inline SEQAN_HOST_DEVICE
+ SEQAN_HOST_DEVICE
 typename Size< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
 weight(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > const &me)
 {
@@ -176,7 +176,7 @@ weight(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > const &me)
 // Function resize()
 //-----------------------------------------------------------------------------
 template <typename TValue>
-inline void resize(Shape<TValue, SimpleMShape> & me, unsigned new_span, unsigned new_weight)
+ void resize(Shape<TValue, SimpleMShape> & me, unsigned new_span, unsigned new_weight)
 {   
     //typedef typename Value< Shape<TValue, SimpleShape> >::Type    THValue;
     //me.leftFactor = _intPow((THValue)ValueSize<TValue>::VALUE, new_span - 1); 
@@ -186,7 +186,7 @@ inline void resize(Shape<TValue, SimpleMShape> & me, unsigned new_span, unsigned
 }   
 
 template <typename TValue, typename TSize, unsigned TSPAN, unsigned TWEIGHT>
-inline void resize(Shape<TValue, Minimizer<TSPAN, TWEIGHT> > & me, TSize new_span, TSize new_weight)
+ void resize(Shape<TValue, Minimizer<TSPAN, TWEIGHT> > & me, TSize new_span, TSize new_weight)
 {   
     //typedef typename Value< Shape<TValue, SimpleShape> >::Type    THValue;
     //me.leftFactor = _intPow((THValue)ValueSize<TValue>::VALUE, new_span - 1); 
@@ -201,7 +201,7 @@ inline void resize(Shape<TValue, Minimizer<TSPAN, TWEIGHT> > & me, TSize new_spa
 // return lexicographically smaller hash as the minimizer
 
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
-inline typename Value<Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
+ typename Value<Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
 hash(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 {
       typedef typename Size< Shape<TValue, SimpleShape> >::Type    TSize;
@@ -229,13 +229,13 @@ static const uint64_t COMP4 = 3;
 static const int  ordC = 3;
 
 template <typename TValue>
-inline void phi(TValue & h)
+ void phi(TValue & h)
 {
     h+=h<<31;
 }
 
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
-inline void hashInit(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
+ void hashInit(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 {
     typedef typename Size< Shape<TValue, SimpleShape> >::Type    TSize;
 
@@ -256,7 +256,7 @@ inline void hashInit(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter
 }
 /*
 template <unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
-inline uint64_t hashInit(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
+ uint64_t hashInit(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 {
 
         SEQAN_ASSERT_GT((unsigned)me.span, 0u);
@@ -296,7 +296,7 @@ inline uint64_t hashInit(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIt
 */
 
 template <unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
-inline uint64_t hashInit(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
+ uint64_t hashInit(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 {
 
     SEQAN_ASSERT_GT((unsigned)me.span, 0u);
@@ -339,7 +339,7 @@ inline uint64_t hashInit(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIt
  *init for hashNexthS 
  */
 template <unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
-inline uint64_t hashInit_hs(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it, int d = 0)
+ uint64_t hashInit_hs(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it, int d = 0)
 {
         me.hValue = 0;
         for (unsigned i = d; i < me.span - 1 + d; ++i)
@@ -352,7 +352,7 @@ inline uint64_t hashInit_hs(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, 
 
 /*
     template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
-    inline typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
+     typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
     hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
     {
     SEQAN_CHECKPOINT
@@ -381,7 +381,7 @@ inline uint64_t hashInit_hs(Shape<Dna5, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, 
 
 /*
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
-inline typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
+ typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
 hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 {
         typedef typename Size< Shape<TValue, TSpec> >::Type        TSize;
@@ -433,7 +433,7 @@ hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 //single strand hashNext
 /*
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
-inline typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
+ typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
 hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 {
         typedef typename Size< Shape<TValue, TSpec> >::Type        TSize;
@@ -467,7 +467,7 @@ hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
  */
 /*
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
-inline typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
+ typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
 hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 {
     //typedef typename Size< Shape<TValue, TSpec> >::Type  TSize;
@@ -514,7 +514,7 @@ hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
  * this hashNext function is for index only collect mini hash value [minindex]
  */ 
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
-inline typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
+ typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
 hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 {
     //typedef typename Size< Shape<TValue, TSpec> >::Type  TSize;
@@ -562,7 +562,7 @@ hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
  * calculate hValue;
  */ 
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
-inline typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
+ typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
 hashNexth(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 {
     //typedef typename Size< Shape<TValue, TSpec> >::Type  TSize;
@@ -580,7 +580,7 @@ hashNexth(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
  * calculate hValue;
  */ 
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
-inline typename Value<Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
+ typename Value<Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
 hashNext_hs(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 {
     uint64_t v2 = ordValue((TValue)*(it + me.span - 1 ));
@@ -590,7 +590,7 @@ hashNext_hs(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &i
 
 
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
-inline typename Value<Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
+ typename Value<Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
 hashPre_hs(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 {
     uint64_t v2 = ordValue((TValue)*(it)) << ((TSPAN << 1)  - 2);
@@ -602,7 +602,7 @@ hashPre_hs(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it
  * calculate hValue;
  */ 
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
-inline typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
+ typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
 hashNextV(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 {
     //typedef typename Size< Shape<TValue, TSpec> >::Type  TSize;
@@ -621,7 +621,7 @@ hashNextV(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
  * calculate XValue
  */ 
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
-inline typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
+ typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
 hashNextX(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 {
     //typedef typename Size< Shape<TValue, TSpec> >::Type  TSize;
@@ -658,7 +658,7 @@ hashNextX(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 }
 
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec>
-inline uint64_t getT(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > & me)
+ uint64_t getT(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > & me)
 {
     return (me.YValue >> ((TSPAN - TWEIGHT) << 1));
 }
@@ -668,7 +668,7 @@ inline uint64_t getT(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > & me)
  */
 /*
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec, typename TIter>
-inline typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
+ typename Value< Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > >::Type
 hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 {
 
@@ -701,7 +701,7 @@ hashNext(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me, TIter const &it)
 }
 */
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec>
-inline uint64_t h2y(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me,  uint64_t h)
+ uint64_t h2y(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me,  uint64_t h)
 {
     uint64_t x = -1, v1, t=0;
     for (unsigned k = 64-(me.span << 1) ; k <= 64 - (me.weight << 1); k+=2)
@@ -718,7 +718,7 @@ inline uint64_t h2y(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me,  uint6
 }
 
 template <typename TValue, unsigned TSPAN, unsigned TWEIGHT, typename TSpec>
-inline uint64_t xy2h(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me,  uint64_t x, uint64_t y)
+ uint64_t xy2h(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me,  uint64_t x, uint64_t y)
 {
     
     unsigned span = me.span << 1, weight = TWEIGHT << 1;
@@ -730,7 +730,7 @@ inline uint64_t xy2h(Shape<TValue, Minimizer<TSPAN, TWEIGHT, TSpec> > &me,  uint
 }
 
 template <unsigned TSPAN, unsigned TWEIGHT>
-inline uint64_t xy2h(uint64_t x, uint64_t y)
+ uint64_t xy2h(uint64_t x, uint64_t y)
 {
     
     unsigned span = TSPAN << 1, weight = TWEIGHT << 1;

@@ -50,65 +50,65 @@ uint64_t _BaseNum_SeqMask = (1ULL << _SeqNum_bits) - 1;
 const uint64_t _Empty_Dir_ = -1;
 const unsigned blocklimit = 32;
     
-inline uint64_t _makeHeadNode(uint64_t code)
+ uint64_t _makeHeadNode(uint64_t code)
 {
     return (code << _HeadValue_bits) + _HeadType_code;
 } 
-inline uint64_t _makeVtlHeadNode(uint64_t code)
+ uint64_t _makeVtlHeadNode(uint64_t code)
 {
     return (code << _HeadValue_bits) + _HeadTypeVtl_code;
 }
-inline uint64_t _makeHVlHeadNode(uint64_t code)
+ uint64_t _makeHVlHeadNode(uint64_t code)
 {
     return (code << _HeadValue_bits) + _HeadTypeHVl_code; 
 }
-inline void _setHVlHeadNode(uint64_t & headNode, uint64_t const & hValue)
+ void _setHVlHeadNode(uint64_t & headNode, uint64_t const & hValue)
 {
     headNode = (hValue << _HeadValue_bits) + _HeadTypeHVl_code; 
 }
-inline void _setHeadNode(uint64_t & headNode, uint64_t const & hValue)
+ void _setHeadNode(uint64_t & headNode, uint64_t const & hValue)
 {
     headNode = (hValue << _HeadValue_bits) + _HeadType_code;
 }
-inline uint64_t _makeEmptyNode(uint64_t code)
+ uint64_t _makeEmptyNode(uint64_t code)
 {
     return (code << _HeadValue_bits) + _bitEmptyType;
 }
-inline void _setBodyType_Begin(uint64_t & code){
+ void _setBodyType_Begin(uint64_t & code){
     code &= _BodyType_key; 
 }
-inline uint64_t _ifBodyType(uint64_t code){
+ uint64_t _ifBodyType(uint64_t code){
     return code & (~_BodyType_key);
 }
-inline uint64_t _getHeadValue(uint64_t  code)
+ uint64_t _getHeadValue(uint64_t  code)
 {
     return code >> _HeadValue_bits;  
 }
-inline void _setBodyNode(uint64_t & bodyNode, uint64_t const & YValue, uint64_t const & type, uint64_t const & counth)
+ void _setBodyNode(uint64_t & bodyNode, uint64_t const & YValue, uint64_t const & type, uint64_t const & counth)
 {
     bodyNode = (YValue << _BodyValue_bits) + (type << _BodyType_bits) + counth;
 }
-inline uint64_t _getBodyValue(uint64_t code)
+ uint64_t _getBodyValue(uint64_t code)
 {
     return code >> _BodyValue_bits;
 }
-inline uint64_t _getBodyCounth(uint64_t & code)
+ uint64_t _getBodyCounth(uint64_t & code)
 {
     return code & _getBody;
 }
-inline uint64_t _createSANode(uint64_t const & i1, uint64_t const & i2)
+ uint64_t _createSANode(uint64_t const & i1, uint64_t const & i2)
 {
     return (i1 << _BaseNum_bits) + i2;
 }
-inline void _setSANode(uint64_t & node, uint64_t const & i1, uint64_t const & i2)
+ void _setSANode(uint64_t & node, uint64_t const & i1, uint64_t const & i2)
 {
     node = (i1 << _BaseNum_bits) + i2;
 }
-inline uint64_t _getSA_i1(uint64_t const & node)
+ uint64_t _getSA_i1(uint64_t const & node)
 {
     return (node >> _BaseNum_bits) & _BaseNum_SeqMask;
 }
-inline uint64_t _getSA_i2(uint64_t const & node)
+ uint64_t _getSA_i2(uint64_t const & node)
 {
     return node & _BaseNum_code;
 }
@@ -209,7 +209,7 @@ XString::XString(uint64_t const & seqlen)
 {
     _fullSize(seqlen);
 }
-inline uint64_t XString::_fullSize(uint64_t const & seqlen, float const & alpha)
+ uint64_t XString::_fullSize(uint64_t const & seqlen, float const & alpha)
 {
     uint64_t len = 1ULL; 
     while ((len) < seqlen * alpha)
@@ -220,75 +220,75 @@ inline uint64_t XString::_fullSize(uint64_t const & seqlen, float const & alpha)
         xstring[k].val1 = 0;
     return len;
 }
-inline void XString::clear()
+ void XString::clear()
 {
     seqan::clear(xstring);
     shrinkToFit(xstring);
 }
 
-inline bool Hs::isHead(uint64_t const & val, uint64_t const & flag)
+ bool Hs::isHead(uint64_t const & val, uint64_t const & flag)
 {
     return (val & flag) ^ flag;
 }
-inline void Hs::setHsHead(uint64_t & head, uint64_t const & ptr, uint64_t const & xval, uint64_t const & bit, uint64_t const & mask)
+ void Hs::setHsHead(uint64_t & head, uint64_t const & ptr, uint64_t const & xval, uint64_t const & bit, uint64_t const & mask)
 {
     head = ((ptr << bit) + xval) & mask;
 }
-inline uint64_t Hs::makeHsHead(uint64_t const & ptr, uint64_t const & xval, uint64_t const & bit, uint64_t const & mask)
+ uint64_t Hs::makeHsHead(uint64_t const & ptr, uint64_t const & xval, uint64_t const & bit, uint64_t const & mask)
 {
     return ((ptr << bit) + xval) & mask;
 }
-inline uint64_t Hs::MinusX(uint64_t const & value1, uint64_t const & value2, uint64_t const & mask)
+ uint64_t Hs::MinusX(uint64_t const & value1, uint64_t const & value2, uint64_t const & mask)
 {
     return ((value1 - value2) & mask);
 }
-inline uint64_t Hs::getHeadX(uint64_t const & value, uint64_t const & mask)
+ uint64_t Hs::getHeadX(uint64_t const & value, uint64_t const & mask)
 {
     return value & mask;
 }  
-inline uint64_t Hs::getHeadPtr(uint64_t const & val, uint64_t const & bit, uint64_t const & mask)
+ uint64_t Hs::getHeadPtr(uint64_t const & val, uint64_t const & bit, uint64_t const & mask)
 {
     return (val >> bit) & mask;
 }
-inline void Hs::setHsBody(uint64_t & val, uint64_t const & yval, uint64_t const & id, uint64_t const & pos, uint64_t const & typeFlag)
+ void Hs::setHsBody(uint64_t & val, uint64_t const & yval, uint64_t const & id, uint64_t const & pos, uint64_t const & typeFlag)
 {
     val = ((yval << _BodyValue_bits)|typeFlag) + (id << _BaseNum_bits) + (pos);
     
 }
-inline uint64_t Hs::makeHsBody(uint64_t const & yval, uint64_t const & id, uint64_t const & pos, uint64_t const & typeFlag)
+ uint64_t Hs::makeHsBody(uint64_t const & yval, uint64_t const & id, uint64_t const & pos, uint64_t const & typeFlag)
 {
     return ((yval << _BodyValue_bits)|typeFlag) + (id << _BaseNum_bits) + (pos);
     
 }
-inline uint64_t Hs::getHsBodyY(uint64_t const & val, uint64_t const & bit, uint64_t const & mask)
+ uint64_t Hs::getHsBodyY(uint64_t const & val, uint64_t const & bit, uint64_t const & mask)
 {
     return (val >> bit) & mask;
 }
-inline void Hs::setHsHeadPtr(uint64_t & val, uint64_t const & ptr,  uint64_t const & bit, uint64_t const & mask)
+ void Hs::setHsHeadPtr(uint64_t & val, uint64_t const & ptr,  uint64_t const & bit, uint64_t const & mask)
 {
     val = (val & mask) + (ptr << bit);
 }
-inline uint64_t Hs::getHsBodyS(uint64_t const & val, uint64_t const & mask )
+ uint64_t Hs::getHsBodyS(uint64_t const & val, uint64_t const & mask )
 {
     return val & mask;
 }
-inline bool Hs::isBody(uint64_t const & val, uint64_t const & flag)
+ bool Hs::isBody(uint64_t const & val, uint64_t const & flag)
 {
     return val & flag;
 }
-inline bool Hs::isBodyYEqual(uint64_t const & hval, uint64_t const & yval, uint64_t const & bit, uint64_t const & flag)
+ bool Hs::isBodyYEqual(uint64_t const & hval, uint64_t const & yval, uint64_t const & bit, uint64_t const & flag)
 {
     return ((hval >> bit) ^ yval) == flag;
 }
-inline void Hs::setHsBodyReverseStrand(uint64_t & val)
+ void Hs::setHsBodyReverseStrand(uint64_t & val)
 {
     val |= _DefaultHsBase.bodyCodeFlag;
 }
-inline bool Hs::isHsBodyReverseStrand(uint64_t & val)
+ bool Hs::isHsBodyReverseStrand(uint64_t & val)
 {
     return val & (_DefaultHsBase.bodyCodeFlag);
 }
-inline void Hs::setHsBodyY(uint64_t & val, uint64_t y, uint64_t const & bit, uint64_t const & mask)
+ void Hs::setHsBodyY(uint64_t & val, uint64_t y, uint64_t const & bit, uint64_t const & mask)
 {
     val = (val & (~(mask << bit))) | (y << bit);
 }
@@ -300,7 +300,7 @@ Hs _DefaultHs;
  * serial sort hs
  * bucket[]+
  */
-inline bool _hsSortX(Iterator<String<uint64_t> >::Type const & begin, 
+ bool _hsSortX(Iterator<String<uint64_t> >::Type const & begin, 
                      Iterator<String<uint64_t> >::Type const & end, 
                      unsigned const & xValBitLen)
 {
@@ -360,7 +360,7 @@ inline bool _hsSortX(Iterator<String<uint64_t> >::Type const & begin,
  * bucket[]+
  * However it needs larger memory footprint.
  */
-inline bool _hsSortX_1(Iterator<String<uint64_t> >::Type const & begin, 
+ bool _hsSortX_1(Iterator<String<uint64_t> >::Type const & begin, 
                        Iterator<String<uint64_t> >::Type const & end, 
                        unsigned const & xValBitLen, 
                        unsigned threads)
@@ -490,7 +490,7 @@ inline bool _hsSortX_1(Iterator<String<uint64_t> >::Type const & begin,
 /*
  * Interface to sort x
  */
-inline bool _hsSortX(Iterator<String<uint64_t> >::Type const & begin, 
+ bool _hsSortX(Iterator<String<uint64_t> >::Type const & begin, 
                      Iterator<String<uint64_t> >::Type const & end, 
                      unsigned const & xValBitLen, 
                      unsigned threads)
@@ -501,7 +501,7 @@ inline bool _hsSortX(Iterator<String<uint64_t> >::Type const & begin,
     return true;
 }
 
-inline void insertSort(Iterator<String<uint64_t> >::Type const & begin, 
+ void insertSort(Iterator<String<uint64_t> >::Type const & begin, 
                        Iterator<String<uint64_t> >::Type const & end)
 {
     typedef Iterator<String<uint64_t> >::Type TIter;
@@ -525,7 +525,7 @@ inline void insertSort(Iterator<String<uint64_t> >::Type const & begin,
     }
 }
 
-inline bool _sort_YSA_Block(Iterator<String<uint64_t> >::Type const & begin, 
+ bool _sort_YSA_Block(Iterator<String<uint64_t> >::Type const & begin, 
                             Iterator<String<uint64_t> >::Type const & end, 
                             unsigned const & sortModeThr = 60) // sort y and sa
 {
@@ -538,7 +538,7 @@ inline bool _sort_YSA_Block(Iterator<String<uint64_t> >::Type const & begin,
     return true;
 }
 
-inline bool _hsSortY_SA(Iterator<String<uint64_t> >::Type const & begin, 
+ bool _hsSortY_SA(Iterator<String<uint64_t> >::Type const & begin, 
                         Iterator<String<uint64_t> >::Type const & end) 
 {
     typedef typename Iterator<String<uint64_t> >::Type TIter;
@@ -557,14 +557,14 @@ inline bool _hsSortY_SA(Iterator<String<uint64_t> >::Type const & begin,
     return true;
 }
 
-inline void _hsSort(Iterator<String<uint64_t> >::Type const & begin, 
+ void _hsSort(Iterator<String<uint64_t> >::Type const & begin, 
                     Iterator<String<uint64_t> >::Type const & end, 
                     unsigned const & shapeWeight)
 {
     _hsSortX(begin, end, shapeWeight << 1);
 }
 
-inline void _hsSort(Iterator<String<uint64_t> >::Type const & begin, 
+ void _hsSort(Iterator<String<uint64_t> >::Type const & begin, 
                     Iterator<String<uint64_t> >::Type const & end, 
                     unsigned const & shapeWeight, unsigned & threads)
 {
@@ -574,7 +574,7 @@ inline void _hsSort(Iterator<String<uint64_t> >::Type const & begin,
 /*
  * serial creat hash array
  */
-inline bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<index_shape_len> > & shape)
+ bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<index_shape_len> > & shape)
 {
     double time = sysTime();
     uint64_t preX = ~0;
@@ -637,7 +637,7 @@ inline bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t
  * creating index only collecting mini hash value [minindex]
  * state::warnning. for seq contains 'N', error. since the k in openmp doesn't change correctly
  */
-inline bool _createHsArray(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<index_shape_len> > & shape, unsigned & threads, bool efficient = true)
+ bool _createHsArray(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<index_shape_len> > & shape, unsigned & threads, bool efficient = true)
 {
     double time = sysTime();
     uint64_t hsRealEnd = 0;
@@ -761,7 +761,7 @@ inline bool _createHsArray(StringSet<String<Dna5> >  & seq, String<uint64_t> & h
  * appendvalue instead of resize
  * state::debug succ for seq without 'N', seq containing 'N' not tested 
  */
-inline bool _createHsArray2_MF(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<index_shape_len> > & shape, unsigned & threads)
+ bool _createHsArray2_MF(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<index_shape_len> > & shape, unsigned & threads)
 {
     std::cerr << "[prallel_createHsArray2_MF]\n";
     double time = sysTime();
@@ -881,7 +881,7 @@ bool checkHsSort(String<uint64_t> const & hs)
     return true;
 }
 
-inline uint64_t XNodeFunc::hash(uint64_t const & val)
+ uint64_t XNodeFunc::hash(uint64_t const & val)
 {
     uint64_t key = val;
     key = (~key) + (key << 21); 
@@ -894,7 +894,7 @@ inline uint64_t XNodeFunc::hash(uint64_t const & val)
     return key;        
 }
 
-inline void XNodeFunc::setXNode(XNode & val, XNode::TypeV1 const & val1, XNode::TypeV2 const &val2, 
+ void XNodeFunc::setXNode(XNode & val, XNode::TypeV1 const & val1, XNode::TypeV2 const &val2, 
                             XNodeBase::NodeType const & t, XNodeBase::ReturnType const & r, 
                             XNodeBase::Bit const & bit, XNodeBase::Bit const & bit2)
 {
@@ -902,24 +902,24 @@ inline void XNodeFunc::setXNode(XNode & val, XNode::TypeV1 const & val1, XNode::
     val.val2 = val2;
 }
 
-inline XNode::TypeV1 XNodeFunc::makeYXKey(typename Hs::ValueBodyType const & hval, XNode::TypeV1 const & xval, 
+ XNode::TypeV1 XNodeFunc::makeYXKey(typename Hs::ValueBodyType const & hval, XNode::TypeV1 const & xval, 
                             XNodeBase::Mask const & masky, XNodeBase::Mask const & maskx)
 {
     return (hval & masky) + (xval & maskx);
 }
 
-inline XNode::TypeV1 XNodeFunc::collision(XNode::TypeV1 const & val, XNode::TypeV1 const & xnode_val1, XNodeBase::Mask const & mask)
+ XNode::TypeV1 XNodeFunc::collision(XNode::TypeV1 const & val, XNode::TypeV1 const & xnode_val1, XNodeBase::Mask const & mask)
 {
     return (val ^ xnode_val1) & mask;
 }
 
-inline XNode::TypeV2L XNodeFunc::makeReturnVal(XNode const & xnode, XNodeBase::Mask const & mask)
+ XNode::TypeV2L XNodeFunc::makeReturnVal(XNode const & xnode, XNodeBase::Mask const & mask)
 {
     return (xnode.val1 & (~mask)) + xnode.val2;
     //return xnode.val2;
 }
 
-inline uint64_t requestXNode_noCollision (XString & xstr, uint64_t const & xval, 
+ uint64_t requestXNode_noCollision (XString & xstr, uint64_t const & xval, 
                 uint64_t const & val2,  uint64_t const & nodeType, uint64_t const returnType)
 {
     uint64_t h1 = _DefaultXNodeFunc.hash(xval) & xstr.mask;
@@ -933,7 +933,7 @@ inline uint64_t requestXNode_noCollision (XString & xstr, uint64_t const & xval,
     return h1;
 }
 
-inline uint64_t requestXNode_noCollision_Atomic (XString & xstr, uint64_t const & xval, 
+ uint64_t requestXNode_noCollision_Atomic (XString & xstr, uint64_t const & xval, 
                 uint64_t const & val2,  uint64_t const & nodeType, uint64_t const returnType)
 {
     uint64_t h1 = _DefaultXNodeFunc.hash(xval) & xstr.mask;
@@ -949,7 +949,7 @@ inline uint64_t requestXNode_noCollision_Atomic (XString & xstr, uint64_t const 
     return h1;
 }
 
-inline uint64_t getXDir(XString const & xstr, uint64_t const & xval, uint64_t const & yval)
+ uint64_t getXDir(XString const & xstr, uint64_t const & xval, uint64_t const & yval)
 {
         uint64_t val, delta = 0;
         uint64_t h1 = _DefaultXNodeFunc.hash(xval) & xstr.mask;
@@ -984,7 +984,7 @@ inline uint64_t getXDir(XString const & xstr, uint64_t const & xval, uint64_t co
     return 0;
 }
 
-inline uint64_t getXDir(HIndex const & index, uint64_t const & xval, uint64_t const & yval)
+ uint64_t getXDir(HIndex const & index, uint64_t const & xval, uint64_t const & yval)
 {
     uint64_t val, delta = 0;
     uint64_t h1 = _DefaultXNodeFunc.hash(xval) & index.xstr.mask;
@@ -1021,7 +1021,7 @@ inline uint64_t getXDir(HIndex const & index, uint64_t const & xval, uint64_t co
     return index.emptyDir;
 }
 
-inline uint64_t getXYDir(HIndex const & index, uint64_t const & xval, uint64_t const & yval)
+ uint64_t getXYDir(HIndex const & index, uint64_t const & xval, uint64_t const & yval)
 {
     uint64_t val, delta = 0;
     uint64_t h1 = _DefaultXNodeFunc.hash(xval) & index.xstr.mask;
@@ -1066,7 +1066,7 @@ inline uint64_t getXYDir(HIndex const & index, uint64_t const & xval, uint64_t c
     return index.emptyDir;
 }
 
-inline uint64_t gethDir(XString const & xstr, uint64_t const & hval)
+ uint64_t gethDir(XString const & xstr, uint64_t const & hval)
 {        
     uint64_t  val = (hval << 2) + _DefaultXNodeBase.xHead;
     uint64_t  h1 = _DefaultXNodeFunc.hash(hval) & xstr.mask;
@@ -1093,7 +1093,7 @@ inline uint64_t gethDir(XString const & xstr, uint64_t const & hval)
 /*  
  * serial sort ysa 
  */
-inline bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir)
+ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir)
 {
 //-k
     uint64_t k = _DefaultHs.getHeadPtr(hs[0]);
@@ -1220,7 +1220,7 @@ inline bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEm
  * parallel sort ysa
  * this function is for index only collecting minihash value [minindex]
  */
-inline bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir, unsigned threads)
+ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir, unsigned threads)
 {
 
     uint64_t k = _DefaultHs.getHeadPtr(hs[0]);
@@ -1365,7 +1365,7 @@ inline bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEm
 /*
  * free geonme sequence during creating, for raw map
  */
-inline bool _createQGramIndexDirSA_parallel(StringSet<String<Dna5> > & seq, 
+ bool _createQGramIndexDirSA_parallel(StringSet<String<Dna5> > & seq, 
 XString & xstr, String<uint64_t> & hs,  Shape<Dna5, Minimizer<index_shape_len> > & shape, 
 uint64_t & indexEmptyDir, unsigned & threads, bool efficient)    
 {
@@ -1377,7 +1377,7 @@ uint64_t & indexEmptyDir, unsigned & threads, bool efficient)
     std::cerr << "  End creating Index Time[s]:" << sysTime() - time << " \n";
     return true; 
 }
-inline bool _createQGramIndexDirSA(StringSet<String<Dna5> > const & seq, XString & xstr, 
+ bool _createQGramIndexDirSA(StringSet<String<Dna5> > const & seq, XString & xstr, 
 String<uint64_t> & hs,  Shape<Dna5, Minimizer<index_shape_len> > & shape, uint64_t & indexEmptyDir)    
 {
     typedef Shape<Dna5, Minimizer<index_shape_len> > ShapeType;
@@ -1387,12 +1387,12 @@ String<uint64_t> & hs,  Shape<Dna5, Minimizer<index_shape_len> > & shape, uint64
     std::cerr << "  End creating Index Time[s]:" << sysTime() - time << " \n";
     return true; 
 }
-inline bool createHIndex(StringSet<String<Dna5> > & seq, HIndex & index, unsigned & threads, bool efficient)
+ bool createHIndex(StringSet<String<Dna5> > & seq, HIndex & index, unsigned & threads, bool efficient)
 {
     return _createQGramIndexDirSA_parallel(seq, index.xstr, index.ysa, index.shape, index.emptyDir, threads, efficient);
 }
 
-inline bool _createQGramIndex(HIndex & index, StringSet<String<Dna5> > & seq, unsigned threads = 1)
+ bool _createQGramIndex(HIndex & index, StringSet<String<Dna5> > & seq, unsigned threads = 1)
 {
     return _createQGramIndexDirSA(seq, index.xstr, index.ysa, index.shape, index.emptyDir);
 }

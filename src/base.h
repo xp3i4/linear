@@ -123,8 +123,8 @@ struct PMRes
     StringSet<String<uint64_t> > hits;
 };
 
-inline uint64_t _nStrand(uint64_t strand);
-inline uint64_t _flipCoord (uint64_t coord, uint64_t len, uint64_t strand);
+ uint64_t _nStrand(uint64_t strand);
+ uint64_t _flipCoord (uint64_t coord, uint64_t len, uint64_t strand);
 
 struct MapParm{
     unsigned    blockSize;

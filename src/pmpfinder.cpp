@@ -93,7 +93,7 @@ HitBase::HitBase():
 HitBase _DefaultHitBase;
 Hit _DefaultHit;
 
-inline uint64_t 
+ uint64_t 
 Cord::getCordX(uint64_t const & cord, 
                unsigned const & bit,
                uint64_t const & mask) const
@@ -101,14 +101,14 @@ Cord::getCordX(uint64_t const & cord,
     return (cord >> bit) & mask; 
 }
 
-inline uint64_t 
+ uint64_t 
 Cord::getCordY(uint64_t const & cord, 
                uint64_t const & mask) const 
 {
     return cord & mask;
 }
 
-inline uint64_t 
+ uint64_t 
 Cord::createCord(uint64_t const & x, 
                  uint64_t const & y, 
                  uint64_t const & strand,
@@ -118,7 +118,7 @@ Cord::createCord(uint64_t const & x,
     return (x << bit) + y + (strand << bit2);
 }
 
-inline uint64_t 
+ uint64_t 
 Cord::hit2Cord(uint64_t const & hit, 
                unsigned const & bit, 
                uint64_t const & mask,
@@ -128,7 +128,7 @@ Cord::hit2Cord(uint64_t const & hit,
     return (hit + ((hit & mask) << bit)) & mask2;
 }
 
-inline uint64_t 
+ uint64_t 
 Cord::hit2Cord_dstr(uint64_t const & hit, 
                unsigned const & bit, 
                uint64_t const & mask,
@@ -138,53 +138,53 @@ Cord::hit2Cord_dstr(uint64_t const & hit,
     return (hit + ((hit & mask) << bit)) & mask2;
 }
 
-inline uint64_t Cord::cord2Cell(uint64_t const & cord, 
+ uint64_t Cord::cord2Cell(uint64_t const & cord, 
                 unsigned const & bit) const
 {
     return cord >> bit;
 }
 
-inline uint64_t Cord::cell2Cord(uint64_t const & cell, 
+ uint64_t Cord::cell2Cord(uint64_t const & cell, 
                 unsigned const & bit) const
 {
     return cell << bit;
 }
 
-inline void Cord::setCordEnd(uint64_t & cord,
+ void Cord::setCordEnd(uint64_t & cord,
             typename CordBase::Flag const & strand,
             typename CordBase::Flag const & end)
 {
     cord |= strand | end;
 }
 
-inline typename CordBase::Flag 
+ typename CordBase::Flag 
 Cord::getCordStrand(uint64_t const & cord,
             unsigned const & strand) const
 {
     return (cord >> strand) & 1ULL;
 }
 
-inline typename CordBase::Flag 
+ typename CordBase::Flag 
 Cord::isCordEnd(uint64_t const & cord,
                 typename CordBase::Flag const & end) const
 {
     return cord & end;
 }
 
-inline void Cord::setMaxLen(String<uint64_t> & cord, uint64_t const & len, uint64_t const & mask)
+ void Cord::setMaxLen(String<uint64_t> & cord, uint64_t const & len, uint64_t const & mask)
 {
     if (len > (cord[0] & mask))
         cord[0] = len + ((cord[0]) & (~mask));
 }
 
-inline uint64_t Cord::getMaxLen(String<uint64_t> const & cord, uint64_t const & mask)
+ uint64_t Cord::getMaxLen(String<uint64_t> const & cord, uint64_t const & mask)
 {
     if (empty(cord))
         return 0;
     return cord[0] & mask;
 }
 
-inline uint64_t Cord::shift(uint64_t const & val, int64_t x, int64_t y, unsigned const & bit) //add x and y
+ uint64_t Cord::shift(uint64_t const & val, int64_t x, int64_t y, unsigned const & bit) //add x and y
 {
     if (x < 0)
         return val - ((-x) << bit) + y;
@@ -192,7 +192,7 @@ inline uint64_t Cord::shift(uint64_t const & val, int64_t x, int64_t y, unsigned
         return val + (x << bit) + y;
 }
 
-inline bool Cord::isCordsOverlap(uint64_t & val1, uint64_t & val2, int64_t thd)
+ bool Cord::isCordsOverlap(uint64_t & val1, uint64_t & val2, int64_t thd)
 {
     int64_t dx = _DefaultCord.getCordX(val2 - val1);
     int64_t dy = get_cord_y(val2 - val1);
@@ -200,25 +200,25 @@ inline bool Cord::isCordsOverlap(uint64_t & val1, uint64_t & val2, int64_t thd)
     return (dx >= 0) && (dx < thd) && (dy >= 0) && (dy < thd);
 }
 
-inline bool Cord::isBlockEnd(uint64_t & val, uint64_t const & flag)
+ bool Cord::isBlockEnd(uint64_t & val, uint64_t const & flag)
 {
     return val & flag;
 }
 
-inline uint64_t get_cord_x (uint64_t val) {return _getSA_i2(_DefaultCord.getCordX(val));}
-inline uint64_t get_cord_y (uint64_t val) {return _DefaultCord.getCordY(val);}
-inline uint64_t get_cord_strand (uint64_t val) {return _DefaultCord.getCordStrand(val);}
-inline uint64_t get_cord_id (uint64_t val) {return _getSA_i1(_DefaultCord.getCordX(val));}
-inline uint64_t create_id_x(uint64_t const id, uint64_t const x)
+ uint64_t get_cord_x (uint64_t val) {return _getSA_i2(_DefaultCord.getCordX(val));}
+ uint64_t get_cord_y (uint64_t val) {return _DefaultCord.getCordY(val);}
+ uint64_t get_cord_strand (uint64_t val) {return _DefaultCord.getCordStrand(val);}
+ uint64_t get_cord_id (uint64_t val) {return _getSA_i1(_DefaultCord.getCordX(val));}
+ uint64_t create_id_x(uint64_t const id, uint64_t const x)
 {
     return (id << _DefaultCordBase.bit_id) + x;
 }
-inline uint64_t create_cord (uint64_t id, uint64_t cordx, uint64_t cordy, uint64_t strand)
+ uint64_t create_cord (uint64_t id, uint64_t cordx, uint64_t cordy, uint64_t strand)
 {
     return _DefaultCord.createCord(create_id_x (id, cordx), cordy, strand);
 }
 
-inline void cmpRevCord(uint64_t val1, 
+ void cmpRevCord(uint64_t val1, 
                     uint64_t val2,
                     uint64_t & cr_val1,
                     uint64_t & cr_val2,
@@ -227,7 +227,7 @@ inline void cmpRevCord(uint64_t val1,
     cr_val1 = (val1 - get_cord_y(val1) + read_len - get_cord_y(val2)) ^ _DefaultCordBase.flag_strand;
     cr_val2 = (val2 - get_cord_y(val1) + read_len - get_cord_y(val2)) ^ _DefaultCordBase.flag_strand;
 }
-inline uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y)
+ uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y)
 {
     return (val & (~_DefaultCordBase.valueMask)) + (x << _DefaultCordBase.bit) + y;
 }
@@ -235,7 +235,7 @@ inline uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y)
 
 //======HIndex getIndexMatch()
 
-inline int _scriptDist(int const & s1, int const & s2)
+ int _scriptDist(int const & s1, int const & s2)
 {
     int res = std::abs((s1 & scriptMask)
             - (s2 & scriptMask)) 
@@ -245,7 +245,7 @@ inline int _scriptDist(int const & s1, int const & s2)
     return res;
 }
 
-inline void createFeatures(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f)
+ void createFeatures(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f)
 {
     unsigned next = 1;
     unsigned window = 1 << scriptWindow;
@@ -266,7 +266,7 @@ inline void createFeatures(TIter5 const & itBegin, TIter5 const & itEnd, String<
     }
 }
 
-inline uint64_t parallelParm_Static(uint64_t range, 
+ uint64_t parallelParm_Static(uint64_t range, 
                                     unsigned threads, 
                                     unsigned & thd_id, 
                                     uint64_t & thd_begin, 
@@ -289,7 +289,7 @@ inline uint64_t parallelParm_Static(uint64_t range,
 /**
  * Parallel 
  */
-inline void createFeatures(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f, unsigned threads)
+ void createFeatures(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f, unsigned threads)
 {
     unsigned window = 1 << scriptWindow;
     resize (f, ((itEnd - itBegin -window) >> scriptBit) + 1);
@@ -325,21 +325,21 @@ inline void createFeatures(TIter5 const & itBegin, TIter5 const & itEnd, String<
 /**
  * Parallel
  */
-inline void createFeatures(StringSet<String<Dna5> > & seq, StringSet<String<short> > & f, unsigned threads)
+ void createFeatures(StringSet<String<Dna5> > & seq, StringSet<String<short> > & f, unsigned threads)
 {
     resize(f, length(seq));
     for (unsigned k = 0; k < length(seq); k++)
         createFeatures(begin(seq[k]), end(seq[k]), f[k], threads);
 }
 
-inline void createFeatures(StringSet<String<Dna5> > & seq, StringSet<String<short> > & f)
+ void createFeatures(StringSet<String<Dna5> > & seq, StringSet<String<short> > & f)
 {
     resize(f, length(seq));
     for (unsigned k = 0; k < length(seq); k++)
         createFeatures(begin(seq[k]), end(seq[k]), f[k]);
 }
 
-inline unsigned _windowDist(Iterator<String<short> >::Type const & it1, 
+ unsigned _windowDist(Iterator<String<short> >::Type const & it1, 
                             Iterator<String<short> >::Type const & it2)
 {
     return _scriptDist(*it1, *it2) 
@@ -350,7 +350,7 @@ inline unsigned _windowDist(Iterator<String<short> >::Type const & it1,
          + _scriptDist(*(it1 + 10), *(it2 + 10));
 }
 
-inline bool nextCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & cord)
+ bool nextCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & cord)
 {
     uint64_t cordLY = get_cord_y(back(cord));
     while (++currentIt < length(hit)) 
@@ -365,7 +365,7 @@ inline bool nextCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64
     return false;
 }
 
-inline bool initCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & cord)
+ bool initCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & cord)
 {
     currentIt = 0;
     if (empty(hit))
@@ -375,7 +375,7 @@ inline bool initCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64
     return true;
 }
 
-inline bool previousWindow(String<short> & f1, 
+ bool previousWindow(String<short> & f1, 
                            String<short> & f2, 
                            String<uint64_t> & cord, 
                            uint64_t & strand)
@@ -416,7 +416,7 @@ inline bool previousWindow(String<short> & f1,
     return true;
 }
 
-inline bool previousWindow(String<short> & f1, 
+ bool previousWindow(String<short> & f1, 
                            String<short> & f2, 
                            String<uint64_t> & cord, 
                            float & score, 
@@ -458,7 +458,7 @@ inline bool previousWindow(String<short> & f1,
     return true;
 }
 
-inline uint64_t previousWindow(String<short> & f1, 
+ uint64_t previousWindow(String<short> & f1, 
                                String<short> & f2, 
                                uint64_t cordx,
                                uint64_t cordy,
@@ -503,7 +503,7 @@ inline uint64_t previousWindow(String<short> & f1,
     return 0;
 }
 
-inline uint64_t previousWindow(String<short> & f1, String<short> & f2, uint64_t cord, unsigned window_threshold)
+ uint64_t previousWindow(String<short> & f1, String<short> & f2, uint64_t cord, unsigned window_threshold)
 {
     return previousWindow(f1, 
                           f2, 
@@ -512,7 +512,7 @@ inline uint64_t previousWindow(String<short> & f1, String<short> & f2, uint64_t 
                           _DefaultCord.getCordStrand(cord), window_threshold);
 }
 
-inline bool nextWindow(String<short> &f1, 
+ bool nextWindow(String<short> &f1, 
                        String<short> & f2, 
                        String<uint64_t> & cord, 
                        uint64_t & strand)
@@ -554,7 +554,7 @@ inline bool nextWindow(String<short> &f1,
     return true;
 }
 
-inline bool nextWindow(String<short> &f1, 
+ bool nextWindow(String<short> &f1, 
                        String<short> & f2, 
                        String<uint64_t> & cord, 
                        float & score, 
@@ -597,7 +597,7 @@ inline bool nextWindow(String<short> &f1,
     return true;
 }
 
-inline uint64_t nextWindow(String<short> & f1, 
+ uint64_t nextWindow(String<short> & f1, 
                            String<short> & f2, 
                            uint64_t cordx,
                            uint64_t cordy,
@@ -641,12 +641,12 @@ inline uint64_t nextWindow(String<short> & f1,
     return 0;
 }
 
-inline uint64_t nextWindow(String<short> & f1, String<short> & f2, uint64_t cord, unsigned window_threshold)
+ uint64_t nextWindow(String<short> & f1, String<short> & f2, uint64_t cord, unsigned window_threshold)
 {
     return nextWindow(f1, f2, _DefaultCord.getCordX(cord), get_cord_y(cord), _DefaultCord.getCordStrand(cord), window_threshold);
 }
 
-inline bool extendWindow(String<short> &f1, String<short> & f2, String<uint64_t> & cord, uint64_t strand)
+ bool extendWindow(String<short> &f1, String<short> & f2, String<uint64_t> & cord, uint64_t strand)
 {
     uint64_t preCord = (length(cord)==1)?0:back(cord);
     unsigned len = length(cord) - 1;
@@ -659,7 +659,7 @@ inline bool extendWindow(String<short> &f1, String<short> & f2, String<uint64_t>
     return true;
 }
 
-inline bool path(String<Dna5> & read, String<uint64_t> hit, StringSet<String<short> > & f2, String<uint64_t> & cords)
+ bool path(String<Dna5> & read, String<uint64_t> hit, StringSet<String<short> > & f2, String<uint64_t> & cords)
 {
     String<short> f1;
     unsigned currentIt = 0;
@@ -707,32 +707,32 @@ void checkPath(StringSet<String<Dna5> > & cords, StringSet<String<Dna5> > const 
 /**================================================================
  *  The following part implements different method of mapping 
  */
-inline void Hit::setBlockStart(uint64_t & val, uint64_t const & flag)
+ void Hit::setBlockStart(uint64_t & val, uint64_t const & flag)
 {
     val |= flag;
 }
 
-inline void Hit::setBlockBody(uint64_t & val, uint64_t const & flag)
+ void Hit::setBlockBody(uint64_t & val, uint64_t const & flag)
 {
     val &= (~flag);
 }
 
-inline bool Hit::isBlockStart(uint64_t & val, uint64_t const & flag)
+ bool Hit::isBlockStart(uint64_t & val, uint64_t const & flag)
 {
     return val & flag;
 }
 
-inline void Hit::setBlockEnd(uint64_t & val, uint64_t const & flag)
+ void Hit::setBlockEnd(uint64_t & val, uint64_t const & flag)
 {
     val |= flag;
 }
 
-inline void Hit::unsetBlockEnd(uint64_t & val, uint64_t const & flag)
+ void Hit::unsetBlockEnd(uint64_t & val, uint64_t const & flag)
 {
     val &= ~flag;
 }
 
-inline void Hit::setBlockStrand(uint64_t & val, uint64_t const & strand, uint64_t const & flag)
+ void Hit::setBlockStrand(uint64_t & val, uint64_t const & strand, uint64_t const & flag)
 {
     if (strand)
         val |= flag;
@@ -740,12 +740,12 @@ inline void Hit::setBlockStrand(uint64_t & val, uint64_t const & strand, uint64_
         val &= ~flag;
 }
 
-inline bool Hit::isBlockEnd(uint64_t & val, uint64_t const & flag)
+ bool Hit::isBlockEnd(uint64_t & val, uint64_t const & flag)
 {
     return val & flag;
 }
 
-inline unsigned Hit::getStrand(uint64_t const & val, uint64_t const & flag)
+ unsigned Hit::getStrand(uint64_t const & val, uint64_t const & flag)
 {
     return (val & flag)?1:0;
 }
@@ -781,7 +781,7 @@ void _printHit(String<uint64_t>  & hit)
 //===!Note:Need to put this parameterin the mapper threshold
 /*
 template <typename TDna, typename TSpec>
-inline unsigned getIndexMatchAll(typename LIndex & index,
+ unsigned getIndexMatchAll(typename LIndex & index,
                               typename String<Dna5> const & read,
                               uint64_t* const set,
                               unsigned & len,
@@ -820,7 +820,7 @@ inline unsigned getIndexMatchAll(typename LIndex & index,
 */
 /*
 template <typename TDna, typename TSpec>
-inline unsigned getIndexMatchAll(typename LIndex & index,
+ unsigned getIndexMatchAll(typename LIndex & index,
                               typename String<Dna5> const & read,
                               uint64_t* const set,
                               unsigned & len,
@@ -865,7 +865,7 @@ inline unsigned getIndexMatchAll(typename LIndex & index,
 /**
  * search double strand in one round
  */
-inline unsigned getIndexMatchAll(LIndex & index,
+ unsigned getIndexMatchAll(LIndex & index,
                                String<Dna5> const & read,
                               String<uint64_t> & set,
                               MapParm & mapParm)
@@ -935,7 +935,7 @@ inline unsigned getIndexMatchAll(LIndex & index,
     return 0;
 }
 
-inline uint64_t getAnchorMatchAll(Anchors & anchors, unsigned const & readLen, MapParm & mapParm, String<uint64_t> & hit)
+ uint64_t getAnchorMatchAll(Anchors & anchors, unsigned const & readLen, MapParm & mapParm, String<uint64_t> & hit)
 {
     uint64_t ak, maxAnchor = 0;
     unsigned c_b=mapParm.shapeLen, sb=0, maxStart=0, maxEnd=0;
@@ -987,7 +987,7 @@ inline uint64_t getAnchorMatchAll(Anchors & anchors, unsigned const & readLen, M
     return maxAnchor;
 }
 
-inline uint64_t getAnchorMatchFirst(Anchors & anchors, unsigned const & readLen, MapParm & mapParm, String<uint64_t> & hit)
+ uint64_t getAnchorMatchFirst(Anchors & anchors, unsigned const & readLen, MapParm & mapParm, String<uint64_t> & hit)
 {
     uint64_t ak, maxAnchor = 0;
     unsigned c_b=mapParm.shapeLen, sb=0, maxStart=0, maxEnd=0;
@@ -1028,7 +1028,7 @@ inline uint64_t getAnchorMatchFirst(Anchors & anchors, unsigned const & readLen,
     return maxAnchor;
 }
 
-inline uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapParm & mapParm, String<uint64_t> & hit)
+ uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapParm & mapParm, String<uint64_t> & hit)
 {
     uint64_t ak;
     uint64_t c_b=mapParm.shapeLen, sb=0, sc = 0;
@@ -1088,7 +1088,7 @@ inline uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, 
     }
 }
 
-inline uint64_t mnMapReadAll( LIndex  & index,
+ uint64_t mnMapReadAll( LIndex  & index,
                            String<Dna5> & read,
                           Anchors & anchors,
                           MapParm & mapParm,
@@ -1099,7 +1099,7 @@ inline uint64_t mnMapReadAll( LIndex  & index,
     return getAnchorMatchAll(anchors, length(read), mapParm, hit);
 }
 
-inline uint64_t mnMapReadFirst( LIndex  & index,
+ uint64_t mnMapReadFirst( LIndex  & index,
                            String<Dna5> & read,
                           Anchors & anchors,
                           MapParm & mapParm,
@@ -1110,7 +1110,7 @@ inline uint64_t mnMapReadFirst( LIndex  & index,
     return getAnchorMatchFirst(anchors, length(read), mapParm, hit);
 }
 
-inline uint64_t mnMapReadList( LIndex  & index,
+ uint64_t mnMapReadList( LIndex  & index,
                            String<Dna5> & read,
                           Anchors & anchors,
                           MapParm & mapParm,
@@ -1124,7 +1124,7 @@ inline uint64_t mnMapReadList( LIndex  & index,
 /*
  * this is initCord for double strand index(with flag in cord value)
  */
-inline bool initCord(typename Iterator<String<uint64_t> >::Type & it, 
+ bool initCord(typename Iterator<String<uint64_t> >::Type & it, 
                      typename Iterator<String<uint64_t> >::Type & hitEnd,
                      unsigned & preCordStart,
                      String<uint64_t> & cord
@@ -1149,7 +1149,7 @@ inline bool initCord(typename Iterator<String<uint64_t> >::Type & it,
     return true;
 }
 
-inline bool endCord( String<uint64_t> & cord,
+ bool endCord( String<uint64_t> & cord,
                      unsigned & preCordStart
                    )
 {
@@ -1160,7 +1160,7 @@ inline bool endCord( String<uint64_t> & cord,
 /*
  * endCord for single strand index
  *
-inline bool endCord( String<uint64_t> & cord,
+ bool endCord( String<uint64_t> & cord,
                      unsigned & preCordStart,
                      float const & cordThr,
                      uint64_t const & strand,
@@ -1186,7 +1186,7 @@ inline bool endCord( String<uint64_t> & cord,
 /*
  * endCord for double strand index
  */
-inline bool endCord( String<uint64_t> & cord,
+ bool endCord( String<uint64_t> & cord,
                      unsigned & preCordStart,
                      float const & cordThr,
                      float & score)
@@ -1205,7 +1205,7 @@ inline bool endCord( String<uint64_t> & cord,
 }
 
 /*
-inline bool nextCord(typename Iterator<String<uint64_t> >::Type & it, 
+ bool nextCord(typename Iterator<String<uint64_t> >::Type & it, 
                      typename Iterator<String<uint64_t> >::Type const & hitEnd,
                      unsigned & preCordStart,
                      String<uint64_t> & cord)
@@ -1240,7 +1240,7 @@ inline bool nextCord(typename Iterator<String<uint64_t> >::Type & it,
 /*
  * nextCord for single strand sequence
  *
-inline bool nextCord(typename Iterator<String<uint64_t> >::Type & it, 
+ bool nextCord(typename Iterator<String<uint64_t> >::Type & it, 
                      typename Iterator<String<uint64_t> >::Type const & hitEnd, 
                      unsigned & preCordStart,
                      String<uint64_t> & cord,
@@ -1288,7 +1288,7 @@ inline bool nextCord(typename Iterator<String<uint64_t> >::Type & it,
 /*
  * nextCord for double strand sequence
  */
-inline bool nextCord(typename Iterator<String<uint64_t> >::Type & it, 
+ bool nextCord(typename Iterator<String<uint64_t> >::Type & it, 
                      typename Iterator<String<uint64_t> >::Type const & hitEnd, 
                      unsigned & preCordStart,
                      String<uint64_t> & cord,
@@ -1337,7 +1337,7 @@ inline bool nextCord(typename Iterator<String<uint64_t> >::Type & it,
     }
 }
 
-inline bool extendWindowAll(String<short> &f1, 
+ bool extendWindowAll(String<short> &f1, 
                             String<short> & f2, 
                             String<uint64_t> & cord, 
                             float & score, 
@@ -1357,7 +1357,7 @@ inline bool extendWindowAll(String<short> &f1,
     return true;
 }
 
-inline bool isOverlap (uint64_t cord1, uint64_t cord2, int revscomp_const)
+ bool isOverlap (uint64_t cord1, uint64_t cord2, int revscomp_const)
 {
     uint64_t strand1 = _DefaultCord.getCordStrand(cord1);
     uint64_t strand2 = _DefaultCord.getCordStrand(cord2);
@@ -1373,7 +1373,7 @@ inline bool isOverlap (uint64_t cord1, uint64_t cord2, int revscomp_const)
 /**
  * cord1 is predecessor of cord2 and they are not overlapped
  */
-inline bool isPreGap (uint64_t cord1, uint64_t cord2, int revscomp_const)
+ bool isPreGap (uint64_t cord1, uint64_t cord2, int revscomp_const)
 {
     //uint64_t strand1 = _DefaultCord.getCordStrand(cord1);
     //uint64_t strand2 = _DefaultCord.getCordStrand(cord2);
@@ -1389,7 +1389,7 @@ inline bool isPreGap (uint64_t cord1, uint64_t cord2, int revscomp_const)
 /**
  * cord1 is successor of cord2 and they are not overlapped
  */
-inline bool isSucGap (uint64_t cord1, uint64_t cord2, int revscomp_const)
+ bool isSucGap (uint64_t cord1, uint64_t cord2, int revscomp_const)
 {
     return isPreGap (cord2, cord1, revscomp_const);
 }
@@ -1402,7 +1402,7 @@ inline bool isSucGap (uint64_t cord1, uint64_t cord2, int revscomp_const)
  * then call nextWindow for cord1 and previousWindow for cord2 along each own strand until it can't be extended any more.
  * 
  */         
-inline int extendPatch(StringSet<String<short> > & f1, 
+ int extendPatch(StringSet<String<short> > & f1, 
                        StringSet<String<short> > & f2, 
                       String<uint64_t> & cords,
                       int k,
@@ -1486,7 +1486,7 @@ inline int extendPatch(StringSet<String<short> > & f1,
 }
 
 /*
-inline bool pathAll(String<Dna5> & read, 
+ bool pathAll(String<Dna5> & read, 
                  typename Iterator<String<uint64_t> >::Type hitBegin, 
                  typename Iterator<String<uint64_t> >::Type hitEnd, 
                  StringSet<String<int> > & f2, 
@@ -1509,7 +1509,7 @@ inline bool pathAll(String<Dna5> & read,
     return false;
 }
 
-inline bool pathAll(String<Dna5> & read, 
+ bool pathAll(String<Dna5> & read, 
                  typename Iterator<String<uint64_t> >::Type hitBegin, 
                  typename Iterator<String<uint64_t> >::Type hitEnd, 
                  StringSet<String<int> > & f2, 
@@ -1538,7 +1538,7 @@ inline bool pathAll(String<Dna5> & read,
 
 /*
  * path functoin for single strand
-inline bool pathAll(String<Dna5> & read, 
+ bool pathAll(String<Dna5> & read, 
                  typename Iterator<String<uint64_t> >::Type hitBegin, 
                  typename Iterator<String<uint64_t> >::Type hitEnd, 
                  StringSet<String<int> > & f2, 
@@ -1569,7 +1569,7 @@ inline bool pathAll(String<Dna5> & read,
 /*
  * path for double strand 
  */
-inline bool path_dst(
+ bool path_dst(
                  typename Iterator<String<uint64_t> >::Type hitBegin, 
                  typename Iterator<String<uint64_t> >::Type hitEnd, 
                  StringSet<String<short> > & f1,

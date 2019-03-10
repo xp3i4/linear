@@ -85,7 +85,7 @@ int Options::print()
  * strand = 0, 1, other values is not allowed
  * return -1 , 1
  */
-inline uint64_t _nStrand(uint64_t strand)
+ uint64_t _nStrand(uint64_t strand)
 {
     return (strand << 1) - 1;
 }
@@ -94,7 +94,7 @@ inline uint64_t _nStrand(uint64_t strand)
  * do nothing if strand = 0
  * len is the length of the sequences;
  */
-inline uint64_t _flipCoord (uint64_t coord, uint64_t len, uint64_t strand)
+ uint64_t _flipCoord (uint64_t coord, uint64_t len, uint64_t strand)
 {
     return len * strand - _nStrand(strand) * coord;
 }
@@ -257,62 +257,62 @@ PMRecord::PMRecord(Options & options)
     loadRecord(options);
 }
 
-inline void Anchors::init(AnchorType val, unsigned range)
+ void Anchors::init(AnchorType val, unsigned range)
 {
     for (unsigned k = 0; k < range; k++)
         seqan::appendValue(set,val);
 }
 
-inline void Anchors::init(int length)
+ void Anchors::init(int length)
 {
     clear(set);
     seqan::appendValue(set, 0);
     (void)length;
 }
 
-inline void Anchors::init()
+ void Anchors::init()
 {
     init(AnchorType(0), 0);
 }
 
-inline void Anchors::setAnchor(unsigned p, 
+ void Anchors::setAnchor(unsigned p, 
     Anchors::AnchorType pos1,  Anchors::AnchorType pos2)
 {
     set[p] = (pos1 << AnchorBase::bit) + pos2;
 }
 
-inline Anchors::AnchorType Anchors::getPos1(unsigned p) const 
+ Anchors::AnchorType Anchors::getPos1(unsigned p) const 
 {
     return set[p] >> AnchorBase::bit;
 }
 
-inline Anchors::AnchorType Anchors::getPos2(unsigned p) const
+ Anchors::AnchorType Anchors::getPos2(unsigned p) const
 {
     return set[p] & AnchorBase::mask;
 }
 
-inline Anchors::AnchorType Anchors::deltaPos1(unsigned p1, unsigned p2)
+ Anchors::AnchorType Anchors::deltaPos1(unsigned p1, unsigned p2)
 {
     return (set[p1] >> AnchorBase::bit) - (set[p2] >> AnchorBase::bit);
 }
 
-inline Anchors::AnchorType Anchors::deltaPos2(unsigned p1, unsigned p2)
+ Anchors::AnchorType Anchors::deltaPos2(unsigned p1, unsigned p2)
 {
     return AnchorBase::mask & (set[p1] - set[p2]);
 }
-inline Anchors::Iter Anchors::begin()
+ Anchors::Iter Anchors::begin()
 {
     return seqan::begin(set);
 }
-inline Anchors::Iter Anchors::end()
+ Anchors::Iter Anchors::end()
 {
     return seqan::end(set);
 }
-inline void Anchors::sort(Anchors::Iter sortBegin, Anchors::Iter sortEnd)
+ void Anchors::sort(Anchors::Iter sortBegin, Anchors::Iter sortEnd)
 {
     std::sort(sortBegin, sortEnd);
 }
-inline void Anchors::sortPos2(Anchors::Iter sortBegin, Anchors::Iter sortEnd){
+ void Anchors::sortPos2(Anchors::Iter sortBegin, Anchors::Iter sortEnd){
     AnchorBase::AnchorType mask = AnchorBase::mask;
     std::sort(sortBegin, sortEnd,
     [& mask](AnchorBase::AnchorType & a, 
@@ -321,7 +321,7 @@ inline void Anchors::sortPos2(Anchors::Iter sortBegin, Anchors::Iter sortEnd){
         return (a & mask) < (b & mask);
     }) ;
 }
-inline void Anchors::appendValue(Anchors::AnchorType val)
+ void Anchors::appendValue(Anchors::AnchorType val)
 {
     seqan::appendValue(set,val);
 }
@@ -355,7 +355,7 @@ void MapParm::print()
 }
 
 static const String<Dna5> _complt = "tgcan";
-inline void _compltStr(String<Dna5> & str, String<Dna5> & res)
+ void _compltStr(String<Dna5> & str, String<Dna5> & res)
 {
     resize(res, length(str));
     for (unsigned k = 0; k < length(str); k++)
@@ -363,7 +363,7 @@ inline void _compltStr(String<Dna5> & str, String<Dna5> & res)
         res[k] = _complt[(unsigned)ordValue(str[k])];
 }
 
-inline void _compltRvseStr(String<Dna5> & str, String<Dna5> & res)
+ void _compltRvseStr(String<Dna5> & str, String<Dna5> & res)
 {
     resize(res, length(str));
     for (unsigned k = 0; k < length(str); k++)

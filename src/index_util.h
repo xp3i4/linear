@@ -37,8 +37,8 @@ extern uint64_t _BaseNum_SeqMask;
 extern const uint64_t _Empty_Dir_;
 extern const unsigned blocklimit;
 
-inline uint64_t _getSA_i1(uint64_t const & node);
-inline uint64_t _getSA_i2(uint64_t const & node);
+ uint64_t _getSA_i1(uint64_t const & node);
+ uint64_t _getSA_i2(uint64_t const & node);
 
 static const unsigned index_shape_len = 25;
 static const float def_alpha = 1.6;
@@ -172,6 +172,6 @@ uint64_t getXDir(HIndex const & index, uint64_t const & xval, uint64_t const & y
 uint64_t getXYDir(HIndex const & index, uint64_t const & xval, uint64_t const & yval);
 bool createHIndex(StringSet<String<Dna5> > & seq, LIndex & index, unsigned & threads, bool efficient);
 
-//inline uint64_t getXDir(LIndex const & index, uint64_t const & xval, uint64_t const & yval)
+// uint64_t getXDir(LIndex const & index, uint64_t const & xval, uint64_t const & yval)
 
 #endif
