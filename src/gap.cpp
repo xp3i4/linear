@@ -70,11 +70,17 @@ struct GIndex
 {
     String <uint64_t> g_hs;
     String <uint64_t> g_dir;
-    Shape<Dna5, Minimizer<g_shape_len> > shape;
+    LShape shape;
+    GIndex():
+    shape(g_shape_len){};
+    GIndex(unsigned shape_len):
+    shape(shape_len)
+    {};
 };
 
 int g_createDir_(String<Dna5> & seq, uint64_t gs_start, uint64_t gs_end, 
-                String<uint64_t> & g_hs, String<uint64_t> & g_dir, Shape<Dna5, Minimizer<g_shape_len> > & shape)
+                 String<uint64_t> & g_hs, String<uint64_t> & g_dir, 
+                 LShape & shape)
 {
     hashInit(shape, begin(seq) + gs_start);
     unsigned count = 0; 
@@ -751,7 +757,7 @@ int check_tiles_(String<uint64_t> & tiles, uint64_t g_start, uint64_t g_end)
                          int step,  
                          uint64_t type)
 {
-    Shape<Dna5, Minimizer<g_shape_len> >  shape;
+    LShape(g_shape_len)  shape;
     hashInit(shape, begin(seq) + start);
     int count = 0; 
     int countx = 0;
@@ -795,7 +801,7 @@ int check_tiles_(String<uint64_t> & tiles, uint64_t g_start, uint64_t g_end)
                          int step,  
                          uint64_t type)
 {
-    Shape<Dna5, Minimizer<g_shape_len> >  shape;
+    LShape shape(g_shape_len);
     hashInit(shape, begin(seq) + start);
     int count = 0; 
     int i = 0; 
@@ -1542,7 +1548,7 @@ const unsigned c_shape_len3 = 4; //base-level clipping gap shape
                      int step,  
                      uint64_t type)
 {
-    Shape<Dna5, Minimizer<c_shape_len> >  shape;
+    LShape shape(c_shape_len);
     hashInit_hs(shape, begin(seq) + start);
     int count = 0; 
     int i = 0; 
@@ -2032,7 +2038,7 @@ if (t == 3)
 {
     String<short> tn;
     String<short> ln;
-    Shape<Dna5, Minimizer<c_shape_len3> > shape;
+    LShape shape(c_shape_len3);
     int hs_len_genome = itEnd_genome - itBegin_genome;
     int hs_len_read = itEnd_read - itBegin_read;
     resize(tn, (hs_len_genome >> (error_level - 1)) + 1);

@@ -1,4 +1,5 @@
 #include "index_util.h"
+#include "shape_extend.h"
 
 using namespace seqan;
 
@@ -294,8 +295,24 @@ XString::XString(uint64_t const & seqlen)
 }
 
 Hs _DefaultHs;
-
-
+const unsigned index_shape_len = 25;
+const float def_alpha = 1.6;
+HIndex::HIndex():
+    alpha(def_alpha), 
+    shape(index_shape_len)
+    {}
+HIndex::HIndex(StringSet<String<Dna5> > const & text):
+    alpha(def_alpha), 
+    shape(index_shape_len)
+{
+    (void) text;
+}
+void HIndex::clear()
+{
+    seqan::clear(ysa);
+    shrinkToFit(ysa);
+    xstr.clear();
+}
 /*
  * serial sort hs
  * bucket[]+
@@ -574,7 +591,9 @@ Hs _DefaultHs;
 /*
  * serial creat hash array
  */
- bool _createHsArray(StringSet<String<Dna5> > const & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<index_shape_len> > & shape)
+ bool _createHsArray(StringSet<String<Dna5> > & seq, 
+                     String<uint64_t> & hs, 
+                     LShape & shape)
 {
     double time = sysTime();
     uint64_t preX = ~0;
@@ -637,7 +656,11 @@ Hs _DefaultHs;
  * creating index only collecting mini hash value [minindex]
  * state::warnning. for seq contains 'N', error. since the k in openmp doesn't change correctly
  */
- bool _createHsArray(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<index_shape_len> > & shape, unsigned & threads, bool efficient = true)
+ bool _createHsArray(StringSet<String<Dna5> > & seq, 
+                     String<uint64_t> & hs, 
+                     LShape & shape, 
+                     unsigned & threads, 
+                     bool efficient = true)
 {
     double time = sysTime();
     uint64_t hsRealEnd = 0;
@@ -653,7 +676,7 @@ Hs _DefaultHs;
         uint64_t thd_count = 0; // count number of elements in hs[] for each thread
         #pragma omp parallel reduction(+: thd_count)
         {
-            Shape<Dna5, Minimizer<index_shape_len> > tshape = shape; 
+            LShape tshape = shape; 
             uint64_t preX = ~0;
             int64_t ptr = 0;
             uint64_t size2 = (length(seq[j]) - tshape.span + 1) / threads;
@@ -761,7 +784,7 @@ Hs _DefaultHs;
  * appendvalue instead of resize
  * state::debug succ for seq without 'N', seq containing 'N' not tested 
  */
- bool _createHsArray2_MF(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, Shape<Dna5, Minimizer<index_shape_len> > & shape, unsigned & threads)
+ bool _createHsArray2_MF(StringSet<String<Dna5> >  & seq, String<uint64_t> & hs, LShape & shape, unsigned & threads)
 {
     std::cerr << "[prallel_createHsArray2_MF]\n";
     double time = sysTime();
@@ -770,7 +793,7 @@ Hs _DefaultHs;
     {
         #pragma omp parallel
         {
-            Shape<Dna5, Minimizer<index_shape_len> > tshape = shape; 
+            LShape tshape = shape; 
             String<uint64_t> hsTmp;
             clear(hsTmp);
             uint64_t preX = ~0;
@@ -1366,10 +1389,11 @@ bool checkHsSort(String<uint64_t> const & hs)
  * free geonme sequence during creating, for raw map
  */
  bool _createQGramIndexDirSA_parallel(StringSet<String<Dna5> > & seq, 
-XString & xstr, String<uint64_t> & hs,  Shape<Dna5, Minimizer<index_shape_len> > & shape, 
-uint64_t & indexEmptyDir, unsigned & threads, bool efficient)    
+        XString & xstr, String<uint64_t> & hs,  
+        LShape & shape, 
+        uint64_t & indexEmptyDir, 
+        unsigned & threads, bool efficient)    
 {
-    typedef Shape<Dna5, Minimizer<index_shape_len> > ShapeType;
     double time = sysTime();
     //_createHsArray2_MF(seq, hs, shape, threads);
     _createHsArray(seq, hs, shape, threads, efficient);
@@ -1377,10 +1401,9 @@ uint64_t & indexEmptyDir, unsigned & threads, bool efficient)
     std::cerr << "  End creating Index Time[s]:" << sysTime() - time << " \n";
     return true; 
 }
- bool _createQGramIndexDirSA(StringSet<String<Dna5> > const & seq, XString & xstr, 
-String<uint64_t> & hs,  Shape<Dna5, Minimizer<index_shape_len> > & shape, uint64_t & indexEmptyDir)    
+bool _createQGramIndexDirSA(StringSet<String<Dna5> > & seq, XString & xstr, 
+String<uint64_t> & hs,  LShape & shape, uint64_t & indexEmptyDir)    
 {
-    typedef Shape<Dna5, Minimizer<index_shape_len> > ShapeType;
     double time = sysTime();
     _createHsArray(seq, hs, shape);
     _createYSA(hs, xstr, indexEmptyDir);

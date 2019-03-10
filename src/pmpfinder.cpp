@@ -866,13 +866,12 @@ template <typename TDna, typename TSpec>
  * search double strand in one round
  */
  unsigned getIndexMatchAll(LIndex & index,
-                               String<Dna5> const & read,
-                              String<uint64_t> & set,
-                              MapParm & mapParm)
+                           String<Dna5> & read,
+                           String<uint64_t> & set,
+                           MapParm & mapParm)
 {   
-    typedef LIndex::TShape PShape;
     unsigned dt = 0;
-    PShape shape;
+    LShape shape(index.shape);
     uint64_t xpre = 0;
     hashInit(shape, begin(read));
     for (unsigned k = 0; k < length(read); k++)

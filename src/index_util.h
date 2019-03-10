@@ -36,12 +36,8 @@ extern uint64_t _BaseNum_code;
 extern uint64_t _BaseNum_SeqMask;
 extern const uint64_t _Empty_Dir_;
 extern const unsigned blocklimit;
-
- uint64_t _getSA_i1(uint64_t const & node);
- uint64_t _getSA_i2(uint64_t const & node);
-
-static const unsigned index_shape_len = 25;
-static const float def_alpha = 1.6;
+extern const unsigned index_shape_len;
+extern const float def_alpha;
 
 //========================================================
 //The is the section to optimize 25-mer index for mapping
@@ -59,12 +55,10 @@ struct HsBase
     const unsigned bodyYMask; 
     const unsigned bodyCodeBit;
     const unsigned pointerBit;
-    
     const unsigned pointerBitLen;
     const uint64_t mask;
     const uint64_t pointerMask;
     const uint64_t maxPointer;
-    
     const uint64_t headTypeFlag;
     const uint64_t typeFlag;
     const uint64_t typeFlag2;
@@ -141,33 +135,23 @@ struct XString
 
 class HIndex
 {
-    public:
-        typedef Shape<Dna5, Minimizer<index_shape_len> > TShape;
+public:
 
-        String<HType1>              ysa;
-        XString                     xstr;
-        TShape                      shape;
-        double   alpha;    
-        uint64_t emptyDir;
+    String<HType1>     ysa;
+    XString            xstr;
+    LShape             shape;
+    double             alpha;    
+    uint64_t emptyDir;
 
-        HIndex():
-            alpha(def_alpha) 
-            {}
-        HIndex(StringSet<String<Dna5> > const & text):
-            alpha(def_alpha) 
-        {
-            (void) text;
-        }
-        void clear()
-        {
-            seqan::clear(ysa);
-            shrinkToFit(ysa);
-            xstr.clear();
-        }
+    HIndex();
+    HIndex(StringSet<String<Dna5> > const & text);
+    void clear();
 }; 
 
 typedef HIndex LIndex;
 
+uint64_t _getSA_i1(uint64_t const & node);
+uint64_t _getSA_i2(uint64_t const & node);
 uint64_t getXDir(HIndex const & index, uint64_t const & xval, uint64_t const & yval);
 uint64_t getXYDir(HIndex const & index, uint64_t const & xval, uint64_t const & yval);
 bool createHIndex(StringSet<String<Dna5> > & seq, LIndex & index, unsigned & threads, bool efficient);
