@@ -60,9 +60,9 @@ SET(GCC_COVERAGE_COMPILE_FLAGS "-fprofile-arcs -ftest-coverage")
 SET(GCC_COVERAGE_LINK_FLAGS    "-lgcov")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS} ${CXX11_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
 set (CMAKE_EXE_LINKER_FLAGS "${GCC_COVERAGE_LINK_FLAGS}")
-set (CMAKE_BUILD_TYPE Release)
+#set (CMAKE_BUILD_TYPE Release)
 message (${CMAKE_CXX_FLAGS})
-#set (CMAKE_BUILD_TYPE Debug)
+set (CMAKE_BUILD_TYPE Debug)
 
 # ----------------------------------------------------------------------------
 # Installation
