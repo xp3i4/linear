@@ -31,19 +31,6 @@
 // ==========================================================================
 // Author: cxpan <chenxu.pan@fu-berlin.de>
 // ==========================================================================
-
-//#include <seqan/index.h>
-//#include <seqan/store.h>
-//#include <fstream>
-//#include <math.h>
-//#include <bitset>
-//#include <climits>
-//#include <thread>
-//#include <chrono>
-//#include <atomic>   
-//#include <iomanip>
-//#include <functional>   // for std::ref()
-//#include <ctime>
 #include "base.h"
 
 using namespace seqan;

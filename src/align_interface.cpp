@@ -51,7 +51,6 @@ int GapRecords::clear_(){
     clear(r_pairs);
     return 0;
 }
-
 GapParm::GapParm ():
         thd_clip_score(80),   //density score: clip when density is < 0.8
         thd_reject_score(130),      //calculate density within the window

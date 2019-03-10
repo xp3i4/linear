@@ -1,7 +1,6 @@
 #ifndef SEQAN_HEADER_PMP_FINDER_H
 #define SEQAN_HEADER_PMP_FINDER_H
-#include "base.h"
-#include "index_util.h"
+#include <seqan/sequence.h>
 
 using namespace seqan;
 
@@ -153,11 +152,6 @@ struct Hit
 };
 extern Hit _DefaultHit;
 
-uint64_t mnMapReadList( LIndex  & index,
-                        String<Dna5> & read,
-                        Anchors & anchors,
-                        MapParm & mapParm,
-                        String<uint64_t> & hit);
 bool path_dst(
              typename Iterator<String<uint64_t> >::Type hitBegin, 
              typename Iterator<String<uint64_t> >::Type hitEnd, 

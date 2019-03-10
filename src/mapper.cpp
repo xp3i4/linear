@@ -38,6 +38,7 @@
 #include <ctime>
 #include "mapper.h"
 #include "pmpfinder.h"
+#include "chain_map.h"
 #include "gap.h"
 #include "align_interface.h"
 
@@ -530,7 +531,7 @@ int64_t len = 0;
                 path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
             }   
             gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, 300, 192, p1);
-            //align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c], p1);
+            align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c], p1);
         }   
         c += 1;
     } 
@@ -608,7 +609,7 @@ int main(int argc, char const ** argv)
     std::cerr << "Encapsulated version: Mapping reads efficiently" << std::endl;
     Mapper mapper(options);
     omp_set_num_threads(mapper.thread());
-    //map(mapper, options.p1);
+    map(mapper, options.p1);
 
     //mapper.print_vcf();
     std::cerr << "  Result Files: \033[1;31m" << options.oPath << "\033[0m" << std::endl;

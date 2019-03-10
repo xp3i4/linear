@@ -1,5 +1,6 @@
 //GNode: N/A[1]|xval[32]|strand[1]|coordinate[30]
 #include <utility> 
+#include "base.h"
 #include "index_util.h"
 #include "pmpfinder.h"
 #include "gap.h"

@@ -36,6 +36,7 @@
 #include <seqan/stream.h>
 #include "base.h"
 #include "pmpfinder.h"
+#include "chain_map.h"
 
 using namespace seqan;
 int getsai1(int k)
