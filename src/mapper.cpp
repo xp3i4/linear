@@ -527,7 +527,7 @@ int64_t len = 0;
         if (length(reads[j]) >= mapParm.minReadLen)
         {
             red_len[thd_id] += length(reads[j]);
-            std::cout << "[]::rawmap::j " << j <<"\n";
+            //std::cout << "[]::rawmap::j " << j <<"\n";
             float cordLenThr = length(reads[j]) * cordThr;
             _compltRvseStr(reads[j], comStr);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
@@ -545,7 +545,7 @@ int64_t len = 0;
                 path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
             }   
             gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, 300, 192, p1);
-            align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c], p1);
+            //align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c], p1);
         }   
         c += 1;
     } 
