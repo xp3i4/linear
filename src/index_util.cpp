@@ -116,7 +116,7 @@ const unsigned blocklimit = 32;
 
 
 //========================================================
-//The is the section to optimize 25-mer index for mapping
+//This is the section to optimize 25-mer index for mapping
 //Structt Hs: String<uint64_t>
 //Types of node in Hs: 1.head node and 2.body node
 //Head: Headflag[1] = 0|sortFlag[1]|N/A[2]|Pointer[20]| xvalue[40]

@@ -576,16 +576,15 @@ int map(Mapper & mapper, int p1)
         time1 = sysTime() - time1;
         double time2 = sysTime();
         rawMap_dst2_MF(mapper.index(), 
-                                    f2, 
-                                    mapper.reads(), 
-                                    mapper.mapParm(), 
-                                    mapper.cords(), 
-                                    mapper.getClips(),
-                                    mapper.genomes(),
-                                    mapper.getBamRecords(),
-                                    mapper.thread(), 
-                                    p1
-                                   );
+                       f2, 
+                       mapper.reads(), 
+                       mapper.mapParm(), 
+                       mapper.cords(), 
+                       mapper.getClips(),
+                       mapper.genomes(),
+                       mapper.getBamRecords(),
+                       mapper.thread(), 
+                       p1);
         time2 = sysTime() - time2;
         std::cerr <<  "--Map::file_I/O+Map block "<< k << " Size " << length(mapper.reads()) << " Elapsed Time[s]: file_I/O " << time1 << " map "<< time2 << "\n";
         k++;
