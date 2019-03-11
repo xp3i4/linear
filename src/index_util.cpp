@@ -154,14 +154,11 @@ HsBase _DefaultHsBase(false);
 struct XNodeBase   //define dirNode
 {
     typedef uint64_t NodeType;
-    typedef uint64_t ReturnType;
-    typedef uint64_t Bit;
-    typedef uint64_t Mask;
-    
-    Bit bit;
-    Mask mask;
-    Bit bit2;
-    Mask mask2;
+
+    uint64_t bit;
+    uint64_t mask;
+    uint64_t bit2;
+    uint64_t mask2;
     
     NodeType emptyNode;
     NodeType xHead;
@@ -170,7 +167,6 @@ struct XNodeBase   //define dirNode
     
     ReturnType returnDir;
     ReturnType returnSa;
-    
    
     NodeType _Empty_Dir_;
     
@@ -1410,12 +1406,12 @@ String<uint64_t> & hs,  LShape & shape, uint64_t & indexEmptyDir)
     std::cerr << "  End creating Index Time[s]:" << sysTime() - time << " \n";
     return true; 
 }
- bool createHIndex(StringSet<String<Dna5> > & seq, HIndex & index, unsigned & threads, bool efficient)
+bool createHIndex(StringSet<String<Dna5> > & seq, HIndex & index, unsigned & threads, bool efficient)
 {
     return _createQGramIndexDirSA_parallel(seq, index.xstr, index.ysa, index.shape, index.emptyDir, threads, efficient);
 }
 
- bool _createQGramIndex(HIndex & index, StringSet<String<Dna5> > & seq, unsigned threads = 1)
+bool _createQGramIndex(HIndex & index, StringSet<String<Dna5> > & seq, unsigned threads = 1)
 {
     return _createQGramIndexDirSA(seq, index.xstr, index.ysa, index.shape, index.emptyDir);
 }

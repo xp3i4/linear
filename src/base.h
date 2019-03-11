@@ -63,8 +63,6 @@ struct PMRecord
     int loadRecord(Options & options);
 };
 
-
-
 struct AnchorBase{
     typedef uint64_t AnchorType;
     static const unsigned bit = 20;

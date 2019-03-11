@@ -39,8 +39,6 @@
 #include "chain_map.h"
 
 using namespace seqan;
-int getsai1(int k)
-{return 1;}
 const float band_width = 0.25;
 const unsigned cmask = ((uint64_t)1<<20) - 1;
 const unsigned cell_size = 16;
@@ -94,23 +92,20 @@ HitBase::HitBase():
 HitBase _DefaultHitBase;
 Hit _DefaultHit;
 
- uint64_t 
-Cord::getCordX(uint64_t const & cord, 
+uint64_t Cord::getCordX(uint64_t const & cord, 
                unsigned const & bit,
                uint64_t const & mask) const
 {
     return (cord >> bit) & mask; 
 }
 
- uint64_t 
-Cord::getCordY(uint64_t const & cord, 
+uint64_t Cord::getCordY(uint64_t const & cord, 
                uint64_t const & mask) const 
 {
     return cord & mask;
 }
 
- uint64_t 
-Cord::createCord(uint64_t const & x, 
+uint64_t Cord::createCord(uint64_t const & x, 
                  uint64_t const & y, 
                  uint64_t const & strand,
                  unsigned const & bit, 
@@ -119,8 +114,7 @@ Cord::createCord(uint64_t const & x,
     return (x << bit) + y + (strand << bit2);
 }
 
- uint64_t 
-Cord::hit2Cord(uint64_t const & hit, 
+uint64_t Cord::hit2Cord(uint64_t const & hit, 
                unsigned const & bit, 
                uint64_t const & mask,
                uint64_t const & mask2
@@ -129,8 +123,7 @@ Cord::hit2Cord(uint64_t const & hit,
     return (hit + ((hit & mask) << bit)) & mask2;
 }
 
- uint64_t 
-Cord::hit2Cord_dstr(uint64_t const & hit, 
+uint64_t Cord::hit2Cord_dstr(uint64_t const & hit, 
                unsigned const & bit, 
                uint64_t const & mask,
                uint64_t const & mask2
@@ -139,7 +132,7 @@ Cord::hit2Cord_dstr(uint64_t const & hit,
     return (hit + ((hit & mask) << bit)) & mask2;
 }
 
- uint64_t Cord::cord2Cell(uint64_t const & cord, 
+uint64_t Cord::cord2Cell(uint64_t const & cord, 
                 unsigned const & bit) const
 {
     return cord >> bit;
@@ -151,41 +144,39 @@ Cord::hit2Cord_dstr(uint64_t const & hit,
     return cell << bit;
 }
 
- void Cord::setCordEnd(uint64_t & cord,
+void Cord::setCordEnd(uint64_t & cord,
             typename CordBase::Flag const & strand,
             typename CordBase::Flag const & end)
 {
     cord |= strand | end;
 }
 
- typename CordBase::Flag 
-Cord::getCordStrand(uint64_t const & cord,
+typename CordBase::Flag Cord::getCordStrand(uint64_t const & cord,
             unsigned const & strand) const
 {
     return (cord >> strand) & 1ULL;
 }
 
- typename CordBase::Flag 
-Cord::isCordEnd(uint64_t const & cord,
+typename CordBase::Flag Cord::isCordEnd(uint64_t const & cord,
                 typename CordBase::Flag const & end) const
 {
     return cord & end;
 }
 
- void Cord::setMaxLen(String<uint64_t> & cord, uint64_t const & len, uint64_t const & mask)
+void Cord::setMaxLen(String<uint64_t> & cord, uint64_t const & len, uint64_t const & mask)
 {
     if (len > (cord[0] & mask))
         cord[0] = len + ((cord[0]) & (~mask));
 }
 
- uint64_t Cord::getMaxLen(String<uint64_t> const & cord, uint64_t const & mask)
+uint64_t Cord::getMaxLen(String<uint64_t> const & cord, uint64_t const & mask)
 {
     if (empty(cord))
         return 0;
     return cord[0] & mask;
 }
 
- uint64_t Cord::shift(uint64_t const & val, int64_t x, int64_t y, unsigned const & bit) //add x and y
+uint64_t Cord::shift(uint64_t const & val, int64_t x, int64_t y, unsigned const & bit) //add x and y
 {
     if (x < 0)
         return val - ((-x) << bit) + y;
@@ -193,7 +184,7 @@ Cord::isCordEnd(uint64_t const & cord,
         return val + (x << bit) + y;
 }
 
- bool Cord::isCordsOverlap(uint64_t & val1, uint64_t & val2, int64_t thd)
+bool Cord::isCordsOverlap(uint64_t & val1, uint64_t & val2, int64_t thd)
 {
     int64_t dx = _DefaultCord.getCordX(val2 - val1);
     int64_t dy = get_cord_y(val2 - val1);
@@ -201,25 +192,25 @@ Cord::isCordEnd(uint64_t const & cord,
     return (dx >= 0) && (dx < thd) && (dy >= 0) && (dy < thd);
 }
 
- bool Cord::isBlockEnd(uint64_t & val, uint64_t const & flag)
+bool Cord::isBlockEnd(uint64_t & val, uint64_t const & flag)
 {
     return val & flag;
 }
 
- uint64_t get_cord_x (uint64_t val) {return _getSA_i2(_DefaultCord.getCordX(val));}
- uint64_t get_cord_y (uint64_t val) {return _DefaultCord.getCordY(val);}
- uint64_t get_cord_strand (uint64_t val) {return _DefaultCord.getCordStrand(val);}
- uint64_t get_cord_id (uint64_t val) {return _getSA_i1(_DefaultCord.getCordX(val));}
- uint64_t create_id_x(uint64_t const id, uint64_t const x)
+uint64_t get_cord_x (uint64_t val) {return _getSA_i2(_DefaultCord.getCordX(val));}
+uint64_t get_cord_y (uint64_t val) {return _DefaultCord.getCordY(val);}
+uint64_t get_cord_strand (uint64_t val) {return _DefaultCord.getCordStrand(val);}
+uint64_t get_cord_id (uint64_t val) {return _getSA_i1(_DefaultCord.getCordX(val));}
+uint64_t create_id_x(uint64_t const id, uint64_t const x)
 {
     return (id << _DefaultCordBase.bit_id) + x;
 }
- uint64_t create_cord (uint64_t id, uint64_t cordx, uint64_t cordy, uint64_t strand)
+uint64_t create_cord (uint64_t id, uint64_t cordx, uint64_t cordy, uint64_t strand)
 {
     return _DefaultCord.createCord(create_id_x (id, cordx), cordy, strand);
 }
 
- void cmpRevCord(uint64_t val1, 
+void cmpRevCord(uint64_t val1, 
                     uint64_t val2,
                     uint64_t & cr_val1,
                     uint64_t & cr_val2,
@@ -228,7 +219,7 @@ Cord::isCordEnd(uint64_t const & cord,
     cr_val1 = (val1 - get_cord_y(val1) + read_len - get_cord_y(val2)) ^ _DefaultCordBase.flag_strand;
     cr_val2 = (val2 - get_cord_y(val1) + read_len - get_cord_y(val2)) ^ _DefaultCordBase.flag_strand;
 }
- uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y)
+uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y)
 {
     return (val & (~_DefaultCordBase.valueMask)) + (x << _DefaultCordBase.bit) + y;
 }
@@ -236,7 +227,7 @@ Cord::isCordEnd(uint64_t const & cord,
 
 //======HIndex getIndexMatch()
 
- int _scriptDist(int const & s1, int const & s2)
+int _scriptDist(int const & s1, int const & s2)
 {
     int res = std::abs((s1 & scriptMask)
             - (s2 & scriptMask)) 
@@ -246,7 +237,7 @@ Cord::isCordEnd(uint64_t const & cord,
     return res;
 }
 
- void createFeatures(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f)
+void createFeatures(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f)
 {
     unsigned next = 1;
     unsigned window = 1 << scriptWindow;
@@ -1683,93 +1674,6 @@ int rawMap_dst( LIndex   & index,
     return 0;
 }
 
-/*
- * This mapping function use the hash value of double strand 
- * that allow to stream the sequence of double strand for only once
- * pass feature instead of genomes to reduce memory footprint
- *
-template <typename TDna, typename TSpec>
-int rawMap_dst2_MF(typename LIndex   & index,
-            StringSet<String<short> > & f2,
-            typename StringSet<String<Dna5> >      & reads,
-            MapParm & mapParm,
-            StringSet<String<uint64_t> > & cords,
-            unsigned & threads,
-            StringSet<String<TDna> > & seqs
-            )
-{
-  
-    typedef typename String<Dna5> Seq;
-    //double time=sysTime();
-    float senThr = mapParm.senThr / window_size;
-    float cordThr = mapParm.cordThr / window_size;
-    MapParm complexParm = mapParm;
-    complexParm.alpha = complexParm.alpha2;
-    complexParm.listN = complexParm.listN2;
-    //double time2 = sysTime();
-#pragma omp parallel
-{
-    unsigned size2 = length(reads) / threads;
-    unsigned ChunkSize = size2;
-    Seq comStr;
-    //Anchors anchors(Const_::_LLTMax, AnchorBase::size);
-    Anchors anchors;
-    typename String<uint64_t>  crhit;
-    StringSet<String<uint64_t> >  cordsTmp;
-    StringSet< String<short> > f1;
-    unsigned thd_id =  omp_get_thread_num();
-    if (thd_id < length(reads) - size2 * threads)
-    {
-        ChunkSize = size2 + 1;
-    }
-    resize(cordsTmp, ChunkSize);
-    resize(f1, 2);
-    unsigned c = 0;
-    
-    String<uint64_t>  g_hs;
-    String<uint64_t>  g_anchor;
-    resize (g_hs, 1ULL << 20);
-    resize (g_anchor, 1ULL<<20);
 
-    #pragma omp for
-    for (unsigned j = 0; j < length(reads); j++)
-    {
-        if (length(reads[j]) >= mapParm.minReadLen)
-        {
-            float cordLenThr = length(reads[j]) * cordThr;
-            _compltRvseStr(reads[j], comStr);
-            createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
-            createFeatures(begin(comStr), end(comStr), f1[1]);
-            anchors.init(1);
-            clear(crhit);
-            mnMapReadList<TDna, TSpec>(index, reads[j], anchors, mapParm, crhit);
-            path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
-            if (_DefaultCord.getMaxLen(cordsTmp[c]) < length(reads[j]) * senThr)// && 
-               //_DefaultCord.getMaxLen(cordsTmp[c]) > 0)
-            {
-                clear(cordsTmp[c]);
-                anchors.init(1);
-                clear(crhit);
-                mnMapReadList<TDna, TSpec>(index, reads[j], anchors, complexParm, crhit);
-                path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
-            }   
-            //mapGaps ()
-            mapGaps(seqs, reads[j], cordsTmp[c], g_hs, g_anchor, 500, 192);
-        }
-        c += 1;
-    } 
-    #pragma omp for ordered
-    for (unsigned j = 0; j < threads; j++)
-        #pragma omp ordered
-        {
-            append(cords, cordsTmp);
-        }
-}
-    //std::cerr << "    End raw mapping. Time[s]: " << sysTime() - time << std::flush << std::endl;
-    return 0;
-}
-*/
 //End all mapper module
 //============================================
-
-
