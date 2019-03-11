@@ -261,13 +261,18 @@ void setClippedPositions(TRow & row1, TRow & row2, int beginPos, int endPos)
 /*
  * insert cigar to the original cigar 
  */
-int  insertBamRecordCigar (BamAlignmentRecord & bam_record,
+int insertBamRecordCigar (BamAlignmentRecord & bam_record,
                     Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
                     Row<Align<String<Dna5>, ArrayGaps> >::Type & row2, 
                     int pos = -1
                    )
 {
+    //<<debug
     std::cout <<"xxxxxxxxxxxxxxxxinscigar\n";
+    std::pair <int,int> lens;
+    lens = countCigar (bam_record.cigar);
+    std::cout << "cigar_before " << lens.first << " " << lens.second << "\n";
+    //>>debug
     if (pos < 0)
     {
         align2cigar(bam_record.cigar, row1, row2);
@@ -276,6 +281,10 @@ int  insertBamRecordCigar (BamAlignmentRecord & bam_record,
     {
         if (pos > length(bam_record.cigar ) - 1)
         {
+            //<<debug
+            lens = countCigar (bam_record.cigar);
+            std::cout << "cigar_after " << lens.first << " " << lens.second << "\n"; 
+            //>>debug
             return 1;
         }
         String<CigarElement< > > tmp;
@@ -283,6 +292,10 @@ int  insertBamRecordCigar (BamAlignmentRecord & bam_record,
         std::cout << "inscigar " << length(tmp) << "\n";
         insertCigar(bam_record.cigar, pos, tmp);
     }
+    //<<debug
+    lens = countCigar (bam_record.cigar);
+    std::cout << "cigar_after " << lens.first << " " << lens.second << "\n";
+    //>>debug
     return 0;
 }
 int  insertNewBamRecord (String<BamAlignmentRecordLink> & bam_records,
@@ -1167,7 +1180,7 @@ int merge_gap_segs_(String<BamAlignmentRecordLink> & bam_records,
     clip_ends = length(clip_records);
     clear(crv_gaps_src1);
     clear(crv_gaps_src2);
-    std::cout << "xxxclip " << length(clip_records) << "\n";
+    std::cout << "xxyclip " << length(clip_records) << " " << get_cord_strand(gap_start_cord) << " " << get_cord_y(gap_start_cord) << " " << get_cord_x(gap_start_cord) << "\n";
     if (clip_ends == 0)
     {
         return 1;
@@ -1210,10 +1223,16 @@ int merge_gap_segs_(String<BamAlignmentRecordLink> & bam_records,
     g_id = get_cord_id(cord_jt);
     g_beginPos = get_cord_x (cord_jt) + beginPosition(row_jt1);
     insertBamRecord(bam_records[bam_id_seg_t], row_jt1, row_jt2, g_id, g_beginPos, 0); //insert head_joint and tail_joint cigar at end or at the start of each bam records 
+    printRows(row_jh1, row_jh2);
+    printRows(row_jt1, row_jt2);
+    std::cout << "bam_check3 " << flag_h << " " << flag_t << " " << bam_id_seg_h << " " << clippedEndPosition(row_jh2) - clippedBeginPosition(row_jh2) << " " << bam_id_seg_t << " " << clippedEndPosition(row_jt2) - clippedBeginPosition(row_jt2) << " " ;
     if (!flag_h && !flag_t)
     {
+
+        //std::cout << " x " << clippedEndPosition(row(aligner, 0)) - clippedBeginPosition(row(aligner, 1)) << "\n";
         if (length(clip_records) > 1)
         {
+        std::cout << " x "  << "\n";
             setClippedPositions(row(aligner, 0), row(aligner, 1), clips_h.second, clip_records[0].second);
             insertBamRecordCigar(bam_records[bam_id_seg_h], row(aligner, 0), row(aligner, 1));
             setClippedPositions(row(aligner, 0), row(aligner, 1), back(clip_records).first, clips_t.first);
@@ -1224,13 +1243,12 @@ int merge_gap_segs_(String<BamAlignmentRecordLink> & bam_records,
         }
         else
         {
+        std::cout << " y " << " " << clips_t.first - clips_h.second << "\n";
             setClippedPositions(row(aligner, 0), row(aligner, 1), clips_h.second, clips_t.first);
             insertBamRecordCigar(bam_records[bam_id_seg_h], row(aligner, 0), row(aligner, 1)); //append at the end  
             bam_records[bam_id_seg_h].addNext(bam_id_seg_t);
             return 0; 
         }
-           
-        std::cout << "[]::merge_gap_segs_2 " << " clipped end " << get_cord_x(gap_start_cord) + endPosition(row(aligner, 0)) << "\n";
     }
     else if (!flag_h && flag_t) //head can be merged while tailed failed
     {
@@ -1250,7 +1268,6 @@ int merge_gap_segs_(String<BamAlignmentRecordLink> & bam_records,
     else if (flag_h && !flag_t)
     {
         setClippedPositions(row(aligner, 0), row(aligner, 1), back(clip_records).first, clips_t.first);
-        std::cout << "bamxxx " << bam_id_seg_t << " " << length(bam_records) << " " << back(clip_records).first << " " << clips_t.first << "\n";
         insertBamRecordCigar(bam_records[bam_id_seg_t], row(aligner, 0), row(aligner, 1), 0); //insert at the front 
         bam_records[bam_id_seg_t].beginPos = back(clip_records_src1).first;
         appendValue (crv_gaps_src1, std::pair<int, int>(beginPosition(row_jh1), clip_records_src1[0].first));
@@ -1284,6 +1301,8 @@ int merge_gap_segs_(String<BamAlignmentRecordLink> & bam_records,
         }
         std::cout << "crv " << clip_records_src2[j].first << " " << clip_records_src2[j].second << "\n";
     }
+    std::cout << "xxyclip " << length(clip_records) << "\n";
+
     return 0;
 }
 int align_gap (String<BamAlignmentRecordLink> & bam_records,
@@ -1443,15 +1462,21 @@ int align_gaps (String<BamAlignmentRecordLink> & bam_records,
     resize(rows(aligner), 2);
     resize(rows(aligner), 2);
     for (int i = 0; i < length(gaps.c_pairs); i++)
-//>>debug
-    //for (int i = 0; i < p; i++)
-//<<debug
     { 
+
         clear(crv_gaps_src1);
         clear(crv_gaps_src2);
-        std::cout << "align_gaps len " << i << "\n";
         uint64_t gap_start_cord = gaps.get_c_pair(i).first;
         uint64_t gap_end_cord = gaps.get_c_pair(i).second; 
+
+        //>>debug
+        std::cout << "bam_check " << i << " " << get_cord_strand(gap_start_cord) << " " << get_cord_strand(gap_end_cord) << " " << get_cord_y (gap_start_cord) << " " << get_cord_y (gap_end_cord) << " " << get_cord_x (gap_start_cord) << " " << get_cord_x (gap_end_cord)<< "\n";
+        for (int j = 0; j < length(bam_records); j++)
+        {
+            std::pair<int, int> lens = countCigar(bam_records[j].cigar);
+            std::cout << "bam_check2 " << j << " " <<lens.first << " " << lens.second << "\n";
+        }
+//<<debug
         align_gap(bam_records,
                   gaps,
                   genomes,
@@ -1495,6 +1520,12 @@ int align_gaps (String<BamAlignmentRecordLink> & bam_records,
                 );   
         }
     }
+    std::cout << "bam_check " << 8 << "\n";
+        for (int j = 0; j < length(bam_records); j++)
+        {
+            std::pair<int, int> lens = countCigar(bam_records[j].cigar);
+            std::cout << "bam_check2 " << j << " " <<lens.first << " " << lens.second << "\n";
+        }
     return 0;
 }
 
