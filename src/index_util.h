@@ -122,7 +122,6 @@ struct XNode
     TypeV1 val1;
     TypeV2 val2;
 };
-
 struct XString
 {
     String<XNode> xstring;
@@ -133,7 +132,6 @@ struct XString
     uint64_t _fullSize(uint64_t const & seqlen, float const & alpha = def_alpha);
     void clear();
 };
-
 class HIndex
 {
 public:

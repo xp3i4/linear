@@ -165,8 +165,8 @@ struct XNodeBase   //define dirNode
     NodeType xHead1;
     NodeType virtualHead;
     
-    ReturnType returnDir;
-    ReturnType returnSa;
+    uint64_t returnDir;
+    uint64_t returnSa;
    
     NodeType _Empty_Dir_;
     
@@ -190,15 +190,15 @@ struct XNodeFunc
     uint64_t getAddY();
     uint64_t hash(uint64_t const &);
     void setXNode(XNode &, XNode::TypeV1 const & val1, XNode::TypeV2 const &, 
-                XNodeBase::NodeType const &, XNodeBase::ReturnType const &, 
-                XNodeBase::Bit const & = _DefaultXNodeBase.bit,
-                XNodeBase::Bit const & = _DefaultXNodeBase.bit2
+                  uint64_t const &, uint64_t const &, 
+                  uint64_t const & = _DefaultXNodeBase.bit,
+                  uint64_t const & = _DefaultXNodeBase.bit2
                  );
     XNode::TypeV1 makeYXKey(typename Hs::ValueBodyType const &, XNode::TypeV1 const &, 
-                            XNodeBase::Mask const & = _DefaultHsBase.bodyYMask << _DefaultHsBase.bodyYBit, 
-                            XNodeBase::Mask const & = _DefaultHsBase.mask);
-    XNode::TypeV1 collision(XNode::TypeV1 const &, XNode::TypeV1 const &, XNodeBase::Mask const & = _DefaultXNodeBase.mask2);
-    XNode::TypeV2L makeReturnVal(XNode const &, XNodeBase::Mask const & = _DefaultXNodeBase.mask2);
+                            uint64_t const & = _DefaultHsBase.bodyYMask << _DefaultHsBase.bodyYBit, 
+                            uint64_t const & = _DefaultHsBase.mask);
+    XNode::TypeV1 collision(XNode::TypeV1 const &, XNode::TypeV1 const &, uint64_t const & = _DefaultXNodeBase.mask2);
+    XNode::TypeV2L makeReturnVal(XNode const &, uint64_t const & = _DefaultXNodeBase.mask2);
     
 }_DefaultXNodeFunc;
 
@@ -913,26 +913,23 @@ bool checkHsSort(String<uint64_t> const & hs)
     return key;        
 }
 
- void XNodeFunc::setXNode(XNode & val, XNode::TypeV1 const & val1, XNode::TypeV2 const &val2, 
-                            XNodeBase::NodeType const & t, XNodeBase::ReturnType const & r, 
-                            XNodeBase::Bit const & bit, XNodeBase::Bit const & bit2)
+ void XNodeFunc::setXNode(XNode & val, XNode::TypeV1 const & val1, XNode::TypeV2 const &val2, uint64_t const & t, uint64_t const & r, uint64_t const & bit, uint64_t const & bit2)
 {
     val.val1 = (val1 << bit) + t + (r << bit2);
     val.val2 = val2;
 }
 
- XNode::TypeV1 XNodeFunc::makeYXKey(typename Hs::ValueBodyType const & hval, XNode::TypeV1 const & xval, 
-                            XNodeBase::Mask const & masky, XNodeBase::Mask const & maskx)
+ XNode::TypeV1 XNodeFunc::makeYXKey(typename Hs::ValueBodyType const & hval, XNode::TypeV1 const & xval, uint64_t const & masky, uint64_t const & maskx)
 {
     return (hval & masky) + (xval & maskx);
 }
 
- XNode::TypeV1 XNodeFunc::collision(XNode::TypeV1 const & val, XNode::TypeV1 const & xnode_val1, XNodeBase::Mask const & mask)
+ XNode::TypeV1 XNodeFunc::collision(XNode::TypeV1 const & val, XNode::TypeV1 const & xnode_val1, uint64_t const & mask)
 {
     return (val ^ xnode_val1) & mask;
 }
 
- XNode::TypeV2L XNodeFunc::makeReturnVal(XNode const & xnode, XNodeBase::Mask const & mask)
+ XNode::TypeV2L XNodeFunc::makeReturnVal(XNode const & xnode, uint64_t const & mask)
 {
     return (xnode.val1 & (~mask)) + xnode.val2;
     //return xnode.val2;
