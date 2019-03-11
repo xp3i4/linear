@@ -1725,6 +1725,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                                     );
         flag |= clip_head_ (row(aligner, ri), row(aligner, ri + 1), head_end);
         flag |= clip_tail_ (row(aligner, ri), row(aligner, ri + 1), tail_start);
+        //TODO!!check_align for first or last cord are differnet from middle cords
         flag |= check_align_(row(aligner, ri), row(aligner, ri + 1), score_align, check_flag, thd_min_window, thd_min_score);
         std::cout << "[]::check_flag_ " << i << " " << flag << "\n";
         if (flag)
@@ -1788,8 +1789,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                           row(aligner, ri_pre + 1),
                           pre_cord_start,
                           _gap_parm,
-                          1
-                        );
+                          1);
                 insertBamRecordCigar(back(bam_records), 
                                      row(aligner, ri_pre),
                                      row(aligner, ri_pre + 1));
@@ -1829,6 +1829,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         pre_cord_start = cord_start;
         pre_cord_end = cord_end;
         std::swap (ri, ri_pre); //swap the current and pre row id in the aligner.
+        std::cout << "bam_len " << i + 1<< " " << length(bam_records) << " " << flag << " " << length(back(bam_records).cigar) << "\n";
     }
     printGaps(gaps.c_pairs);
     Score<int> score_scheme;
