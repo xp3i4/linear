@@ -2005,16 +2005,15 @@ String<Dna5> & int2str(String<Dna5> & s, uint64_t s1, int n)
         {
             s[n - 1 - i] = 'A';
         }
-
-if (t == 1)
+        if (t == 1)
         {
             s[n - 1 - i] = 'C';
         }
-if (t == 2)
+        if (t == 2)
         {
             s[n - 1 - i] = 'G';
         }
-if (t == 3)
+        if (t == 3)
         {
             s[n - 1 - i] = 'T';
         }

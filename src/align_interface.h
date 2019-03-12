@@ -15,6 +15,8 @@ public:
     TCPairs c_pairs;  //pair of start and end coordinate of gaps 
     TRPairs r_pairs;  //pair of alingments of blocks contains the start and end of gaps 
     String<int> bam_segs_id;
+    String<int> clip_flags;
+    int unset_bit;
     uint64_t dx, dy;  //shift from start and end of gaps to the start and end of of the alignment
 
     TCPair & get_c_pair(int i);  
@@ -22,9 +24,13 @@ public:
     TRPair & get_r2_pair(int i); //get rows of second(end) cord of i_th gaps
     int getBamSegIdHead (int i);
     int getBamSegIdTail (int i);
+    int get_clip_flag(i);
     uint64_t getJointHeadCord(int i); 
     uint64_t getJointTailCord(int i);
+    int _set_clip_flag(int clip_flag, int pos);
+    int append_unset_flag();
     int clear_();
+    GapRecords();
 };
 
 struct GapParm
