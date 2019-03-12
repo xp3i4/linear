@@ -888,39 +888,6 @@ int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
 
  void insertGaps(GapRecords & gaps,
                   uint64_t cord1,    //start coordinate of gap
-                  uint64_t cord2,    //end coordinate of gap
-                  int bam_segs_id,
-                  int thd_merge_gap,
-                  int dx_,
-                  int dy_
-                 )
-{
-    if (empty(gaps.c_pairs))
-    {
-        appendValue(gaps.c_pairs, std::pair<uint64_t, uint64_t>(cord1, cord2));
-        appendValue(gaps.bam_segs_id, bam_segs_id);
-
-    }
-    else 
-    {
-        if (_DefaultCord.isCordsOverlap(back(gaps.c_pairs).second, cord1, thd_merge_gap) && 
-            back(gaps).bam_segs_id == bam_segs_id)
-        {
-            int i = length(gaps.c_pairs) - 1;
-            gaps.get_c_pair(i).second = cord2;
-        }
-        else
-        {
-            appendValue(gaps.c_pairs, std::pair<uint64_t, uint64_t>(cord1, cord2));
-            appendValue(gaps.bam_segs_id, bam_segs_id);
-        }
-    }
-    gaps.dx = dx_;
-    gaps.dy = dy_;
-}
-
- void insertGaps(GapRecords & gaps,
-                  uint64_t cord1,    //start coordinate of gap
                   uint64_t cord2, // end coordinate
                   Row<Align<String<Dna5>, ArrayGaps> >::Type & row11,
                   Row<Align<String<Dna5>, ArrayGaps> >::Type & row12,
@@ -941,8 +908,10 @@ int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     }
     else 
     {
-        if (_DefaultCord.isCordsOverlap(back(gaps.c_pairs).second, cord1, thd_merge_gap) && 
-            back(gaps).bam_segs_id == bam_segs_id)
+        //<<debug
+        std::cout << "insrtgapflag " << _DefaultCord.isCordsOverlap(back(gaps.c_pairs).second, cord1, thd_merge_gap) << " " << back(gaps.bam_segs_id) << " " << bam_segs_id << get_cord_y(back(gaps.c_pairs).second) << " " << get_cord_y(cord1) << "\n";
+        //>>debug
+        if (_DefaultCord.isCordsOverlap(back(gaps.c_pairs).second, cord1, thd_merge_gap))
         {
             int i = length(gaps.c_pairs) - 1;
             gaps.get_c_pair(i).second = cord2;
@@ -1469,7 +1438,12 @@ int align_gaps (String<BamAlignmentRecordLink> & bam_records,
         uint64_t gap_start_cord = gaps.get_c_pair(i).first;
         uint64_t gap_end_cord = gaps.get_c_pair(i).second; 
 
-        //>>debug
+//>>debug
+        if (i < length(gaps.c_pairs) && gaps.getJointTailCord(i) == gaps.getJointHeadCord(i + 1))
+        {
+            std::cout << "redunt cord " << i << "\n";
+        }
+        std::cout << "jt_cord " << i << " " << get_cord_y(gaps.getJointHeadCord(i)) << " " << get_cord_y(gaps.getJointTailCord(i)) << "\n";
         std::cout << "bam_check " << i << " " << get_cord_strand(gap_start_cord) << " " << get_cord_strand(gap_end_cord) << " " << get_cord_y (gap_start_cord) << " " << get_cord_y (gap_end_cord) << " " << get_cord_x (gap_start_cord) << " " << get_cord_x (gap_end_cord)<< "\n";
         for (int j = 0; j < length(bam_records); j++)
         {
@@ -1643,7 +1617,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
     int head_end = block_size >> 2, tail_start = block_size - (block_size >> 2);
     int ri = 0, ri_pre = 2; //cliped segment and row id
     int g_id = -1, g_beginPos = 0, strand = 0, flag = 0;
-    int thd_merge_gap = block_size; // two adjacent gaps will be merged to one if < it
+    int thd_merge_gap = block_size / 3; // two adjacent gaps will be merged to one if < it
     int flag2 = 1;
     int d_overlap_x;
     int d_overlap_y;
