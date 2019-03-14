@@ -486,7 +486,7 @@ void printRows(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
             append (line3, " ");
         }
         appendValue(line4, row2[i]);
-        if (i % 50 == 49)
+        if (i % 50 == 49 || i == len - 1)
         {
             line1 += "  " + std::to_string(i + 1) + " " + std::to_string(css1) + " " + std::to_string(css2);
             std::cout << line1 << "\n" << line2 << "\n" << line3 << "\n" << line4 << "\n\n";
