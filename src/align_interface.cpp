@@ -388,7 +388,7 @@ int  insertNewBamRecord (String<BamAlignmentRecordLink> & bam_records,
     }
     return 0;
 }
-int  insertNewEmptyBamRecord (String<BamAlignmentRecordLink> & bam_records,
+int  insertNewBamRecord (String<BamAlignmentRecordLink> & bam_records,
                                 int g_id,
                                 int g_beginPos,
                                 int strand,
@@ -794,10 +794,7 @@ int merge_align__(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     if (get_cord_strand(cord1 ^ cord2))
     {
         r_flag |= 2;
-        if ((int)get_cord_x(cord2 - cord1) > thd_cord_overlap)
-        {
-            r_flag |= 1;
-        }
+        return r_flag;
     }
     else if (!_DefaultCord.isCordsOverlap(cord1, cord2, thd_cord_overlap))  //sv: gap or reverse
     {
@@ -1185,11 +1182,11 @@ int clip_segs(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
     }
     else 
     {
-        if (direction < 0)
+        if (direction <= 0)
         {
             setClippedBeginPositions(row1, row2, clip_records[0].first);
         }
-        else if (direction > 0)
+        else if (direction >= 0)
         {
             setClippedEndPositions(row1, row2, back(clip_records).second);
         }
@@ -1682,13 +1679,12 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                 ) 
 {
     Align<String<Dna5>, ArrayGaps> aligner;
-    Align<String<Dna5>, ArrayGaps> aligner_tmp;
     GapRecords gaps;
     BamAlignmentRecordLink emptyBamRecord;
     String<uint64_t> cords_buffer;
     int head_end = block_size >> 2, tail_start = block_size - (block_size >> 2);
     int ri = 0, ri_pre = 2; //cliped segment and row id
-    int g_id = -1, g_beginPos = 0, strand = 0, flag = 0;
+    int g_id = -1, g_beginPos = 0, strand = 0, flag = 0, flag_pre = 0;
     int thd_merge_gap = block_size / 3; // two adjacent gaps will be merged to one if < it
     int flag2 = 1;
     int d_overlap_x;
@@ -1699,8 +1695,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
     float thd_ddx = (float)band / block_size / 8; //TODO::8 needs tunning
     clear (bam_records);
     resize(cords_buffer, 2);
-    resize(rows(aligner), 4); 
-    resize(rows(aligner_tmp), 2);
+    resize(rows(aligner), 8); 
     double t1, t2 = 0, t3 = sysTime();
     if (length(cords) < 2) // cords is empty
     {
@@ -1710,10 +1705,16 @@ int align_cords (StringSet<String<Dna5> >& genomes,
     uint64_t cord_end;
     uint64_t pre_cord_start;
     uint64_t pre_cord_end;
+    uint64_t gap_jh_cord;
+    uint64_t bam_start;
+    uint64_t bam_strand;
     int check_flag = 0;
     int flag_clip = 0;
     int flag_clip_pre = flag_clip;
     for (int i = 1; i < (int)length(cords); i++)
+    //<<debug
+    //for (int i = 1; i < 10; i++)
+        //>>debug
     {
         //>debug section begin xxxxxxx
         /*
@@ -1726,15 +1727,15 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         }
         */
         //<debug section end
+        flag_pre = flag;
         flag = 0;
         check_flag = 0;
-        flag_clip_pre = flag_clip;
-        flag_clip = 0; 
         g_id = get_cord_id(cords[i]);
         g_beginPos = get_cord_x (cords[i]);
         strand = get_cord_strand(cords[i]);
         cord_start = cords[i];
         cord_end = _DefaultCord.shift(cord_start, block_size, block_size);
+        int ri_gap_h = 4;
         if (_DefaultCord.isBlockEnd(cords[i - 1])) 
         {
             int dy = std::min(thd_max_dshift, (int)get_cord_y(cords[i]));
@@ -1784,141 +1785,128 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         {
             clip_segs(row(aligner, ri), row(aligner, ri + 1), cord_start, _gap_parm, -1);
             flag_clip |= flag_clip_head;
-            insertNewEmptyBamRecord(bam_records, g_id,
+            insertNewBamRecord(bam_records, g_id,
                             get_cord_x(cord_start) + beginPosition(row(aligner, ri)),
                             get_cord_strand(cords[i]));
+            pre_cord_start = cord_start;
+            pre_cord_end = cord_end;
+            std::swap (ri, ri_pre); 
+            continue;
         } 
         else
         {
             flag = merge_align_(row(aligner, ri_pre), row(aligner, ri_pre + 1), 
                     row(aligner, ri), row(aligner, ri + 1), pre_cord_start, cord_start );
         }
-        if (!flag)
+        std::cout << "flag " << i + 1 << " " << flag_pre << " " << flag << "\n";
+        bam_start = get_cord_x(pre_cord_start) 
+                         + beginPosition(row(aligner, ri_pre));
+        bam_strand = strand?(bam_flag_rvcmp | bam_flag_suppl):        
+                                   bam_flag_suppl; 
+        if (!flag_pre)
         {
-            if (!flag_pre)
+            if (!flag)
             {
                 insertBamRecordCigar(back(bam_records), 
                             row(aligner, ri_pre), 
-                            row(aligner, ri_pre + 1));
+                            row(aligner, ri_pre + 1));                
             }
-            else if (flag_pre & 1)
+            else if (flag & 1)
+            {
+                row(aligner, ri_gap_h) = row(aligner, ri_pre);
+                row(aligner, ri_gap_h + 1) = row(aligner, ri_pre + 1);
+                gap_jh_cord = pre_cord_start;
+            }
+            else if (flag & 2)
+            {
+                std::cout << "ct2 " << i << "\n";
+                clip_segs(row(aligner, ri_pre), row(aligner, ri_pre + 1), 
+                          pre_cord_start, _gap_parm, 1); 
+                insertBamRecordCigar(back(bam_records), 
+                                     row(aligner, ri_pre), 
+                                     row(aligner, ri_pre + 1));            
+            }
+        }
+        if (flag_pre & 1)
+        {
+            if (!flag)
             {
                 int dx = block_size >> 1; //shift the cord to the gap cord;
                 int dy = block_size >> 1;
             //TODO::change dx, dy, for joint not well mapped cord, it's incorrect
-                int flag_overlap = insertGaps(gaps, pre_cord_start, cord_start,
+                if(insertGaps(gaps, gap_jh_cord, pre_cord_start,
                            row(aligner, ri_gap_h), 
-                           row(aligner, ri_gap_h),
+                           row(aligner, ri_gap_h + 1),
                            row(aligner, ri_pre),
                            row(aligner, ri_pre + 1),
                            length(bam_records) - 1,
                            thd_merge_gap,
                            dx,
-                           dy);
-                if (!flag_overlap)
+                           dy));
                 {
-                    insertNewEmptyBamRecord(bam_records, g_id,
-                            get_cord_x(cord_start) + beginPosition(row(aligner, ri)),
-                            strand?(bam_flag_rvcmp | bam_flag_suppl):bam_flag_suppl); 
-                }            
+                    insertNewBamRecord(bam_records, g_id, bam_start, bam_strand); 
+                }      
+                std::cout << "ins_gaps " << i << get_cord_y(gap_jh_cord) << " " << get_cord_y(pre_cord_start) << "\n";
             }
-            else if (flag_pre & 2)
+            else if (flag & 1)
             {
-                clip_segs(row(aligner, ri_pre), row(aligner, ri_pre + 1), pre_cord_start,
-                      _gap_parm, 1);
-                insertBamRecordCigar(back(bam_records), 
-                                     row(aligner, ri_pre),
-                                     row(aligner, ri_pre + 1));
-                clip_segs (row(aligner, ri), row(aligner, ri + 1), cord_start, _gap_parm, -1);
-                flag_clip |= flag_clip_head;
-                insertNewEmptyBamRecord(bam_records, g_id,
-                            get_cord_x(cord_start) + beginPosition(row(aligner, ri)),
-                            strand?(bam_flag_rvcmp | bam_flag_suppl):bam_flag_suppl); 
+               //NONE 
             }
-
-        }
-        if (flag) //merge failed:= 1.reverse strand or 2.gaps
-        {
-            std::cout << "insgapsx " << i << "\n"   ;
-            if (flag_pre & 1) //case2: gaps
+            else if (flag & 2)
             {
                 int dx = block_size >> 1; //shift the cord to the gap cord;
                 int dy = block_size >> 1;
-            //TODO::change dx, dy, for joint not well mapped cord, it's incorrect
-                int flag_overlap = insertGaps(gaps, pre_cord_start, cord_start,
-                           row(aligner, ri_pre ), 
+                clip_segs(row(aligner, ri_pre), row(aligner, ri_pre + 1), 
+                          pre_cord_start, _gap_parm, 1); 
+                if(insertGaps(gaps, gap_jh_cord, gap_jh_cord,
+                           row(aligner, ri_gap_h), 
+                           row(aligner, ri_gap_h + 1),
+                           row(aligner, ri_pre),
                            row(aligner, ri_pre + 1),
-                           row(aligner, ri),
-                           row(aligner, ri + 1),
                            length(bam_records) - 1,
                            thd_merge_gap,
                            dx,
-                           dy);
-                if (!flag_overlap)
+                           dy));
                 {
-                    insertNewEmptyBamRecord(bam_records, g_id,
-                            get_cord_x(cord_start) + beginPosition(row(aligner, ri)),
-                            strand?(bam_flag_rvcmp | bam_flag_suppl):bam_flag_suppl); 
-                }
-            }
-            else if (flag & 2) //case1: reverse strand no gaps
-            {
-                //<<debug
-                printCigarSrcLen(bam_records, "pscl1 ");
-                //>>debug
-                if (gaps.getJointTailCord(-1) != pre_cord_start)
-                {
-                    clip_segs(row(aligner, ri_pre), row(aligner, ri_pre + 1), pre_cord_start,
-                          _gap_parm, 1);
-                    flag_clip_pre |= flag_clip_tail;
-                    insertBamRecordCigar(back(bam_records), 
-                                         row(aligner, ri_pre),
-                                         row(aligner, ri_pre + 1));
-                }
-                clip_segs (row(aligner, ri), row(aligner, ri + 1), cord_start, _gap_parm, -1);
-                flag_clip |= flag_clip_head;
-                insertNewEmptyBamRecord(bam_records, g_id,
-                            get_cord_x(cord_start) + beginPosition(row(aligner, ri)),
-                            strand?(bam_flag_rvcmp | bam_flag_suppl):bam_flag_suppl);  
-            }
-        } 
-        else 
-        {
-            flag_clip_pre |= flag_clip_tail;
-            flag_clip |= flag_clip_head;
-            if (pre_cord_start != emptyCord && flag_clip_pre == flag_clip_both)
-            {
-                insertBamRecordCigar(back(bam_records), 
-                            row(aligner, ri_pre), 
-                            row(aligner, ri_pre + 1));
+                    insertNewBamRecord(bam_records, g_id, bam_start, bam_strand); 
+                }               
             }
         }
-        if (gaps.getJointTailCord(-1) == pre_cord_start)
+        if (flag_pre & 2)
         {
-            gaps.set_clip_flag(flag_clip_pre, -1);
-            printRows(gaps.get_r2_pair(-1).first, gaps.get_r2_pair(-1).second, "gaps_tail_print ");
-            if (!is_clip_tail_set(flag_clip_pre))
+            if (!flag)
             {
-                clip_segs(gaps.get_r2_pair(-1).first, gaps.get_r2_pair(-1).second, 
-                          gaps.getJointTailCord(-1), _gap_parm, 1);
+                clip_segs(row(aligner, ri_pre), row(aligner, ri_pre + 1), 
+                          pre_cord_start, _gap_parm, -1);
+                bam_start = get_cord_x(pre_cord_start) 
+                         + beginPosition(row(aligner, ri_pre));
+                insertNewBamRecord(bam_records, 
+                                   row(aligner, ri_pre), 
+                                   row(aligner, ri_pre + 1),
+                                   g_id, bam_start, bam_strand);
             }
-            else
+            else if (flag & 1)
             {
-                setClippedEndPositions(gaps.get_r2_pair(-1).first, gaps.get_r2_pair(-1).second, clippedEndPosition(row(aligner, ri_pre)));
+                clip_segs(row(aligner, ri_pre), row(aligner, ri_pre + 1), 
+                          pre_cord_start, _gap_parm, -1);     
+                row(aligner, ri_gap_h) = row(aligner, ri_pre);
+                row(aligner, ri_gap_h + 1) = row(aligner, ri_pre + 1); 
+                gap_jh_cord = pre_cord_start;
+            }
+            else if (flag & 2)
+            {
+                clip_segs(row(aligner, ri_pre), row(aligner, ri_pre + 1), 
+                          pre_cord_start, _gap_parm, 0); 
+                bam_start = get_cord_x(pre_cord_start) 
+                         + beginPosition(row(aligner, ri_pre));
+                insertNewBamRecord(bam_records, 
+                                   row(aligner, ri_pre), 
+                                   row(aligner, ri_pre + 1),
+                                   g_id, bam_start, bam_strand);  
             }
         }
-        if (_DefaultCord.isBlockEnd(cord_start))
-        {
-            clip_segs(row(aligner, ri),
-                    row(aligner, ri + 1),
-                    cord_start,
-                    _gap_parm,
-                    1);
-            flag_clip |= flag_clip_tail;
-            insertBamRecordCigar(back(bam_records), 
-                    row(aligner, ri), 
-                    row(aligner, ri + 1));
-        } 
+        std::cout << "3rows " << i + 1 << "\n";
+        printRows(row(aligner, ri), row(aligner, ri + 1), "3rows");
         pre_cord_start = cord_start;
         pre_cord_end = cord_end;
         std::swap (ri, ri_pre); //swap the current and pre row id in the aligner.
