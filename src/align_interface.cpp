@@ -1793,16 +1793,60 @@ int align_cords (StringSet<String<Dna5> >& genomes,
             flag = merge_align_(row(aligner, ri_pre), row(aligner, ri_pre + 1), 
                     row(aligner, ri), row(aligner, ri + 1), pre_cord_start, cord_start );
         }
-        if (flag) //merge failed:= 1.reverse strand or 2.gaps
+        if (!flag)
         {
-            std::cout << "insgapsx " << i << "\n"   ;
-            if (flag & 1) //case2: gaps
+            if (!flag_pre)
+            {
+                insertBamRecordCigar(back(bam_records), 
+                            row(aligner, ri_pre), 
+                            row(aligner, ri_pre + 1));
+            }
+            else if (flag_pre & 1)
             {
                 int dx = block_size >> 1; //shift the cord to the gap cord;
                 int dy = block_size >> 1;
             //TODO::change dx, dy, for joint not well mapped cord, it's incorrect
                 int flag_overlap = insertGaps(gaps, pre_cord_start, cord_start,
-                           row(aligner, ri_pre), 
+                           row(aligner, ri_gap_h), 
+                           row(aligner, ri_gap_h),
+                           row(aligner, ri_pre),
+                           row(aligner, ri_pre + 1),
+                           length(bam_records) - 1,
+                           thd_merge_gap,
+                           dx,
+                           dy);
+                if (!flag_overlap)
+                {
+                    insertNewEmptyBamRecord(bam_records, g_id,
+                            get_cord_x(cord_start) + beginPosition(row(aligner, ri)),
+                            strand?(bam_flag_rvcmp | bam_flag_suppl):bam_flag_suppl); 
+                }            
+            }
+            else if (flag_pre & 2)
+            {
+                clip_segs(row(aligner, ri_pre), row(aligner, ri_pre + 1), pre_cord_start,
+                      _gap_parm, 1);
+                insertBamRecordCigar(back(bam_records), 
+                                     row(aligner, ri_pre),
+                                     row(aligner, ri_pre + 1));
+                clip_segs (row(aligner, ri), row(aligner, ri + 1), cord_start, _gap_parm, -1);
+                flag_clip |= flag_clip_head;
+                insertNewEmptyBamRecord(bam_records, g_id,
+                            get_cord_x(cord_start) + beginPosition(row(aligner, ri)),
+                            strand?(bam_flag_rvcmp | bam_flag_suppl):bam_flag_suppl); 
+            }
+
+        }
+        if (flag) //merge failed:= 1.reverse strand or 2.gaps
+        {
+            std::cout << "insgapsx " << i << "\n"   ;
+            if (flag_pre & 1) //case2: gaps
+            {
+                int dx = block_size >> 1; //shift the cord to the gap cord;
+                int dy = block_size >> 1;
+            //TODO::change dx, dy, for joint not well mapped cord, it's incorrect
+                int flag_overlap = insertGaps(gaps, pre_cord_start, cord_start,
+                           row(aligner, ri_pre ), 
                            row(aligner, ri_pre + 1),
                            row(aligner, ri),
                            row(aligner, ri + 1),
@@ -1831,15 +1875,11 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                                          row(aligner, ri_pre),
                                          row(aligner, ri_pre + 1));
                 }
-                //<<debug
-                printCigarSrcLen(bam_records, "pscl2 ");
-                //>>debug
                 clip_segs (row(aligner, ri), row(aligner, ri + 1), cord_start, _gap_parm, -1);
                 flag_clip |= flag_clip_head;
                 insertNewEmptyBamRecord(bam_records, g_id,
                             get_cord_x(cord_start) + beginPosition(row(aligner, ri)),
                             strand?(bam_flag_rvcmp | bam_flag_suppl):bam_flag_suppl);  
-                std::cout << "strand_clips " << beginPosition(row(aligner, ri_pre)) << " " << endPosition(row(aligner, ri_pre)) << " " << beginPosition(row(aligner, ri)) << " " << endPosition(row(aligner, ri))<< "\n";
             }
         } 
         else 
@@ -1852,8 +1892,6 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                             row(aligner, ri_pre), 
                             row(aligner, ri_pre + 1));
             }
-            else
-            std::cout << "preclip " << i + 1 << " " << endPosition(row(aligner, ri_pre + 1)) << "\n";
         }
         if (gaps.getJointTailCord(-1) == pre_cord_start)
         {
@@ -1868,9 +1906,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
             {
                 setClippedEndPositions(gaps.get_r2_pair(-1).first, gaps.get_r2_pair(-1).second, clippedEndPosition(row(aligner, ri_pre)));
             }
-            std::cout << "clip_done_flagxxxxxx " << i + 1<< " " << flag_clip_pre << " " << flag_clip << " " << get_cord_y(gaps.getJointTailCord(-1)) << " " << get_cord_y(pre_cord_start) << " " << gaps.get_clip_flag(-1) << " " << endPosition(gaps.get_r2_pair(-1).second) << "\n";
         }
-        std::cout << "clip_done_flag " << i + 1<< " " << flag_clip_pre << " " << flag_clip << " " << get_cord_y(gaps.getJointTailCord(-1)) << " " << get_cord_y(pre_cord_start) << "\n";
         if (_DefaultCord.isBlockEnd(cord_start))
         {
             clip_segs(row(aligner, ri),
@@ -1885,9 +1921,6 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         } 
         pre_cord_start = cord_start;
         pre_cord_end = cord_end;
-        std::cout << "bam_len " << i + 1<< " " << length(bam_records) << " " << flag << " " << length(back(bam_records).cigar) << " " << endPosition(row(aligner, ri_pre + 1)) << " " << beginPosition(row(aligner, ri + 1)) << " " << "\n";
-        if (!empty(gaps.c_pairs))
-        std::cout << "bam_lenxxx" <<length(gaps.c_pairs) << " " << beginPosition(gaps.get_r2_pair(-1).second) << " " << endPosition (gaps.get_r2_pair(-1).second) << "\n";
         std::swap (ri, ri_pre); //swap the current and pre row id in the aligner.
 
     }
