@@ -177,33 +177,32 @@ Cord::isCordEnd(uint64_t const & cord,
     if (len > (cord[0] & mask))
         cord[0] = len + ((cord[0]) & (~mask));
 }
-
- uint64_t Cord::getMaxLen(String<uint64_t> const & cord, uint64_t const & mask)
+uint64_t Cord::getMaxLen(String<uint64_t> const & cord, uint64_t const & mask)
 {
     if (empty(cord))
         return 0;
     return cord[0] & mask;
 }
-
- uint64_t Cord::shift(uint64_t const & val, int64_t x, int64_t y, unsigned const & bit) //add x and y
+uint64_t Cord::shift(uint64_t const & val, int64_t x, int64_t y, unsigned const & bit) //add x and y
 {
     if (x < 0)
         return val - ((-x) << bit) + y;
     else
         return val + (x << bit) + y;
 }
-
- bool Cord::isCordsOverlap(uint64_t & val1, uint64_t & val2, int64_t thd)
+bool Cord::isCordsOverlap(uint64_t & val1, uint64_t & val2, int64_t thd)
 {
     int64_t dx = _DefaultCord.getCordX(val2 - val1);
     int64_t dy = get_cord_y(val2 - val1);
-    //std::cout << "[]::isCordsOverlap " << dx << " " << dy << " " << _DefaultCord.getCordX(val2) << " " << _DefaultCord.getCordX(val1) << " " << thd << "\n";
     return (dx >= 0) && (dx < thd) && (dy >= 0) && (dy < thd);
 }
-
- bool Cord::isBlockEnd(uint64_t & val, uint64_t const & flag)
+bool Cord::isBlockEnd(uint64_t & val, uint64_t const & flag)
 {
     return val & flag;
+}
+uint64_t Cord::makeBlockEndVal(uint64_t val, uint64_t const & flag)
+{
+    return val | flag;
 }
 
  uint64_t get_cord_x (uint64_t val) {return _getSA_i2(_DefaultCord.getCordX(val));}

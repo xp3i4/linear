@@ -74,6 +74,7 @@ struct Cord
 
     bool isCordsOverlap(uint64_t & val1, uint64_t & val2, int64_t thd);
     bool isBlockEnd(uint64_t &, uint64_t const & = _DefaultCordBase.flagEnd);
+    uint64_t makeBlockEndVal(uint64_t, uint64_t const & = _DefaultCordBase.flagEnd);
 };
 extern Cord _DefaultCord; 
 uint64_t get_cord_x (uint64_t val);

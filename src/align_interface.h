@@ -3,6 +3,12 @@
 #include <seqan/align.h>
 #include "f_io.h"
 using namespace seqan;
+/*
+ * Struct of gap recods containing start, end coordinates and alignment of gaps
+ * Each record of c_pairs has two rows in the a_rows;
+ * Gaps are defined as pairs of its start and end cords.
+ * NOTE::structure for align_cords() function, different from gaps defined in 'gaps.h';
+ */
 class GapRecords
 {
     typedef Row<Align<String<Dna5>, ArrayGaps> >::Type TRow;
@@ -24,13 +30,11 @@ public:
     TRPair & get_r2_pair(int i); //get rows of second(end) cord of i_th gaps
     int getBamSegIdHead (int i);
     int getBamSegIdTail (int i);
-    int get_clip_flag(i);
+    int get_clip_flag(int i);
     uint64_t getJointHeadCord(int i); 
     uint64_t getJointTailCord(int i);
-    int _set_clip_flag(int clip_flag, int pos);
-    int append_unset_flag();
+    int set_clip_flag(int clip_flag, int pos);
     int clear_();
-    GapRecords();
 };
 
 struct GapParm

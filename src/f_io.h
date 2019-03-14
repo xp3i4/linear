@@ -44,7 +44,7 @@ int insertCigar(String<CigarElement< > > &cigar1,
 std::pair<int, int> countCigar(String<CigarElement<> > & cigar);
 void printRows(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
                Row<Align<String<Dna5>,ArrayGaps> >::Type & row2,
-               int i = -1
+               CharString header = ""
                );
 
 #endif

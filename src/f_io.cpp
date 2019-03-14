@@ -447,12 +447,9 @@ std::pair<int, int> countCigar(String<CigarElement<> > & cigar)
 
 void printRows(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
                Row<Align<String<Dna5>,ArrayGaps> >::Type & row2,
-               int cord_i)
+               CharString header)
 {
-    if (cord_i < 0)
-        std::cout << "printRows()+\n";
-    else 
-        std::cout << "printRows()+" << cord_i << "\n";
+    std::cout << "printRows::" << header << "\n";
     int len = std::min (clippedEndPosition(row1) - clippedBeginPosition(row1),
                         clippedEndPosition(row2) - clippedBeginPosition(row2));
     std::string line0, line00, line1, line2, line3, line4;
