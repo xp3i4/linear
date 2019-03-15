@@ -1736,6 +1736,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
     int check_flag = 0;
     int flag_clip = 0;
     int flag_clip_pre = flag_clip;
+    TRow rt1, rt2;
     for (int i = 1; i < (int)length(cords); i++)
     {
         //>debug section begin xxxxxxx
@@ -1831,13 +1832,9 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                 rstr[ri_gap_h] = rstr[ri_pre];
                 rstr[ri_gap_h + 1] = rstr[ri_pre + 1];
                 gap_jh_cord = pre_cord_start;
-                printRows(rstr[ri_pre], rstr[ri_pre + 1], "flag_0_1 ");
-                printRows(rstr[ri_gap_h], rstr[ri_gap_h + 1], "flag_0_1 ");
-                std::cout << "flag_0_1 " << get_cord_y(gap_jh_cord) << "\n";
             }
             else if (flag & 2)
             {
-                std::cout << "ct2 " << i << "\n";
                 clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
                           pre_cord_start, _gap_parm, 1); 
                 insertBamRecordCigar(back(bam_records), 
@@ -1845,14 +1842,12 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                                      rstr[ri_pre + 1]);            
             }
         }
-        if (flag_pre & 1)
+        else if (flag_pre & 1)
         {
             if (!flag)
             {
                 int dx = block_size >> 1; //shift the cord to the gap cord;
                 int dy = block_size >> 1;
-                printRows(rstr[ri_gap_h], rstr[ri_gap_h + 1], "flag_1_0 ");
-                std::cout << "flag_1_0 " << get_cord_y(gap_jh_cord) << "\n";
                 if(insertGaps(gaps, gap_jh_cord, pre_cord_start,
                            rstr[ri_gap_h], 
                            rstr[ri_gap_h + 1],
@@ -1890,7 +1885,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                 }               
             }
         }
-        if (flag_pre & 2)
+        else if (flag_pre & 2)
         {
             if (!flag)
             {
@@ -1928,12 +1923,6 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                                    g_id, bam_start, bam_strand);  
             }
         }
-        if ((flag_pre == 0 && (flag & 1)) || ((flag_pre & 1) && flag == 0))
-        {
-            printRows(rstr[ri_gap_h], rstr[ri_gap_h + 1], "flag_xxx");
-        }
-        std::cout << "3rows " << i + 1 << " " << get_cord_y(cord_start) << "\n";
-        printRows(rstr[ri], rstr[ri + 1], "3rows");
         pre_cord_start = cord_start;
         pre_cord_end = cord_end;
         std::swap (ri, ri_pre); //swap the current and pre row id in the aligner.
