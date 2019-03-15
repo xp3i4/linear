@@ -42,6 +42,7 @@ struct GapParm
     int thd_clip_score;
     int thd_reject_score;
     int thd_accept_score;
+    int thd_min_interval;
     float thd_accept_density;
     Score<int, Simple> thd_clip_scheme;
     GapParm ();
