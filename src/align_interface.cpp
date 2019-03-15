@@ -10,9 +10,8 @@ using namespace seqan;
  */
 //TODO:: change score type
 int const s1 = 3; //match
-int const s2 = 0; //mismatch
+int const s2 = -2; //mismatch
 int const s3 = -1; //gap
-Score<int, Simple> _align_score_ (8, -3, -3);
 float s_score_density_thd = 2; //if < the value alignment of cords will be dropped
 float s_score_window_thd = 0.75;
 int thd_align_score = 350 /*depends on score_scheme*/;
@@ -20,10 +19,11 @@ int thd_align_score = 350 /*depends on score_scheme*/;
 uint16_t bam_flag_rvcmp = 16;
 uint16_t bam_flag_rvcmp_nxt = 32;
 uint16_t bam_flag_suppl = 2048;
-
-GapParm _gap_parm;
 uint64_t CORD_NULL = _DefaultCord.makeBlockEndVal(~0);
 uint64_t emptyCord = CORD_NULL - 1;
+
+GapParm _gap_parm;
+Score<int, Simple> _default_scheme_ (s1, s2, s3);
 
 typedef Align<String<Dna5>, ArrayGaps> TAlign;
 typedef Row<TAlign>::Type TRow; 
@@ -553,7 +553,8 @@ void printCigar(String<CigarElement< > > &cigar)
                         uint64_t genomeEnd,
                         uint64_t readStart,
                         uint64_t readEnd,
-                        int band
+                        int band,
+                        Score<int> scheme = _default_scheme_
                        )
 {
     //std::cout << "align len " << readStart << " " << readEnd << "\n";
@@ -570,7 +571,7 @@ void printCigar(String<CigarElement< > > &cigar)
     infix1 = infix(genome, genomeStart, std::min(genomeEnd, length(genome)));   
     assignSource (row1, infix1);  
     assignSource (row2, infix2); 
-    int score = globalAlignment(row1, row2, Score<int, Simple> (s1, s2, s3), AlignConfig<true, true, true, true>(), -band, band);
+    int score = globalAlignment(row1, row2, scheme, AlignConfig<true, true, true, true>(), -band, band);
     return score;
 }
 
@@ -611,18 +612,19 @@ int align_cord (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
                 uint64_t cord_start,
                 uint64_t cord_end,
                 int band,
-                int local_flag = 1
+                int local_flag = 1,
+                Score<int> scheme = _default_scheme_
                )
 {
     cord2row_ (row1, row2, genome, read, comrevRead, cord_start, cord_end);
     int score = 0;
     if (!local_flag)
     {
-        score = localAlignment (row1, row2, Score<int, Simple> (s1, s2, s3), DynamicGaps());
+        score = localAlignment (row1, row2, scheme, DynamicGaps());
     }
     else
     {
-        score = globalAlignment (row1, row2, Score<int, Simple> (s1, s2, s3), AlignConfig<true, true, true, true>(), -band, band);
+        score = globalAlignment (row1, row2, scheme, AlignConfig<true, true, true, true>(), -band, band);
     }
     return score;
 }
@@ -634,11 +636,12 @@ int align_cord (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
                 uint64_t & cord,
                 int block_size = window_size,
                 int band = window_size / 2,
-                int local_flag = 1
+                int local_flag = 1,
+                Score<int> scheme = _default_scheme_
                )
 {
     uint64_t cord_end = _DefaultCord.shift(cord, block_size, block_size);
-    int score = align_cord (row1, row2, genome, read, comrevRead, cord, cord_end, band, local_flag);
+    int score = align_cord (row1, row2, genome, read, comrevRead, cord, cord_end, band, local_flag, _default_scheme_);
     return score;
 }
 
@@ -1700,9 +1703,9 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                  int band
                 ) 
 {
-    Align<String<Dna5>, ArrayGaps> aligner;
     GapRecords gaps;
     BamAlignmentRecordLink emptyBamRecord;
+    String<TRow> rstr;
     String<uint64_t> cords_buffer;
     int head_end = block_size >> 2, tail_start = block_size - (block_size >> 2);
     int ri = 0, ri_pre = 2; //cliped segment and row id
@@ -1717,7 +1720,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
     float thd_ddx = (float)band / block_size / 8; //TODO::8 needs tunning
     clear (bam_records);
     resize(cords_buffer, 2);
-    resize(rows(aligner), 8); 
+    resize(rstr, 6);
     double t1, t2 = 0, t3 = sysTime();
     if (length(cords) < 2) // cords is empty
     {
@@ -1784,28 +1787,22 @@ int align_cords (StringSet<String<Dna5> >& genomes,
             cord_end = _DefaultCord.shift(cord_end, dx, dy);
             check_flag = 1;
         }
-        int score_align = align_cord (row(aligner, ri), 
-                                      row(aligner, ri + 1), 
-                                      genomes[g_id], 
-                                      read, 
-                                      comrevRead, 
-                                      cord_start,
-                                      cord_end,
-                                      //modified_band
-                                      band);
-        flag = clip_head_ (row(aligner, ri), row(aligner, ri + 1), head_end)
-             | clip_tail_ (row(aligner, ri), row(aligner, ri + 1), tail_start)
-             | check_align_(row(aligner, ri), row(aligner, ri + 1), score_align, check_flag, thd_min_window, thd_min_score);
+        int score_align = align_cord (rstr[ri], rstr[ri + 1], genomes[g_id], 
+                                      read, comrevRead, 
+                                      cord_start, cord_end, band);
+        flag = clip_head_ (rstr[ri], rstr[ri + 1], head_end)
+             | clip_tail_ (rstr[ri], rstr[ri + 1], tail_start)
+             | check_align_(rstr[ri], rstr[ri + 1], score_align, check_flag, thd_min_window, thd_min_score);
         //TODO!!check_align for first or last cord are differnet from middle cords
         if (flag){
             continue; //alignment quality check, drop poorly aligned 
         }
         if (_DefaultCord.isBlockEnd(pre_cord_start))
         {
-            clip_segs(row(aligner, ri), row(aligner, ri + 1), cord_start, _gap_parm, -1);
+            clip_segs(rstr[i], rstr[ri + 1], cord_start, _gap_parm, -1);
             flag_clip |= flag_clip_head;
             insertNewBamRecord(bam_records, g_id,
-                            get_cord_x(cord_start) + beginPosition(row(aligner, ri)),
+                            get_cord_x(cord_start) + beginPosition(rstr[ri]),
                             get_cord_strand(cords[i]));
             pre_cord_start = cord_start;
             pre_cord_end = cord_end;
@@ -1814,12 +1811,12 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         } 
         else
         {
-            flag = merge_align_(row(aligner, ri_pre), row(aligner, ri_pre + 1), 
-                    row(aligner, ri), row(aligner, ri + 1), pre_cord_start, cord_start );
+            flag = merge_align_(rstr[ri_pre], rstr[ri_pre + 1], 
+                    rstr[ri], rstr[ri + 1], pre_cord_start, cord_start );
         }
         std::cout << "flag " << i + 1 << " " << flag_pre << " " << flag << "\n";
         bam_start = get_cord_x(pre_cord_start) 
-                         + beginPosition(row(aligner, ri_pre));
+                         + beginPosition(rstr[ri_pre]);
         bam_strand = strand?(bam_flag_rvcmp | bam_flag_suppl):        
                                    bam_flag_suppl; 
         if (!flag_pre)
@@ -1827,23 +1824,25 @@ int align_cords (StringSet<String<Dna5> >& genomes,
             if (!flag)
             {
                 insertBamRecordCigar(back(bam_records), 
-                            row(aligner, ri_pre), 
-                            row(aligner, ri_pre + 1));                
+                            rstr[ri_pre], rstr[ri_pre + 1]);                
             }
             else if (flag & 1)
             {
-                row(aligner, ri_gap_h) = row(aligner, ri_pre);
-                row(aligner, ri_gap_h + 1) = row(aligner, ri_pre + 1);
+                rstr[ri_gap_h] = rstr[ri_pre];
+                rstr[ri_gap_h + 1] = rstr[ri_pre + 1];
                 gap_jh_cord = pre_cord_start;
+                printRows(rstr[ri_pre], rstr[ri_pre + 1], "flag_0_1 ");
+                printRows(rstr[ri_gap_h], rstr[ri_gap_h + 1], "flag_0_1 ");
+                std::cout << "flag_0_1 " << get_cord_y(gap_jh_cord) << "\n";
             }
             else if (flag & 2)
             {
                 std::cout << "ct2 " << i << "\n";
-                clip_segs(row(aligner, ri_pre), row(aligner, ri_pre + 1), 
+                clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
                           pre_cord_start, _gap_parm, 1); 
                 insertBamRecordCigar(back(bam_records), 
-                                     row(aligner, ri_pre), 
-                                     row(aligner, ri_pre + 1));            
+                                     rstr[ri_pre], 
+                                     rstr[ri_pre + 1]);            
             }
         }
         if (flag_pre & 1)
@@ -1852,13 +1851,13 @@ int align_cords (StringSet<String<Dna5> >& genomes,
             {
                 int dx = block_size >> 1; //shift the cord to the gap cord;
                 int dy = block_size >> 1;
-                printRows(row(aligner, ri_gap_h), row(aligner, ri_gap_h + 1), "flag_1_0 ");
+                printRows(rstr[ri_gap_h], rstr[ri_gap_h + 1], "flag_1_0 ");
                 std::cout << "flag_1_0 " << get_cord_y(gap_jh_cord) << "\n";
                 if(insertGaps(gaps, gap_jh_cord, pre_cord_start,
-                           row(aligner, ri_gap_h), 
-                           row(aligner, ri_gap_h + 1),
-                           row(aligner, ri_pre),
-                           row(aligner, ri_pre + 1),
+                           rstr[ri_gap_h], 
+                           rstr[ri_gap_h + 1],
+                           rstr[ri_pre],
+                           rstr[ri_pre + 1],
                            length(bam_records) - 1,
                            thd_merge_gap,
                            dx,
@@ -1875,17 +1874,17 @@ int align_cords (StringSet<String<Dna5> >& genomes,
             {
                 int dx = block_size >> 1; //shift the cord to the gap cord;
                 int dy = block_size >> 1;
-                clip_segs(row(aligner, ri_pre), row(aligner, ri_pre + 1), 
+                clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
                           pre_cord_start, _gap_parm, 1); 
                 if(insertGaps(gaps, gap_jh_cord, pre_cord_start,
-                           row(aligner, ri_gap_h), 
-                           row(aligner, ri_gap_h + 1),
-                           row(aligner, ri_pre),
-                           row(aligner, ri_pre + 1),
-                           length(bam_records) - 1,
-                           thd_merge_gap,
-                           dx,
-                           dy));
+                              rstr[ri_gap_h], 
+                              rstr[ri_gap_h + 1],
+                              rstr[ri_pre],
+                              rstr[ri_pre + 1],
+                              length(bam_records) - 1,
+                              thd_merge_gap,
+                              dx,
+                              dy));
                 {
                     insertNewBamRecord(bam_records, g_id, bam_start, bam_strand); 
                 }               
@@ -1895,42 +1894,46 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         {
             if (!flag)
             {
-                clip_segs(row(aligner, ri_pre), row(aligner, ri_pre + 1), 
+                clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
                           pre_cord_start, _gap_parm, -1);
                 bam_start = get_cord_x(pre_cord_start) 
-                         + beginPosition(row(aligner, ri_pre));
+                         + beginPosition(rstr[ri_pre]);
                 insertNewBamRecord(bam_records, 
-                                   row(aligner, ri_pre), 
-                                   row(aligner, ri_pre + 1),
+                                   rstr[ri_pre], 
+                                   rstr[ri_pre + 1],
                                    g_id, bam_start, bam_strand);
 
             }
             else if (flag & 1)
             {
-                clip_segs(row(aligner, ri_pre), row(aligner, ri_pre + 1), 
+                clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
                           pre_cord_start, _gap_parm, -1);     
-                row(aligner, ri_gap_h) = row(aligner, ri_pre);
-                row(aligner, ri_gap_h + 1) = row(aligner, ri_pre + 1); 
+                rstr[ri_gap_h] = rstr[ri_pre];
+                rstr[ri_gap_h + 1] = rstr[ri_pre + 1]; 
                 bam_start = get_cord_x(pre_cord_start) 
-                         + beginPosition(row(aligner, ri_pre));
+                         + beginPosition(rstr[ri_pre]);
                 insertNewBamRecord(bam_records, 
                                    g_id, bam_start, bam_strand);
                 gap_jh_cord = pre_cord_start;
             }
             else if (flag & 2)
             {
-                clip_segs(row(aligner, ri_pre), row(aligner, ri_pre + 1), 
+                clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
                           pre_cord_start, _gap_parm, 0); 
                 bam_start = get_cord_x(pre_cord_start) 
-                         + beginPosition(row(aligner, ri_pre));
+                         + beginPosition(rstr[ri_pre]);
                 insertNewBamRecord(bam_records, 
-                                   row(aligner, ri_pre), 
-                                   row(aligner, ri_pre + 1),
+                                   rstr[ri_pre], 
+                                   rstr[ri_pre + 1],
                                    g_id, bam_start, bam_strand);  
             }
         }
-        std::cout << "3rows " << i + 1 << "\n";
-        printRows(row(aligner, ri), row(aligner, ri + 1), "3rows");
+        if ((flag_pre == 0 && (flag & 1)) || ((flag_pre & 1) && flag == 0))
+        {
+            printRows(rstr[ri_gap_h], rstr[ri_gap_h + 1], "flag_xxx");
+        }
+        std::cout << "3rows " << i + 1 << " " << get_cord_y(cord_start) << "\n";
+        printRows(rstr[ri], rstr[ri + 1], "3rows");
         pre_cord_start = cord_start;
         pre_cord_end = cord_end;
         std::swap (ri, ri_pre); //swap the current and pre row id in the aligner.
