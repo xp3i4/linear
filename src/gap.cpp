@@ -565,22 +565,22 @@ int mapGaps(StringSet<String<Dna5> > & seqs, String<Dna5> & read, String<uint64_
  * NOTE: index free local mapping for gaps 
  */
 //g_hs_anchor: N/A[13]|strand[1]|anchor[30]|cord_y[20]
-static const uint64_t g_hs_anchor_mask1 = (1ULL << 20) - 1;
-static const uint64_t g_hs_anchor_mask1_ = ~ g_hs_anchor_mask1;
-static const uint64_t g_hs_anchor_mask3 = (1ULL << 30) - 1;
-static const uint64_t g_hs_anchor_mask5 = (1ULL << 31) - 1;
-static const uint64_t g_hs_anchor_bit1 = 20;
-static const uint64_t g_hs_anchor_bit2 = 50;
-static const uint64_t g_hs_anchor_mask2 = ~(1ULL << 50);
+uint64_t const g_hs_anchor_mask1 = (1ULL << 20) - 1;
+uint64_t const g_hs_anchor_mask1_ = ~ g_hs_anchor_mask1;
+uint64_t const g_hs_anchor_mask3 = (1ULL << 30) - 1;
+uint64_t const g_hs_anchor_mask5 = (1ULL << 31) - 1;
+uint64_t const g_hs_anchor_bit1 = 20;
+uint64_t const g_hs_anchor_bit2 = 50;
+uint64_t const g_hs_anchor_mask2 = ~(1ULL << 50);
 
-static const int g_sv_noe = 0;    //none
-static const int g_sv_inv = 1;    //inversion
-static const int g_sv_ins = 2;    //insertion
-static const int g_sv_del = 4;    //deletion
-static const int g_sv_trs = 8;  //translocation
-static const int g_sv_dup = 16;   //duplication
-static const int g_sv_l = 32;   //clip towards left
-static const int g_sv_r = 64;   //clip towards right
+int const g_sv_noe = 0;    //none
+int const g_sv_inv = 1;     //inversion
+int const g_sv_ins = 2;     //insertion
+int const g_sv_del = 4;     //deletion
+int const g_sv_trs = 8;     //translocation
+int const g_sv_dup = 16;    //duplication
+int const g_sv_l = 32;      //clip towards left
+int const g_sv_r = 64;   //clip towards right
 
 int const g_align_left = -1;
 int const g_align_closed = 0;
@@ -2346,38 +2346,32 @@ if (t == 3)
  *   path1 path2
  */
  int g_alignGap_(String<Dna5> & seq,
-                        String<Dna5> & read,
-                        String<Dna5> & comstr, //complement reverse of the read
-                        String<uint64_t> & tiles,
-                        String<uint64_t> & clips,
-                        String<uint64_t> & g_hs,
-                        String<uint64_t> & g_hs_anchor,
-                        uint64_t g_start,
-                        uint64_t g_end, 
-                        uint64_t r_start,
-                        uint64_t r_end,
-                        uint64_t  main_strand,
-                        uint64_t genomeId,
-                        int direction,
-                        int p1
-)
+                 String<Dna5> & read,
+                 String<Dna5> & comstr, //complement reverse of the read
+                 String<uint64_t> & tiles,
+                 String<uint64_t> & clips,
+                 String<uint64_t> & g_hs,
+                 String<uint64_t> & g_hs_anchor,
+                 uint64_t g_start,
+                 uint64_t g_end, 
+                 uint64_t r_start,
+                 uint64_t r_end,
+                 uint64_t  main_strand,
+                 uint64_t genomeId,
+                 int direction,
+                 int p1
+                )
 {
-    //std::cout << "[]::g_align_gap_::begin " << length(tiles) << " " << r_end - r_start << " " << g_end - g_start << " " << r_start << " " << r_end << " " << length(read)<< "\n";
-    /// Insert a head tile and tail tile, so all tiles from the original tiles can be processed in one for loop
-    /// The inserted head tile and tail tile will be removed at the end of the function, so it will affect the original tiles.
-    
+    // Insert the virtual head tile and tail tile, so all original tiles can be processed in one for loop
+    // The inserted head tile and tail tile will be removed at the end of the function, so it will affect the original tiles.
     uint64_t r_start_flip = _flipCoord (r_start, length(read) - 1, main_strand);
     uint64_t r_end_flip = _flipCoord (r_end, length(read) - 1, main_strand);
     if (main_strand)
     {
         std::swap (r_start_flip, r_end_flip);
     }
-
- 
     uint64_t head_tile = create_cord(genomeId, g_start,r_start_flip, main_strand);
     uint64_t tail_tile = create_cord(genomeId, g_end, r_end_flip, main_strand);
-    //std::cout << "[]::g_align_gap_::r_start_flip " << r_start << " " << r_start_flip << " " << r_end_flip << "\n";
-
     insert (tiles, 0, head_tile);
     appendValue (tiles, tail_tile);
 
@@ -2390,41 +2384,34 @@ if (t == 3)
     int sv_exists = 0;
     for (unsigned i = 1; i < length(tiles); i++)
     {
+        int64_t distance_x = tile_distance_x(tiles[i - 1], tiles[i]);
+        int64_t distance_y = tile_distance_y(tiles[i - 1], tiles[i]); 
         ///check sv type
         if (_defaultTile.getStrand(tiles[i] ^ tiles[i - 1]))
         {
             sv_flags[i - 1] |= g_sv_inv + g_sv_r;
             sv_flags[i] |= g_sv_inv + g_sv_l;
             sv_exists = 1;
-            //std::cout << "[]::g_align_gap_::sv_type 1 " << "\n";
-            continue;
         }
-        int64_t distance_x = tile_distance_x(tiles[i - 1], tiles[i]);
-        int64_t distance_y = tile_distance_y(tiles[i - 1], tiles[i]);  
-        if (distance_x - distance_y > window_size)  //window: 192x192
+        else if (distance_x - distance_y > window_size)  //window: 192x192
         {
             sv_flags[i - 1] |= g_sv_ins + g_sv_r;
             sv_flags[i] |= g_sv_ins + g_sv_l;
             sv_exists = 1;
-            //std::cout << "[]::g_align_gap_::sv_type 2 " << distance_x << " " << distance_y << "\n";
-            continue;
         }
-        if (distance_y - distance_x > window_size)
+        else if (distance_y - distance_x > window_size)
         {
             sv_flags[i - 1] |= g_sv_del + g_sv_r;
             sv_flags[i] |= g_sv_del + g_sv_l;
             sv_exists = 1;
-            //std::cout << "[]::g_align_gap_::sv_type 3 " << distance_x << " " << distance_y << "\n";
         }
     }
     switch (direction)
     {
+        //NOTE sv_flags at least have 2 elements, namely the virtual head and tail. 
         case g_align_left:
         {
-            ///NOTE sv_flags at least have 2 elements, the head and tail. so there exists sv_flags[0] and sv_flags[1]
-            ///if g_align_left then sv_flags[1] i
             sv_flags[0] = 0;
-            //sv_flags[1] & (~g_sv_l);
             break;
         }
         case g_align_right:   
@@ -2438,8 +2425,7 @@ if (t == 3)
     uint64_t tile1, tile2;
     uint64_t cgstart, cgend;
     uint64_t crstart, crend;
-    uint64_t crstrand;
-    uint64_t band;
+    uint64_t crstrand, band;
     uint64_t delta;
     if (sv_exists)
     {
@@ -2447,10 +2433,8 @@ if (t == 3)
         {
             tile1 = tiles[i];
             tile2 = tiles[i + 1];
-            //std::cout << "[]::g_align_gap_lrx " << (sv_flags[i] & g_sv_r) << " " << (sv_flags[i+1] & g_sv_l) << " " << _defaultTile.getX(tile1) << " " << _defaultTile.getX(tile2) << "\n";
             if ((sv_flags[i] & g_sv_r) && (sv_flags[i + 1] & g_sv_l)) 
             {
-                //std::cout << "[]::g_align_gap_ sv_exists lr " << delta <<"\n";
                 cgend = _getSA_i2(_defaultTile.getX(tile2)) + window_size;
                 cgstart = std::min(_getSA_i2(_defaultTile.getX(tile1)), cgend - 2 * window_size);
                 //cgstart = cgend - 2 * window_size;
@@ -2465,11 +2449,7 @@ if (t == 3)
                 }
                 band = int(90.0 * delta / window_size);
                 crstrand = _defaultTile.getStrand(tile2);
-                //std::cout << "[]::g_align_gap_lrc _sv_exists" << cgstart << " " << cgend << " " << crstart << " " << crend << " " << (sv_flags[i] & g_sv_r) << " " << (sv_flags[i+1] & g_sv_l) << " " << i << " " << length(sv_flags) - 1<< "\n";
-                //clip = clip_window (seq, read, comstr, genomeId, cgstart, cgend, crstart, crend, crstrand, band, 1); 
-                ///kmer clip without alignment
                 clip = c_clip_ (seq, read, comstr, cgstart, cgend, crstart, crend, crstrand, genomeId, g_hs, g_hs_anchor, band, p1, 1);   
-                //std::cout << "xxgnomeid " << _getSA_i1(_DefaultCord.getCordX(clip)) << "\n";
                 appendValue (clips, clip);
             }
             if ((sv_flags[i] & g_sv_r) && !(sv_flags[i + 1] & g_sv_l))
@@ -2481,7 +2461,6 @@ if (t == 3)
                 cgend = std::min(length(seq), cgstart + delta);
                 band = int(90.0 * delta / window_size);
                 crstrand = _defaultTile.getStrand(tile1);
-                //std::cout << "[]::g_align_gap_r _sv_exists " << cgstart << " " << cgend << " " << crstart << " " << crend << " " << (sv_flags[i] & g_sv_r) << " " << (sv_flags[i+1] & g_sv_l) << " " << i << " " << length(sv_flags) - 1<< "\n";
                 //clip = clip_window (seq, read, comstr, genomeId, cgstart, cgend, crstart, crend, crstrand, band, -1);   
                 //appendValue(clips, clip);
             }
@@ -2495,8 +2474,6 @@ if (t == 3)
                 cgstart = (cgend > delta)?cgend - delta:0;
                 band = int(90.0 * delta / window_size);
                 crstrand = _defaultTile.getStrand(tile2);
-                
-                //std::cout << "[]::g_align_gap_l _sv_exists " << cgstart << " " << cgend << " " << crstart << " " << crend << " " << (sv_flags[i] & g_sv_r) << " " << (sv_flags[i+1] & g_sv_l) << " " << i << " " << length(sv_flags) - 1<< "\n";
                 //clip = clip_window (seq, read, comstr, genomeId, cgstart, cgend, crstart, crend, crstrand, band, 1);   
                 //appendValue(clips, clip);
             }
@@ -2514,9 +2491,7 @@ if (t == 3)
     {
         clear(tiles);
     }
-    
     return 0;
-
     /// remove the inserted head and tail tiles;
 }
 
