@@ -1324,15 +1324,14 @@ int merge_gap_segs_(String<BamAlignmentRecordLink> & bam_records,
     g_beginPos = get_cord_x (cord_jt) + beginPosition(row_jt1);
     setClippedBeginPositions(row_jt1, row_jt2, clips_t.second);
     insertBamRecord(bam_records[bam_id_seg_t], row_jt1, row_jt2, g_id, g_beginPos, 0);  //insert head_joint and tail_joint cigar at end or at the start of each bam records 
-    std::cout << "bam_check33 " << flag_h << " " << flag_t << "\n";
+    std::cout << "bam_check33 " << flag_h << " " << flag_t << " " << clips_t.first << " " << clips_t.second << "\n";
     if (!flag_h && !flag_t)
     {
 
-        //std::cout << " x " << clippedEndPosition(row(aligner, 0)) - clippedBeginPosition(row(aligner, 1)) << "\n";
         if (length(clip_records) > 1)
         {
-        std::cout << " x "  << "\n";
-            setClippedPositions(row(aligner, 0), row(aligner, 1), clips_h.second, clip_records[0].second);
+        std::cout << " x111 " << clips_t.first << " " << back(clip_records).first << "\n";
+            setClippedPositions(row1, row2, clips_h.second, clip_records[0].second);
             insertBamRecordCigar(bam_records[bam_id_seg_h], row(aligner, 0), row(aligner, 1));
             setClippedPositions(row(aligner, 0), row(aligner, 1), back(clip_records).first, clips_t.first);
             insertBamRecordCigar(bam_records[bam_id_seg_t], row(aligner, 0), row(aligner, 1), 0); 
@@ -1342,11 +1341,9 @@ int merge_gap_segs_(String<BamAlignmentRecordLink> & bam_records,
         }
         else
         {
-        std::cout << " y " << " " << clips_t.first - clips_h.second << "\n";
             setClippedPositions(row(aligner, 0), row(aligner, 1), clips_h.second, clips_t.first);
             insertBamRecordCigar(bam_records[bam_id_seg_h], row(aligner, 0), row(aligner, 1)); //append at the end  
             bam_records[bam_id_seg_h].addNext(bam_id_seg_t);
-    std::cout << "bam_check4 " << flag_h << " " << flag_t << " " << bam_id_seg_h << " " << endPosition(row_jh2) - beginPosition(row_jh2) << " " << bam_id_seg_t << " " << endPosition(row_jt2) - beginPosition(row_jt2) << " " << endPosition(row2) - beginPosition(row2) << "\n";
             return 0; 
         }
     }
