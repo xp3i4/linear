@@ -439,7 +439,10 @@ int  insertNewBamRecord (String<BamAlignmentRecordLink> & bam_records,
     {
         bam_record.beginPos = g_beginPos; 
     }
-    bam_record.flag = (strand << 4);
+    if (strand)
+    {
+        bam_record.flag |= bam_flag_rvcmp | bam_flag_suppl;
+    }
     if (pos < 0)
     {
         appendValue(bam_records, bam_record);
@@ -466,7 +469,10 @@ int  insertNewBamRecord (String<BamAlignmentRecordLink> & bam_records,
     {
         bam_record.beginPos = g_beginPos; 
     }
-    bam_record.flag = (strand << 4);
+    if (strand)
+    {
+        bam_record.flag |= bam_flag_rvcmp | bam_flag_suppl;
+    }
     if (pos < 0)
     {
         appendValue(bam_records, bam_record);
@@ -1141,6 +1147,9 @@ int clip_rows_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
     int x = 0;
     int thd_1 = 1;
     int flag = 0;
+    clear(clip_records);
+    clear(clip_records_src1);
+    clear(clip_records_src2);
     int64_t src1 = beginPosition(row1);
     int64_t src2 = beginPosition(row2);
     TRowIterator it1 = begin(row1);
@@ -1330,6 +1339,12 @@ int clip_segs(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
     return 0;
 }
 
+/*
+ *!Make sure head and tail in the gap specified by @gap can be well aligned.
+ * such that the gap can be merged into the main alignment;
+ *@thd_alg_extnd: extension in inversion sub region to be aligned
+ * such that it can be clipped precisely at two ends;
+ */
 int align_gap (GapRecordHolder & gap,
                String<BamAlignmentRecordLink> & bam_records,
                StringSet<String<Dna5> >& genomes,
@@ -1339,6 +1354,7 @@ int align_gap (GapRecordHolder & gap,
                GapParm & gap_parm)
 {
     typedef String<std::pair<int, int> > ClipRecords;
+    int thd_alg_extnd = 20;
     uint64_t str_cord = gap.getCords().first;
     uint64_t end_cord = gap.getCords().second;
     std::cout << "ag1 " << get_cord_x(str_cord) << " " << get_cord_x(end_cord) << " " 
@@ -1360,6 +1376,8 @@ int align_gap (GapRecordHolder & gap,
     //WARNING::modify band::too large band
     align_cord (row1, row2, genomes[g_id], read, comrevRead, str_cord, end_cord, band);
     printRows(row1, row2, " ag2 ");
+    int const view_str = 0;
+    int const view_end = clippedEndPosition(row1);
     clip_rows_segs (row1, row2, clips, clips_src1, clips_src2, str_cord, gap_parm);
     if (empty(clips))
     {
@@ -1368,15 +1386,16 @@ int align_gap (GapRecordHolder & gap,
     if (length (clips) == 1)
     {
         insertBamRecordCigar(bam_records[bam_id], row1, row2);
-        //bam_records[bam_id].addNext(bam_next_id);
+        bam_records[bam_id].addNext(bam_next_id);
         std::cout << "ag3 " << " " << get_cord_y(str_cord) << " " << bam_id << " " << bam_next_id << length(bam_records) << "\n";
     }
     else if (length(clips) > 1)
     {
-        setClippedPositions(row1, row2, 0, clips[0].second);
+        setClippedPositions(row1, row2, view_str, clips[0].second);
         insertBamRecordCigar(bam_records[bam_id], row1, row2);
-        setClippedPositions(row1, row2, back(clips).first, length(row1));
-        insertBamRecordCigar(bam_records[bam_next_id], row1, row2, 0);
+        setClippedPositions(row1, row2, back(clips).first, view_end);
+        int64_t bam_start = get_cord_x (str_cord) + beginPosition(row1);
+        insertBamRecord(bam_records[bam_next_id], row1, row2, g_id, bam_start, 0);
         for (int i = 1; i < length(clips) - 1; i++)
         {
             int bam_start = beginPosition(clips[i].first) + get_cord_x(str_cord);
@@ -1394,18 +1413,22 @@ int align_gap (GapRecordHolder & gap,
                                         clips_src2[i + 1].second);
             cmpRevCord (seg_str_cord, seg_end_cord, 
                         seg_str_cord, seg_end_cord, length(read));
+            seg_str_cord = shift_cord(seg_str_cord, -thd_alg_extnd, -thd_alg_extnd);
+            seg_end_cord = shift_cord(seg_end_cord, thd_alg_extnd, thd_alg_extnd);
             int seg_band = std::max(get_cord_x(seg_end_cord - seg_str_cord),
                                     get_cord_y(seg_end_cord - seg_str_cord)) / 2;
             align_cord (row1, row2, genomes[g_id], 
                         read, comrevRead, seg_str_cord, seg_end_cord, seg_band);
+            printRows (row1, row2, " ac4 ");
             clip_rows_segs (row1, row2, seg_clips, seg_clips_src1, seg_clips_src2,
                             seg_str_cord,gap_parm);
             for (int j = 0; j < length(seg_clips); j++)
             {
-                int bam_start = get_cord_x (seg_str_cord) + seg_clips_src1[j].first;
+                int bam_start = seg_clips_src1[j].first;
                 int bam_strand = get_cord_strand(seg_str_cord);
                 setClippedPositions(row1, row2, seg_clips[i].first, seg_clips[i].second);
                 insertNewBamRecord(bam_records, row1, row2, g_id, bam_start, bam_strand); 
+                std::cout << "ac4 " << bam_start << " " << seg_clips_src1[j].first << "\n";
             }
         }
     }
@@ -1422,7 +1445,6 @@ int align_gaps (String<BamAlignmentRecordLink> & bam_records,
     GapRecordHolder gap(gaps);
     while (!gap.atEnd()) 
     { 
-        std::cout << "ags1\n";
         align_gap(gap, bam_records, genomes, read, 
                 comrevRead, score_scheme, gap_parm);
         gap.next();
