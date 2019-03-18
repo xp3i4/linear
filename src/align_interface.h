@@ -11,13 +11,14 @@ using namespace seqan;
  */
 class GapRecords
 {
+    
+public:
     typedef Row<Align<String<Dna5>, ArrayGaps> >::Type TRow;
     typedef std::pair<uint64_t, uint64_t> TCPair;
     typedef std::pair<TRow, TRow> TRPair;
     typedef String<std::pair<uint64_t, uint64_t> > TCPairs;
     typedef String<std::pair<TRow, TRow> > TRPairs;
 
-public:
     TCPairs c_pairs;  //pair of start and end coordinate of gaps 
     TRPairs r_pairs;  //pair of alingments of blocks contains the start and end of gaps 
     String<int> bam_segs_id;

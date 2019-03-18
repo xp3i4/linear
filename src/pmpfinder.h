@@ -83,6 +83,8 @@ uint64_t get_cord_strand (uint64_t val);
 uint64_t get_cord_id (uint64_t val);
 uint64_t create_id_x (uint64_t id, uint64_t x);
 uint64_t create_cord (uint64_t id, uint64_t cordx, uint64_t cordy, uint64_t strand);
+uint64_t shift_cord(uint64_t & val, int64_t dx_, int64_t dy_);
+
 
 void cmpRevCord(uint64_t val1, uint64_t val2, uint64_t & cr_val1, uint64_t & cr_val2, uint64_t read_len);
 uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y);

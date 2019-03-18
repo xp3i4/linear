@@ -217,12 +217,16 @@ uint64_t Cord::makeBlockEndVal(uint64_t val, uint64_t const & flag)
 {
     return _DefaultCord.createCord(create_id_x (id, cordx), cordy, strand);
 }
+uint64_t shift_cord(uint64_t & val, int64_t dx_, int64_t dy_)
+{
+    return _DefaultCord.shift(val, dx_, dy_);
+}
 
  void cmpRevCord(uint64_t val1, 
-                    uint64_t val2,
-                    uint64_t & cr_val1,
-                    uint64_t & cr_val2,
-                    uint64_t read_len)
+                 uint64_t val2,
+                 uint64_t & cr_val1,
+                 uint64_t & cr_val2,
+                 uint64_t read_len)
 {
     cr_val1 = (val1 - get_cord_y(val1) + read_len - get_cord_y(val2)) ^ _DefaultCordBase.flag_strand;
     cr_val2 = (val2 - get_cord_y(val1) + read_len - get_cord_y(val2)) ^ _DefaultCordBase.flag_strand;
