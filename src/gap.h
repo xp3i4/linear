@@ -18,8 +18,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             StringSet<String<short> > & f1,
             StringSet<String<short> >& f2,
             int const thd_gap, 
-            int const thd_tileSize,
-            int p1
+            int const thd_tileSize
            );
 
 #endif
