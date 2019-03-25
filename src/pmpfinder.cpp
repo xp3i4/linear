@@ -145,10 +145,9 @@ uint64_t Cord::cord2Cell(uint64_t const & cord,
 }
 
 void Cord::setCordEnd(uint64_t & cord,
-            typename CordBase::Flag const & strand,
             typename CordBase::Flag const & end)
 {
-    cord |= strand | end;
+    cord |= end;
 }
 
 typename CordBase::Flag Cord::getCordStrand(uint64_t const & cord,
@@ -1397,14 +1396,14 @@ template <typename TDna, typename TSpec>
  int extendPatch(StringSet<String<short> > & f1, 
                  StringSet<String<short> > & f2, 
                  String<uint64_t> & cords,
-                 int k,
+                 int kk,
                  uint64_t cord1,
                  uint64_t cord2,
                  int revscomp_const
                 )
 {
     unsigned window_threshold = 30;
-    //std::cout << "[]::extendPatch::coord cord1y " << get_cord_y(cord1) << " cord2y " << get_cord_y(cord2) << " " << _DefaultCord.getCordStrand(cord1 ^ cord2) << "\n";
+    std::cout << "eP dg1_1 " << get_cord_y(cord1) << " " << get_cord_y(cord2) << "\n";
     if (isOverlap(cord1, cord2, revscomp_const))
     {
         return 0;
@@ -1425,15 +1424,14 @@ template <typename TDna, typename TSpec>
     int len = 0;
     uint64_t cord = pcord;
     String<uint64_t> tmp;
-    //std::cout << "[]::extendPatch pcord " << get_cord_y(cord) << " " << get_cord_y(scord) << "\n";
+    std::cout << "dg1_ " << get_cord_y(cord) << " " << get_cord_y(scord) << "\n";
     while (isPreGap(cord, scord, revscomp_const))
     {
-        //std::cout << "[]::extendWindow::n cord " << get_cord_y(cord) << "\n";
         cord = nextWindow (f1[strand1], f2[genomeId1], cord, window_threshold);
+        std::cout << "dg1_ " << get_cord_y(cord) << "\n";
         if (cord)
         {
             appendValue (tmp, cord);
-            //std::cout << "[]::extendWidnow::n append " << get_cord_y(back(tmp)) << " " << _DefaultCord.getCordX(back(tmp)) << " " << strand1 << " " << strand2 << "\n";
         }
         else
         {
@@ -1445,20 +1443,18 @@ template <typename TDna, typename TSpec>
     {
         len += length(tmp);
         nw = back(tmp);
-        insert(cords, k, tmp);
+        insert(cords, kk, tmp);
         clear(tmp);
     }
     
     cord = scord;
     while (isSucGap(cord, nw, revscomp_const))
     {
-        //std::cout << "[]::extendWindow::p cord " << get_cord_y(cord) << "\n";
         cord = previousWindow(f1[strand2], f2[genomeId2], cord, window_threshold);
         if (cord)
         {
             //TODO do another round previousWindow if cord = 0.
             appendValue (tmp, cord);
-            //std::cout << "[]::extendWidnow::p append " << get_cord_y(cord) << " " << _DefaultCord.getCordX(cord) << " " << _DefaultCord.getCordY (nw) << " " << _DefaultCord.getCordX(nw) << "\n";
         }
         else
         {
@@ -1471,7 +1467,7 @@ template <typename TDna, typename TSpec>
         {
             std::swap (tmp[i], tmp[length(tmp) - i - 1]);
         }
-        insert(cords, k + len, tmp);
+        insert(cords, kk + len, tmp);
         len += length(tmp);
     }
     return len;

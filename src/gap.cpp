@@ -428,6 +428,11 @@ struct Tile
     {
         return !isTileStart(val) && !isTileEnd(val);
     }
+    void removeTileSgn(uint64_t & val,
+    uint64_t bit = ~(_defaultTileBase.sgnBit_str | _defaultTileBase.sgnBit_end))
+    {
+        val &= bit;
+    }
 }_defaultTile;
 
 inline void set_tile_end (uint64_t & val)
@@ -437,6 +442,10 @@ inline void set_tile_end (uint64_t & val)
 inline void set_tile_start (uint64_t & val)
 {
     _defaultTile.setTileStart(val);
+}
+inline void remove_tile_sgn (uint64_t & val)
+{
+    _defaultTile.removeTileSgn(val);
 }
 inline bool is_tile_start(uint64_t val)
 {
@@ -457,12 +466,13 @@ void g_print_tiles_(String<uint64_t> & tiles, CharString str = "")
 {
     for (unsigned i = 0; i < length(tiles); i++)
     {
-        std::cout << "[]::g_print_tiles_ " << str << " "<< i << " " << get_cord_y(tiles[i]) << " " <<  get_cord_id(tiles[i]) << " " << get_cord_x(tiles[i]) << "\n";
+        std::cout << "[]::g_print_tiles_ " << str << " "<< i << " " << get_cord_strand(tiles[i]) << " " << get_cord_y(tiles[i]) << " " <<  get_cord_id(tiles[i]) << " " << get_cord_x(tiles[i]) << "\n";
         if (is_tile_end(tiles[i]))
         {
-            std::cout << "\n";
+            std::cout << str << "\n\n";
         }
     }
+    std::cout << str << "\n" << str << "\n";
 }
 
  uint64_t acoord2Tile(uint64_t val, 
@@ -1345,7 +1355,6 @@ unsigned _get_tile_f_ (uint64_t const & tile,
                 std::cout << "gmas3\n";
                 for (int j = prek + 1; j < k; j++)
                 {
-                    std::cout << "gmas7 " << g_hs_anchor_getY(anchor[j]) << "\n";
                     if ((g_hs_anchor_getX(anchor[j]) > prex + thd_tileSize ||  
                          g_hs_anchor_getY(anchor[j]) > prey + thd_tileSize))
                     {
@@ -1354,10 +1363,9 @@ unsigned _get_tile_f_ (uint64_t const & tile,
                         uint64_t tmp_tile = g_hs_anchor_2Tile(anchor[j - 1], 
                                          main_strand, revscomp_const);
                         std::cout << "gmas6 " << _get_tile_f_(tmp_tile, f1, f2)                      << " " << get_cord_y(tmp_tile) << " " << kcount << "\n";
-                        if (kcount >= thd_k_in_window && 
+                        if (kcount >=  thd_k_in_window  && 
                             _get_tile_f_(tmp_tile, f1, f2) < thd_fscore)
                         {
-                        std::cout << "gmas5 " << _get_tile_f_(tmp_tile, f1, f2)                      << " " << get_cord_y(tmp_tile) << " " << kcount << "\n";
                             appendValue (tiles, tmp_tile);
                             if (length(tiles) == 1 || 
                                 is_tile_end(tiles[length(tiles) - 2]))
@@ -1383,18 +1391,12 @@ unsigned _get_tile_f_ (uint64_t const & tile,
                         set_tile_start (back(tiles));
                     }
                     appendValue (tiles, tmp_tile);
-                    }
-                std::sort (begin(tiles) + pre_tile_end, 
-                           begin(tiles) + length(tiles), 
-                    [](uint64_t & s1, uint64_t & s2)
-                    {  
-                        return _defaultTile.getX(s1) < _defaultTile.getX(s2);
-                    });
-                pre_tile_end = length(tiles);
+                }
                 if (!empty(tiles))
                 {
                     set_tile_end(back(tiles));
                 }
+                pre_tile_end = length(tiles);
             }
             prek = k;
             anchor_len = 0;
@@ -1404,12 +1406,42 @@ unsigned _get_tile_f_ (uint64_t const & tile,
             anchor_len++;
         }
     }
+    String<uint64_t> tmp_tiles = tiles;
+    std::sort (begin(tmp_tiles), end(tmp_tiles),
+    [](uint64_t & s1, uint64_t & s2)
+    {  
+        return _defaultTile.getX(s1) < _defaultTile.getX(s2);
+    });
+    int merge_flag = 1;
+    for (int i = 1; i < length(tmp_tiles); ++i)
+    {
+        if (_defaultTile.getY(tmp_tiles[i]) < _defaultTile.getY(tmp_tiles[i - 1]) &&
+            (!_defaultTile.getStrand(tmp_tiles[i] ^ tmp_tiles[i - 1])))
+        {
+            merge_flag = 0;
+            std::cout << "gmas11 " << i << " " << (_defaultTile.getY(tiles[i]) <_defaultTile.getY(tiles[i - 1])) << " " << (_defaultTile.getY(tmp_tiles[i]) < _defaultTile.getY(tmp_tiles[i - 1])) << "\n";
+            break;
+        }
+    }
+    //>>debug
     g_print_tiles_ (tiles, "gmas2");
-    std::cout << "gmas2\n";
+    std::cout << "gmas2 end\n";
+    std::cout << "gmas11 " << merge_flag << "\n";
+    //<<debug
+    if (merge_flag)
+    {
+        for (int i = 0; i < length(tmp_tiles); ++i)
+        {
+            tiles[i] = tmp_tiles[i];
+            remove_tile_sgn(tiles[i]); //remove start and end sign
+        }
+    }
+    g_print_tiles_(tiles, "gmas15");
 /**
  * extend window if there are gaps between tiles until the horizontal coordinates x1 - x2 < window_size or the gap can't be extend any more
  * ATTENTION: relation between y1 and y2 currently are not considered.
  */
+    /*
     uint64_t gr_start_flip = _flipCoord(gr_start, revscomp_const, main_strand);
     uint64_t gr_end_flip = _flipCoord(gr_end, revscomp_const, main_strand);
     if (main_strand)
@@ -1418,14 +1450,13 @@ unsigned _get_tile_f_ (uint64_t const & tile,
     }
     uint64_t startCord = create_cord(genomeId, gs_start, gr_start_flip, main_strand);
     uint64_t endCord = create_cord(genomeId, gs_end, gr_end_flip, main_strand);
-    /*
+    */
     uint64_t startCord = create_cord(genomeId, gs_start, gr_start, main_strand);
     uint64_t endCord = create_cord(genomeId, gs_end, gr_end, main_strand);
     if (main_strand)
     {
         cmpRevCord(startCord, endCord, startCord, endCord, revscomp_const);
     }
-    */
     if (empty(tiles))
     {
         extendPatch(f1, f2, tiles, 0, startCord, endCord, revscomp_const);
@@ -1434,6 +1465,7 @@ unsigned _get_tile_f_ (uint64_t const & tile,
     for (int i = 0; i < length(tiles); i++)
     {
         ///extend the last and first tiles
+        std::cout << "gmas8 " << get_cord_y(tiles[i]) << "\n";
         if (is_tile_start(tiles[i]))
         {
             i += extendPatch(f1, f2, tiles, 0, startCord, tiles[0], revscomp_const);
@@ -1443,12 +1475,14 @@ unsigned _get_tile_f_ (uint64_t const & tile,
             i += extendPatch(f1, f2, tiles, length(tiles), back(tiles), endCord, revscomp_const);   
         }
         ///extend the middle tiles
-        if (i > 1 && is_tile_body (tiles[i - 1]) && is_tile_body(tiles[i]))
+        if (i > 1 && (is_tile_body (tiles[i - 1]) || is_tile_body(tiles[i])))
         {
+        std::cout << "gmas10 " << get_cord_y(tiles[i]) << "\n";
+        std::cout << "gmas dg1_1_ " << get_cord_y(tiles[i]) << "\n";
             i += extendPatch(f1, f2, tiles, i, tiles[i - 1], tiles[i], revscomp_const);   
         }
     }
-    g_print_tiles_(tiles, "gmas33\n");
+    g_print_tiles_(tiles, "gmas33");
     return 0;
 }
 /**
@@ -2585,6 +2619,7 @@ if (t == 3)
                  direction
                );
         int ct_tile_block = 0;
+        g_print_tiles_(tiles, "mg_2");
         for (int i = 0; i < length(tiles); i++)
         {
             if (is_tile_end(tiles[i]))
@@ -2601,18 +2636,20 @@ if (t == 3)
                     set_cord_end(tiles[i]);
                     std::cout << "mg_\n";
                 }
-                std::cout << "mg_ " << get_cord_y(tiles[i]) << " " << get_cord_y(tiles[i]) << "\n";
+                std::cout << "mg_ " << get_cord_y(tiles[i]) << " " << get_cord_y(tiles[i]) << " " << get_cord_strand(tiles[i]) << "\n";
             }
         }
         g_alignGap_(seqs[genomeId], read, comstr, tiles, clips, g_hs, g_anchor, gs_start, gs_end, gr_start, gr_end, strand, genomeId, direction, thd_cord_gap);
+        g_print_tiles_(tiles, "mg_1");
     }
+    /*
     else 
     {
         appendValue(tiles, cord1);
         appendValue(tiles, cord2);
         g_alignGap_(seqs[genomeId], read, comstr, tiles, clips, g_hs, g_anchor, gs_start, gs_end, gr_start, gr_end, strand, genomeId, direction, thd_cord_gap);
-        clear(tiles);
     }
+    */
         std::cout << "mg_2 " << length(tiles) << "\n";
     return length(tiles);
 }

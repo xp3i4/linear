@@ -83,7 +83,6 @@ struct Cord
     uint64_t cell2Cord(uint64_t const & cell, 
                 unsigned const & bit = _DefaultCordBase.cell_bit) const;
     void setCordEnd(uint64_t & cord,
-            typename CordBase::Flag const & strand = _DefaultCordBase.flag_strand,
             typename CordBase::Flag const & end = _DefaultCordBase.flag_end);
     uint64_t getCordStrand(uint64_t const & cord,
             unsigned const & strand = _DefaultCordBase.flag_bit) const;
