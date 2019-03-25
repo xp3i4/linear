@@ -1345,6 +1345,7 @@ unsigned _get_tile_f_ (uint64_t const & tile,
                 std::cout << "gmas3\n";
                 for (int j = prek + 1; j < k; j++)
                 {
+                    std::cout << "gmas7 " << g_hs_anchor_getY(anchor[j]) << "\n";
                     if ((g_hs_anchor_getX(anchor[j]) > prex + thd_tileSize ||  
                          g_hs_anchor_getY(anchor[j]) > prey + thd_tileSize))
                     {
@@ -1352,10 +1353,11 @@ unsigned _get_tile_f_ (uint64_t const & tile,
                         prey = g_hs_anchor_getY(anchor[j - 1]);
                         uint64_t tmp_tile = g_hs_anchor_2Tile(anchor[j - 1], 
                                          main_strand, revscomp_const);
+                        std::cout << "gmas6 " << _get_tile_f_(tmp_tile, f1, f2)                      << " " << get_cord_y(tmp_tile) << " " << kcount << "\n";
                         if (kcount >= thd_k_in_window && 
                             _get_tile_f_(tmp_tile, f1, f2) < thd_fscore)
                         {
-                        std::cout << "gmas5 " << _get_tile_f_(tmp_tile, f1, f2)                      << " " << kcount << "\n";
+                        std::cout << "gmas5 " << _get_tile_f_(tmp_tile, f1, f2)                      << " " << get_cord_y(tmp_tile) << " " << kcount << "\n";
                             appendValue (tiles, tmp_tile);
                             if (length(tiles) == 1 || 
                                 is_tile_end(tiles[length(tiles) - 2]))
@@ -1446,7 +1448,6 @@ unsigned _get_tile_f_ (uint64_t const & tile,
             i += extendPatch(f1, f2, tiles, i, tiles[i - 1], tiles[i], revscomp_const);   
         }
     }
-    //clear (tiles);
     g_print_tiles_(tiles, "gmas33\n");
     return 0;
 }
