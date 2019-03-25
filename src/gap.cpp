@@ -371,9 +371,8 @@ struct TileBase
     uint64_t const strandBit = 61;
     uint64_t const xmask = (1ULL << xBitLen) - 1;
     uint64_t const ymask = (1ULL << yBitLen) - 1;
-    unsigned const sgnBit = 62;
-    unsigned const sgnBit_str = 1ULL << sgnBit;
-    unsigned const sgnBit_end = 2ULL << sgnBit;
+    uint64_t const sgnBit_str = 1ULL << 62;
+    uint64_t const sgnBit_end = 2ULL << 62;
 }_defaultTileBase;
 
 struct Tile
@@ -409,21 +408,23 @@ struct Tile
     void setTileEnd(uint64_t & val, 
         uint64_t bit = _defaultTileBase.sgnBit_end)
     {
+        std::cout << "te1 " << bit << "\n";
         val |= bit;
-    }
-    int isTileEnd(uint64_t & val, uint64_t bit = _defaultTileBase.sgnBit_end)
-    {
-        return val & bit;
     }
     void setTileStart(uint64_t & val, uint64_t bit = _defaultTileBase.sgnBit_str)
     {
         val |= bit;
     }
-    int isTileStart(uint64_t & val, uint64_t bit = _defaultTileBase.sgnBit_str)
+    bool isTileEnd(uint64_t & val, uint64_t bit = _defaultTileBase.sgnBit_end)
+    {
+        std::cout << "ite1 " << (val & bit) << "\n";
+        return val & bit;
+    }
+    bool isTileStart(uint64_t & val, uint64_t bit = _defaultTileBase.sgnBit_str)
     {
         return val & bit;
     }
-    int isTileBody (uint64_t & val)
+    bool isTileBody (uint64_t & val)
     {
         return !isTileStart(val) && !isTileEnd(val);
     }
@@ -437,15 +438,15 @@ inline void set_tile_start (uint64_t & val)
 {
     _defaultTile.setTileStart(val);
 }
-inline int is_tile_start(uint64_t val)
+inline bool is_tile_start(uint64_t val)
 {
     return _defaultTile.isTileStart(val);
 }
-inline int is_tile_end(uint64_t val)
+inline bool is_tile_end(uint64_t val)
 {
     return _defaultTile.isTileEnd(val);
 }
-inline int is_tile_body(uint64_t val)
+inline bool is_tile_body(uint64_t val)
 {
     return _defaultTile.isTileBody(val);
 }
@@ -1269,9 +1270,9 @@ unsigned _get_tile_f_ (uint64_t const & tile,
     uint64_t tile_y = _defaultTile.getY(tile);
     unsigned fscore = 
         _windowDist(begin(f1[_defaultTile.getStrand(tile)]) + 
-                            _DefaultCord.cord2Cell(tile_y), 
-                           begin(f2[_getSA_i1(tile_x)]) + 
-                            _DefaultCord.cord2Cell(_getSA_i2(tile_x)));
+                        _DefaultCord.cord2Cell(tile_y), 
+                    begin(f2[_getSA_i1(tile_x)]) + 
+                        _DefaultCord.cord2Cell(_getSA_i2(tile_x)));
     return fscore;
 }
 
@@ -1315,9 +1316,8 @@ unsigned _get_tile_f_ (uint64_t const & tile,
     int anchor_len = 0, max_anchor_len = 0, max_prek = 0, max_k = 0;
     std::sort (begin(anchor), begin(anchor) + anchor_end);
     anchor[anchor_end] = ~0;
-    String<int> score;
     g_print_tiles_ (tiles, "gmas3");
-
+    int pre_tile_end = 0;
     for (int k = 0; k < anchor_end + 1; k++)
     {
         //TODO: handle thd_min_segment, anchor 
@@ -1352,8 +1352,10 @@ unsigned _get_tile_f_ (uint64_t const & tile,
                         prey = g_hs_anchor_getY(anchor[j - 1]);
                         uint64_t tmp_tile = g_hs_anchor_2Tile(anchor[j - 1], 
                                          main_strand, revscomp_const);
-                        if (score >= thd_k_in_window && _get_tile_f_(tmp_tile, f1, f2) > thd_fscore)
+                        if (kcount >= thd_k_in_window && 
+                            _get_tile_f_(tmp_tile, f1, f2) < thd_fscore)
                         {
+                        std::cout << "gmas5 " << _get_tile_f_(tmp_tile, f1, f2)                      << " " << kcount << "\n";
                             appendValue (tiles, tmp_tile);
                             if (length(tiles) == 1 || 
                                 is_tile_end(tiles[length(tiles) - 2]))
@@ -1370,8 +1372,8 @@ unsigned _get_tile_f_ (uint64_t const & tile,
                     }
                 }
                 uint64_t tmp_tile = g_hs_anchor_2Tile(anchor[k - 1], main_strand, revscomp_const);
-                if (score >= thd_k_in_window && 
-                    _get_tile_f_(tmp_tile, f1, f2) > thd_fscore)
+                if (kcount >= thd_k_in_window && 
+                    _get_tile_f_(tmp_tile, f1, f2) < thd_fscore)
                 {
                     if (length(tiles) == 1 || 
                         is_tile_end(tiles[length(tiles) - 2]))
@@ -1379,7 +1381,14 @@ unsigned _get_tile_f_ (uint64_t const & tile,
                         set_tile_start (back(tiles));
                     }
                     appendValue (tiles, tmp_tile);
-                }
+                    }
+                std::sort (begin(tiles) + pre_tile_end, 
+                           begin(tiles) + length(tiles), 
+                    [](uint64_t & s1, uint64_t & s2)
+                    {  
+                        return _defaultTile.getX(s1) < _defaultTile.getX(s2);
+                    });
+                pre_tile_end = length(tiles);
                 if (!empty(tiles))
                 {
                     set_tile_end(back(tiles));
@@ -1407,6 +1416,14 @@ unsigned _get_tile_f_ (uint64_t const & tile,
     }
     uint64_t startCord = create_cord(genomeId, gs_start, gr_start_flip, main_strand);
     uint64_t endCord = create_cord(genomeId, gs_end, gr_end_flip, main_strand);
+    /*
+    uint64_t startCord = create_cord(genomeId, gs_start, gr_start, main_strand);
+    uint64_t endCord = create_cord(genomeId, gs_end, gr_end, main_strand);
+    if (main_strand)
+    {
+        cmpRevCord(startCord, endCord, startCord, endCord, revscomp_const);
+    }
+    */
     if (empty(tiles))
     {
         extendPatch(f1, f2, tiles, 0, startCord, endCord, revscomp_const);
@@ -1429,7 +1446,7 @@ unsigned _get_tile_f_ (uint64_t const & tile,
             i += extendPatch(f1, f2, tiles, i, tiles[i - 1], tiles[i], revscomp_const);   
         }
     }
-
+    //clear (tiles);
     g_print_tiles_(tiles, "gmas33\n");
     return 0;
 }
@@ -1456,8 +1473,10 @@ unsigned _get_tile_f_ (uint64_t const & tile,
 }
 
 /**
- * Map gaps specified by the gs_start,..., gr_end, to create a chain of tiles to cover the gap as long as possible.
- * gs_start, gr_end will be extended towards the right side, gs_end, gr_end will be extended towards the left side.
+ * Map gaps specified by the gs_start,..., gr_end, to create a chain of tiles to
+ * cover the gap as long as possible.
+ * gs_start, gr_end will be extended towards the right side, gs_end, gr_end will 
+ * be extended towards the left side.
  * Cords between them will be extended towards both sides.
  */
  int g_mapHs_(String<Dna5> & seq, 
@@ -2564,6 +2583,26 @@ if (t == 3)
                  thd_tileSize,
                  direction
                );
+        int ct_tile_block = 0;
+        for (int i = 0; i < length(tiles); i++)
+        {
+            if (is_tile_end(tiles[i]))
+            {
+                ++ct_tile_block;
+            }
+        }
+        if (ct_tile_block > 1)
+        {
+            for (int i = 0; i < length(tiles); i++)
+            {
+                if (is_tile_end(tiles[i]))
+                {
+                    set_cord_end(tiles[i]);
+                    std::cout << "mg_\n";
+                }
+                std::cout << "mg_ " << get_cord_y(tiles[i]) << " " << get_cord_y(tiles[i]) << "\n";
+            }
+        }
         g_alignGap_(seqs[genomeId], read, comstr, tiles, clips, g_hs, g_anchor, gs_start, gs_end, gr_start, gr_end, strand, genomeId, direction, thd_cord_gap);
     }
     else 
@@ -2573,6 +2612,7 @@ if (t == 3)
         g_alignGap_(seqs[genomeId], read, comstr, tiles, clips, g_hs, g_anchor, gs_start, gs_end, gr_start, gr_end, strand, genomeId, direction, thd_cord_gap);
         clear(tiles);
     }
+        std::cout << "mg_2 " << length(tiles) << "\n";
     return length(tiles);
 }
 
@@ -2607,6 +2647,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
     int thd_cord_remap = 400;
     int thd_cord_gap = thd_gap + block_size;
     ///NOTE cords[0] is the head cord, so starts from 1
+    std::cout << "mg1 " << length(cords) << "\n";
     for (unsigned i = 1; i < length(cords); i++)
     {
         if (last_flag == 1)  ///left clip first cord
@@ -2640,6 +2681,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
         if (_DefaultCord.getCordX(cord2 - cord1) > thd_cord_gap ||
             get_cord_y(cord2 - cord1) > thd_cord_gap)         
         {
+            std::cout << "mg2\n";
             mapGap_(seqs, read, comstr, 
                     cords[i - 1], cords[i], 
                     g_hs, g_anchor, f1, f2, 

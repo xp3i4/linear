@@ -201,6 +201,7 @@ uint64_t get_cord_x (uint64_t val) {return _getSA_i2(_DefaultCord.getCordX(val))
 uint64_t get_cord_y (uint64_t val) {return _DefaultCord.getCordY(val);}
 uint64_t get_cord_strand (uint64_t val) {return _DefaultCord.getCordStrand(val);}
 uint64_t get_cord_id (uint64_t val) {return _getSA_i1(_DefaultCord.getCordX(val));}
+void set_cord_end (uint64_t & val) {_DefaultCord.setCordEnd(val);}
 uint64_t create_id_x(uint64_t const id, uint64_t const x)
 {
     return (id << _DefaultCordBase.bit_id) + x;
@@ -1394,13 +1395,13 @@ template <typename TDna, typename TSpec>
  * 
  */         
  int extendPatch(StringSet<String<short> > & f1, 
-                       StringSet<String<short> > & f2, 
-                      String<uint64_t> & cords,
-                      int k,
-                      uint64_t cord1,
-                      uint64_t cord2,
-                      int revscomp_const
-                        )
+                 StringSet<String<short> > & f2, 
+                 String<uint64_t> & cords,
+                 int k,
+                 uint64_t cord1,
+                 uint64_t cord2,
+                 int revscomp_const
+                )
 {
     unsigned window_threshold = 30;
     //std::cout << "[]::extendPatch::coord cord1y " << get_cord_y(cord1) << " cord2y " << get_cord_y(cord2) << " " << _DefaultCord.getCordStrand(cord1 ^ cord2) << "\n";
