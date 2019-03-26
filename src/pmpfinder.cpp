@@ -1371,11 +1371,9 @@ template <typename TDna, typename TSpec>
     int64_t x1 = _DefaultCord.getCordX(cord1);
     //int64_t y1 = get_cord_y(cord1);
     int64_t x2 = _DefaultCord.getCordX(cord2);
-    //int64_t y2 = get_cord_y(cord2);
-    //return (x1 + window_size > x2 || y1 + window_size > y2) && (std::abs(x1 - x2) > window_size || std::abs(y1 - y2) > window_size);
     (void) revscomp_const;
     //std::cout << "[]::isPreGap " << x1 + window_size << " " << x2 << "\n";
-    return (x1 + window_size < x2);
+    return (x1 + window_size <= x2);
 }
 /**
  * cord1 is successor of cord2 and they are not overlapped

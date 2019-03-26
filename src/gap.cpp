@@ -669,16 +669,20 @@ int const g_align_right = 1;
     return (anchor >> g_hs_anchor_bit1) & g_hs_anchor_mask5;
 }
 
- uint64_t g_hs_anchor_getX (uint64_t val)
+uint64_t g_hs_anchor_getX (uint64_t val)
 {
     return ((val >> g_hs_anchor_bit1) & g_hs_anchor_mask3) + (val & g_hs_anchor_mask1);
 }
 
- uint64_t g_hs_anchor_getY (uint64_t val)
+uint64_t g_hs_anchor_getY (uint64_t val)
 {
     return val & g_hs_anchor_mask1;
 }
 
+uint64_t g_hs_anchor_get_strand(uint64_t val)
+{
+    return (val >> g_hs_anchor_bit2) & 1;
+}
 
 ///g_hs: N/A[1]|xval[30]|type[2]strand[1]|coordinate[30]
 ///type=0: from genome, type=1: from read
@@ -1333,9 +1337,11 @@ unsigned _get_tile_f_ (uint64_t const & tile,
         //TODO: handle thd_min_segment, anchor 
         
         int64_t d = std::abs((int64_t)g_hs_anchor_getY(anchor[k]) - (int64_t)g_hs_anchor_getY(anchor[prek]));
+        std::cout << "gmas1 " << k << " " << g_hs_anchor_getY(anchor[k]) << " " << g_hs_anchor_get_strand(anchor[k]) << " " << g_hs_anchor_getAnchor(anchor[k]) << "\n";
         if (g_hs_anchor_getAnchor(anchor[k] - anchor[prek]) > 
             thd_err_rate * std::max(thd_min_segment, d))
         {
+            std::cout << "gmas1 " << k << " " << prek << "\n";
             if ((std::abs(anchor_len / (float)(g_hs_anchor_getY(anchor[k - 1]) - g_hs_anchor_getY(anchor[prek]))) > g_thd_anchor_density && anchor_len > 2) || anchor_len > g_thd_anchor)
             {
                 std::sort (begin(anchor) + prek, 
@@ -1355,6 +1361,7 @@ unsigned _get_tile_f_ (uint64_t const & tile,
                 std::cout << "gmas3\n";
                 for (int j = prek + 1; j < k; j++)
                 {
+                    std::cout << "gmas3 " << g_hs_anchor_getY(anchor[j]) << "\n";
                     if ((g_hs_anchor_getX(anchor[j]) > prex + thd_tileSize ||  
                          g_hs_anchor_getY(anchor[j]) > prey + thd_tileSize))
                     {
@@ -1362,7 +1369,7 @@ unsigned _get_tile_f_ (uint64_t const & tile,
                         prey = g_hs_anchor_getY(anchor[j - 1]);
                         uint64_t tmp_tile = g_hs_anchor_2Tile(anchor[j - 1], 
                                          main_strand, revscomp_const);
-                        std::cout << "gmas6 " << _get_tile_f_(tmp_tile, f1, f2)                      << " " << get_cord_y(tmp_tile) << " " << kcount << "\n";
+                        std::cout << "gmas6 " << _get_tile_f_(tmp_tile, f1, f2)                      << " " << get_cord_y(tmp_tile) << " " << get_cord_strand(tmp_tile)<< " " << kcount << "\n";
                         if (kcount >=  thd_k_in_window  && 
                             _get_tile_f_(tmp_tile, f1, f2) < thd_fscore)
                         {
@@ -1406,6 +1413,10 @@ unsigned _get_tile_f_ (uint64_t const & tile,
             anchor_len++;
         }
     }
+    if (empty(tiles))
+    {
+        return 0;
+    }
     String<uint64_t> tmp_tiles = tiles;
     std::sort (begin(tmp_tiles), end(tmp_tiles),
     [](uint64_t & s1, uint64_t & s2)
@@ -1435,22 +1446,14 @@ unsigned _get_tile_f_ (uint64_t const & tile,
             tiles[i] = tmp_tiles[i];
             remove_tile_sgn(tiles[i]); //remove start and end sign
         }
+        set_tile_start(tiles[0]);
+        set_tile_end(back(tiles));
     }
     g_print_tiles_(tiles, "gmas15");
 /**
  * extend window if there are gaps between tiles until the horizontal coordinates x1 - x2 < window_size or the gap can't be extend any more
  * ATTENTION: relation between y1 and y2 currently are not considered.
  */
-    /*
-    uint64_t gr_start_flip = _flipCoord(gr_start, revscomp_const, main_strand);
-    uint64_t gr_end_flip = _flipCoord(gr_end, revscomp_const, main_strand);
-    if (main_strand)
-    {
-        std::swap (gr_start_flip, gr_end_flip);
-    }
-    uint64_t startCord = create_cord(genomeId, gs_start, gr_start_flip, main_strand);
-    uint64_t endCord = create_cord(genomeId, gs_end, gr_end_flip, main_strand);
-    */
     uint64_t startCord = create_cord(genomeId, gs_start, gr_start, main_strand);
     uint64_t endCord = create_cord(genomeId, gs_end, gr_end, main_strand);
     if (main_strand)
@@ -1468,16 +1471,18 @@ unsigned _get_tile_f_ (uint64_t const & tile,
         std::cout << "gmas8 " << get_cord_y(tiles[i]) << "\n";
         if (is_tile_start(tiles[i]))
         {
+        std::cout << "gmas10_dg21 " << get_cord_y(tiles[i]) << "\n";
             i += extendPatch(f1, f2, tiles, 0, startCord, tiles[0], revscomp_const);
         }
         if (is_tile_end(tiles[i]))
         {
+        std::cout << "gmas10_dg22 " << get_cord_y(tiles[i]) << "\n";
             i += extendPatch(f1, f2, tiles, length(tiles), back(tiles), endCord, revscomp_const);   
         }
         ///extend the middle tiles
         if (i > 1 && (is_tile_body (tiles[i - 1]) || is_tile_body(tiles[i])))
         {
-        std::cout << "gmas10 " << get_cord_y(tiles[i]) << "\n";
+        std::cout << "gmas10_dg23 " << get_cord_y(tiles[i]) << "\n";
         std::cout << "gmas dg1_1_ " << get_cord_y(tiles[i]) << "\n";
             i += extendPatch(f1, f2, tiles, i, tiles[i - 1], tiles[i], revscomp_const);   
         }
