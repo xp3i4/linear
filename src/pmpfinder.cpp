@@ -187,7 +187,6 @@ bool Cord::isCordsOverlap(uint64_t & val1, uint64_t & val2, int64_t thd)
 {
     int64_t dx = _DefaultCord.getCordX(val2 - val1);
     int64_t dy = get_cord_y(val2 - val1);
-    //std::cout << "[]::isCordsOverlap " << dx << " " << dy << " " << _DefaultCord.getCordX(val2) << " " << _DefaultCord.getCordX(val1) << " " << thd << "\n";
     return (dx >= 0) && (dx < thd) && (dy >= 0) && (dy < thd);
 }
 
@@ -1348,7 +1347,9 @@ template <typename TDna, typename TSpec>
     return true;
 }
 
- bool isOverlap (uint64_t cord1, uint64_t cord2, int revscomp_const)
+bool isOverlap (uint64_t cord1, uint64_t cord2, 
+                int revscomp_const, 
+                int overlap_size = window_size)
 {
     uint64_t strand1 = _DefaultCord.getCordStrand(cord1);
     uint64_t strand2 = _DefaultCord.getCordStrand(cord2);
@@ -1359,28 +1360,30 @@ template <typename TDna, typename TSpec>
     //int64_t y2 = revscomp_const * strand2 - _nStrand(strand2) * get_cord_y(cord2);
     int64_t y2 = _DefaultCord.getCordY (cord2);
     (void) revscomp_const;
-    return std::abs(x1 - x2) < window_size && std::abs(y1 - y2) < window_size && (!(strand1 ^ strand2));
+    return std::abs(x1 - x2) <= overlap_size && 
+           std::abs(y1 - y2) <= overlap_size && (!(strand1 ^ strand2));
 }
 /**
  * cord1 is predecessor of cord2 and they are not overlapped
  */
- bool isPreGap (uint64_t cord1, uint64_t cord2, int revscomp_const)
+ bool isPreGap (uint64_t cord1, uint64_t cord2, 
+                int revscomp_const, 
+                int gap_size = window_size)
 {
-    //uint64_t strand1 = _DefaultCord.getCordStrand(cord1);
-    //uint64_t strand2 = _DefaultCord.getCordStrand(cord2);
+
     int64_t x1 = _DefaultCord.getCordX(cord1);
-    //int64_t y1 = get_cord_y(cord1);
     int64_t x2 = _DefaultCord.getCordX(cord2);
     (void) revscomp_const;
-    //std::cout << "[]::isPreGap " << x1 + window_size << " " << x2 << "\n";
-    return (x1 + window_size <= x2);
+    return (x1 + gap_size <= x2);
 }
 /**
  * cord1 is successor of cord2 and they are not overlapped
  */
- bool isSucGap (uint64_t cord1, uint64_t cord2, int revscomp_const)
+ bool isSucGap (uint64_t cord1, uint64_t cord2, 
+                int revscomp_const,
+                int gap_size = window_size)
 {
-    return isPreGap (cord2, cord1, revscomp_const);
+    return isPreGap (cord2, cord1, revscomp_const, gap_size);
 }
 /**
  * Extend windows between cord1, and cord2 if they are not overlapped,
