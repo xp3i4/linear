@@ -1361,7 +1361,6 @@ unsigned _get_tile_f_ (uint64_t const & tile,
     for (int k = 0; k < anchor_end + 1; k++)
     {
         //TODO: handle thd_min_segment, anchor 
-        std::cout << "gmas6 " << prek << "\n";
         int64_t d = std::abs((int64_t)g_hs_anchor_getY(anchor[k]) - (int64_t)g_hs_anchor_getY(anchor[prek]));
         if (g_hs_anchor_getAnchor(anchor[k] - anchor[prek]) > 
             thd_err_rate * std::max(thd_min_segment, d))

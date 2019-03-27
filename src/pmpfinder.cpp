@@ -1039,16 +1039,6 @@ template <typename TDna, typename TSpec>
                 c_b += anchors.deltaPos2(k, k - 1); 
         }
     }
-    //<<debug
-        for (int ii = 0; ii < anchors.length(); ii++)
-        {
-            uint64_t mask1 = (1ULL << 20) - 1;
-            uint64_t mask2 = (1ULL << 40) - 1;
-            uint64_t tmp_cord = _DefaultCord.hit2Cord(anchors[ii]);
-
-            std::cout << "gaml1 " << ii << " " << get_cord_y(tmp_cord) << " " << get_cord_x(anchors[ii]) << " " << get_cord_x(tmp_cord) << "\n";
-        }
-    //>>debug
     if (list[0])
     {
         std::sort (list, list + lcount, std::greater<uint64_t>());
@@ -1067,7 +1057,6 @@ template <typename TDna, typename TSpec>
           else
               break;
         }
-        std::cout << "gaml2 " << anchors.length() << " " << length(hit) << "\n";
         return (list[0] >> 40);   
     }
     else
