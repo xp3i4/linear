@@ -852,16 +852,16 @@ template <typename TDna, typename TSpec>
     return 0;
 }
 */
-
 /**
- * search double strand in one round
+ * Search double strand pattern in the index and
+ * append to anchors
  */
  unsigned getIndexMatchAll(LIndex & index,
                            String<Dna5> & read,
                            String<uint64_t> & set,
                            MapParm & mapParm)
 {   
-    unsigned dt = 0;
+    int dt = 0;
     LShape shape(index.shape);
     uint64_t xpre = 0;
     hashInit(shape, begin(read));
@@ -871,55 +871,42 @@ template <typename TDna, typename TSpec>
         uint64_t pre = ~0;
         if (++dt == mapParm.alpha)
         {
+            dt = 0;
             if(hashNextX(shape, begin(read) + k) ^ xpre)
             {
                 xpre = shape.XValue;
                 uint64_t pos = getXDir(index, shape.XValue, shape.YValue);
-//!Note: The contition is different from single strand \
-         which will slightly changes the senstivity.\
-         Specifically, in the single strand index, if the size of the block is > mapParm.delta, \
-         then the block of the ysa will not be used. \
-         While in double strand index, the length of ysa of fixed value includes kmer \
-         of f both + and - strands.
-
-        // if (_DefaultHs.getHsBodyY(index.ysa[std::min(pos + mapParm.delta, length(index.ysa) - 1)]) ^ shape.YValue)
-            //{
-                //while (_DefaultHs.isBodyYEqual(index.ysa[pos], shape.YValue))
                 uint64_t ptr = _DefaultHs.getHeadPtr(index.ysa[pos-1]);
-                if (ptr < mapParm.delta)
-                //if (_DefaultHs.getHeadPtr(index.ysa[pos-1]) < 1000000)
+                if (index.isEmptyDir(pos) || ptr >= mapParm.delta)
                 {
-          //          unsigned pr = _DefaultHs.getHeadPtr(index.ysa[pos-1]);
-                    //while (_DefaultHs.isBody(index.ysa[pos]))
-                    while ((_DefaultHs.getHsBodyY(index.ysa[pos]) == shape.YValue || _DefaultHs.getHsBodyY(index.ysa[pos]) == 0))
+                    dt = 0;
+                    continue;
+                }
+                while ((_DefaultHs.getHsBodyY(index.ysa[pos]) == shape.YValue || 
+                        _DefaultHs.getHsBodyY(index.ysa[pos]) == 0))
+                {
+                    if (_DefaultHs.getHsBodyS(pre - index.ysa[pos]) > mapParm.kmerStep)
                     {
-    //!Note: needs change
-    //!Note: the sa is in reverse order in hindex. this is different from the generic index
-                        if (_DefaultHs.getHsBodyS(pre - index.ysa[pos]) > mapParm.kmerStep)
+                        if (((index.ysa[pos] & _DefaultHsBase.bodyCodeFlag) >>_DefaultHsBase.bodyCodeBit) ^ shape.strand)
                         {
-                            //[COMT]::condition of complement reverse strand
-                            if (((index.ysa[pos] & _DefaultHsBase.bodyCodeFlag) >>_DefaultHsBase.bodyCodeBit) ^ shape.strand)
-                            {
-                                
-                                appendValue(set, (((_DefaultHs.getHsBodyS(index.ysa[pos]) - length(read) + 1 + k) << 20) +  (length(read) - 1 - k)) | _DefaultHitBase.flag2);
-                                
-                            }
-                            //[comt]::condition of normal strand
-                            else
-                            {     
-
-                                appendValue(set, ((_DefaultHs.getHsBodyS(index.ysa[pos]) - k) << 20) | k);
-                            }
-                            pre = index.ysa[pos];
+                            
+                            uint64_t cordy = length(read) - 1 - k;
+                            appendValue(set, (((_DefaultHs.getHsBodyS(index.ysa[pos]) - cordy) << 20) 
+                                + cordy) | _DefaultHitBase.flag2);
                         }
-                        if (++pos > length(index.ysa) - 1)
-                        {
-                            break;
+                        else
+                        {    
+                            uint64_t cordy = k;
+                            appendValue(set, ((_DefaultHs.getHsBodyS(index.ysa[pos]) - cordy) << 20) | cordy);
                         }
+                        pre = index.ysa[pos];
+                    }
+                    if (++pos > length(index.ysa) - 1)
+                    {
+                        break;
                     }
                 }
             }
-            dt = 0;
         }
     }
     return 0;
@@ -1052,6 +1039,16 @@ template <typename TDna, typename TSpec>
                 c_b += anchors.deltaPos2(k, k - 1); 
         }
     }
+    //<<debug
+        for (int ii = 0; ii < anchors.length(); ii++)
+        {
+            uint64_t mask1 = (1ULL << 20) - 1;
+            uint64_t mask2 = (1ULL << 40) - 1;
+            uint64_t tmp_cord = _DefaultCord.hit2Cord(anchors[ii]);
+
+            std::cout << "gaml1 " << ii << " " << get_cord_y(tmp_cord) << " " << get_cord_x(anchors[ii]) << " " << get_cord_x(tmp_cord) << "\n";
+        }
+    //>>debug
     if (list[0])
     {
         std::sort (list, list + lcount, std::greater<uint64_t>());
@@ -1070,6 +1067,7 @@ template <typename TDna, typename TSpec>
           else
               break;
         }
+        std::cout << "gaml2 " << anchors.length() << " " << length(hit) << "\n";
         return (list[0] >> 40);   
     }
     else

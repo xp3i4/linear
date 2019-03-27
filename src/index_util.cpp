@@ -303,6 +303,10 @@ HIndex::HIndex(StringSet<String<Dna5> > const & text):
 {
     (void) text;
 }
+bool HIndex::isEmptyDir(uint64_t pos)
+{
+    return pos == emptyDir;
+}
 void HIndex::clear()
 {
     seqan::clear(ysa);
@@ -1104,7 +1108,6 @@ bool checkHsSort(String<uint64_t> const & hs)
     //return _DefaultXNodeBase._Empty_Dir_;
     return 0;
 }
-
 //#define debug_c_ysa
 /*  
  * serial sort ysa 
@@ -1280,7 +1283,7 @@ bool checkHsSort(String<uint64_t> const & hs)
     thd_hsStart[threads] = prek + 1;
     resize(hs, k + 2 - countMove);
     shrinkToFit(hs);
-    indexEmptyDir = k - countMove;
+    indexEmptyDir = k - countMove ;
     k=0;
     preX = _DefaultHs.getHeadX(hs[0]);
     ptr = 0;
