@@ -1366,6 +1366,7 @@ unsigned _get_tile_f_ (uint64_t const & tile,
     for (int k = 0; k < anchor_end + 1; k++)
     {
         //TODO: handle thd_min_segment, anchor 
+        std::cout << "gmas6 " << prek << "\n";
         int64_t d = std::abs((int64_t)g_hs_anchor_getY(anchor[k]) - (int64_t)g_hs_anchor_getY(anchor[prek]));
         if (g_hs_anchor_getAnchor(anchor[k] - anchor[prek]) > 
             thd_err_rate * std::max(thd_min_segment, d))
@@ -1375,7 +1376,7 @@ unsigned _get_tile_f_ (uint64_t const & tile,
                              g_hs_anchor_getY(anchor[prek])));
             thd_anchor_accpet = std::max (thd_anchor_accpet, 2);
             thd_anchor_accpet = std::min (g_thd_anchor, thd_anchor_accpet);
-            std::cout << "gmas5 " << thd_anchor_accpet << "\n";
+            std::cout << "gmas5 " << thd_anchor_accpet << " " << prek << "\n";
             if (anchor_len > thd_anchor_accpet) 
             {
                 std::sort (begin(anchor) + prek, 
@@ -1385,6 +1386,7 @@ unsigned _get_tile_f_ (uint64_t const & tile,
                 });
                 prex = prey = -1;
                 int kcount = 0;
+
                 uint64_t upper_x = g_hs_anchor_getX(anchor[prek]) + thd_tileSize;
                 uint64_t upper_y = g_hs_anchor_getY(anchor[prek]) + thd_tileSize;
                 for (int i = prek + 1; 
@@ -1403,12 +1405,11 @@ unsigned _get_tile_f_ (uint64_t const & tile,
                         if (kcount >= thd_k_in_window  && 
                             _get_tile_f_(tmp_tile, f1, f2) < thd_fscore)
                         {
-                            appendValue (tiles, tmp_tile);
-                            if (length(tiles) == 1 || 
-                                is_tile_end(tiles[length(tiles) - 2]))
+                            if (empty(tiles) || is_tile_end(back(tiles)))
                             {
-                                set_tile_start (back(tiles));
+                                set_tile_start(tmp_tile);
                             }
+                            appendValue (tiles, tmp_tile);
                         }
                         prex = g_hs_anchor_getX(anchor[j - 1]);
                         prey = g_hs_anchor_getY(anchor[j - 1]);
@@ -1423,10 +1424,9 @@ unsigned _get_tile_f_ (uint64_t const & tile,
                 if (kcount >= thd_k_in_window && 
                     _get_tile_f_(tmp_tile, f1, f2) < thd_fscore)
                 {
-                    if (length(tiles) == 1 || 
-                        is_tile_end(tiles[length(tiles) - 2]))
+                    if (empty(tiles) || is_tile_end(back(tiles)))
                     {
-                        set_tile_start (back(tiles));
+                        set_tile_start(tmp_tile);
                     }
                     appendValue (tiles, tmp_tile);
                 }
