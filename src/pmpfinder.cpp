@@ -215,8 +215,8 @@ void cmpRevCord(uint64_t val1,
                     uint64_t & cr_val2,
                     uint64_t read_len)
 {
-    cr_val1 = (val1 - get_cord_y(val1) + read_len - get_cord_y(val2)) ^ _DefaultCordBase.flag_strand;
-    cr_val2 = (val2 - get_cord_y(val1) + read_len - get_cord_y(val2)) ^ _DefaultCordBase.flag_strand;
+    cr_val1 = (val1 - get_cord_y(val1) + read_len - get_cord_y(val2) - 1) ^ _DefaultCordBase.flag_strand;
+    cr_val2 = (val2 - get_cord_y(val1) + read_len - get_cord_y(val2) - 1) ^ _DefaultCordBase.flag_strand;
 }
 uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y)
 {
@@ -1349,7 +1349,8 @@ template <typename TDna, typename TSpec>
 
 bool isOverlap (uint64_t cord1, uint64_t cord2, 
                 int revscomp_const, 
-                int overlap_size = window_size)
+                int overlap_size
+                )
 {
     uint64_t strand1 = _DefaultCord.getCordStrand(cord1);
     uint64_t strand2 = _DefaultCord.getCordStrand(cord2);
@@ -1360,15 +1361,16 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
     //int64_t y2 = revscomp_const * strand2 - _nStrand(strand2) * get_cord_y(cord2);
     int64_t y2 = _DefaultCord.getCordY (cord2);
     (void) revscomp_const;
-    return std::abs(x1 - x2) <= overlap_size && 
-           std::abs(y1 - y2) <= overlap_size && (!(strand1 ^ strand2));
+    return std::abs(x1 - x2) < overlap_size && 
+           std::abs(y1 - y2) < overlap_size && (!(strand1 ^ strand2));
 }
 /**
  * cord1 is predecessor of cord2 and they are not overlapped
  */
  bool isPreGap (uint64_t cord1, uint64_t cord2, 
                 int revscomp_const, 
-                int gap_size = window_size)
+                int gap_size
+                )
 {
 
     int64_t x1 = _DefaultCord.getCordX(cord1);
@@ -1381,7 +1383,8 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
  */
  bool isSucGap (uint64_t cord1, uint64_t cord2, 
                 int revscomp_const,
-                int gap_size = window_size)
+                int gap_size
+                )
 {
     return isPreGap (cord2, cord1, revscomp_const, gap_size);
 }
@@ -1400,12 +1403,14 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
                  int kk,
                  uint64_t cord1,
                  uint64_t cord2,
-                 int revscomp_const
+                 int revscomp_const,
+                 int overlap_size,
+                 int gap_size
                 )
 {
     unsigned window_threshold = 30;
     std::cout << "eP dg1_1 " << get_cord_y(cord1) << " " << get_cord_y(cord2) << "\n";
-    if (isOverlap(cord1, cord2, revscomp_const))
+    if (isOverlap(cord1, cord2, revscomp_const, overlap_size))
     {
         return 0;
     }
@@ -1426,7 +1431,7 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
     uint64_t cord = pcord;
     String<uint64_t> tmp;
     std::cout << "dg1_ " << get_cord_y(cord) << " " << get_cord_y(scord) << "\n";
-    while (isPreGap(cord, scord, revscomp_const))
+    while (isPreGap(cord, scord, revscomp_const, gap_size))
     {
         cord = nextWindow (f1[strand1], f2[genomeId1], cord, window_threshold);
         std::cout << "dg1_ " << get_cord_y(cord) << "\n";
@@ -1449,7 +1454,7 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
     }
     
     cord = scord;
-    while (isSucGap(cord, nw, revscomp_const))
+    while (isSucGap(cord, nw, revscomp_const, gap_size))
     {
         cord = previousWindow(f1[strand2], f2[genomeId2], cord, window_threshold);
         if (cord)

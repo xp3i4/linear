@@ -153,5 +153,7 @@ int extendPatch(StringSet<String<short> > & f1,
                 int k,
                 uint64_t cord1,
                 uint64_t cord2,
-                int revscomp_const);
+                int revscomp_const,
+                int overlap_size = window_size,
+                int gap_size = window_size);
 #endif
