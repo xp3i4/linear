@@ -2626,11 +2626,11 @@ if (t == 3)
               String<uint64_t> & g_anchor,
               StringSet<String<short> > & f1,
               StringSet<String<short> >& f2,
-              int const thd_cord_gap, 
-              int const thd_tileSize,
               String<uint64_t> & tiles,     //results
               String<uint64_t> & clips,     //results 
               int direction,
+              int const thd_cord_gap, 
+              int const thd_tileSize,
               int thd_cord_remap
              )
 {
@@ -2702,7 +2702,7 @@ if (t == 3)
 
 /**
  * Re-map gaps in cords.
- * gaps at the begin or end of the read are also processed.
+ * Gaps at the beginning or end are also remapped.
  */
 int mapGaps(StringSet<String<Dna5> > & seqs, 
             String<Dna5> & read, 
@@ -2743,8 +2743,13 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                 int64_t shift_y = -_defaultTile.getY(cord1);
                 uint64_t infi_cord = _DefaultCord.shift(cord1, shift_x, shift_y);   
                 
-                mapGap_ (seqs, read, comstr, infi_cord, 
-                         cord1, g_hs, g_anchor, f1, f2, thd_cord_gap, thd_tileSize, tiles, clips, g_align_left, 
+                mapGap_ (seqs, read, comstr, 
+                         infi_cord, cord1, 
+                         g_hs, g_anchor, f1, f2,  
+                         tiles, clips, 
+                         g_align_left, 
+                         thd_cord_gap, 
+                         thd_tileSize,
                          thd_cord_remap);
                 if (length(tiles) > 0)
                 {
@@ -2766,12 +2771,13 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
         {
             std::cout << "mg2\n";
             mapGap_(seqs, read, comstr, 
-                    cords[i - 1], cords[i], 
+                    cord1, cord2, 
                     g_hs, g_anchor, f1, f2, 
-                    thd_cord_gap, thd_tileSize, tiles, clips, 
+                    tiles, clips, 
                     g_align_closed,
-                    thd_cord_remap
-                   );
+                    thd_cord_gap, 
+                    thd_tileSize,
+                    thd_cord_remap);
             if (length(tiles) > 0)
             {
                 insert(cords, i, tiles);
@@ -2780,7 +2786,6 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             }   
             gap_len += std::max(_DefaultCord.getCordX(cord2 - cord1), get_cord_y(cord2 - cord1));
         }
-        
         if (_DefaultHit.isBlockEnd(cords[i]))  ///right clip end cord
         {
             uint64_t cord1 = cords[i];
@@ -2790,9 +2795,12 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             if (get_cord_y(cord1) + window_size + thd_cord_gap < length(read))
             {
                 mapGap_ (seqs, read, comstr, cord1, 
-                        infi_cord, g_hs, g_anchor, f1, f2, thd_cord_gap, thd_tileSize, tiles, clips, g_align_right,
-                        thd_cord_remap
-                        );
+                         infi_cord, g_hs, g_anchor, f1, f2,  
+                         tiles, clips, 
+                         g_align_right,
+                         thd_cord_gap, 
+                         thd_tileSize, 
+                         thd_cord_remap);
                 if (length(tiles) > 0)
                 {
                     insert(cords, i + 1, tiles);
@@ -2808,7 +2816,6 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
         
     }
     return gap_len;
-    //return 0;
 }
 /* 
 int mapGaps(StringSet<String<Dna5> > & seqs, StringSet<String<Dna5> > & reads, 
