@@ -1409,7 +1409,6 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
                 )
 {
     unsigned window_threshold = 30;
-    std::cout << "eP dg1_1 " << get_cord_y(cord1) << " " << get_cord_y(cord2) << "\n";
     if (isOverlap(cord1, cord2, revscomp_const, overlap_size))
     {
         return 0;
@@ -1430,11 +1429,9 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
     int len = 0;
     uint64_t cord = pcord;
     String<uint64_t> tmp;
-    std::cout << "dg1_ " << get_cord_y(cord) << " " << get_cord_y(scord) << "\n";
     while (isPreGap(cord, scord, revscomp_const, gap_size))
     {
         cord = nextWindow (f1[strand1], f2[genomeId1], cord, window_threshold);
-        std::cout << "dg1_ " << get_cord_y(cord) << "\n";
         if (cord)
         {
             appendValue (tmp, cord);

@@ -408,7 +408,6 @@ struct Tile
     void setTileEnd(uint64_t & val, 
         uint64_t bit = _defaultTileBase.sgnBit_end)
     {
-        std::cout << "te1 " << bit << "\n";
         val |= bit;
     }
     void setTileStart(uint64_t & val, uint64_t bit = _defaultTileBase.sgnBit_str)
@@ -417,7 +416,6 @@ struct Tile
     }
     bool isTileEnd(uint64_t & val, uint64_t bit = _defaultTileBase.sgnBit_end)
     {
-        std::cout << "ite1 " << (val & bit) << "\n";
         return val & bit;
     }
     bool isTileStart(uint64_t & val, uint64_t bit = _defaultTileBase.sgnBit_str)
@@ -1137,7 +1135,6 @@ int check_tiles_(String<uint64_t> & tiles, uint64_t g_start, uint64_t g_end)
     std::sort (begin(anchor), begin(anchor) + anchor_end);
     anchor[anchor_end] = ~0;
     String<int> score;
-    g_print_tiles_ (tiles, "gmas3");
 
     for (int k = 0; k < anchor_end + 1; k++)
     {
@@ -1360,9 +1357,7 @@ unsigned _get_tile_f_ (uint64_t const & tile,
     int anchor_len = 0;
     std::sort (begin(anchor), begin(anchor) + anchor_end);
     anchor[anchor_end] = ~0;
-    g_print_tiles_ (tiles, "gmas3");
     int pre_tile_end = 0;
-    print_g_hs_anchor(anchor, 0, anchor_end, "gmas_a");
     for (int k = 0; k < anchor_end + 1; k++)
     {
         //TODO: handle thd_min_segment, anchor 
@@ -1375,7 +1370,6 @@ unsigned _get_tile_f_ (uint64_t const & tile,
                              g_hs_anchor_getY(anchor[prek])));
             thd_anchor_accpet = std::max (thd_anchor_accpet, 2);
             thd_anchor_accpet = std::min (g_thd_anchor, thd_anchor_accpet);
-            std::cout << "gmas5 " << thd_anchor_accpet << "\n";
             if (anchor_len > thd_anchor_accpet) 
             {
                 std::sort (begin(anchor) + prek, 
@@ -1461,11 +1455,6 @@ unsigned _get_tile_f_ (uint64_t const & tile,
             break;
         }
     }
-    //>>debug
-    g_print_tiles_ (tiles, "gmas2");
-    std::cout << "gmas2 end\n";
-    std::cout << "gmas11 " << merge_flag << "\n";
-    //<<debug
     if (merge_flag)
     {
         for (int i = 0; i < length(tmp_tiles); ++i)
@@ -1479,7 +1468,6 @@ unsigned _get_tile_f_ (uint64_t const & tile,
             set_tile_end(back(tiles));
         }
     }
-    g_print_tiles_(tiles, "gmas15");
 /**
  * step 3. extend patch
  * extend window if there are gaps between tiles until the horizontal coordinates x1 - x2 < window_size or the gap can't be extend any more
@@ -1530,7 +1518,6 @@ unsigned _get_tile_f_ (uint64_t const & tile,
             i += extendPatch(f1, f2, tiles, i, tiles[i - 1], tiles[i], revscomp_const, thd_overlap_size, thd_gap_size);   
         }
     }
-    g_print_tiles_(tiles, "gmas33");
     return 0;
 }
 /**
@@ -1587,7 +1574,6 @@ unsigned _get_tile_f_ (uint64_t const & tile,
         gr_end = rvcp_const - gr_end;
         std::swap (gr_end, gr_str);
     }
-    std::cout << "gmh " << get_cord_strand(cord_str) << "\n";
     g_hs_end = g_mapHs_kmer_(seq1, g_hs, gs_str, gs_end, g_hs_end, 10, 0);
     g_hs_end = g_mapHs_kmer_(seq2, g_hs, gr_str, gr_end, g_hs_end, 1, 1);
 
@@ -1845,11 +1831,6 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
     uint64_t max_ac = 0;
     for (int i = 0; i < it - 1; i++)
     {
-        std::cout << "ac4 " << ((anchor[i] >> bit) & mask1) <<  " " << g_hs_anchor_getY(anchor[i]) << " " << (((anchor[i] >> bit1) & mask1) + shape_len - 1) << "\n";
-    }
-    std::cout << "ac4\n";
-    for (int i = 0; i < it - 1; i++)
-    {
         int64_t y0 = g_hs_anchor_getY(anchor[i]);
         int64_t x0 = (anchor[i] >> bit) & mask1;
         int c_conts = ((anchor[i] >> bit1) & mask1) + shape_len - 1;
@@ -1861,7 +1842,6 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
         int width_count = 0;
         for (int j = i + 1; j < it - 1 && width_count < thd_width; j++)
         {
-            std::cout << "ac2 " << i << " " << j << " " << it << " " << dj << "\n";
             int64_t y1 = g_hs_anchor_getY(anchor[j]);
             int64_t x1 = (anchor[j] >> bit) & mask1;
             int64_t d_anc = int64_t(x1 - x0 - y1 + y0);
@@ -1886,12 +1866,10 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
         {
             max_ac = anchor[i];
             max_sc = sc;
-            std::cout << "ac2 " << ((anchor[i] >> bit) & mask1) << "\n\n";
             return int64_t((((max_ac >> bit) & mask1) << 32) + (max_ac & mask1));
         }
         it -= dj;
     } 
-    std::cout << "ac2\n\n";
     return 0;
 }
 
@@ -1919,6 +1897,7 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
     }
     return 0;
 }
+
 /**
 * kmer of t1 is left to t2
 */
@@ -2481,16 +2460,12 @@ if (t == 3)
         }
         else if (distance_y > thd_cord_gap && distance_x > thd_cord_gap)
         {
-            std::cout << "gag2 " << i << " " << distance_y << " " << distance_x << " " << thd_cord_gap << " " << get_cord_y(tiles[i - 1]) << "\n";
             sv_flags[i - 1] += g_sv_gap;
             sv_flags[i] += g_sv_gap;
             sv_exists = 1;
         }
-   std::cout << "gag1 " << i << " " << distance_y << " " << distance_x << " " << thd_cord_gap << " " << get_cord_y(tiles[i - 1]) << " " << get_cord_y(tiles[i]) << "\n";
     }
-    std::cout << "gag1\n";
 
-    g_print_tiles_(tiles);
     switch (direction)
     {
         //NOTE sv_flags at least have 2 elements, namely the virtual head and tail. 
@@ -2532,7 +2507,6 @@ if (t == 3)
                 }
                 band = int(0.5 * delta );
                 crstrand = _defaultTile.getStrand(tile2);
-                std::cout << "gag3 " << i << " " << get_cord_y(tile1) << " " << crstart << " " << crend << " " << cgstart << " " << cgend << "\n";
                 clip = c_clip_ (seq, read, comstr, cgstart, cgend, crstart, crend, crstrand, genomeId, g_hs, g_hs_anchor, band, 1);   
                 appendValue (clips, clip);
             }
@@ -2656,7 +2630,6 @@ if (t == 3)
     if (get_cord_x(cord2 - cord1) > thd_cord_remap && 
         get_cord_y(cord2 - cord1) > thd_cord_remap)
     {
-        std::cout << "mg1 " << get_cord_y(cord1) << "\n";
         g_mapHs_(seqs[genomeId], read, comstr,
                  g_hs, g_anchor, tiles, f1, f2,
                  cord1, cord2,
@@ -2664,7 +2637,6 @@ if (t == 3)
                  direction
                );
         int ct_tile_block = 0;
-        g_print_tiles_(tiles, "mg_2");
         for (int i = 0; i < length(tiles); i++)
         {
             if (is_tile_end(tiles[i]))
@@ -2679,13 +2651,10 @@ if (t == 3)
                 if (is_tile_end(tiles[i]))
                 {
                     set_cord_end(tiles[i]);
-                    std::cout << "mg_\n";
                 }
-                std::cout << "mg_ " << get_cord_y(tiles[i]) << " " << get_cord_y(tiles[i]) << " " << get_cord_strand(tiles[i]) << "\n";
             }
         }
         g_alignGap_(seqs[genomeId], read, comstr, tiles, clips, g_hs, g_anchor, gs_start, gs_end, gr_start, gr_end, strand, genomeId, direction, thd_cord_gap);
-        g_print_tiles_(tiles, "mg_1");
     }
     /*
     else 
@@ -2695,7 +2664,6 @@ if (t == 3)
         g_alignGap_(seqs[genomeId], read, comstr, tiles, clips, g_hs, g_anchor, gs_start, gs_end, gr_start, gr_end, strand, genomeId, direction, thd_cord_gap);
     }
     */
-        std::cout << "mg_2 " << length(tiles) << "\n";
     return length(tiles);
 }
 
@@ -2730,7 +2698,6 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
     int thd_cord_remap = 400;
     int thd_cord_gap = thd_gap + block_size;
     ///NOTE cords[0] is the head cord, so starts from 1
-    std::cout << "mg1 " << length(cords) << "\n";
     for (unsigned i = 1; i < length(cords); i++)
     {
         if (last_flag == 1)  ///left clip first cord
@@ -2748,7 +2715,6 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                          thd_cord_remap);
                 if (length(tiles) > 0)
                 {
-                    g_print_tiles_(tiles, "mg_tile");
                     insert(cords, i, tiles);
                     i += length(tiles);
                     clear(tiles);
@@ -2764,7 +2730,6 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
         if (_DefaultCord.getCordX(cord2 - cord1) > thd_cord_gap ||
             get_cord_y(cord2 - cord1) > thd_cord_gap)         
         {
-            std::cout << "mg2\n";
             mapGap_(seqs, read, comstr, 
                     cords[i - 1], cords[i], 
                     g_hs, g_anchor, f1, f2, 
