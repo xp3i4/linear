@@ -5,7 +5,7 @@
 #include "pmpfinder.h"
 #include "gap.h"
 
-
+typedef Iterator<String<Dna5> >::Type IterStrD5;
 struct GNodeBase
 {
     const unsigned xBitLen;
@@ -1947,8 +1947,8 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
     return 0;
 }
  uint64_t c_clip_anchors_precise(String<uint64_t> & anchor, 
-                            uint64_t gs_start,
-                            uint64_t gr_start,
+                             uint64_t gs_start,
+                             uint64_t gr_start,
                              int anchor_end,
                              unsigned shape_len, 
                              int thd_merge1, // thd of anchor
@@ -2105,89 +2105,93 @@ if (t == 3)
     }
     return s;
 }
- int c_clip_extend_gap2_( uint64_t & ex_d, // results
-                          String<uint64_t> & hs, 
-                          String<uint64_t> & anchors,
-                          Iterator<String<Dna5> >::Type itBegin_genome, 
-                          Iterator<String<Dna5> >::Type itEnd_genome, 
-                          Iterator<String<Dna5> >::Type itBegin_read, 
-                          Iterator<String<Dna5> >::Type itEnd_read, 
-                          int min_scan_delta,
-                          int error_level,
-                          int thd_gap_shape,
-                          int thd_merge_anchor,
-                          int thd_merge_drop,
-                          int clip_direction = -1 // 1  left part is well aligned
-                                                       // -1 right side is well aligned
+/**
+ * Extend the region around the breakpoint and clip it by gapped pattern
+ */
+ int c_clip_extend_(uint64_t & ex_d, // results
+                    String<uint64_t> & hashs, 
+                    String<uint64_t> & anchors,
+                    IterStrD5 it_str1, 
+                    IterStrD5 it_end1, 
+                    IterStrD5 it_str2, 
+                    IterStrD5 it_end2, 
+                    int thd_min_scan_delta,
+                    int thd_error_level,
+                    int thd_gap_shape,
+                    int thd_merge_anchor,
+                    int thd_merge_drop,
+                    int clip_direction = -1 // 1  left part is well aligned
+                                             // -1 right side is well aligned
     )
 {
-    String<short> tn;
-    String<short> ln;
+    String<short> tzs; //trailing zero of each pattern
+    String<short> lzs; //leading zeor of each pattern
     LShape shape(c_shape_len3);
-    int hs_len_genome = itEnd_genome - itBegin_genome;
-    int hs_len_read = itEnd_read - itBegin_read;
-    resize(tn, (hs_len_genome >> (error_level - 1)) + 1);
-    resize(ln, (hs_len_genome >> (error_level - 1)) + 1);
-    hashInit_hs(shape, itBegin_genome);
-    if (length(hs) < itEnd_genome - itBegin_genome)
+    int hs_len1 = it_end1 - it_str1;
+    int hs_len2 = it_end2 - it_str2;
+    resize(tzs, (hs_len1 >> (thd_error_level - 1)) + 1);
+    resize(lzs, (hs_len1 >> (thd_error_level - 1)) + 1);
+    hashInit_hs(shape, it_str1);
+    if (length(hashs) < it_end1 - it_str1)
     {
         return 1;
     }
 
-    for (int i = 0; i < itEnd_genome - itBegin_genome + 1; i++)
+    for (int i = 0; i < it_end1 - it_str1 + 1; i++)
     {
-        hs[i] = hashNext_hs(shape, itBegin_genome + i);
+        hashs[i] = hashNext_hs(shape, it_str1 + i);
     }   
-    int iBegin = 0;    //iBegin: read begin
-    int iEnd = itEnd_read - itBegin_read;
-    int anchorBegin = iEnd;
+    int i_str = 0;    
+    int i_end = it_end2 - it_str2;
     int n = 0;
-
-    hashInit_hs(shape, itBegin_read);
+    //step 1. 
+    //stream gap pattens along two seqs and collect anchor
+    hashInit_hs(shape, it_str2);
     String<Dna5> couts;
     resize(couts, 4);
-    for (uint64_t i = iBegin; i < iEnd; i++) //iterate of read
+    for (uint64_t i = i_str; i < i_end; i++) //scan the read
     {
-        uint64_t hVal_read = hashNext_hs(shape, itBegin_read + i);  
-        //WARNING::
-        //change i_delta from iEnd - i to i if clip from left to right 
-        int i_delta = iEnd - (int)i;
-        int j_delta = std::max(i_delta >> error_level, min_scan_delta);
-        int jBegin = std::max(0, hs_len_genome - i_delta  - j_delta); //begin of genome to scan
-        int jEnd = std::min(hs_len_genome - i_delta + j_delta, hs_len_genome);
-        uint64_t dv = hVal_read ^ hs[jBegin];
-        tn[0] = ctzb_4_(dv);
-        ln[0] = clzb_4_(dv);
-        int m = 1;
-        for (uint64_t j = jBegin + 1; j < jEnd; j++) //iterate of genome
+        uint64_t hash_read = hashNext_hs(shape, it_str2 + i);  
+        int i_delta = i_end - (int)i;
+        if (clip_direction == 1)
         {
-            dv = hVal_read ^ hs[j];
-            tn[m] = ctzb_4_(dv);
-            ln[m] = clzb_4_(dv);
-            if (c_isGapMatch_2anchor_(anchors[n], j, i, dv, tn[m - 1], tn[m], ln[m - 1], ln[m], c_shape_len3))
+            i_delta = i;
+        }
+        int j_delta = std::max(i_delta >> thd_error_level, thd_min_scan_delta);
+        int j_str = std::max(0, hs_len1 - i_delta  - j_delta); 
+        int j_end = std::min(hs_len1 - i_delta + j_delta, hs_len1);
+        uint64_t dhash = hash_read ^ hashs[j_str];
+        tzs[0] = ctzb_4_(dhash);
+        lzs[0] = clzb_4_(dhash);
+        int m = 1;
+        for (uint64_t j = j_str + 1; j < j_end; j++) //scan the genome
+        {
+            dhash = hash_read ^ hashs[j];
+            tzs[m] = ctzb_4_(dhash);
+            lzs[m] = clzb_4_(dhash);
+            if (c_isGapMatch_2anchor_(anchors[n], j, i, dhash, tzs[m - 1], tzs[m], lzs[m - 1], lzs[m], c_shape_len3))
             {
                 n++;
             }
             m++;
         }
     }
-    //merge anchors 
-    //extend mapping until breakpoint to clip
-    //std::cout << "[]::c_clip_extend_gap2_ anchors_len " << n << "\n";
-    if (n == 0)
+    //step2.
+    //merge anchors and extend regions that can be mapped towards the breakpoint 
+    if (n == 0) //empty anchor
     {
-        return 0; //process the first block in anchors
+        return 0; 
     }
-    String <short> ex_x, tmp_x;
-    String <short> ex_y, tmp_y;
+    String <short> pre_x, tmp_x;
+    String <short> pre_y, tmp_y;
     String <int> its;
-    resize (ex_x, length(tn)); //extend kmer coordinates x
-    resize (ex_y, length(tn));
-    resize (tmp_x, length(tn)); //temporarily store coordinates x
-    resize (tmp_y, length(tn));
+    resize (pre_x, length(tzs)); //extend kmer coordinates x
+    resize (pre_y, length(tzs));
+    resize (tmp_x, length(tzs)); //temporarily store coordinates x
+    resize (tmp_y, length(tzs));
     resize (its, n);
-    ex_x[0] = short(hs_len_genome);
-    ex_y[0] = short(hs_len_read);
+    pre_x[0] = short(hs_len1);
+    pre_y[0] = short(hs_len2);
     int ex_len = 1;
     int tmp_n = 0;
     int flag = 1;
@@ -2195,16 +2199,15 @@ if (t == 3)
     int itsEnd = 0;
     int drop_count = 0;
     uint64_t pre_anchor = ~0;
-    //uint64_t next_y = g_hs_anchor_getY(anchors[n - 1]) - c_shape_len3;
-    uint64_t next_y;
-    if (hs_len_read - c_shape_len3 < 0)
+    uint64_t next_y; //y of the next pattern expected to be appeared
+    if (hs_len2 - c_shape_len3 < 0)
     {
         //next_y = 0;
         return 1;
     }
     else
     {
-        next_y = hs_len_read - c_shape_len3;
+        next_y = hs_len2 - c_shape_len3;
     }
 
     for (int i = n - 1; i >= 0; i--)
@@ -2216,16 +2219,15 @@ if (t == 3)
             if (g_hs_anchor_getY(anchors[i] ^ pre_anchor))
             {
                 its[itsk] = i; //record the first i of each block in which anchor has the same y
-              	int range = ex_y[0] - g_hs_anchor_getY(anchors[i]);
+                int range = pre_y[0] - g_hs_anchor_getY(anchors[i]);
                 //direction::
-                if (g_hs_anchor_getY(anchors[i]) < next_y)
-                {
-                    itsEnd = itsk--; 
+                if (g_hs_anchor_getY(anchors[i]) < next_y)//find the last anchor 
+                {                                         // of the next range 
+                    itsEnd = itsk--;                 
                     if (itsk < 0)
                     {
                         //direction::
                         drop_count += range;
-                        //std::cout << "xxxxlen4 " << drop_count << " " << ex_y[0] << " " << g_hs_anchor_getY(anchors[i]) << "\n";
                         if (drop_count >= thd_merge_drop)
                         {
                             break;
@@ -2255,10 +2257,9 @@ if (t == 3)
                 {
                     for (int j = 0; j < tmp_n; j++)
                     {
-                        ex_x[j] = tmp_x[j];
-                        ex_y[j] = tmp_y[j];
+                        pre_x[j] = tmp_x[j];
+                        pre_y[j] = tmp_y[j];
                     }
-                    //std::cout << "ex tmp " << ex_len << "\n";
                     ex_len = tmp_n;
                     tmp_n = 0;
                     flag = 1;
@@ -2266,11 +2267,10 @@ if (t == 3)
                     i = its[itsEnd] + 1; 
                     pre_anchor = anchors[i];
                     itsk = 0;
-                    //std::cout << "[]::c_clip_extend_gap2_ v merge End " << i << " " << itsk << "\n";
                 }
                 else 
                 {
-                    if (itsk < 1 ) //if last block of current range
+                    if (itsk < 1 ) //if it's the last block of the current range
                     {
                         drop_count += c_shape_len3;
                         if (drop_count >= thd_merge_drop) //large gap to clip
@@ -2298,10 +2298,9 @@ if (t == 3)
                 short y = short(g_hs_anchor_getY(anchors[i]));
                 for (int j = 0; j < ex_len; j++)
                 {
-                    short delta_x = ex_x[j] - x;
-                    short delta_y = ex_y[j] - y;
+                    short delta_x = pre_x[j] - x;
+                    short delta_y = pre_y[j] - y;
                     if (std::abs(delta_x - delta_y) < 3 && delta_x - delta_y >= -1)
-//                    if (std::abs(delta_x - delta_y) < thd_merge_anchor)
                     {
 
                         tmp_x[tmp_n] = x;
@@ -2314,14 +2313,54 @@ if (t == 3)
             }
         }
     }
-    //Median number of ex_x. ex_y values are equal
-    ex_d = (uint64_t(ex_x[ex_len / 2]) << 32) + ex_y[0];
+    //Median number of pre_x. pre_y values are equal
+    ex_d = (uint64_t(pre_x[ex_len / 2]) << 32) + pre_y[0];
     //std::cout << (ex_d >> 32) << "\n";
     return 0;
 
 }
+struct ParmClipExtend
+{
+    int thd_min_scan_delta;
+    int thd_error_level;
+    int thd_gap_shape;
+    int thd_merge_anchor;
+    int thd_merge_drop;   
+};
+/**
+ * Wrapper 
+ * @clip_direction:
+ *  1 left part is well aligned
+ * -1 right part is well aligned
+ */
+ int c_clip_extend_(uint64_t & result_val, 
+                    String<uint64_t> & hs, 
+                    String<uint64_t> & anchors,
+                    IterStrD5 it_str1,  //genome
+                    IterStrD5 it_end1, 
+                    IterStrD5 it_str2,  //read
+                    IterStrD5 it_end2, 
+                    ParmClipExtend & parm,
+                    int clip_direction = -1 
+    )
+ {
+    c_clip_extend_(result_val, 
+                   hs, 
+                   anchors,
+                   it_str1, 
+                   it_end1, 
+                   it_str2, 
+                   it_end2, 
+                   parm.thd_min_scan_delta,
+                   parm.thd_error_level,
+                   parm.thd_gap_shape,
+                   parm.thd_merge_anchor,
+                   parm.thd_merge_drop,
+                   clip_direction 
+    ); 
+}
 
- int64_t c_clip_(String<Dna5> & genome, 
+int64_t c_clip_(String<Dna5> & genome,  
             String<Dna5> & read,
             String<Dna5> & comstr,    //complement revers of read
             uint64_t gs_start, 
@@ -2383,25 +2422,25 @@ if (t == 3)
     int error_level = 3; // >>3 == * 0.125
     int min_scan_delta = 3;  //at least scan 5 elements in the genome for each kmer in the read
     uint64_t ex_d = 0;
-    c_clip_extend_gap2_(ex_d, 
-                       g_hs,
-                       g_anchor,
-                       itBegin_genome,
-                       itEnd_genome,
-                       itBegin_read,
-                       itEnd_read,
-                       min_scan_delta,
-                       error_level,
-                       thd_gap_shape,
-                       thd_merge_anchor,
-                       thd_merge_drop 
-                      );
+    std::cout << "c_clip_1 " << gs_start + dx - extend_window << " " << gs_start + dx << " " << gr_start + dy - extend_window << " " << gr_start + dy << "\n";
+    c_clip_extend_(ex_d, 
+                   g_hs,
+                   g_anchor,
+                   itBegin_genome,
+                   itEnd_genome,
+                   itBegin_read,
+                   itEnd_read,
+                   min_scan_delta,
+                   error_level,
+                   thd_gap_shape,
+                   thd_merge_anchor,
+                   thd_merge_drop 
+                  );
     int dyt = (ex_d & ((1ULL << 32) - 1));
     dx -= extend_window - (ex_d >> 32);
     dy -= extend_window -dyt; 
-    //std::cout << "[]::clip_result " << dx << " " << dy << " " << dyt << "\n";
-
-    clip = create_cord(genomeId, gs_start + dx, gr_start + dy,gr_strand); 
+    std::cout << "c_clip_2 " << gs_start + dx << " " << gr_start + dy << " " << length(read) << "\n";
+    clip = create_cord(genomeId, gs_start + dx, gr_start + dy, gr_strand); 
 
     return clip;
 }
