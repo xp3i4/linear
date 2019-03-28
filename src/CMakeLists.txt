@@ -50,9 +50,10 @@ add_library(linear_pmpfinder STATIC pmpfinder.cpp)
 add_library(linear_gap STATIC gap.cpp)
 add_library(linear_fio STATIC f_io.cpp)
 add_library(linear_align STATIC align_interface.cpp)
+add_library(linear_args_parser STATIC args_parser.cpp)
 
-add_executable (linear mapper.cpp mapper.h base.h index_util.h pmpfinder.h gap.h align_interface.h f_io.h) 
-target_link_libraries (linear ${SEQAN_LIBRARIES} linear_base linear_index_util linear_pmpfinder linear_gap linear_fio linear_align)
+add_executable (linear mapper.cpp mapper.h base.h index_util.h pmpfinder.h gap.h align_interface.h f_io.h args_parser.h) 
+target_link_libraries (linear ${SEQAN_LIBRARIES} linear_base linear_index_util linear_pmpfinder linear_gap linear_fio linear_align linear_args_parser)
 add_executable (test_case test_case.cpp mapper.h base.h index_util.h pmpfinder.h gap.h align_interface.h f_io.h)
 target_link_libraries (test_case ${SEQAN_LIBRARIES} linear_base linear_index_util linear_pmpfinder linear_gap linear_fio linear_align)
 

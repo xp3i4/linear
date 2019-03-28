@@ -1,3 +1,4 @@
+#include "base.h"
 #include "args_parser.h"
 
 seqan::ArgumentParser::ParseResult

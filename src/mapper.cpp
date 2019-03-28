@@ -41,6 +41,7 @@
 #include "chain_map.h"
 #include "gap.h"
 #include "align_interface.h"
+#include "args_parser.h"
 
 using namespace seqan; 
 

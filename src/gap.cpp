@@ -2794,3 +2794,5 @@ int mapGaps(StringSet<String<Dna5> > & seqs, StringSet<String<Dna5> > & reads,
 */
 /*=====  End of Index free Map and clip  ======*/
 
+
+

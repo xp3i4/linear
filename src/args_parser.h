@@ -5,3 +5,4 @@
 seqan::ArgumentParser::ParseResult
 parseCommandLine(Options & options, int argc, char const ** argv);
 
+#endif
