@@ -2108,7 +2108,7 @@ if (t == 3)
 /**
  * Extend the region around the breakpoint and clip it by gapped pattern
  */
- int c_clip_extend_(uint64_t & ex_d, // results
+ int c_clip_extend_left(uint64_t & ex_d, // results
                     String<uint64_t> & hashs, 
                     String<uint64_t> & anchors,
                     IterStrD5 it_str1, 
@@ -2119,10 +2119,7 @@ if (t == 3)
                     int thd_error_level,
                     int thd_gap_shape,
                     int thd_merge_anchor,
-                    int thd_merge_drop,
-                    int clip_direction = -1 // 1  left part is well aligned
-                                             // -1 right side is well aligned
-    )
+                    int thd_merge_drop)
 {
     String<short> tzs; //trailing zero of each pattern
     String<short> lzs; //leading zeor of each pattern
@@ -2153,10 +2150,6 @@ if (t == 3)
     {
         uint64_t hash_read = hashNext_hs(shape, it_str2 + i);  
         int i_delta = i_end - (int)i;
-        if (clip_direction == 1)
-        {
-            i_delta = i;
-        }
         int j_delta = std::max(i_delta >> thd_error_level, thd_min_scan_delta);
         int j_str = std::max(0, hs_len1 - i_delta  - j_delta); 
         int j_end = std::min(hs_len1 - i_delta + j_delta, hs_len1);
@@ -2319,6 +2312,40 @@ if (t == 3)
     return 0;
 
 }
+ int c_clip_extend_(uint64_t & ex_d, // results
+                    String<uint64_t> & hashs, 
+                    String<uint64_t> & anchors,
+                    IterStrD5 it_str1, 
+                    IterStrD5 it_end1, 
+                    IterStrD5 it_str2, 
+                    IterStrD5 it_end2, 
+                    int thd_min_scan_delta,
+                    int thd_error_level,
+                    int thd_gap_shape,
+                    int thd_merge_anchor,
+                    int thd_merge_drop,
+                    int clip_direction = -1 // 1  left part is well aligned
+                                             // -1 right side is well aligned
+    )
+{
+    if (clip_direction < 0)
+    {
+        c_clip_extend_left(ex_d,
+                hashs, 
+                anchors,
+                it_str1, 
+                it_end1, 
+                it_str2, 
+                it_end2, 
+                thd_min_scan_delta,
+                thd_error_level,
+                thd_gap_shape,
+                thd_merge_anchor,
+                thd_merge_drop
+    ); 
+    }
+}
+
 struct ParmClipExtend
 {
     int thd_min_scan_delta;
