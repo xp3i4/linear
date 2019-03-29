@@ -2149,10 +2149,214 @@ if (t == 3)
     for (uint64_t i = i_str; i < i_end; i++) //scan the read
     {
         uint64_t hash_read = hashNext_hs(shape, it_str2 + i);  
-        int i_delta = i_end - (int)i;
-        int j_delta = std::max(i_delta >> thd_error_level, thd_min_scan_delta);
-        int j_str = std::max(0, hs_len1 - i_delta  - j_delta); 
-        int j_end = std::min(hs_len1 - i_delta + j_delta, hs_len1);
+        int di = i_end - i;
+        int dj_err = std::max(di >> thd_error_level, thd_min_scan_delta);
+        int j_str = std::max(0, hs_len1 - di - dj_err); 
+        int j_end = std::min(hs_len1 - di + dj_err, hs_len1);
+        uint64_t dhash = hash_read ^ hashs[j_str];
+        tzs[0] = ctzb_4_(dhash);
+        lzs[0] = clzb_4_(dhash);
+        int m = 1;
+        for (uint64_t j = j_str + 1; j < j_end; j++) //scan the genome
+        {
+            dhash = hash_read ^ hashs[j];
+            tzs[m] = ctzb_4_(dhash);
+            lzs[m] = clzb_4_(dhash);
+            if (c_isGapMatch_2anchor_(anchors[n], j, i, dhash, tzs[m - 1], tzs[m], lzs[m - 1], lzs[m], c_shape_len3))
+            {
+                n++;
+            }
+            m++;
+        }
+    }
+    //step2.
+    //merge anchors and extend regions that can be mapped towards the breakpoint 
+    if (n == 0) //empty anchor
+    {
+        return 0; 
+    }
+    String <short> pre_x, tmp_x;
+    String <short> pre_y, tmp_y;
+    String <int> its;
+    resize (pre_x, length(tzs)); //extend kmer coordinates x
+    resize (pre_y, length(tzs));
+    resize (tmp_x, length(tzs)); //temporarily store coordinates x
+    resize (tmp_y, length(tzs));
+    resize (its, n);
+    pre_x[0] = short(hs_len1);
+    pre_y[0] = short(hs_len2);
+    int ex_len = 1;
+    int tmp_n = 0;
+    int flag = 1;
+    int itsk = 0;
+    int itsEnd = 0;
+    int drop_count = 0;
+    uint64_t pre_anchor = ~0;
+    uint64_t next_y; //y of the next pattern expected to be appeared
+    if (hs_len2 - c_shape_len3 < 0)
+    {
+        //next_y = 0;
+        return 1;
+    }
+    else
+    {
+        next_y = hs_len2 - c_shape_len3;
+    }
+
+    for (int i = n - 1; i >= 0; i--)
+    {
+        //int i = w1 + k * w2; //flip k if the clip_direction is -1
+        //skip kmer within the range of c_shape_len3 if the previouse has been mergerd.
+        if (flag) // decide the next range to scan
+        {
+            if (g_hs_anchor_getY(anchors[i] ^ pre_anchor))
+            {
+                its[itsk] = i; //record the first i of each block in which anchor has the same y
+                int range = pre_y[0] - g_hs_anchor_getY(anchors[i]);
+                //direction::
+                if (g_hs_anchor_getY(anchors[i]) < next_y)//find the last anchor 
+                {                                         // of the next range 
+                    itsEnd = itsk--;                 
+                    if (itsk < 0)
+                    {
+                        //direction::
+                        drop_count += range;
+                        if (drop_count >= thd_merge_drop)
+                        {
+                            break;
+                        }
+                        itsk = 0;
+                        next_y -= c_shape_len3;
+                    }
+                    else 
+                    {
+                        i = its[itsk] + 1;
+                        flag = 0;
+                        tmp_n = 0;
+                    }
+                }
+                else if (range + drop_count - (int)c_shape_len3 < thd_merge_drop)
+                {
+                    itsk++;
+                }
+                pre_anchor = anchors[i];
+            }
+        }
+        else // scan blocks in the range.
+        {
+            if (i == its[itsk + 1])//reach end of current block
+            {
+                if (tmp_n > 0)          //there exists new merges
+                {
+                    for (int j = 0; j < tmp_n; j++)
+                    {
+                        pre_x[j] = tmp_x[j];
+                        pre_y[j] = tmp_y[j];
+                    }
+                    ex_len = tmp_n;
+                    tmp_n = 0;
+                    flag = 1;
+                    drop_count = std::max(0, --drop_count);
+                    i = its[itsEnd] + 1; 
+                    pre_anchor = anchors[i];
+                    itsk = 0;
+                }
+                else 
+                {
+                    if (itsk < 1 ) //if it's the last block of the current range
+                    {
+                        drop_count += c_shape_len3;
+                        if (drop_count >= thd_merge_drop) //large gap to clip
+                        {
+                            break; 
+                        }
+                        else
+                        {
+                            i = its[itsEnd] + 1;
+                            next_y -= c_shape_len3;
+                            flag = 1;
+                        }
+                    } 
+                    else
+                    {
+                        itsk--;
+                        i = its[itsk] + 1;
+                    }
+                    tmp_n = 0;
+                }
+            }            
+            else
+            {
+                short x = short(g_hs_anchor_getX(anchors[i]));
+                short y = short(g_hs_anchor_getY(anchors[i]));
+                for (int j = 0; j < ex_len; j++)
+                {
+                    short delta_x = pre_x[j] - x;
+                    short delta_y = pre_y[j] - y;
+                    if (std::abs(delta_x - delta_y) < 3 && delta_x - delta_y >= -1)
+                    {
+
+                        tmp_x[tmp_n] = x;
+                        tmp_y[tmp_n] = y;
+                        next_y = y - c_shape_len3;
+                        tmp_n++;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    //Median number of pre_x. pre_y values are equal
+    ex_d = (uint64_t(pre_x[ex_len / 2]) << 32) + pre_y[0];
+    //std::cout << (ex_d >> 32) << "\n";
+    return 0;
+
+}
+ int c_clip_extend_right(uint64_t & ex_d, // results
+                    String<uint64_t> & hashs, 
+                    String<uint64_t> & anchors,
+                    IterStrD5 it_str1, 
+                    IterStrD5 it_end1, 
+                    IterStrD5 it_str2, 
+                    IterStrD5 it_end2, 
+                    int thd_min_scan_delta,
+                    int thd_error_level,
+                    int thd_gap_shape,
+                    int thd_merge_anchor,
+                    int thd_merge_drop)
+{
+    String<short> tzs; //trailing zero of each pattern
+    String<short> lzs; //leading zeor of each pattern
+    LShape shape(c_shape_len3);
+    int hs_len1 = it_end1 - it_str1;
+    int hs_len2 = it_end2 - it_str2;
+    resize(tzs, (hs_len1 >> (thd_error_level - 1)) + 1);
+    resize(lzs, (hs_len1 >> (thd_error_level - 1)) + 1);
+    hashInit_hs(shape, it_str1);
+    if (length(hashs) < it_end1 - it_str1)
+    {
+        return 1;
+    }
+
+    for (int i = 0; i < it_end1 - it_str1 + 1; i++)
+    {
+        hashs[i] = hashNext_hs(shape, it_str1 + i);
+    }   
+    int i_str = 0;    
+    int i_end = it_end2 - it_str2;
+    int n = 0;
+    //step 1. 
+    //stream gap pattens along two seqs and collect anchor
+    hashInit_hs(shape, it_str2);
+    String<Dna5> couts;
+    resize(couts, 4);
+    for (uint64_t i = i_str; i < i_end; i++) //scan the read
+    {
+        uint64_t hash_read = hashNext_hs(shape, it_str2 + i);  
+        int di = i_end - i;
+        int dj_err = std::max(di >> thd_error_level, thd_min_scan_delta);
+        int j_str = std::max(0, hs_len1 - di - dj_err); 
+        int j_end = std::min(hs_len1 - di + dj_err, hs_len1);
         uint64_t dhash = hash_read ^ hashs[j_str];
         tzs[0] = ctzb_4_(dhash);
         lzs[0] = clzb_4_(dhash);
@@ -2313,6 +2517,7 @@ if (t == 3)
 
 }
  int c_clip_extend_(uint64_t & ex_d, // results
+
                     String<uint64_t> & hashs, 
                     String<uint64_t> & anchors,
                     IterStrD5 it_str1, 
