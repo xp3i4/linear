@@ -5,7 +5,30 @@
 #include "pmpfinder.h"
 #include "gap.h"
 
+struct CmpInt64
+{
+    int64_t val;
+    CmpInt64();
+    CmpInt64 & min();
+    CmpInt64 & operator << (int64_t);
+}g_cmpll;
+CmpInt64::CmpInt64():val(-(~0LL)){}
+CmpInt64 & CmpInt64::min() 
+{
+    val = -(~0LL);
+    return *this;
+}
+CmpInt64 & CmpInt64::operator << (int64_t n)
+{
+    if (val > n)
+    {
+        val = n;
+    }
+    return *this;
+}
+
 typedef Iterator<String<Dna5> >::Type IterStrD5;
+
 struct GNodeBase
 {
     const unsigned xBitLen;
@@ -444,7 +467,10 @@ struct Tile
         val &= bit;
     }
 }_defaultTile;
-
+inline uint16_t get_tile_strand (uint64_t val)
+{
+    return _defaultTile.getStrand(val);
+}
 inline void set_tile_end (uint64_t & val)
 {
     _defaultTile.setTileEnd(val);
@@ -476,6 +502,18 @@ inline bool is_tile_end(uint64_t val)
 inline bool is_tile_body(uint64_t val)
 {
     return _defaultTile.isTileBody(val);
+}
+inline uint64_t shift_tile(uint64_t const & val, uint64_t x, uint64_t y)
+{
+    return shift_cord (val, x, y);
+}
+inline uint64_t get_tile_x (uint64_t val)
+{
+    return get_cord_x(val);
+}
+inline uint64_t get_tile_y (uint64_t val)
+{
+    return get_cord_y(val);
 }
 /**
  * debug utils
@@ -2661,7 +2699,7 @@ int64_t c_clip_(String<Dna5> & genome,
             String<uint64_t> & g_anchor,
             int band,
             int clip_direction = 1
-            )
+        )
 {
     String<Dna5> & seq1 = genome;
     String<Dna5> * p = (gr_strand)?(&comstr):(&read);
@@ -2838,6 +2876,8 @@ int64_t c_clip_(String<Dna5> & genome,
     uint64_t crstart, crend;
     uint64_t crstrand, band;
     uint64_t delta;
+    uint64_t clip_str, clip_end;
+    int shift = 0;
     if (sv_exists)
     {
         for (unsigned i = 0; i < length(sv_flags) - 1; i++)
@@ -2846,6 +2886,24 @@ int64_t c_clip_(String<Dna5> & genome,
             uint64_t tile2 = tiles[i + 1];
             if ((sv_flags[i] & g_sv_r) && (sv_flags[i + 1] & g_sv_l)) 
             {
+                /*
+                if (get_tile_strand(tile2) ^ main_strand)
+                {
+                    clip_end = shift_tile(tile1, block_size, block_size);
+                }
+                else
+                {
+                    g_cmpll.min() << length(seq) - 1 - get_tile_x(tile2) 
+                                  << length(read) - 1 - get_tile_y(tile2)
+                                  << (int64_t) block_size;
+                    int shift = g_cmpll.val;
+                    std::cout << "c_clip_4 " << get_tile_y(tile1) << " " << shift << "\n";
+                    clip_end = shift_tile(tile2, shift, shift);
+                    //shift = std::min(length(seq)) 
+                    clip_str = shift_tile(tile2, block_size, block_size);
+                }
+
+*/
                 cgend = _getSA_i2(_defaultTile.getX(tile2)) + block_size;
                 cgstart = std::min(_getSA_i2(_defaultTile.getX(tile1)), cgend - 2 * block_size);
                 delta = cgend - cgstart;
@@ -2859,7 +2917,8 @@ int64_t c_clip_(String<Dna5> & genome,
                 }
                 band = int(0.5 * delta );
                 crstrand = _defaultTile.getStrand(tile2);
-                std::cout << "gag3 " << i << " " << get_cord_y(tile1) << " " << crstart << " " << crend << " " << cgstart << " " << cgend << "\n";
+                std::cout << "gag3 " << i << " " << get_cord_y(tile1) << " " << crstart << " " << crend << " " << cgstart << " " << cgend << " " << main_strand << " " << get_cord_strand(tiles[i])<< "\n";
+                //int clip_direction = (main_strand ^ get_cord_strand(tile2)):
                 clip = c_clip_ (seq, read, comstr, cgstart, cgend, crstart, crend, crstrand, genomeId, g_hs, g_hs_anchor, band, 1);   
                 appendValue (clips, clip);
             }
