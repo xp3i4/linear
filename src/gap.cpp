@@ -1678,7 +1678,7 @@ const unsigned c_shape_len3 = 4; //base-level clipping gap shape
     val = (((hs1 - x) & (g_hs_mask2)) << g_hs_anchor_bit1) + x + (gap_type << g_hs_anchor_bit2);
 }
 
-//using de brujin sequence to calculate the clz and ctz
+//using de brujin sequence to calculate the clz and ctz of 4-mers
 int const clzb_4_index_[8] = {0, 0, 3, 1, 3, 2, 2, 1}; // de brujin sequence table / 2
  int clzb_4__ (uint64_t a)
 {
@@ -1746,15 +1746,15 @@ int const clzb_4_index_[8] = {0, 0, 3, 1, 3, 2, 2, 1}; // de brujin sequence tab
 }
 
  int c_create_anchors_ (String<uint64_t> & g_hs, 
-                              String<uint64_t> & g_anchor,
-                              int g_hs_end,
-                              int band_level,
-                              int band_lower,
-                              int64_t anchor_x,
-                              int64_t anchor_y,
-                              int64_t x_lower = 0,
-                              int64_t x_upper = 0
-                             ) 
+                        String<uint64_t> & g_anchor,
+                        int g_hs_end,
+                        int band_level,
+                        int band_lower,
+                        int64_t anchor_x,
+                        int64_t anchor_y,
+                        int64_t x_lower = 0,
+                        int64_t x_upper = 0
+                       ) 
 {
     int p1 = 0, p2 = 0;
     int g_anchor_end = 0;
@@ -1790,108 +1790,150 @@ inline int64_t c_sc_(int val1, int val2)
     else
         return val2 << 1;
 }
-
+/**
+ * 
+ * Clip the anchors when it reach the first anchor that can be well extended. 
+ * @clip_direction: -1 extend toward the right; 1 extend toward the left
+ */
 int64_t c_clip_anchors_ (String<uint64_t> & anchor, 
-                          uint64_t gs_start,
-                          uint64_t gr_start,
-                          int anchor_end,
-                          unsigned shape_len, 
-                          int thd_merge1, // thd of anchor
-                          int thd_merge1_lower,
-                          int thd_merge2, //thd of x
-                          int thd_width, //WARNING: elements to search. Not band of bases
-                          int thd_clip_sc = c_sc_(27, 30)
-                          //uint64_t  main_strand, 
-                          //int revscomp_const
-                          )
+                         uint64_t gs_start,
+                         uint64_t gr_start,
+                         int anchor_end,
+                         int shape_len, 
+                         int thd_merge1, // thd of anchor
+                         int thd_merge1_lower,
+                         int thd_merge2, //thd of x
+                         int clip_direction = -1,
+                         int thd_clip_sc = c_sc_(27, 30)
+                        )
 {
-    int last_k = 0, start_k = 0;
-    uint64_t ct_conts = 0;
-    uint64_t thd_break_a = 2; ///WARNING::tune 
-    anchor[anchor_end] = ~0;
+    int direction = (clip_direction < 0) ? -1 : 1;
     int it = 0;
     int bit1 = 20;
-    int bit = g_hs_anchor_bit1 + bit1;
-    int64_t mask = (1LL << bit) - 1;
-    int64_t mask1 = (1LL << bit1) - 1;
-    int64_t mask2 = (mask1 << bit1);
+    int bit2 = g_hs_anchor_bit1 + bit1;
+    uint64_t mask = (1LL << bit1) - 1;
+    uint64_t ct_conts = 0;
+    anchor[anchor_end] = ~0;
     std::sort (begin(anchor), begin(anchor) + anchor_end);
-    for (int k = 0; k < anchor_end + 1; k++)
+    int i_str = 0;
+    for (int i = 0; i < anchor_end + 1; i++)
     {
-        uint64_t dx = std::abs(g_anchor_dx_(anchor[k], anchor[k + 1]));
-        uint64_t dy = g_hs_anchor_getY(anchor[k + 1] - anchor[k]);
-        int64_t da = g_anchor_da_(anchor[k], anchor[k + 1]);
-        if (da == 0 && dy == 1) 
+        if (g_hs_anchor_getY(anchor[i + 1] - anchor[i]) == 0 &&
+            g_anchor_da_(anchor[i], anchor[i + 1] == 1))
         {
             ct_conts++;
         }
         else
         {
-            last_k = k - ct_conts ;
-            uint64_t x = g_hs_anchor_getX(anchor[last_k]) - gs_start;
-            uint64_t y = g_hs_anchor_getY(anchor[last_k]) - gr_start;
-            anchor[it++] = (x << bit) + ((ct_conts + 1) << g_hs_anchor_bit1) + y;
-            start_k = k + 1;
+            i_str = i - ct_conts ;
+            uint64_t x = g_hs_anchor_getX(anchor[i_str]) - gs_start;
+            uint64_t y = g_hs_anchor_getY(anchor[i_str]) - gr_start;
+            anchor[it++] = (x << bit2) + ((ct_conts + 1) << g_hs_anchor_bit1) + y;
             ct_conts = 0;
-            //NOTE:: value of anchors has been changed := x|ct_conts|y
             //collect continuos patterns (no gaps)
         }
     }
-    //sort anchor accoding to x, ct_conts and y 
-    std::sort(begin(anchor), begin(anchor) + it);
-    int it_merge = anchor_end - 1;
-    uint64_t end_record = 0;
-    int max_sc = 0;
-    uint64_t max_ac = 0;
-    for (int i = 0; i < it - 1; i++)
+    if (it <= 1)
     {
-        std::cout << "ac4 " << ((anchor[i] >> bit) & mask1) <<  " " << g_hs_anchor_getY(anchor[i]) << " " << (((anchor[i] >> bit1) & mask1) + shape_len - 1) << "\n";
+        return 0;
     }
-    std::cout << "ac4\n";
-    for (int i = 0; i < it - 1; i++)
+    //!NOTE::Value of anchor has been changed to := x|ct_conts|y
+    int64_t y1 = 0;
+    int64_t y2 = 0;
+    int64_t x1 = 0;
+    int64_t x2 = 0;
+    int64_t x1_end = 0;
+    int64_t x2_end = 0;
+    if (direction < 0)
     {
-        int64_t y0 = g_hs_anchor_getY(anchor[i]);
-        int64_t x0 = (anchor[i] >> bit) & mask1;
-        int c_conts = ((anchor[i] >> bit1) & mask1) + shape_len - 1;
-        int pre_c_conts = c_conts;
-        int sc = 0;
-        int dj = 0;
-        int64_t end_record = 0;
-        int64_t pre_end = x0 + c_conts;
-        int width_count = 0;
-        for (int j = i + 1; j < it - 1 && width_count < thd_width; j++)
+        std::sort(begin(anchor), begin(anchor) + it);
+        for (int i = 0; i < it - 1; i++) //extend anchor[i]
         {
-            std::cout << "ac2 " << i << " " << j << " " << it << " " << dj << "\n";
-            int64_t y1 = g_hs_anchor_getY(anchor[j]);
-            int64_t x1 = (anchor[j] >> bit) & mask1;
-            int64_t d_anc = int64_t(x1 - x0 - y1 + y0);
-            c_conts = ((anchor[j] >> bit1) & mask1) + shape_len - 1;
-            if (std::abs(d_anc) < std::max(int(x1 - x0) >> thd_merge1, thd_merge1_lower) && (x1 - pre_end) < thd_merge2 && x1 > x0)
+            y1 = g_hs_anchor_getY(anchor[i]);
+            x1 = (anchor[i] >> bit2) & mask;
+            x1_end = x1 + ((anchor[i] >> bit1) & mask) + shape_len - 1;
+            int score = 0;
+            int dj = 0;
+            for (int j = i + 1; j < it - 1; j++) 
             {
-                sc += c_sc_(pre_c_conts, x1 - x0);
-                x0 = x1; 
-                y0 = y1;
-                pre_end = x1 + c_conts;
-                ++dj;
+                //#anchor will be shrinked(overwrite anchor[j]) 
+                //if anchor[j] can be merged to the
+                //the chain starting from the anchor[i].
+                y2 = g_hs_anchor_getY(anchor[j]);
+                x2 = (anchor[j] >> bit2) & mask;
+                x2_end = x2 + ((anchor[j] >> bit1) & mask) + shape_len - 1;
+                int64_t da = x2 - x1 - y2 + y1;
+                int thd_da_accept = std::max(int(x2 - x1) >> thd_merge1, 
+                                             thd_merge1_lower);
+                if (std::abs(da) < thd_da_accept && 
+                    x2 - x1 < thd_merge2 && 
+                    x1 < x2)
+                {
+                    score += c_sc_(x1_end - x1, x2 - x1);
+                    y1 = y2;
+                    x1 = x2; 
+                    x1_end = x2_end;
+                    ++dj;
+                }
+                else
+                {
+                    anchor[j - dj] = anchor[j];
+                }
             }
-            else
+            score += c_sc_(x2_end - x2, x2_end - x2);
+            if (score > thd_clip_sc)
             {
-                anchor[j - dj] = anchor[j];
-                ++width_count = 0;
+                int64_t rslt_x = (anchor[i] >> bit2) & mask; 
+                int64_t rslt_y = (anchor[i] & mask);
+                return (rslt_x << 32) + rslt_y;
             }
-            pre_c_conts = c_conts;
-        }
-        sc += c_sc_(pre_c_conts, pre_c_conts);
-        if (sc > thd_clip_sc)
+            it -= dj;
+        } 
+    }
+    else if (direction > 0)
+    {
+        std::sort(begin(anchor), begin(anchor) + it, std::greater<uint64_t>());
+        int i_end = 0;
+        for (int i = 0; i < it - 1; ++i)
         {
-            max_ac = anchor[i];
-            max_sc = sc;
-            std::cout << "ac2 " << ((anchor[i] >> bit) & mask1) << "\n\n";
-            return int64_t((((max_ac >> bit) & mask1) << 32) + (max_ac & mask1));
-        }
-        it -= dj;
-    } 
-    std::cout << "ac2\n\n";
+            y1 = g_hs_anchor_getY(anchor[i]);
+            x1 = (anchor[i] >> bit2) & mask;
+            x1_end = x1 + ((anchor[i] >> bit1) & mask) + shape_len - 1;
+            int score = 0;
+            int dj = 0;
+            for (int j = i; j < it - 1; ++j)
+            {
+                y2 = g_hs_anchor_getY(anchor[j]);
+                x2 = (anchor[j] >> bit2) & mask;
+                x2_end = x2 + ((anchor[j] >> bit1) & mask) + shape_len - 1;
+                int64_t da = x2 - x1 - y2 + y1;
+                int thd_da_accept = std::max(int(x1 - x2) >> thd_merge1, 
+                                             thd_merge1_lower);
+                if (std::abs(da) < thd_da_accept && 
+                    x1 - x2_end < thd_merge2 && 
+                    x1 > x2)
+                {
+                    score += c_sc_(x1_end - x1, x1_end - x2_end);
+                    x1 = x2; 
+                    y1 = y2;
+                    x1_end = x2_end;
+                    ++dj;
+                }
+                else
+                {
+                    anchor[j - dj] = anchor[j];
+                }
+            }
+            score += c_sc_(x2_end - x2, x2_end - x2);
+            if (score > thd_clip_sc)
+            {
+                int64_t rslt_x = (anchor[i] >> bit2) & mask;
+                int64_t rslt_y = (anchor[i] & mask);
+                return (rslt_x << 32) + rslt_y;
+            }
+            it -= dj;
+        } 
+    }
     return 0;
 }
 
@@ -1946,7 +1988,10 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
     }
     return 0;
 }
- uint64_t c_clip_anchors_precise(String<uint64_t> & anchor, 
+/**
+ * Aborted
+ */
+uint64_t c_clip_anchors_precise(String<uint64_t> & anchor, 
                              uint64_t gs_start,
                              uint64_t gr_start,
                              int anchor_end,
@@ -2325,19 +2370,22 @@ if (t == 3)
                     int thd_merge_anchor,
                     int thd_merge_drop)
 {
-    String<short> tzs; //trailing zero of each pattern
-    String<short> lzs; //leading zeor of each pattern
-    LShape shape(c_shape_len3);
     int hs_len1 = it_end1 - it_str1;
     int hs_len2 = it_end2 - it_str2;
-    resize(tzs, (hs_len1 >> (thd_error_level - 1)) + 1);
-    resize(lzs, (hs_len1 >> (thd_error_level - 1)) + 1);
-    hashInit_hs(shape, it_str1);
-    if (length(hashs) < it_end1 - it_str1)
+    if (length(hashs) < hs_len1)
+    {
+        return 1;
+    }    
+    if (hs_len1 < c_shape_len3 || hs_len2 < c_shape_len3)
     {
         return 1;
     }
-
+    String<short> tzs; //trailing zero of each pattern
+    String<short> lzs; //leading zeor of each pattern
+    LShape shape(c_shape_len3);
+    resize(tzs, (hs_len1 >> (thd_error_level - 1)) + 1);
+    resize(lzs, (hs_len1 >> (thd_error_level - 1)) + 1);
+    hashInit_hs(shape, it_str1);
     for (int i = 0; i < it_end1 - it_str1 + 1; i++)
     {
         hashs[i] = hashNext_hs(shape, it_str1 + i);
@@ -2353,10 +2401,10 @@ if (t == 3)
     for (uint64_t i = i_str; i < i_end; i++) //scan the read
     {
         uint64_t hash_read = hashNext_hs(shape, it_str2 + i);  
-        int di = i_end - i;
-        int dj_err = std::max(di >> thd_error_level, thd_min_scan_delta);
-        int j_str = std::max(0, hs_len1 - di - dj_err); 
-        int j_end = std::min(hs_len1 - di + dj_err, hs_len1);
+        int di = i - i_str; //direction
+        int dj_err = std::max(di >> thd_error_level, thd_min_scan_delta); //directon
+        int j_str = std::max(0, (int)i - dj_err); //direction
+        int j_end = std::min((int)i + dj_err, hs_len1);
         uint64_t dhash = hash_read ^ hashs[j_str];
         tzs[0] = ctzb_4_(dhash);
         lzs[0] = clzb_4_(dhash);
@@ -2387,59 +2435,48 @@ if (t == 3)
     resize (tmp_x, length(tzs)); //temporarily store coordinates x
     resize (tmp_y, length(tzs));
     resize (its, n);
-    pre_x[0] = short(hs_len1);
-    pre_y[0] = short(hs_len2);
-    int ex_len = 1;
+    pre_x[0] = 0; //directio
+    pre_y[0] = 0; //direction
+    int pre_len = 1;
     int tmp_n = 0;
     int flag = 1;
     int itsk = 0;
     int itsEnd = 0;
     int drop_count = 0;
     uint64_t pre_anchor = ~0;
-    uint64_t next_y; //y of the next pattern expected to be appeared
-    if (hs_len2 - c_shape_len3 < 0)
+    uint64_t next_y; //coordinate y of the next pattern expected to be appeared
+    next_y = c_shape_len3; //direction
+    for (int i = 0; i < n; i++)
     {
-        //next_y = 0;
-        return 1;
-    }
-    else
-    {
-        next_y = hs_len2 - c_shape_len3;
-    }
-
-    for (int i = n - 1; i >= 0; i--)
-    {
-        //int i = w1 + k * w2; //flip k if the clip_direction is -1
         //skip kmer within the range of c_shape_len3 if the previouse has been mergerd.
         if (flag) // decide the next range to scan
         {
             if (g_hs_anchor_getY(anchors[i] ^ pre_anchor))
-            {
-                its[itsk] = i; //record the first i of each block in which anchor has the same y
-                int range = pre_y[0] - g_hs_anchor_getY(anchors[i]);
-                //direction::
-                if (g_hs_anchor_getY(anchors[i]) < next_y)//find the last anchor 
-                {                                         // of the next range 
+            {//record the first i of each block in which anchor has the same y
+                its[itsk] = i; 
+                int dy = g_hs_anchor_getY(anchors[i]) - pre_y[0]; //direction
+                //direction
+                if (g_hs_anchor_getY(anchors[i]) > next_y)//find the last anchor 
+                {                                         //within the range 
                     itsEnd = itsk--;                 
                     if (itsk < 0)
                     {
-                        //direction::
-                        drop_count += range;
+                        drop_count += dy;
                         if (drop_count >= thd_merge_drop)
                         {
                             break;
                         }
                         itsk = 0;
-                        next_y -= c_shape_len3;
+                        next_y += c_shape_len3; //direction::
                     }
                     else 
                     {
-                        i = its[itsk] + 1;
+                        i = its[itsk] - 1; //direction
                         flag = 0;
                         tmp_n = 0;
                     }
                 }
-                else if (range + drop_count - (int)c_shape_len3 < thd_merge_drop)
+                else if (dy + drop_count - (int)c_shape_len3 < thd_merge_drop)
                 {
                     itsk++;
                 }
@@ -2448,6 +2485,7 @@ if (t == 3)
         }
         else // scan blocks in the range.
         {
+            //!!TODO::itsk + 1 may seg fault
             if (i == its[itsk + 1])//reach end of current block
             {
                 if (tmp_n > 0)          //there exists new merges
@@ -2457,11 +2495,11 @@ if (t == 3)
                         pre_x[j] = tmp_x[j];
                         pre_y[j] = tmp_y[j];
                     }
-                    ex_len = tmp_n;
+                    pre_len = tmp_n;
                     tmp_n = 0;
                     flag = 1;
                     drop_count = std::max(0, --drop_count);
-                    i = its[itsEnd] + 1; 
+                    i = its[itsEnd] - 1; //direction
                     pre_anchor = anchors[i];
                     itsk = 0;
                 }
@@ -2476,15 +2514,15 @@ if (t == 3)
                         }
                         else
                         {
-                            i = its[itsEnd] + 1;
-                            next_y -= c_shape_len3;
+                            i = its[itsEnd] - 1; //direction
+                            next_y += c_shape_len3; //direction
                             flag = 1;
                         }
                     } 
                     else
                     {
                         itsk--;
-                        i = its[itsk] + 1;
+                        i = its[itsk] - 1; //direction
                     }
                     tmp_n = 0;
                 }
@@ -2493,16 +2531,16 @@ if (t == 3)
             {
                 short x = short(g_hs_anchor_getX(anchors[i]));
                 short y = short(g_hs_anchor_getY(anchors[i]));
-                for (int j = 0; j < ex_len; j++)
+                for (int j = 0; j < pre_len; j++)
                 {
-                    short delta_x = pre_x[j] - x;
-                    short delta_y = pre_y[j] - y;
+                    short delta_x = x - pre_x[j]; //direction
+                    short delta_y = y - pre_y[j]; //direction
                     if (std::abs(delta_x - delta_y) < 3 && delta_x - delta_y >= -1)
                     {
 
                         tmp_x[tmp_n] = x;
                         tmp_y[tmp_n] = y;
-                        next_y = y - c_shape_len3;
+                        next_y = y + c_shape_len3;
                         tmp_n++;
                         break;
                     }
@@ -2511,7 +2549,7 @@ if (t == 3)
         }
     }
     //Median number of pre_x. pre_y values are equal
-    ex_d = (uint64_t(pre_x[ex_len / 2]) << 32) + pre_y[0];
+    ex_d = (uint64_t(pre_x[pre_len / 2]) << 32) + pre_y[0];
     //std::cout << (ex_d >> 32) << "\n";
     return 0;
 
@@ -2547,8 +2585,26 @@ if (t == 3)
                 thd_gap_shape,
                 thd_merge_anchor,
                 thd_merge_drop
+        ); 
+    }
+    /*
+    else if (clip_direction > 0)
+    {
+        c_clip_extend_right(ex_d,
+                hashs, 
+                anchors,
+                it_str1, 
+                it_end1, 
+                it_str2, 
+                it_end2, 
+                thd_min_scan_delta,
+                thd_error_level,
+                thd_gap_shape,
+                thd_merge_anchor,
+                thd_merge_drop
     ); 
     }
+    */
 }
 
 struct ParmClipExtend
@@ -2654,7 +2710,7 @@ int64_t c_clip_(String<Dna5> & genome,
     int error_level = 3; // >>3 == * 0.125
     int min_scan_delta = 3;  //at least scan 5 elements in the genome for each kmer in the read
     uint64_t ex_d = 0;
-    std::cout << "c_clip_1 " << gs_start + dx - extend_window << " " << gs_start + dx << " " << gr_start + dy - extend_window << " " << gr_start + dy << "\n";
+    std::cout << "c_clip_1 " << gs_start + dx << " "<< gr_start + dy << "\n";
     c_clip_extend_(ex_d, 
                    g_hs,
                    g_anchor,
