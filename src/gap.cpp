@@ -7,22 +7,21 @@
 
 struct CmpInt64
 {
-    int64_t val;
-    CmpInt64();
-    CmpInt64 & min();
+    int64_t * p_rslt;
+    CmpInt64 & min (int64_t & rslt, int64_t init_val = (~(1LL << 63)));
     CmpInt64 & operator << (int64_t);
 }g_cmpll;
-CmpInt64::CmpInt64():val(-(~0LL)){}
-CmpInt64 & CmpInt64::min() 
-{
-    val = -(~0LL);
+CmpInt64 & CmpInt64::min(int64_t & rslt, int64_t init_val) 
+{ 
+    p_rslt = & rslt;
+    *p_rslt = init_val;
     return *this;
 }
 CmpInt64 & CmpInt64::operator << (int64_t n)
 {
-    if (val > n)
+    if (*p_rslt > n)
     {
-        val = n;
+        *p_rslt = n;
     }
     return *this;
 }
@@ -1841,7 +1840,7 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
                          int thd_merge1, // thd of anchor
                          int thd_merge1_lower,
                          int thd_merge2, //thd of x
-                         int clip_direction = -1,
+                         int clip_direction,
                          int thd_clip_sc = c_sc_(27, 30)
                         )
 {
@@ -2729,7 +2728,7 @@ int64_t c_clip_(String<Dna5> & genome,
                                    thd_merge1, 
                                    thd_merge1_lower, 
                                    thd_merge2, 
-                                   thd_width);    
+                                   -1);    
     
     ///clip breakpoints
     uint64_t dx = (g_anchor_val >> 32);
@@ -2783,9 +2782,9 @@ int64_t c_clip_(String<Dna5> & genome,
  *         \
  *   path1 path2
  */
- int g_alignGap_(String<Dna5> & seq,
-                 String<Dna5> & read,
-                 String<Dna5> & comstr, //complement reverse of the read
+ int g_alignGap_(String<Dna5> & seq1,
+                 String<Dna5> & seq2,
+                 String<Dna5> & comstr, //complement reverse of the read (seq2)
                  String<uint64_t> & tiles,
                  String<uint64_t> & clips,
                  String<uint64_t> & g_hs,
@@ -2802,9 +2801,10 @@ int64_t c_clip_(String<Dna5> & genome,
 {
     // Insert the virtual head tile and tail tile, so all original tiles can be processed in one for loop
     // The inserted head tile and tail tile will be removed at the end of the function, so it will affect the original tiles.
-    uint64_t r_start_flip = _flipCoord (r_start, length(read) - 1, main_strand);
-    uint64_t r_end_flip = _flipCoord (r_end, length(read) - 1, main_strand);
+    uint64_t r_start_flip = _flipCoord (r_start, length(seq2) - 1, main_strand);
+    uint64_t r_end_flip = _flipCoord (r_end, length(seq2) - 1, main_strand);
     int block_size = window_size;
+    int64_t thd_max_gap_size = 2 * block_size;
     if (main_strand)
     {
         std::swap (r_start_flip, r_end_flip);
@@ -2877,33 +2877,44 @@ int64_t c_clip_(String<Dna5> & genome,
     uint64_t crstrand, band;
     uint64_t delta;
     uint64_t clip_str, clip_end;
-    int shift = 0;
+    int64_t shift;
     if (sv_exists)
     {
         for (unsigned i = 0; i < length(sv_flags) - 1; i++)
         {
             uint64_t tile1 = tiles[i];
             uint64_t tile2 = tiles[i + 1];
+            uint64_t *p_clip;
             if ((sv_flags[i] & g_sv_r) && (sv_flags[i + 1] & g_sv_l)) 
             {
-                /*
-                if (get_tile_strand(tile2) ^ main_strand)
+                //TODO make the range to clip [clip_str, clip_end] more precise to avoid cover two well mapped segs such as  100M50Gaps100M
+                if (get_tile_strand(tile1) ^ main_strand) //tile2 towards left
                 {
-                    clip_end = shift_tile(tile1, block_size, block_size);
-                }
-                else
-                {
-                    g_cmpll.min() << length(seq) - 1 - get_tile_x(tile2) 
-                                  << length(read) - 1 - get_tile_y(tile2)
-                                  << (int64_t) block_size;
-                    int shift = g_cmpll.val;
-                    std::cout << "c_clip_4 " << get_tile_y(tile1) << " " << shift << "\n";
+                    g_cmpll.min(shift) << block_size / 2 
+                                       << get_tile_x(tile2)
+                                       << get_tile_y(tile2);
                     clip_end = shift_tile(tile2, shift, shift);
-                    //shift = std::min(length(seq)) 
-                    clip_str = shift_tile(tile2, block_size, block_size);
+                    g_cmpll.min(shift, shift + thd_max_gap_size) 
+                                       << get_tile_x(tile2 - tile1) + block_size / 2
+                                       << get_tile_x(tile2)
+                                       << get_tile_y(tile2);
+                    clip_str = shift_tile(tile2, -shift, -shift);
+                    std::cout << "c_clip_5_l " << shift << "\n";
                 }
-
-*/
+                else //tile1 towards right
+                {
+                    g_cmpll.min(shift) << block_size / 2
+                                       << length(seq1) - 1 - get_tile_x(tile1) 
+                                       << length(seq2) - 1 - get_tile_y(tile1);
+                    clip_str = shift_tile(tile1, shift, shift);
+                    g_cmpll.min(shift, shift + thd_max_gap_size) 
+                                       << get_tile_x(tile2 - tile1) + block_size / 2
+                                       << length(seq1) - 1 - get_tile_x(tile1) 
+                                       << length(seq2) - 1 - get_tile_y(tile1);
+                    clip_end = shift_tile(tile1, shift, shift);
+                    std::cout << "c_clip_5_r " << shift << " " << get 
+                }
+                std::cout << "c_clip_44 " << get_tile_y(clip_str) << " " << get_tile_y(clip_end) << " " << get_tile_x(clip_str) << " " << get_tile_x(clip_end) << " " << get_tile_strand(clip_str) << " " << get_tile_strand(clip_end) << "\n";
                 cgend = _getSA_i2(_defaultTile.getX(tile2)) + block_size;
                 cgstart = std::min(_getSA_i2(_defaultTile.getX(tile1)), cgend - 2 * block_size);
                 delta = cgend - cgstart;
@@ -2919,19 +2930,19 @@ int64_t c_clip_(String<Dna5> & genome,
                 crstrand = _defaultTile.getStrand(tile2);
                 std::cout << "gag3 " << i << " " << get_cord_y(tile1) << " " << crstart << " " << crend << " " << cgstart << " " << cgend << " " << main_strand << " " << get_cord_strand(tiles[i])<< "\n";
                 //int clip_direction = (main_strand ^ get_cord_strand(tile2)):
-                clip = c_clip_ (seq, read, comstr, cgstart, cgend, crstart, crend, crstrand, genomeId, g_hs, g_hs_anchor, band, 1);   
+                clip = c_clip_ (seq1, seq2, comstr, cgstart, cgend, crstart, crend, crstrand, genomeId, g_hs, g_hs_anchor, band, 1);   
                 appendValue (clips, clip);
             }
             if ((sv_flags[i] & g_sv_r) && !(sv_flags[i + 1] & g_sv_l))
             {
                 crstart = _defaultTile.getY(tile1);
-                crend = std::min(uint64_t(length(read)), crstart + 2 * block_size);
+                crend = std::min(uint64_t(length(seq2)), crstart + 2 * block_size);
                 delta = crend - crstart;
                 cgstart =_getSA_i2(_defaultTile.getX(tile1));
-                cgend = std::min(length(seq), cgstart + delta);
+                cgend = std::min(length(seq1), cgstart + delta);
                 band = int(90.0 * delta / block_size);
                 crstrand = _defaultTile.getStrand(tile1);
-                //clip = clip_window (seq, read, comstr, genomeId, cgstart, cgend, crstart, crend, crstrand, band, -1);   
+                //clip = clip_window (seq1, seq2, comstr, genomeId, cgstart, cgend, crstart, crend, crstrand, band, -1);   
                 //appendValue(clips, clip);
             }
             if (!(sv_flags[i] & g_sv_r) && (sv_flags[i + 1] & g_sv_l))
@@ -2944,7 +2955,7 @@ int64_t c_clip_(String<Dna5> & genome,
                 cgstart = (cgend > delta)?cgend - delta:0;
                 band = int(90.0 * delta / block_size);
                 crstrand = _defaultTile.getStrand(tile2);
-                //clip = clip_window (seq, read, comstr, genomeId, cgstart, cgend, crstart, crend, crstrand, band, 1);   
+                //clip = clip_window (seq1, seq2, comstr, genomeId, cgstart, cgend, crstart, crend, crstrand, band, 1);   
                 //appendValue(clips, clip);
             }
             /*
@@ -2956,14 +2967,14 @@ int64_t c_clip_(String<Dna5> & genome,
                 cgend = get_cord_x(tile1) + 90 + 192;
                 crstart = get_cord_y(tile1) + 90;
                 crend = get_cord_y(tile1) + 192;
-                clip = c_clip_ (seq, read, comstr, cgstart, cgend, crstart, crend, crstrand, genomeId, g_hs, g_hs_anchor, band, 1);   
+                clip = c_clip_ (seq1, seq2, comstr, cgstart, cgend, crstart, crend, crstrand, genomeId, g_hs, g_hs_anchor, band, 1);   
                 appendValue (clips, clip);
 
                 cgstart = get_cord_x(tile2) - 90;
                 cgend = get_cord_x(tile2) + 90 ;
                 crstart = get_cord_y(tile2) - 90;
                 crend = get_cord_y(tile2) + 90;
-                clip = c_clip_ (seq, read, comstr, cgstart, cgend, crstart, crend, crstrand, genomeId, g_hs, g_hs_anchor, band, 1);   
+                clip = c_clip_ (seq1, seq2, comstr, cgstart, cgend, crstart, crend, crstrand, genomeId, g_hs, g_hs_anchor, band, 1);   
                 appendValue (clips, clip);
                 std::cout << "gag4 " << i << " " << get_cord_y(tile1) << " " << crstart << " " << crend << " " << cgstart << " " << cgend << "\n";
 
