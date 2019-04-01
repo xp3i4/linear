@@ -1828,13 +1828,41 @@ int const clzb_4_index_[8] = {0, 0, 3, 1, 3, 2, 2, 1}; // de brujin sequence tab
  * clip by anchors
  * ---------mmmmmmmmmm
  */
-int const sc_clip1[11] = {0, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3};
-inline int64_t c_sc_(int val1, int val2)
+inline int64_t c_sc_(int val1, int val2, 
+                     float thd_exp_err = 0.85)
 {
-    if ((float)val1 / val2 > 0.8)
-        return val2 << 3; 
+    float rate = (float)val1 / val2;
+    float thd_err1 = thd_exp_err;
+    float thd_err2 = thd_exp_err; 
+    int thd_min_len = 10;
+    if (val1 > 25)
+    {
+        thd_err1 -= 0.05;
+        thd_err2 -= 0.15;
+    }  
+    else if (val1 > 15)
+    {
+        thd_err1 += 0.05;
+        thd_err2 -= 0.05;
+    }
     else
-        return val2 << 1;
+    {
+        thd_err1 += 0.1;
+        thd_err2 += 0.05;
+    }
+    if (rate > thd_err1 && val1 > thd_min_len)
+    {
+        std::cout << "cs1 " << thd_err1 << " " << val2 << " " << val1  << " " << rate << "\n";
+        return val1 << 2; 
+    }
+    else if (rate > thd_err2 && val1 > thd_min_len)
+    {
+        return val1 << 1;
+    }
+    else 
+    {
+        return val1;
+    }
 }
 /**
  * 
@@ -1850,7 +1878,7 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
                          int thd_merge1_lower,
                          int thd_merge2, //thd of x
                          int clip_direction,
-                         int thd_clip_sc = c_sc_(27, 30)
+                         int thd_clip_sc = c_sc_(25, 30)
                         )
 {
     if (anchor_end < 1)
@@ -2639,6 +2667,7 @@ if (t == 3)
                                              // -1 right side is well aligned
     )
 {
+    std::cout << "ce_1 " << clip_direction << "\n";
     if (clip_direction < 0)
     {
         c_clip_extend_left(ex_d,
@@ -2655,7 +2684,6 @@ if (t == 3)
                 thd_merge_drop
         ); 
     }
-    /*
     else if (clip_direction > 0)
     {
         c_clip_extend_right(ex_d,
@@ -2672,7 +2700,6 @@ if (t == 3)
                 thd_merge_drop
     ); 
     }
-    */
 }
 
 struct ParmClipExtend
@@ -2795,7 +2822,8 @@ int64_t c_clip_(String<Dna5> & genome,
                    error_level,
                    thd_gap_shape,
                    thd_merge_anchor,
-                   thd_merge_drop 
+                   thd_merge_drop,
+                   clip_direction
                   );
     int dyt = (ex_d & ((1ULL << 32) - 1));
     dx -= extend_window - (ex_d >> 32);
