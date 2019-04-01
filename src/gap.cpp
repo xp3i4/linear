@@ -2247,7 +2247,9 @@ if (t == 3)
     return s;
 }
 /**
- * Extend the region around the breakpoint and clip it by gapped pattern
+ * Extend the region around the breakpoint and clip it by gapped pattern.
+ * The clip function is splitted into two independent functoins for
+ * two @clip_direction value {-1,1} to reduce branches of if and else.
  */
  int c_clip_extend_left(uint64_t & ex_d, // results
                     String<uint64_t> & hashs, 
@@ -2295,6 +2297,7 @@ if (t == 3)
         int j_str = std::max(0, hs_len1 - di - dj_err); 
         int j_end = std::min(hs_len1 - di + dj_err, hs_len1);
         uint64_t dhash = hash_read ^ hashs[j_str];
+        std::cout << "ccr1 " << j_end - j_str << " " << hs_len1 << "\n";
         tzs[0] = ctzb_4_(dhash);
         lzs[0] = clzb_4_(dhash);
         int m = 1;
@@ -2310,6 +2313,7 @@ if (t == 3)
             m++;
         }
     }
+        std::cout << "ccr2 " << n << "\n";
     //step2.
     //merge anchors and extend regions that can be mapped towards the breakpoint 
     if (n == 0) //empty anchor
@@ -2453,31 +2457,38 @@ if (t == 3)
     return 0;
 
 }
- int c_clip_extend_right(uint64_t & ex_d, // results
+
+int c_clip_extend_right(uint64_t & ex_d, // results
                     String<uint64_t> & hashs, 
                     String<uint64_t> & anchors,
-                    IterStrD5 it_str1, 
-                    IterStrD5 it_end1, 
-                    IterStrD5 it_str2, 
-                    IterStrD5 it_end2, 
+                    String<Dna5> & seq1, 
+                    String<Dna5> & seq2, 
+                    uint64_t extend_str,
+                    uint64_t extend_end,
                     int thd_min_scan_delta,
                     int thd_error_level,
                     int thd_gap_shape,
                     int thd_merge_anchor,
-                    int thd_merge_drop)
+                    int thd_drop)
 {
+    Iterator<String<Dna5> >::Type it_str1 = begin(seq1) + get_cord_x(extend_str);
+    Iterator<String<Dna5> >::Type it_end1 = begin(seq1) + get_cord_x(extend_end);
+    Iterator<String<Dna5> >::Type it_str2 = begin(seq2) + get_cord_y(extend_str);
+    Iterator<String<Dna5> >::Type it_end2 = begin(seq2) + get_cord_y(extend_end);
     int hs_len1 = it_end1 - it_str1;
     int hs_len2 = it_end2 - it_str2;
-    if (length(hashs) < hs_len1)
-    {
-        return 1;
-    }    
-    if (hs_len1 < c_shape_len3 || hs_len2 < c_shape_len3)
+    if (length(hashs) < hs_len1 ||
+        hs_len1 < c_shape_len3  || 
+        hs_len2 < c_shape_len3)
     {
         return 1;
     }
+    int thd_init_chain_da = 10; 
+    int thd_init_chain_i_num = 6;    
     String<short> tzs; //trailing zero of each pattern
     String<short> lzs; //leading zeor of each pattern
+    String<short> chain_x;
+    String<short> chain_y;
     LShape shape(c_shape_len3);
     resize(tzs, (hs_len1 >> (thd_error_level - 1)) + 1);
     resize(lzs, (hs_len1 >> (thd_error_level - 1)) + 1);
@@ -2489,11 +2500,9 @@ if (t == 3)
     int i_str = 0;    
     int i_end = it_end2 - it_str2;
     int n = 0;
-    //step 1. 
-    //stream gap pattens along two seqs and collect anchor
+    int k_str = 0;
+    float drop_count = 0;
     hashInit_hs(shape, it_str2);
-    String<Dna5> couts;
-    resize(couts, 4);
     for (uint64_t i = i_str; i < i_end; i++) //scan the read
     {
         uint64_t hash_read = hashNext_hs(shape, it_str2 + i);  
@@ -2505,148 +2514,73 @@ if (t == 3)
         tzs[0] = ctzb_4_(dhash);
         lzs[0] = clzb_4_(dhash);
         int m = 1;
+        bool f_extend = false; 
         for (uint64_t j = j_str + 1; j < j_end; j++) //scan the genome
         {
             dhash = hash_read ^ hashs[j];
             tzs[m] = ctzb_4_(dhash);
             lzs[m] = clzb_4_(dhash);
+         std::cout << "ccle2 " << j << " " << i << " " << j_str << " " << j_end << "\n";
             if (c_isGapMatch_2anchor_(anchors[n], j, i, dhash, tzs[m - 1], tzs[m], lzs[m - 1], lzs[m], c_shape_len3))
             {
+                short xn = j;
+                short yn = i;
+                bool f_first = true;
+                std::cout << "ccle1xxxxxxx" << j << " " << i << " " << k_str << " " << length(chain_y) << "\n";
+                if (i < thd_init_chain_i_num)
+                {
+                    if (std::abs(yn - xn) < thd_init_chain_da)
+                    {
+                        appendValue(chain_x, xn);
+                        appendValue(chain_y, yn);
+                        f_extend = true;
+                    }
+                }
+                else 
+                {
+                    for (int k = k_str; k < length(chain_y); k++)
+                    {
+                        short dx = xn - chain_x[k];
+                        short dy = yn - chain_x[k];
+                        short da = dx - dy;
+                        if (dy <= c_shape_len3 && f_first) 
+                        {
+                            k_str = k;
+                            f_first = 0;
+                        }
+                        if (da < 3 && da > -1) 
+                        {
+                            appendValue(chain_x, xn);
+                            appendValue(chain_y, yn);
+                            f_extend = true;
+                            break;
+                        }
+                    }
+
+                }
                 n++;
             }
             m++;
         }
-    }
-    //step2.
-    //merge anchors and extend regions that can be mapped towards the breakpoint 
-    if (n == 0) //empty anchor
-    {
-        return 0; 
-    }
-    String <short> pre_x, tmp_x;
-    String <short> pre_y, tmp_y;
-    String <int> its;
-    resize (pre_x, length(tzs)); //extend kmer coordinates x
-    resize (pre_y, length(tzs));
-    resize (tmp_x, length(tzs)); //temporarily store coordinates x
-    resize (tmp_y, length(tzs));
-    resize (its, n);
-    pre_x[0] = 0; //directio
-    pre_y[0] = 0; //direction
-    int pre_len = 1;
-    int tmp_n = 0;
-    int flag = 1;
-    int itsk = 0;
-    int itsEnd = 0;
-    int drop_count = 0;
-    uint64_t pre_anchor = ~0;
-    uint64_t next_y; //coordinate y of the next pattern expected to be appeared
-    next_y = c_shape_len3; //direction
-    for (int i = 0; i < n; i++)
-    {
-        //skip kmer within the range of c_shape_len3 if the previouse has been mergerd.
-        if (flag) // decide the next range to scan
+        if (!f_extend)
         {
-            if (g_hs_anchor_getY(anchors[i] ^ pre_anchor))
-            {//record the first i of each block in which anchor has the same y
-                its[itsk] = i; 
-                int dy = g_hs_anchor_getY(anchors[i]) - pre_y[0]; //direction
-                //direction
-                if (g_hs_anchor_getY(anchors[i]) > next_y)//find the last anchor 
-                {                                         //within the range 
-                    itsEnd = itsk--;                 
-                    if (itsk < 0)
-                    {
-                        drop_count += dy;
-                        if (drop_count >= thd_merge_drop)
-                        {
-                            break;
-                        }
-                        itsk = 0;
-                        next_y += c_shape_len3; //direction::
-                    }
-                    else 
-                    {
-                        i = its[itsk] - 1; //direction
-                        flag = 0;
-                        tmp_n = 0;
-                    }
-                }
-                else if (dy + drop_count - (int)c_shape_len3 < thd_merge_drop)
-                {
-                    itsk++;
-                }
-                pre_anchor = anchors[i];
-            }
-        }
-        else // scan blocks in the range.
-        {
-            //!!TODO::itsk + 1 may seg fault
-            if (i == its[itsk + 1])//reach end of current block
+            if (++drop_count > thd_drop)
             {
-                if (tmp_n > 0)          //there exists new merges
+                if (!empty(chain_x))
                 {
-                    for (int j = 0; j < tmp_n; j++)
-                    {
-                        pre_x[j] = tmp_x[j];
-                        pre_y[j] = tmp_y[j];
-                    }
-                    pre_len = tmp_n;
-                    tmp_n = 0;
-                    flag = 1;
-                    drop_count = std::max(0, --drop_count);
-                    i = its[itsEnd] - 1; //direction
-                    pre_anchor = anchors[i];
-                    itsk = 0;
+                    return (back(chain_x) << 32) + back(chain_y);
                 }
-                else 
+                else
                 {
-                    if (itsk < 1 ) //if it's the last block of the current range
-                    {
-                        drop_count += c_shape_len3;
-                        if (drop_count >= thd_merge_drop) //large gap to clip
-                        {
-                            break; 
-                        }
-                        else
-                        {
-                            i = its[itsEnd] - 1; //direction
-                            next_y += c_shape_len3; //direction
-                            flag = 1;
-                        }
-                    } 
-                    else
-                    {
-                        itsk--;
-                        i = its[itsk] - 1; //direction
-                    }
-                    tmp_n = 0;
-                }
-            }            
-            else
-            {
-                short x = short(g_hs_anchor_getX(anchors[i]));
-                short y = short(g_hs_anchor_getY(anchors[i]));
-                for (int j = 0; j < pre_len; j++)
-                {
-                    short delta_x = x - pre_x[j]; //direction
-                    short delta_y = y - pre_y[j]; //direction
-                    if (std::abs(delta_x - delta_y) < 3 && delta_x - delta_y >= -1)
-                    {
-
-                        tmp_x[tmp_n] = x;
-                        tmp_y[tmp_n] = y;
-                        next_y = y + c_shape_len3;
-                        tmp_n++;
-                        break;
-                    }
+                    return 0;
                 }
             }
         }
+        else
+        {
+            drop_count = std::max (drop_count - 0.5, 0.0);
+        }
     }
-    //Median number of pre_x. pre_y values are equal
-    ex_d = (uint64_t(pre_x[pre_len / 2]) << 32) + pre_y[0];
-    //std::cout << (ex_d >> 32) << "\n";
     return 0;
 
 }
@@ -2654,10 +2588,10 @@ if (t == 3)
 
                     String<uint64_t> & hashs, 
                     String<uint64_t> & anchors,
-                    IterStrD5 it_str1, 
-                    IterStrD5 it_end1, 
-                    IterStrD5 it_str2, 
-                    IterStrD5 it_end2, 
+                    String<Dna5> & seq1,
+                    String<Dna5> & seq2,
+                    uint64_t extend_str,
+                    uint64_t extend_end,
                     int thd_min_scan_delta,
                     int thd_error_level,
                     int thd_gap_shape,
@@ -2668,6 +2602,7 @@ if (t == 3)
     )
 {
     std::cout << "ce_1 " << clip_direction << "\n";
+    /*
     if (clip_direction < 0)
     {
         c_clip_extend_left(ex_d,
@@ -2686,20 +2621,22 @@ if (t == 3)
     }
     else if (clip_direction > 0)
     {
+        */
         c_clip_extend_right(ex_d,
                 hashs, 
                 anchors,
-                it_str1, 
-                it_end1, 
-                it_str2, 
-                it_end2, 
+                seq1,
+                seq2,
+                extend_str,
+                extend_end,
                 thd_min_scan_delta,
                 thd_error_level,
                 thd_gap_shape,
                 thd_merge_anchor,
                 thd_merge_drop
     ); 
-    }
+    //}
+    
 }
 
 struct ParmClipExtend
@@ -2797,16 +2734,29 @@ int64_t c_clip_(String<Dna5> & genome,
     uint64_t dx = (g_anchor_val >> 32);
     uint64_t dy = (g_anchor_val & ((1ULL << 32) - 1));
     uint64_t clip = create_cord(genomeId, gs_str + dx, gr_str + dy, gr_strand);
-
+    /*
+    uint64_t breakpoint;
+    if (clip_direction < 0)
+    {
+        extend_str = shift_cord (clip_end, -dx, -dy);
+        extend_end 
+    }
+    else if (clip_direction > 0)
+    {
+        breakpoint = shift_cord (clip_str, dx, dy);
+    }
+    */
     int extend_window = 100;
     int band_gap = 5; 
     int thd_gap_shape = 5;
     int thd_merge_anchor = 5;
     int thd_merge_drop = 6;
-    Iterator<String<Dna5> >::Type itEnd_genome = begin(seq1) + gs_str + dx;
-    Iterator<String<Dna5> >::Type itBegin_genome = itEnd_genome - extend_window;
-    Iterator<String<Dna5> >::Type itEnd_read = begin(seq2) + gr_str + dy;
-    Iterator<String<Dna5> >::Type itBegin_read = itEnd_read - extend_window;
+    uint64_t extend_str;
+    uint64_t extend_end;
+    if (clip_direction < 0)
+    {
+        
+    }
     int error_level = 3; // >>3 == * 0.125
     int min_scan_delta = 3;  //at least scan 5 elements in the genome for each kmer in the read
     uint64_t ex_d = 0;
