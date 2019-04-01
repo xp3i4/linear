@@ -514,6 +514,10 @@ inline uint64_t get_tile_y (uint64_t val)
 {
     return get_cord_y(val);
 }
+inline uint64_t get_tile_id(uint64_t val)
+{
+    return get_cord_id(val);
+}
 /**
  * debug utils
  */
@@ -1673,12 +1677,12 @@ const unsigned c_shape_len3 = 4; //base-level clipping gap shape
  * stream seq creating hs
  */
  int c_stream_(String<Dna5> & seq,
-                     String<uint64_t> & g_hs, 
-                     uint64_t start, 
-                     uint64_t end, 
-                     int g_hs_start, 
-                     int step,  
-                     uint64_t type)
+               String<uint64_t> & g_hs, 
+               uint64_t start, 
+               uint64_t end, 
+               int g_hs_start, 
+               int step,  
+               uint64_t type)
 {
     LShape shape(c_shape_len);
     hashInit_hs(shape, begin(seq) + start);
@@ -1694,7 +1698,7 @@ const unsigned c_shape_len3 = 4; //base-level clipping gap shape
             //TODO: k - getT(shape)
             //std::cout << "[]::val " << std::bitset<64>(val) << "\n";
             g_hs_setGhs_(g_hs[g_hs_start + i++], val, type, 0, k);
-            //std::cout << "[]::c_stream_ " << k << " " << start << " " << k - start<< "\n";
+            std::cout << "[]::c_stream_ " << k << " " << start << " " << k - start<< "\n";
             count = 0;
         }
     }
@@ -1744,14 +1748,13 @@ int const clzb_4_index_[8] = {0, 0, 3, 1, 3, 2, 2, 1}; // de brujin sequence tab
                                    int p2, 
                                    int k, 
                                    int g_anchor_end,
-                                   int band_level,  //dx >> band_level 
-                                   int band_lower,  //band lower bound
+                                   int thd_band_level,  //dx >> band_level 
+                                   int thd_band_lower,  //band lower bound
                                    int64_t anchor_x,
                                    int64_t anchor_y,
                                    int64_t x_lower = 0, //lower bound 
                                    int64_t x_upper = 0) 
 {
-    int64_t anchor = anchor_x - anchor_y;
     int64_t dx_lower, dx_upper;
     if (x_lower == 0 && x_upper == 0)
     {
@@ -1771,11 +1774,11 @@ int const clzb_4_index_[8] = {0, 0, 3, 1, 3, 2, 2, 1}; // de brujin sequence tab
         {
             int dy = g_hs_getCord(g_hs[j]) - anchor_y;
             int d_anchor = std::abs(dx - dy);
-            if (d_anchor <= std::max(std::abs(dx) >> band_level, band_lower) && dx < dx_upper && dx > dx_lower)
-            //if ( dx < dx_upper && dx > dx_lower)
+            if (d_anchor <= std::max(std::abs(dx) >> thd_band_level, thd_band_lower) 
+                && dx < dx_upper && dx > dx_lower)
             {
-                //std::cout << "[]::c_create_anchors_ " << anchor_x << " " << anchor_y << " " << dx << " " << dy << " " << d_anchor << " |dx| >> band_level " << (std::abs(dx) >> band_level) << " " << band_level << " " << band_lower<< "\n";
                 c_2Anchor_(g_anchor[g_anchor_end++], g_hs[i], g_hs[j]);
+                std::cout << "[]::ccas_ " << g_anchor_end << " " << anchor_x << " " << anchor_y << " " << dx << " " <<  d_anchor << " |dx| band_level " <<  dx_upper << " " << dx_lower << " " << g_hs_anchor_getY(g_anchor[g_anchor_end - 1]) <<"\n";
             }
         }   
     }
@@ -1805,7 +1808,13 @@ int const clzb_4_index_[8] = {0, 0, 3, 1, 3, 2, 2, 1}; // de brujin sequence tab
                 p2 = k;
                 break;
             default:
-                g_anchor_end = c_create_anchor_block_(g_hs, g_anchor, p1, p2, k, g_anchor_end, band_level, band_lower, anchor_x, anchor_y, x_lower, x_upper);
+                g_anchor_end = c_create_anchor_block_(
+                    g_hs, g_anchor, 
+                    p1, p2, k, 
+                    g_anchor_end, 
+                    band_level, band_lower, 
+                    anchor_x, anchor_y, 
+                    x_lower, x_upper);
                 p1 = k;
                 p2 = k; 
         }
@@ -1844,6 +1853,10 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
                          int thd_clip_sc = c_sc_(27, 30)
                         )
 {
+    if (anchor_end < 1)
+    {
+        return 0;
+    }
     int direction = (clip_direction < 0) ? -1 : 1;
     int it = 0;
     int bit1 = 20;
@@ -1853,10 +1866,18 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
     anchor[anchor_end] = ~0;
     std::sort (begin(anchor), begin(anchor) + anchor_end);
     int i_str = 0;
-    for (int i = 0; i < anchor_end + 1; i++)
+    //<<debug
+    if (direction == 1)
+    std::cout << "cca5\n";
+        //>>debug
+    for (int i = 0; i < anchor_end - 1; i++)
     {
-        if (g_hs_anchor_getY(anchor[i + 1] - anchor[i]) == 0 &&
-            g_anchor_da_(anchor[i], anchor[i + 1] == 1))
+        //<<debug
+        if (direction == 1)
+        std::cout << "cca5 " << i << " " << ct_conts << "\n";
+    //>>debug
+        if (g_hs_anchor_getY(anchor[i + 1] - anchor[i]) == 1 &&
+            g_anchor_da_(anchor[i], anchor[i + 1]) == 0)
         {
             ct_conts++;
         }
@@ -1870,7 +1891,15 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
             //collect continuos patterns (no gaps)
         }
     }
-    if (it <= 1)
+    i_str = anchor_end - 1 - ct_conts;
+    uint64_t x = g_hs_anchor_getX(anchor[i_str]) - gs_start;
+    uint64_t y = g_hs_anchor_getY(anchor[i_str]) - gr_start;
+    anchor[it++] = (x << bit2) + ((ct_conts + 1) << g_hs_anchor_bit1) + y;
+    //<<debug
+    if (direction == 1)
+    std::cout << "cca2 " << it << " " << direction << "\n";
+        //>>debug
+    if (it < 1)
     {
         return 0;
     }
@@ -1884,14 +1913,15 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
     if (direction < 0)
     {
         std::sort(begin(anchor), begin(anchor) + it);
-        for (int i = 0; i < it - 1; i++) //extend anchor[i]
+        for (int i = 0; i < it; i++) //extend anchor[i]
         {
             y1 = g_hs_anchor_getY(anchor[i]);
             x1 = (anchor[i] >> bit2) & mask;
             x1_end = x1 + ((anchor[i] >> bit1) & mask) + shape_len - 1;
-            int score = 0;
+            std::cout << "cca3 " << i << " " << y1 << " " << x1 - y1 << "\n";
+            int score = c_sc_(x1_end - x1, x1_end - x1);
             int dj = 0;
-            for (int j = i + 1; j < it - 1; j++) 
+            for (int j = i + 1; j < it; j++) 
             {
                 //#anchor will be shrinked(overwrite anchor[j]) 
                 //if anchor[j] can be merged to the
@@ -1906,7 +1936,7 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
                     x2 - x1 < thd_merge2 && 
                     x1 < x2)
                 {
-                    score += c_sc_(x1_end - x1, x2 - x1);
+                    score += c_sc_(x2_end - x2, x2_end - x1_end);
                     y1 = y2;
                     x1 = x2; 
                     x1_end = x2_end;
@@ -1917,7 +1947,6 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
                     anchor[j - dj] = anchor[j];
                 }
             }
-            score += c_sc_(x2_end - x2, x2_end - x2);
             if (score > thd_clip_sc)
             {
                 int64_t rslt_x = (anchor[i] >> bit2) & mask; 
@@ -1929,16 +1958,17 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
     }
     else if (direction > 0)
     {
+        std::cout << "cca1 it" << it << "\n";
         std::sort(begin(anchor), begin(anchor) + it, std::greater<uint64_t>());
-        int i_end = 0;
-        for (int i = 0; i < it - 1; ++i)
+        for (int i = 0; i < it; ++i)
         {
             y1 = g_hs_anchor_getY(anchor[i]);
             x1 = (anchor[i] >> bit2) & mask;
             x1_end = x1 + ((anchor[i] >> bit1) & mask) + shape_len - 1;
-            int score = 0;
+            std::cout << "cca1 " << y1 << " " << x1_end - x1 << "\n";
+            int score = c_sc_(x1_end - x1, x1_end - x1);
             int dj = 0;
-            for (int j = i; j < it - 1; ++j)
+            for (int j = i; j < it; ++j)
             {
                 y2 = g_hs_anchor_getY(anchor[j]);
                 x2 = (anchor[j] >> bit2) & mask;
@@ -1950,7 +1980,8 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
                     x1 - x2_end < thd_merge2 && 
                     x1 > x2)
                 {
-                    score += c_sc_(x1_end - x1, x1_end - x2_end);
+                    std::cout << "cca1 merge " << dj << "\n";
+                    score += c_sc_(x2_end - x2, x2_end - x1_end);
                     x1 = x2; 
                     y1 = y2;
                     x1_end = x2_end;
@@ -1961,7 +1992,7 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
                     anchor[j - dj] = anchor[j];
                 }
             }
-            score += c_sc_(x2_end - x2, x2_end - x2);
+            std::cout << "cca1 y " << y1 << " " << score << " " << thd_clip_sc << "\n";
             if (score > thd_clip_sc)
             {
                 int64_t rslt_x = (anchor[i] >> bit2) & mask;
@@ -2688,24 +2719,29 @@ struct ParmClipExtend
 int64_t c_clip_(String<Dna5> & genome,  
             String<Dna5> & read,
             String<Dna5> & comstr,    //complement revers of read
-            uint64_t gs_start, 
-            uint64_t gs_end, 
-            uint64_t gr_start,
-            uint64_t gr_end,
-            uint64_t gr_strand,
-            uint64_t genomeId,
+            uint64_t clip_str,
+            uint64_t clip_end,
             String<uint64_t> & g_hs,
             String<uint64_t> & g_anchor,
-            int band,
+            float thd_band_ratio,
             int clip_direction = 1
         )
 {
+    uint64_t gs_str = get_tile_x(clip_str);
+    uint64_t gr_str = get_tile_y(clip_str);
+    uint64_t gs_end = get_tile_x(clip_end);
+    uint64_t gr_end = get_tile_y(clip_end);
+    uint64_t genomeId = get_tile_id (clip_str);
+    uint64_t gr_strand = get_tile_strand(clip_str);
+    std::cout << "cc1 " << gs_str << " " << gr_str << " " << gs_end << " " << gr_end << " " << genomeId << " " << gr_strand << " " << clip_direction << "\n";
     String<Dna5> & seq1 = genome;
     String<Dna5> * p = (gr_strand)?(&comstr):(&read);
     String<Dna5> & seq2 = *p;
+    int band = (gs_end - gs_str) * thd_band_ratio;
     ///clip scaffold
-    int g_hs_end = c_stream_(seq1, g_hs, gs_start, gs_end, 0, 1, 0);
-        g_hs_end = c_stream_(seq2, g_hs, gr_start, gr_end, g_hs_end, 1, 1);
+
+    int g_hs_end = c_stream_(seq1, g_hs, gs_str, gs_end, 0, 1, 0);
+        g_hs_end = c_stream_(seq2, g_hs, gr_str, gr_end, g_hs_end, 1, 1);
     std::sort (begin(g_hs), begin(g_hs) + g_hs_end);
     int band_level = 3; //>>3 = /8 = * 12.5% error rate 
     uint64_t g_anchor_end = c_create_anchors_(g_hs, 
@@ -2713,41 +2749,41 @@ int64_t c_clip_(String<Dna5> & genome,
                                               g_hs_end, 
                                               band_level, 
                                               band, 
-                                              gs_start, 
-                                              gr_start);
+                                              gs_str, 
+                                              gr_str);
     int thd_merge1 = 3;
     int thd_merge1_lower = 10;
     int thd_merge2 = 20;
     int thd_width = 10;
     uint64_t g_anchor_val = 0;
     g_anchor_val = c_clip_anchors_(g_anchor, 
-                                   gs_start, 
-                                   gr_start, 
+                                   gs_str, 
+                                   gr_str, 
                                    g_anchor_end, 
                                    c_shape_len, 
                                    thd_merge1, 
                                    thd_merge1_lower, 
                                    thd_merge2, 
-                                   -1);    
+                                   clip_direction);    
     
     ///clip breakpoints
     uint64_t dx = (g_anchor_val >> 32);
     uint64_t dy = (g_anchor_val & ((1ULL << 32) - 1));
-    uint64_t clip = create_cord(genomeId, gs_start + dx, gr_start + dy, gr_strand);
+    uint64_t clip = create_cord(genomeId, gs_str + dx, gr_str + dy, gr_strand);
 
     int extend_window = 100;
     int band_gap = 5; 
     int thd_gap_shape = 5;
     int thd_merge_anchor = 5;
     int thd_merge_drop = 6;
-    Iterator<String<Dna5> >::Type itEnd_genome = begin(seq1) + gs_start + dx;
+    Iterator<String<Dna5> >::Type itEnd_genome = begin(seq1) + gs_str + dx;
     Iterator<String<Dna5> >::Type itBegin_genome = itEnd_genome - extend_window;
-    Iterator<String<Dna5> >::Type itEnd_read = begin(seq2) + gr_start + dy;
+    Iterator<String<Dna5> >::Type itEnd_read = begin(seq2) + gr_str + dy;
     Iterator<String<Dna5> >::Type itBegin_read = itEnd_read - extend_window;
     int error_level = 3; // >>3 == * 0.125
     int min_scan_delta = 3;  //at least scan 5 elements in the genome for each kmer in the read
     uint64_t ex_d = 0;
-    std::cout << "c_clip_1 " << gs_start + dx << " "<< gr_start + dy << "\n";
+    std::cout << "cc2 " << gr_str << " " << gr_str + dy << "\n";
     c_clip_extend_(ex_d, 
                    g_hs,
                    g_anchor,
@@ -2764,8 +2800,8 @@ int64_t c_clip_(String<Dna5> & genome,
     int dyt = (ex_d & ((1ULL << 32) - 1));
     dx -= extend_window - (ex_d >> 32);
     dy -= extend_window -dyt; 
-    std::cout << "c_clip_2 " << gs_start + dx << " " << gr_start + dy << " " << length(read) << "\n";
-    clip = create_cord(genomeId, gs_start + dx, gr_start + dy, gr_strand); 
+    std::cout << "c_clip_2 " << gs_str + dx << " " << gr_str + dy << " " << length(read) << "\n";
+    clip = create_cord(genomeId, gs_str + dx, gr_str + dy, gr_strand); 
 
     return clip;
 }
@@ -2805,6 +2841,7 @@ int64_t c_clip_(String<Dna5> & genome,
     uint64_t r_end_flip = _flipCoord (r_end, length(seq2) - 1, main_strand);
     int block_size = window_size;
     int64_t thd_max_gap_size = 2 * block_size;
+    float thd_band_ratio = 0.5;
     if (main_strand)
     {
         std::swap (r_start_flip, r_end_flip);
@@ -2878,6 +2915,7 @@ int64_t c_clip_(String<Dna5> & genome,
     uint64_t delta;
     uint64_t clip_str, clip_end;
     int64_t shift;
+    int clip_direction;
     if (sv_exists)
     {
         for (unsigned i = 0; i < length(sv_flags) - 1; i++)
@@ -2887,7 +2925,7 @@ int64_t c_clip_(String<Dna5> & genome,
             uint64_t *p_clip;
             if ((sv_flags[i] & g_sv_r) && (sv_flags[i + 1] & g_sv_l)) 
             {
-                //TODO make the range to clip [clip_str, clip_end] more precise to avoid cover two well mapped segs such as  100M50Gaps100M
+                //TODO make the range to clip [clip_str, clip_end] more precise to avoid covering two well mapped segs such as  100M50Gaps100M
                 if (get_tile_strand(tile1) ^ main_strand) //tile2 towards left
                 {
                     g_cmpll.min(shift) << block_size / 2 
@@ -2899,7 +2937,7 @@ int64_t c_clip_(String<Dna5> & genome,
                                        << get_tile_x(tile2)
                                        << get_tile_y(tile2);
                     clip_str = shift_tile(tile2, -shift, -shift);
-                    std::cout << "c_clip_5_l " << shift << "\n";
+                    clip_direction = -1;
                 }
                 else //tile1 towards right
                 {
@@ -2912,25 +2950,12 @@ int64_t c_clip_(String<Dna5> & genome,
                                        << length(seq1) - 1 - get_tile_x(tile1) 
                                        << length(seq2) - 1 - get_tile_y(tile1);
                     clip_end = shift_tile(tile1, shift, shift);
-                    std::cout << "c_clip_5_r " << shift << " " << get 
+                    clip_direction = 1;
                 }
-                std::cout << "c_clip_44 " << get_tile_y(clip_str) << " " << get_tile_y(clip_end) << " " << get_tile_x(clip_str) << " " << get_tile_x(clip_end) << " " << get_tile_strand(clip_str) << " " << get_tile_strand(clip_end) << "\n";
-                cgend = _getSA_i2(_defaultTile.getX(tile2)) + block_size;
-                cgstart = std::min(_getSA_i2(_defaultTile.getX(tile1)), cgend - 2 * block_size);
-                delta = cgend - cgstart;
-                crend = _defaultTile.getY(tile2) + block_size;
-                crstart = crend - delta ;
-                if ((int64_t)(crstart) < 0)
-                {
-                    crstart = 0;
-                    delta= crend - crstart;
-                    cgstart = cgend - delta;
-                }
-                band = int(0.5 * delta );
-                crstrand = _defaultTile.getStrand(tile2);
-                std::cout << "gag3 " << i << " " << get_cord_y(tile1) << " " << crstart << " " << crend << " " << cgstart << " " << cgend << " " << main_strand << " " << get_cord_strand(tiles[i])<< "\n";
-                //int clip_direction = (main_strand ^ get_cord_strand(tile2)):
-                clip = c_clip_ (seq1, seq2, comstr, cgstart, cgend, crstart, crend, crstrand, genomeId, g_hs, g_hs_anchor, band, 1);   
+                std::cout << "gag44 " << get_tile_y(clip_str) << " " << get_tile_y(clip_end) << " " << get_tile_x(clip_str) << " " << get_tile_x(clip_end) << " " << get_tile_strand(clip_str) << " " << get_tile_strand(clip_end) << "\n";
+
+                thd_band_ratio = 0.5;
+                clip = c_clip_ (seq1, seq2, comstr, clip_str, clip_end, g_hs, g_hs_anchor, thd_band_ratio, clip_direction);   
                 appendValue (clips, clip);
             }
             if ((sv_flags[i] & g_sv_r) && !(sv_flags[i + 1] & g_sv_l))
