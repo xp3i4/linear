@@ -1897,7 +1897,8 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
                          int thd_merge1_lower,
                          int thd_merge2, //thd of x
                          int clip_direction,
-                         int thd_clip_sc = c_sc_(25, 30)
+                         int thd_clip_sc = c_sc_(25, 30),
+                         int thd_accept_score = c_sc_(c_shape_len + 3, (c_shape_len + 3) * 2)
                         )
 {
     std::cout << "cca_s\n";
@@ -2006,6 +2007,8 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
     }
     else if (direction > 0)
     {
+        int max_score = 0;
+        uint64_t max_anchor = 0;
         std::cout << "cca1 it....." << it << "\n";
         std::sort(begin(anchor), begin(anchor) + it, std::greater<uint64_t>());
         for (int i = 0; i < it; ++i)
@@ -2048,8 +2051,21 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
                 std::cout << "cca10 " << get_cord_y(gr_start) + rslt_y << " " << get_cord_x(gr_start) + rslt_x << "\n";
                 return (rslt_x << 32) + rslt_y;
             }
+            else if (score > max_score && score > thd_accept_score)
+            {
+                max_score = score;
+                max_anchor = anchor[i];
+                std::cout << "cca12 " << max_score << " " << thd_accept_score << "\n";
+            }
             it -= dj;
         } 
+        if (max_score > 0)
+        {
+            int64_t rslt_x = (max_anchor >> bit2) & mask;
+            int64_t rslt_y = (max_anchor & mask);
+            std::cout << "cca13 " << rslt_x << " " << rslt_y << "\n";
+            return (rslt_x << 32) + rslt_y;
+        }
     }
 
     std::cout << "cca11 " << get_cord_y(gr_start)  << " " << get_cord_x(gr_start) << "\n";
@@ -2597,7 +2613,7 @@ int c_clip_extend_right(uint64_t & ex_d, // results
     return 0;
 
 }
- int c_clip_extend_(uint64_t & ex_d, // results
+int c_clip_extend_(uint64_t & ex_d, // results
 
                     String<uint64_t> & hashs, 
                     String<uint64_t> & anchors,
