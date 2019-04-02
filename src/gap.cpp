@@ -2033,56 +2033,40 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
     return 0;
 }
 
- int c_isGapMatch_(int & x, int & it, uint64_t & dv, short& t1, short & t2, short & l1, short & l2, short k)
-{
-    if (dv == 0)
-    {
-        x = it;
-        return 1; // match 
-    }
-    if (t1 + l1 - k + 1 == 0)
-    {
-        x = it;
-        return 2; // mismatch 
-    }
-    if (t2 + l1 - k == 0 && t2 != k && l1 != k)
-    {
-        x = it;
-        return 3; // del
-    }
-    if (t1 + l2 - k + 1 == 0)
-    {
-        x = it - 1;
-        return 4;  //ins
-    }
-    return 0;
-}
 /**
 * kmer of t1 is left to t2
 */
- int c_isGapMatch_2anchor_(uint64_t & anchor, uint64_t & x, uint64_t & y, uint64_t & dv, short& t1, short & t2, short & l1, short & l2, short k)
-{
+ int c_isGapMatch_(uint64_t & dv, short& t1, short & t2, short & l1, short & l2, short k)
+ {
     if (dv == 0)  
     {
-        c_2GapAnchor_(anchor, x, y, 1ULL);
         return 1; // match
     }
     if (t1 + l1 - k + 1 == 0)
     {
-        c_2GapAnchor_(anchor, x, y, 2ULL);
         return 2; // mismatch
     }
     if (t2 + l1 - k == 0 && t2 != k && l1 != k)
     {
-        c_2GapAnchor_(anchor, x, y, 3ULL);
         return 3; //del 
     }
     if (t1 + l2 - k + 1 == 0)
     {
-        c_2GapAnchor_(anchor, x - 1, y, 4ULL);
         return 4;  //ins
     }
-    return 0;
+ }
+int c_isGapMatch_2anchor_(uint64_t & anchor, uint64_t & x, uint64_t & y, uint64_t & dv, short& t1, short & t2, short & l1, short & l2, short k)
+{
+    uint64_t type = c_isGapMatch_(dv, t1, t2, l1, l2, k);
+    if (type)
+    {
+        return type;
+    }
+    else
+    {
+        c_2GapAnchor_(anchor, x, y, 3ULL);
+        return type;
+    }
 }
 /**
  * Aborted
@@ -2465,74 +2449,70 @@ int c_clip_extend_right(uint64_t & ex_d, // results
                     String<Dna5> & seq2, 
                     uint64_t extend_str,
                     uint64_t extend_end,
-                    int thd_min_scan_delta,
+                    int thd_min_shift,
                     int thd_error_level,
                     int thd_gap_shape,
                     int thd_merge_anchor,
                     int thd_drop)
 {
-    Iterator<String<Dna5> >::Type it_str1 = begin(seq1) + get_cord_x(extend_str);
-    Iterator<String<Dna5> >::Type it_end1 = begin(seq1) + get_cord_x(extend_end);
-    Iterator<String<Dna5> >::Type it_str2 = begin(seq2) + get_cord_y(extend_str);
-    Iterator<String<Dna5> >::Type it_end2 = begin(seq2) + get_cord_y(extend_end);
-    int hs_len1 = it_end1 - it_str1;
-    int hs_len2 = it_end2 - it_str2;
+    std::cout << "ccre3 " << get_cord_y(extend_str) << " " << get_cord_y(extend_end) << "\n";
+    uint64_t hs_len1 = get_cord_x(extend_end - extend_str);
+    uint64_t hs_len2 = get_cord_y(extend_end - extend_str);
+    unsigned shape_len =c_shape_len3;
     if (length(hashs) < hs_len1 ||
-        hs_len1 < c_shape_len3  || 
-        hs_len2 < c_shape_len3)
+        hs_len1 < shape_len  || 
+        hs_len2 < shape_len)
     {
         return 1;
     }
     int thd_init_chain_da = 10; 
     int thd_init_chain_i_num = 6;    
+    int n = 0;
+    int k_str = 0;
+    float drop_count = 0;
     String<short> tzs; //trailing zero of each pattern
     String<short> lzs; //leading zeor of each pattern
     String<short> chain_x;
     String<short> chain_y;
-    LShape shape(c_shape_len3);
-    resize(tzs, (hs_len1 >> (thd_error_level - 1)) + 1);
-    resize(lzs, (hs_len1 >> (thd_error_level - 1)) + 1);
-    hashInit_hs(shape, it_str1);
-    for (int i = 0; i < it_end1 - it_str1 + 1; i++)
+    LShape shape(shape_len);
+    uint64_t it_str1 = get_cord_x(extend_str);
+    uint64_t it_end1 = get_cord_x(extend_end);
+    hashInit_hs(shape, begin(seq1) + it_str1);
+    for (int i = it_str1; i < it_end1; i++)
     {
-        hashs[i] = hashNext_hs(shape, it_str1 + i);
+        hashs[i] = hashNext_hs(shape, begin(seq1) + i);
     }   
-    int i_str = 0;    
-    int i_end = it_end2 - it_str2;
-    int n = 0;
-    int k_str = 0;
-    float drop_count = 0;
-    hashInit_hs(shape, it_str2);
-    for (uint64_t i = i_str; i < i_end; i++) //scan the read
+    uint64_t it_str2 = get_cord_y(extend_str);
+    uint64_t it_end2 = get_cord_y(extend_end);
+    hashInit_hs(shape, begin(seq2) + it_str2);
+    for (uint64_t i = it_str2; i < it_end2; i++) //scan the read sequence
     {
-        uint64_t hash_read = hashNext_hs(shape, it_str2 + i);  
-        int di = i - i_str; //direction
-        int dj_err = std::max(di >> thd_error_level, thd_min_scan_delta); //directon
-        int j_str = std::max(0, (int)i - dj_err); //direction
-        int j_end = std::min((int)i + dj_err, hs_len1);
-        uint64_t dhash = hash_read ^ hashs[j_str];
-        tzs[0] = ctzb_4_(dhash);
-        lzs[0] = clzb_4_(dhash);
-        int m = 1;
+        uint64_t hash_read = hashNext_hs(shape, begin(seq2) + i);  
+        uint64_t di = i - it_str2; //direction
+        uint64_t j_str = std::max(di - ddj, (uint64_t)0); //direction
+        uint64_t j_end = std::min(di + ddj, hs_len1);
         bool f_extend = false; 
-        for (uint64_t j = j_str + 1; j < j_end; j++) //scan the genome
+        clear(tzs);
+        clear(lzs);
+        for (uint64_t j = j_str; j < j_end; j++) //scan the genome hash table
         {
-            dhash = hash_read ^ hashs[j];
-            tzs[m] = ctzb_4_(dhash);
-            lzs[m] = clzb_4_(dhash);
-         std::cout << "ccle2 " << j << " " << i << " " << j_str << " " << j_end << "\n";
-            if (c_isGapMatch_2anchor_(anchors[n], j, i, dhash, tzs[m - 1], tzs[m], lzs[m - 1], lzs[m], c_shape_len3))
+            uint64_t dhash = hash_read ^ hashs[j];
+            appendValue(tzs, ctzb_4_(dhash));
+            appendValue(lzs, clzb_4_(dhash));
+         std::cout << "ccre2 " << j << " " << i << " " << j_str << " " << j_end << "\n";
+            short x = j;
+            short y = di;
+            int m = j - j_str - 1;
+            if (m > 0 && c_isGapMatch_(dhash, tzs[m], tzs[m + 1], lzs[m], lzs[m + 1], c_shape_len3))
             {
-                short xn = j;
-                short yn = i;
                 bool f_first = true;
-                std::cout << "ccle1xxxxxxx" << j << " " << i << " " << k_str << " " << length(chain_y) << "\n";
+                std::cout << "ccre1xxxxxxx" << j << " " << di << " " << k_str << " " << length(chain_y) << "\n";
                 if (i < thd_init_chain_i_num)
                 {
-                    if (std::abs(yn - xn) < thd_init_chain_da)
+                    if (std::abs(y - x) < thd_init_chain_da)
                     {
-                        appendValue(chain_x, xn);
-                        appendValue(chain_y, yn);
+                        appendValue(chain_x, x);
+                        appendValue(chain_y, y);
                         f_extend = true;
                     }
                 }
@@ -2540,27 +2520,25 @@ int c_clip_extend_right(uint64_t & ex_d, // results
                 {
                     for (int k = k_str; k < length(chain_y); k++)
                     {
-                        short dx = xn - chain_x[k];
-                        short dy = yn - chain_x[k];
+                        short dx = x - chain_x[k];
+                        short dy = y - chain_x[k];
                         short da = dx - dy;
-                        if (dy <= c_shape_len3 && f_first) 
+                        if (dy <= shape_len && f_first) 
                         {
                             k_str = k;
-                            f_first = 0;
+                            j_str = chain_x[k];
+                            f_first = false;
                         }
                         if (da < 3 && da > -1) 
                         {
-                            appendValue(chain_x, xn);
-                            appendValue(chain_y, yn);
+                            appendValue(chain_x, x);
+                            appendValue(chain_y, y);
                             f_extend = true;
                             break;
                         }
                     }
-
                 }
-                n++;
             }
-            m++;
         }
         if (!f_extend)
         {
@@ -2619,9 +2597,10 @@ int c_clip_extend_right(uint64_t & ex_d, // results
                 thd_merge_drop
         ); 
     }
-    else if (clip_direction > 0)
+    else 
+    */
+    if (clip_direction > 0)
     {
-        */
         c_clip_extend_right(ex_d,
                 hashs, 
                 anchors,
@@ -2635,7 +2614,7 @@ int c_clip_extend_right(uint64_t & ex_d, // results
                 thd_merge_anchor,
                 thd_merge_drop
     ); 
-    //}
+    }
     
 }
 
@@ -2656,10 +2635,10 @@ struct ParmClipExtend
  int c_clip_extend_(uint64_t & result_val, 
                     String<uint64_t> & hs, 
                     String<uint64_t> & anchors,
-                    IterStrD5 it_str1,  //genome
-                    IterStrD5 it_end1, 
-                    IterStrD5 it_str2,  //read
-                    IterStrD5 it_end2, 
+                    String<Dna5> & seq1,
+                    String<Dna5> & seq2,
+                    uint64_t extend_str,
+                    uint64_t extend_end,
                     ParmClipExtend & parm,
                     int clip_direction = -1 
     )
@@ -2667,10 +2646,10 @@ struct ParmClipExtend
     c_clip_extend_(result_val, 
                    hs, 
                    anchors,
-                   it_str1, 
-                   it_end1, 
-                   it_str2, 
-                   it_end2, 
+                   seq1,
+                   seq2,
+                   extend_str,
+                   extend_end,
                    parm.thd_min_scan_delta,
                    parm.thd_error_level,
                    parm.thd_gap_shape,
@@ -2734,18 +2713,7 @@ int64_t c_clip_(String<Dna5> & genome,
     uint64_t dx = (g_anchor_val >> 32);
     uint64_t dy = (g_anchor_val & ((1ULL << 32) - 1));
     uint64_t clip = create_cord(genomeId, gs_str + dx, gr_str + dy, gr_strand);
-    /*
-    uint64_t breakpoint;
-    if (clip_direction < 0)
-    {
-        extend_str = shift_cord (clip_end, -dx, -dy);
-        extend_end 
-    }
-    else if (clip_direction > 0)
-    {
-        breakpoint = shift_cord (clip_str, dx, dy);
-    }
-    */
+
     int extend_window = 100;
     int band_gap = 5; 
     int thd_gap_shape = 5;
@@ -2753,9 +2721,16 @@ int64_t c_clip_(String<Dna5> & genome,
     int thd_merge_drop = 6;
     uint64_t extend_str;
     uint64_t extend_end;
+    uint64_t breakpoint;
     if (clip_direction < 0)
     {
-        
+        extend_end = shift_cord (clip_str, dx, dy);
+        extend_str = shift_cord (extend_end, -extend_window, -extend_window);
+    }
+    else if (clip_direction > 0)
+    {
+        extend_str = shift_cord(clip_str, dx, dy);
+        extend_end = shift_cord(extend_str, extend_window, extend_window);
     }
     int error_level = 3; // >>3 == * 0.125
     int min_scan_delta = 3;  //at least scan 5 elements in the genome for each kmer in the read
@@ -2764,10 +2739,10 @@ int64_t c_clip_(String<Dna5> & genome,
     c_clip_extend_(ex_d, 
                    g_hs,
                    g_anchor,
-                   itBegin_genome,
-                   itEnd_genome,
-                   itBegin_read,
-                   itEnd_read,
+                   seq1,
+                   seq2,
+                   extend_str,
+                   extend_end,
                    min_scan_delta,
                    error_level,
                    thd_gap_shape,
