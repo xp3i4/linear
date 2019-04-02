@@ -1961,6 +1961,8 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
     int64_t x2_end = 0;
     if (direction < 0)
     {
+        int max_score = 0;
+        uint64_t max_anchor = 0;
         std::sort(begin(anchor), begin(anchor) + it);
         for (int i = 0; i < it; i++) //extend anchor[i]
         {
@@ -2002,7 +2004,19 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
                 int64_t rslt_y = (anchor[i] & mask);
                 return (rslt_x << 32) + rslt_y;
             }
+            else if (score > max_score && score > thd_accept_score)
+            {
+                max_score = score;
+                max_anchor = anchor[i];
+                std::cout << "cca12 " << max_score << " " << thd_accept_score << "\n";
+            }
             it -= dj;
+        }
+        if (max_score > 0)
+        {
+            int64_t rslt_x = (max_anchor >> bit2) & mask;
+            int64_t rslt_y = (max_anchor & mask);
+            return (rslt_x << 32) + rslt_y;
         } 
     }
     else if (direction > 0)
