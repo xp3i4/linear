@@ -32,8 +32,15 @@
 // Author: cxpan <chenxu.pan@fu-berlin.de>
 // ==========================================================================
 
-#include <csignal>
+#include <seqan/arg_parse.h>
+#include <iostream>
+#include <fstream>
+#include <ctime>
 #include "mapper.h"
+#include "pmpfinder.h"
+#include "chain_map.h"
+#include "gap.h"
+#include "align_interface.h"
 
 using namespace seqan; 
 
@@ -223,8 +230,7 @@ int g_test3(StringSet<String<Dna5> > & seqs)
  * map read
  * map gaps
  */
-template <typename TDna, typename TSpec>
-int g_test(Mapper<TDna, TSpec> & mapper)
+int g_test(Mapper & mapper)
 {
     double time = sysTime();
     std::cerr << "[]::g_test \n";
@@ -270,7 +276,7 @@ int main(int argc, char const ** argv)
     double t=sysTime();
     Mapper<> mapper(options);
     
-    g_test(mapper);
+    //g_test(mapper);
 
     std::cerr << "results saved to " << options.getOutputPath() << "\n";
     

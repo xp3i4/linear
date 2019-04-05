@@ -53,7 +53,8 @@ add_library(linear_align STATIC align_interface.cpp)
 
 add_executable (linear mapper.cpp mapper.h base.h index_util.h pmpfinder.h gap.h align_interface.h f_io.h) 
 target_link_libraries (linear ${SEQAN_LIBRARIES} linear_base linear_index_util linear_pmpfinder linear_gap linear_fio linear_align)
-
+add_executable (test_case test_case.cpp mapper.h base.h index_util.h pmpfinder.h gap.h align_interface.h f_io.h)
+target_link_libraries (test_case ${SEQAN_LIBRARIES} linear_base linear_index_util linear_pmpfinder linear_gap linear_fio linear_align)
 
 # Add CXX flags found by find_package (SeqAn).
 SET(GCC_COVERAGE_COMPILE_FLAGS "-fprofile-arcs -ftest-coverage")
