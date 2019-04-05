@@ -1419,7 +1419,6 @@ unsigned _get_tile_f_ (uint64_t const & tile,
     for (int k = 0; k < anchor_end + 1; k++)
     {
         //TODO: handle thd_min_segment, anchor 
-        std::cout << "gmas6 " << prek << " " << g_hs_anchor_getY(anchor[k]) << g_hs_anchor_getX(anchor[k]) << "\n";
         int64_t d = std::abs((int64_t)g_hs_anchor_getY(anchor[k]) - (int64_t)g_hs_anchor_getY(anchor[prek]));
         if (g_hs_anchor_getAnchor(anchor[k] - anchor[prek]) > 
             thd_err_rate * std::max(thd_min_segment, d))
@@ -1576,8 +1575,6 @@ unsigned _get_tile_f_ (uint64_t const & tile,
             i += extendPatch(f1, f2, tiles, i, tiles[i - 1], tiles[i], revscomp_const, thd_overlap_size, thd_gap_size);   
         }
     }
-    g_print_tiles_(tiles, "gmas33");
-    std::cout << "gmas_end\n";
     return 0;
 }
 /**
@@ -1634,7 +1631,6 @@ unsigned _get_tile_f_ (uint64_t const & tile,
         gr_end = rvcp_const - gr_end;
         std::swap (gr_end, gr_str);
     }
-    std::cout << "gmh " << get_cord_strand(cord_str) << " " << get_cord_y(cord_str) << "\n";
     g_hs_end = g_mapHs_kmer_(seq1, g_hs, gs_str, gs_end, g_hs_end, 10, 0);
     g_hs_end = g_mapHs_kmer_(seq2, g_hs, gr_str, gr_end, g_hs_end, 1, 1);
 
@@ -1704,7 +1700,6 @@ const unsigned c_shape_len3 = 4; //base-level clipping gap shape
             //TODO: k - getT(shape)
             //std::cout << "[]::val " << std::bitset<64>(val) << "\n";
             g_hs_setGhs_(g_hs[g_hs_start + i++], val, type, 0, k);
-            std::cout << "[]::c_stream_ " << k << " " << start << " " << k - start<< "\n";
             count = 0;
         }
     }
@@ -1784,7 +1779,6 @@ int const clzb_4_index_[8] = {0, 0, 3, 1, 3, 2, 2, 1}; // de brujin sequence tab
                 && dx < dx_upper && dx > dx_lower)
             {
                 c_2Anchor_(g_anchor[g_anchor_end++], g_hs[i], g_hs[j]);
-                std::cout << "[]::ccas_ " << g_anchor_end << " " << anchor_x << " " << anchor_y << " " << dx << " " <<  d_anchor << " |dx| band_level " <<  dx_upper << " " << dx_lower << " " << g_hs_anchor_getY(g_anchor[g_anchor_end - 1]) <<"\n";
             }
         }   
     }
@@ -1858,7 +1852,6 @@ inline int64_t c_sc_(int val1, int val2,
     }
     if (rate > thd_err1 && val1 > thd_min_len)
     {
-        std::cout << "cs1 " << thd_err1 << " " << val2 << " " << val1  << " " << rate << "\n";
         return val1 << 2; 
     }
     else if (rate > thd_err2 && val1 > thd_min_len)
@@ -1888,7 +1881,6 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
                          int thd_accept_score = c_sc_(c_shape_len + 3, (c_shape_len + 3) * 2)
                         )
 {
-    std::cout << "cca_s\n";
     if (anchor_end < 1)
     {
         return 0;
@@ -1902,16 +1894,8 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
     anchor[anchor_end] = ~0;
     std::sort (begin(anchor), begin(anchor) + anchor_end);
     int i_str = 0;
-    //<<debug
-    if (direction == 1)
-    std::cout << "cca5\n";
-        //>>debug
     for (int i = 0; i < anchor_end - 1; i++)
     {
-        //<<debug
-        if (direction == 1)
-        std::cout << "cca5 " << i << " " << ct_conts << "\n";
-    //>>debug
         if (g_hs_anchor_getY(anchor[i + 1] - anchor[i]) == 1 &&
             g_anchor_da_(anchor[i], anchor[i + 1]) == 0)
         {
@@ -1931,10 +1915,7 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
     uint64_t x = g_hs_anchor_getX(anchor[i_str]) - gs_start;
     uint64_t y = g_hs_anchor_getY(anchor[i_str]) - gr_start;
     anchor[it++] = (x << bit2) + ((ct_conts + 1) << g_hs_anchor_bit1) + y;
-    //<<debug
-    if (direction == 1)
-    std::cout << "cca2 " << it << " " << direction << "\n";
-        //>>debug
+
     if (it < 1)
     {
         return 0;
@@ -1956,7 +1937,6 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
             y1 = g_hs_anchor_getY(anchor[i]);
             x1 = (anchor[i] >> bit2) & mask;
             x1_end = x1 + ((anchor[i] >> bit1) & mask) + shape_len - 1;
-            std::cout << "cca3 " << i << " " << y1 << " " << x1 - y1 << "\n";
             int score = c_sc_(x1_end - x1, x1_end - x1);
             int dj = 0;
             for (int j = i + 1; j < it; j++) 
@@ -1995,7 +1975,6 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
             {
                 max_score = score;
                 max_anchor = anchor[i];
-                std::cout << "cca12 " << max_score << " " << thd_accept_score << "\n";
             }
             it -= dj;
         }
@@ -2010,14 +1989,12 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
     {
         int max_score = 0;
         uint64_t max_anchor = 0;
-        std::cout << "cca1 it....." << it << "\n";
         std::sort(begin(anchor), begin(anchor) + it, std::greater<uint64_t>());
         for (int i = 0; i < it; ++i)
         {
             y1 = g_hs_anchor_getY(anchor[i]);
             x1 = (anchor[i] >> bit2) & mask;
             x1_end = x1 + ((anchor[i] >> bit1) & mask) + shape_len - 1;
-            std::cout << "cca1 " << y1 << " " << x1_end - x1 << "\n";
             int score = c_sc_(x1_end - x1, x1_end - x1);
             int dj = 0;
             for (int j = i; j < it; ++j)
@@ -2032,7 +2009,6 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
                     x1 - x2_end < thd_merge2 && 
                     x1 > x2)
                 {
-                    std::cout << "cca1 merge " << dj << " " << x1 << " " << y1<< "\n";
                     score += c_sc_(x2_end - x2, x2_end - x1_end);
                     x1 = x2; 
                     y1 = y2;
@@ -2044,19 +2020,16 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
                     anchor[j - dj] = anchor[j];
                 }
             }
-            std::cout << "cca1 y " << y1 << " score= " << score << " " << thd_clip_sc << "\n";
             if (score > thd_clip_sc)
             {
                 int64_t rslt_x = (anchor[i] >> bit2) & mask;
                 int64_t rslt_y = (anchor[i] & mask);
-                std::cout << "cca10 " << get_cord_y(gr_start) + rslt_y << " " << get_cord_x(gr_start) + rslt_x << "\n";
                 return (rslt_x << 32) + rslt_y;
             }
             else if (score > max_score && score > thd_accept_score)
             {
                 max_score = score;
                 max_anchor = anchor[i];
-                std::cout << "cca12 " << max_score << " " << thd_accept_score << "\n";
             }
             it -= dj;
         } 
@@ -2064,12 +2037,10 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
         {
             int64_t rslt_x = (max_anchor >> bit2) & mask;
             int64_t rslt_y = (max_anchor & mask);
-            std::cout << "cca13 " << rslt_x << " " << rslt_y << "\n";
             return (rslt_x << 32) + rslt_y;
         }
     }
 
-    std::cout << "cca11 " << get_cord_y(gr_start)  << " " << get_cord_x(gr_start) << "\n";
     return 0;
 }
 
@@ -2292,11 +2263,9 @@ int c_clip_extend_(uint64_t & ex_d, // results
     //extend_str = shift_cord(extend_str, 0, 10);
     //extend_end = shift_cord(extend_end, 0, 10);
     //>>debug
-    std::cout << "ccre3 " << get_cord_y(extend_str) << " " << get_cord_y(extend_end) <<" " << get_cord_x(extend_str) << " " << get_cord_x(extend_end) << "\n";    
     int thd_init_chain_da = 10; 
     int thd_init_chain_num = 6;    
     int thd_init_scan_radius = 20;
-    std::cout << "ccre7 " <<infix(seq1, get_cord_x(extend_str), get_cord_x(extend_end)) << " " << infix(seq2, get_cord_y(extend_str), get_cord_y(extend_end)) << "\n";
     uint64_t hs_len1 = get_cord_x(extend_end - extend_str);
     uint64_t hs_len2 = get_cord_y(extend_end - extend_str);
     unsigned shape_len =c_shape_len3;
@@ -2337,7 +2306,6 @@ int c_clip_extend_(uint64_t & ex_d, // results
             int64_t dj = thd_scan_radius << 1;
             g_cmpll.min(j_end, i + di) << int64_t(chain_x[k_str]) << int64_t(hs_len2);
             g_cmpll.max(j_str, i - di) >> int64_t(j_end - dj) >> 0 ;
-            std::cout << "ccre4 " << i << " " << " " << chain_x[k_str] << " " << j_str << " " << j_end << " " << drop_count << " " << "\n";
             for (int64_t j = j_str; j < j_end; j++) //scan the genome
             {
                 uint64_t dhash = hash_read ^ hashs[j];
@@ -2348,7 +2316,6 @@ int c_clip_extend_(uint64_t & ex_d, // results
                 int m = j - j_str - 1;
                 if (m > 0 && c_isGapMatch_(dhash, tzs[m], tzs[m + 1], lzs[m], lzs[m + 1], c_shape_len3))
                 {
-                    std::cout << "ccre2...... " << j << " " << i << " " << j_str << " " << j_end << " " << k_str << " " << length(chain_y)<< "\n";
                     bool f_first = true;
                     if (hs_len2 - 1 - i < thd_init_chain_num)
                     {
@@ -2388,7 +2355,6 @@ int c_clip_extend_(uint64_t & ex_d, // results
                 {
                     if (!empty(chain_x))
                     {
-                        std::cout << "ccre6 " << get_cord_y(extend_str) + back(chain_y) << "\n";
                         return (back(chain_x) << 32) + back(chain_y);
                     }
                     else
@@ -2416,7 +2382,6 @@ int c_clip_extend_(uint64_t & ex_d, // results
             int64_t dj = thd_scan_radius << 1;
             g_cmpll.max(j_str, i - di) >> int64_t(chain_x[k_str]) >> 0 ;
             g_cmpll.min(j_end, i + di) << int64_t(j_str + dj) << int64_t(hs_len2);
-            std::cout << "ccre4 " << i << " " << " " << chain_x[k_str] << " " << j_str << " " << j_end << " " << drop_count << " " << "\n";
             for (int64_t j = j_str; j < j_end; j++) //scan the genome
             {
                 uint64_t dhash = hash_read ^ hashs[j];
@@ -2427,7 +2392,6 @@ int c_clip_extend_(uint64_t & ex_d, // results
                 int m = j - j_str - 1;
                 if (m > 0 && c_isGapMatch_(dhash, tzs[m], tzs[m + 1], lzs[m], lzs[m + 1], c_shape_len3))
                 {
-                    std::cout << "ccre2...... " << j << " " << i << " " << j_str << " " << j_end << " " << k_str << " " << length(chain_y)<< "\n";
                     bool f_first = true;
                     if (i < thd_init_chain_num)
                     {
@@ -2467,7 +2431,6 @@ int c_clip_extend_(uint64_t & ex_d, // results
                 {
                     if (!empty(chain_x))
                     {
-                        std::cout << "ccre6 " << get_cord_y(extend_str) + back(chain_y) << "\n";
                         return (back(chain_x) << 32) + back(chain_y);
                     }
                     else
@@ -2542,7 +2505,6 @@ int64_t c_clip_(String<Dna5> & genome,
     uint64_t gr_end = get_tile_y(clip_end);
     uint64_t genomeId = get_tile_id (clip_str);
     uint64_t gr_strand = get_tile_strand(clip_str);
-    std::cout << "cc1 " << gs_str << " " << gr_str << " " << gs_end << " " << gr_end << " " << genomeId << " " << gr_strand << " " << clip_direction << "\n";
     String<Dna5> & seq1 = genome;
     String<Dna5> * p = (gr_strand)?(&comstr):(&read);
     String<Dna5> & seq2 = *p;
@@ -2601,7 +2563,6 @@ int64_t c_clip_(String<Dna5> & genome,
     int thd_error_level = 3; // >>3 == * 0.125
     int thd_scan_radius = 3;  //at least scan 5 elements in the genome for each kmer in the read
     uint64_t ex_d = 0;
-    std::cout << "cc2 " << gr_str << " " << gr_str + dy << "\n";
     c_clip_extend_(ex_d, 
                    g_hs,
                    seq1,
@@ -2617,7 +2578,6 @@ int64_t c_clip_(String<Dna5> & genome,
     int dyt = (ex_d & ((1ULL << 32) - 1));
     dx -= extend_window - (ex_d >> 32);
     dy -= extend_window -dyt; 
-    std::cout << "c_clip_2 " << gs_str + dx << " " << gr_str + dy << " " << length(read) << "\n";
     clip = create_cord(genomeId, gs_str + dx, gr_str + dy, gr_strand); 
 
     return clip;
@@ -2765,8 +2725,6 @@ int64_t c_clip_(String<Dna5> & genome,
                     clip_end = shift_tile(tile1, shift, shift);
                     clip_direction = 1;
                 }
-                std::cout << "gag44 " << get_tile_y(clip_str) << " " << get_tile_y(clip_end) << " " << get_tile_x(clip_str) << " " << get_tile_x(clip_end) << " " << get_tile_strand(clip_str) << " " << get_tile_strand(clip_end) << "\n";
-
                 thd_band_ratio = 0.5;
                 clip = c_clip_ (seq1, seq2, comstr, clip_str, clip_end, g_hs, g_hs_anchor, thd_band_ratio, clip_direction);   
                 appendValue (clips, clip);
