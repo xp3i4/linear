@@ -2336,7 +2336,7 @@ int c_clip_extend_(uint64_t & ex_d, // results
     {
         hashs[i] = hashNext_hs(shape, it_str1 + i);
     }   
-    if (clip_direction < 0)
+    if (clip_direction < 0) //-Gap-Match-
     {
         hashInit_hs(shape, it_str2);
         for (int64_t i = hs_len2; i > 0; --i) //scan the read 
@@ -2415,7 +2415,7 @@ int c_clip_extend_(uint64_t & ex_d, // results
             }
         }
     }
-    else
+    else //-Match-Gap
     {
         hashInit_hs(shape, it_str2);
         for (int64_t i = 0; i < hs_len2; i++) //scan the read 
@@ -2787,53 +2787,79 @@ int64_t c_clip_(String<Dna5> & genome,
                 clip = c_clip_ (seq1, seq2, comstr, clip_str, clip_end, g_hs, g_hs_anchor, thd_band_ratio, clip_direction);   
                 appendValue (clips, clip);
             }
-            if ((sv_flags[i] & g_sv_r) && !(sv_flags[i + 1] & g_sv_l))
+            else if ((sv_flags[i] & g_sv_r) && !(sv_flags[i + 1] & g_sv_l))
             {
-                crstart = _defaultTile.getY(tile1);
-                crend = std::min(uint64_t(length(seq2)), crstart + 2 * block_size);
-                delta = crend - crstart;
-                cgstart =_getSA_i2(_defaultTile.getX(tile1));
-                cgend = std::min(length(seq1), cgstart + delta);
-                band = int(90.0 * delta / block_size);
-                crstrand = _defaultTile.getStrand(tile1);
-                //clip = clip_window (seq1, seq2, comstr, genomeId, cgstart, cgend, crstart, crend, crstrand, band, -1);   
-                //appendValue(clips, clip);
+                g_cmpll.min(shift) << int64_t(block_size / 2)
+                                   << length(seq1) - 1 - get_tile_x(tile1) 
+                                   << length(seq2) - 1 - get_tile_y(tile1);
+                clip_str = shift_tile(tile1, shift, shift);
+                int64_t shift_end = std::max (get_tile_x(tile2 - tile1),
+                                              get_tile_y(tile2 - tile1)) 
+                                              + block_size / 2;
+                g_cmpll.min(shift, shift + thd_max_gap_size) 
+                                   << shift_end 
+                                   << length(seq1) - 1 - get_tile_x(tile1) 
+                                   << length(seq2) - 1 - get_tile_y(tile1);
+                clip_end = shift_tile(tile1, shift, shift);
+                clip_direction = 1;
+                thd_band_ratio = 0.5;
+                clip = c_clip_ (seq1, seq2, comstr, clip_str, clip_end, g_hs, g_hs_anchor, thd_band_ratio, clip_direction);   
+                appendValue (clips, clip);            }
+            else if (!(sv_flags[i] & g_sv_r) && (sv_flags[i + 1] & g_sv_l))
+            {
+                g_cmpll.min(shift) << block_size / 2 
+                                   << get_tile_x(tile2)
+                                   << get_tile_y(tile2);
+                clip_end = shift_tile(tile2, shift, shift);
+                int64_t shift_str = std::max (get_tile_x(tile2 - tile1),
+                                              get_tile_y(tile2 - tile1)) 
+                                              + block_size / 2;
+                g_cmpll.min(shift, shift + thd_max_gap_size) 
+                                   << shift_str
+                                   << get_tile_x(tile2)
+                                   << get_tile_y(tile2);
+                clip_str = shift_tile(tile2, -shift, -shift);
+                clip_direction = -1;
+                thd_band_ratio = 0.5;
+                clip = c_clip_ (seq1, seq2, comstr, clip_str, clip_end, g_hs, g_hs_anchor, thd_band_ratio, clip_direction);   
+                appendValue (clips, clip);
             }
-            if (!(sv_flags[i] & g_sv_r) && (sv_flags[i + 1] & g_sv_l))
+            else if ((sv_flags[i] & g_sv_gap) && (sv_flags[i + 1] & g_sv_gap))
             {
-                //std::cout << "[]::g_align_gap_lrx \n";
-                crend = _defaultTile.getY(tile2);
-                crstart = (uint64_t)std::max(int64_t(crend - 2 * block_size), int64_t(0));
-                delta = crend - crstart;
-                cgend = _getSA_i2(_defaultTile.getX(tile2));
-                cgstart = (cgend > delta)?cgend - delta:0;
-                band = int(90.0 * delta / block_size);
-                crstrand = _defaultTile.getStrand(tile2);
-                //clip = clip_window (seq1, seq2, comstr, genomeId, cgstart, cgend, crstart, crend, crstrand, band, 1);   
-                //appendValue(clips, clip);
-            }
-            /*
-            if ((sv_flags[i] & g_sv_gap) && (sv_flags[i + 1] & g_sv_gap))
-            {
-                //uint64_t clip_tile = shift_tile(tile[i], thd_extend, thd_extend);
-                //cr_start = get_cord_y(clip_tile)
-                cgstart = get_cord_x(tile1) + 90;
-                cgend = get_cord_x(tile1) + 90 + 192;
-                crstart = get_cord_y(tile1) + 90;
-                crend = get_cord_y(tile1) + 192;
+                g_cmpll.min(shift) << int64_t(block_size / 2)
+                                   << length(seq1) - 1 - get_tile_x(tile1) 
+                                   << length(seq2) - 1 - get_tile_y(tile1);
+                clip_str = shift_tile(tile1, shift, shift);
+                int64_t shift_end = std::max (get_tile_x(tile2 - tile1),
+                                              get_tile_y(tile2 - tile1)) 
+                                              + block_size / 2;
+                g_cmpll.min(shift, shift + thd_max_gap_size) 
+                                   << shift_end 
+                                   << length(seq1) - 1 - get_tile_x(tile1) 
+                                   << length(seq2) - 1 - get_tile_y(tile1);
+                clip_end = shift_tile(tile1, shift, shift);
+                clip_direction = 1;
+                thd_band_ratio = 0.5;
                 clip = c_clip_ (seq1, seq2, comstr, cgstart, cgend, crstart, crend, crstrand, genomeId, g_hs, g_hs_anchor, band, 1);   
                 appendValue (clips, clip);
-
-                cgstart = get_cord_x(tile2) - 90;
-                cgend = get_cord_x(tile2) + 90 ;
-                crstart = get_cord_y(tile2) - 90;
-                crend = get_cord_y(tile2) + 90;
+                g_cmpll.min(shift) << block_size / 2 
+                                   << get_tile_x(tile2)
+                                   << get_tile_y(tile2);
+                clip_end = shift_tile(tile2, shift, shift);
+                int64_t shift_str = std::max (get_tile_x(tile2 - tile1),
+                                              get_tile_y(tile2 - tile1)) 
+                                              + block_size / 2;
+                g_cmpll.min(shift, shift + thd_max_gap_size) 
+                                   << shift_str
+                                   << get_tile_x(tile2)
+                                   << get_tile_y(tile2);
+                clip_str = shift_tile(tile2, -shift, -shift);
+                clip_direction = -1;
+                thd_band_ratio = 0.5;
                 clip = c_clip_ (seq1, seq2, comstr, cgstart, cgend, crstart, crend, crstrand, genomeId, g_hs, g_hs_anchor, band, 1);   
                 appendValue (clips, clip);
                 std::cout << "gag4 " << i << " " << get_cord_y(tile1) << " " << crstart << " " << crend << " " << cgstart << " " << cgend << "\n";
-
             }
-            */
         }
     }
     if (length(tiles) > 2)
