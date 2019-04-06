@@ -79,9 +79,11 @@ inline uint64_t hashInit(LShape & me, TIterS it)
     return k;
 }
 /**
- *init for hashNexthS 
+ *init for hashNext_hs and hashPre_hs
+ *@d=0 init for hashNext_hs
+ *@d=1 init for hashPre_hs 
  */
-inline uint64_t hashInit_hs(LShape & me, TIterS it, int d = 0)
+inline uint64_t hashInit_hs(LShape & me, TIterS it, int d)
 {
     me.hValue = 0;
     for (unsigned i = d; i < me.span - 1 + d; ++i)
