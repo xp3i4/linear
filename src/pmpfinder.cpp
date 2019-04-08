@@ -232,11 +232,10 @@ uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y)
 
 int _scriptDist(int const & s1, int const & s2)
 {
-    int res = std::abs((s1 & scriptMask)
-            - (s2 & scriptMask)) 
-            + std::abs(((s1 >> scriptWindow) & scriptMask) 
-            - ((s2 >> scriptWindow) & scriptMask)) 
-            + std::abs((s1>>scriptWindow2) - (s2>>scriptWindow2));
+    int res = std::abs((s1 & scriptMask) - (s2 & scriptMask)) +
+              std::abs(((s1 >> scriptWindow) & scriptMask) -
+                       ((s2 >> scriptWindow) & scriptMask)) + 
+              std::abs((s1>>scriptWindow2) - (s2>>scriptWindow2));
     return res;
 }
 
@@ -335,13 +334,13 @@ void createFeatures(TIter5 const & itBegin, TIter5 const & itEnd, String<short> 
 }
 
  unsigned _windowDist(Iterator<String<short> >::Type const & it1, 
-                            Iterator<String<short> >::Type const & it2)
+                      Iterator<String<short> >::Type const & it2)
 {
     return _scriptDist(*it1, *it2) 
          + _scriptDist(*(it1 + 2), *(it2 + 2)) 
-         + _scriptDist(*(it1+4),*(it2+4)) 
+         + _scriptDist(*(it1 + 4), *(it2 + 4)) 
          + _scriptDist(*(it1 + 6), *(it2 + 6)) 
-         + _scriptDist(*(it1+8), *(it2+8)) 
+         + _scriptDist(*(it1 + 8), *(it2 + 8)) 
          + _scriptDist(*(it1 + 10), *(it2 + 10));
 }
 

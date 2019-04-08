@@ -11,8 +11,8 @@ struct CmpInt64
     CmpInt64 & init (int64_t & rslt, int64_t init_val);
     CmpInt64 & min (int64_t & rslt, int64_t val = (~(1LL << 63)));
     CmpInt64 & max (int64_t & rslt, int64_t val = ((1LL << 63) + 1));
-    CmpInt64 & operator << (int64_t);
-    CmpInt64 & operator >> (int64_t);
+    CmpInt64 & operator << (int64_t); //get min of all the suffix 
+    CmpInt64 & operator >> (int64_t); //get max of ...
 }g_cmpll;
 CmpInt64 & CmpInt64::init(int64_t & rslt, int64_t init_val) 
 { 
@@ -535,6 +535,11 @@ inline uint64_t get_tile_id(uint64_t val)
 {
     return get_cord_id(val);
 }
+inline uint64_t create_tile (uint64_t id, uint64_t cordx, uint64_t cordy, uint64_t strand)
+{
+    return create_cord(id, cordx, cordy, strand);
+}
+
 /**
  * debug utils
  */
@@ -1371,10 +1376,12 @@ int check_tiles_(String<uint64_t> & tiles, uint64_t g_start, uint64_t g_end)
     //g_print_tiles_(tiles, f1, f2);
 }
 
-unsigned _get_tile_f_ (uint64_t const & tile, 
+unsigned _get_tile_f_ (uint64_t const & tile,
                   StringSet<String<short> > & f1,
                   StringSet<String<short> > & f2)
 {
+
+   // uint64_t tile = shift_tile(k_tile, )
     uint64_t tile_x = _defaultTile.getX(tile);
     uint64_t tile_y = _defaultTile.getY(tile);
     unsigned fscore = 
@@ -1402,6 +1409,7 @@ unsigned _get_tile_f_ (uint64_t const & tile,
                                 int direction
                                 )
 {
+    int block_size = window_size;
     int64_t thd_min_segment = 100;
     int thd_k_in_window = 1;
     int thd_fscore = 45;
@@ -1415,6 +1423,7 @@ unsigned _get_tile_f_ (uint64_t const & tile,
     int64_t prek = 0;
     int64_t prex = -1;
     int64_t prey = -1; 
+    int64_t tmp_shift = block_size >> 1;
     int anchor_len = 0;
     std::sort (begin(anchor), begin(anchor) + anchor_end);
     anchor[anchor_end] = ~0;
@@ -1429,6 +1438,7 @@ unsigned _get_tile_f_ (uint64_t const & tile,
         if (g_hs_anchor_getAnchor(anchor[k] - anchor[prek]) > 
             thd_err_rate * std::max(thd_min_segment, d))
         {
+            std::cout << "gmas6 new \n";
             int thd_anchor_accpet = g_thd_anchor_density * 
             std::abs(int64_t(g_hs_anchor_getY(anchor[k - 1]) - 
                              g_hs_anchor_getY(anchor[prek])));
@@ -1442,25 +1452,47 @@ unsigned _get_tile_f_ (uint64_t const & tile,
                 [](uint64_t & s1, uint64_t & s2)
                 {return g_hs_anchor_getX(s2) > g_hs_anchor_getX(s1);
                 });
-                prex = prey = -1;
+                //prex = prey = - 1;
+                prex = g_hs_anchor_getX(anchor[prek]);
+                prey = g_hs_anchor_getY(anchor[prek]);
                 int kcount = 0;
 
                 uint64_t upper_x = g_hs_anchor_getX(anchor[prek]) + thd_tileSize;
                 uint64_t upper_y = g_hs_anchor_getY(anchor[prek]) + thd_tileSize;
-                for (int i = prek + 1; 
-                    g_hs_anchor_getX(anchor[i]) < upper_x && 
-                    g_hs_anchor_getY(anchor[i]) < upper_y; ++i)
-                {
-                    kcount++;
-                }
                 std::cout << "gmas5 end\n";
-                for (int j = prek + 1; j < k; j++)
+                int64_t centroid_x = 0;
+                int64_t centroid_y = 0;
+                int prej = prek;
+                for (int j = prek; j < k; j++)
                 {
-                    if ((g_hs_anchor_getX(anchor[j]) > prex + thd_tileSize ||  
-                         g_hs_anchor_getY(anchor[j]) > prey + thd_tileSize))
+
+                    std::cout << "gmas7 " << j << " " << g_hs_anchor_getX(anchor[j]) << " " << g_hs_anchor_getY(anchor[j]) << "\n";
+                    uint64_t x = g_hs_anchor_getX(anchor[j]);
+                    uint64_t y = g_hs_anchor_getY(anchor[j]);
+                    if ((x > prex + thd_tileSize || y > prey + thd_tileSize)||
+                         j == k - 1)
                     {
-                        uint64_t tmp_tile = g_hs_anchor_2Tile(anchor[j - 1], 
-                                                              revscomp_const);
+                        if (j != k - 1)
+                        {
+                            centroid_x /= (j - prej);
+                            centroid_y /= (j - prej);
+                        }
+                        else
+                        {
+                            //centroid_x += g_hs_anchor_getX(anchor[j]);
+                            //centroid_y += g_hs_anchor_getY(anchor[j]);
+                            centroid_x /= (j - prej);
+                            centroid_y /= (j - prej);
+                        }
+                        g_cmpll.min(tmp_shift, block_size >> 1) << centroid_x 
+                                                                << centroid_y;
+                        int64_t tmp_tile_x = centroid_x - tmp_shift ;
+                        int64_t tmp_tile_y = centroid_y - tmp_shift ;
+                        uint64_t tmp_tile = create_tile(0, tmp_tile_x, tmp_tile_y, 
+                                            g_hs_anchor_get_strand(anchor[prek]));
+                        //<<<debug
+                        std::cout << "gmas8 " << get_tile_y(tmp_tile) << " " << y << " " << get_tile_x(tmp_tile) << " " << get_tile_strand(tmp_tile) << " " << _get_tile_f_(tmp_tile, f1, f2) << " " << prej << " " << j << " " << prey << "\n";
+                        //>>>debug
                         if (kcount >= thd_k_in_window  && 
                             _get_tile_f_(tmp_tile, f1, f2) < thd_fscore)
                         {
@@ -1468,29 +1500,23 @@ unsigned _get_tile_f_ (uint64_t const & tile,
                             {
                                 set_tile_start(tmp_tile);
                             }
+                            std::cout << "gmas6 append <<<<<<<<<<" << get_tile_y(tmp_tile) << " " << get_tile_x(tmp_tile) << " " <<  get_tile_strand(tmp_tile) << "\n";
                             appendValue (tiles, tmp_tile);
                         }
-            //<<<debug
-            std::cout << "gmas5 " << thd_anchor_accpet << " " << g_hs_anchor_getY(anchor[j]) << " " << g_hs_anchor_getX(anchor[j]) << " " << kcount << " " << _get_tile_f_(shift_tile(tmp_tile,50,50), f1, f2) << " " << thd_fscore << " " << get_tile_x(tmp_tile) << " " << get_tile_strand(tmp_tile) << "\n";
-            //>>>debug
                         prex = g_hs_anchor_getX(anchor[j - 1]);
                         prey = g_hs_anchor_getY(anchor[j - 1]);
-                        kcount=0;
+                        prej = j;
+                        centroid_x = g_hs_anchor_getX(anchor[j]);
+                        centroid_y = g_hs_anchor_getY(anchor[j]);
+                        kcount=1;
                     }
                     else
                     {
+                        centroid_x += g_hs_anchor_getX(anchor[j]);
+                        centroid_y += g_hs_anchor_getY(anchor[j]);
                         kcount++;
                     }
-                }
-                uint64_t tmp_tile = g_hs_anchor_2Tile(anchor[k - 1], revscomp_const);
-                if (kcount >= thd_k_in_window && 
-                    _get_tile_f_(tmp_tile, f1, f2) < thd_fscore)
-                {
-                    if (empty(tiles) || is_tile_end(back(tiles)))
-                    {
-                        set_tile_start(tmp_tile);
-                    }
-                    appendValue (tiles, tmp_tile);
+
                 }
                 if (!empty(tiles))
                 {
@@ -2670,13 +2696,10 @@ int64_t c_clip_(String<Dna5> & genome,
                  int thd_cord_gap
                 )
 {
-    if (empty(tiles))
-    {
-        return 0;
-    } 
     // Insert the head and tail tile to process in one for loop
     // The inserted head tile and tail tile will be removed 
     // it does not affect the original tiles.uint64_t main_strand = get_cord_strand(cord_str);
+    std::cout << "gag_str\n";
     uint64_t head_tile = cord_str;
     uint64_t tail_tile = cord_end; 
     uint64_t main_strand = get_cord_strand(cord_str);
@@ -2697,6 +2720,7 @@ int64_t c_clip_(String<Dna5> & genome,
     {
         int64_t distance_x = tile_distance_x(tiles[i - 1], tiles[i]);
         int64_t distance_y = tile_distance_y(tiles[i - 1], tiles[i]); 
+        std::cout << "gag2 " << i << " " << distance_y << " " << distance_x << " " << thd_cord_gap << " " << get_cord_y(tiles[i - 1]) << "\n";
         ///check sv type
         if (_defaultTile.getStrand(tiles[i] ^ tiles[i - 1]))
         {
@@ -2718,7 +2742,6 @@ int64_t c_clip_(String<Dna5> & genome,
         }
         else if (distance_y > thd_cord_gap && distance_x > thd_cord_gap)
         {
-            std::cout << "gag2 " << i << " " << distance_y << " " << distance_x << " " << thd_cord_gap << " " << get_cord_y(tiles[i - 1]) << "\n";
             sv_flags[i - 1] += g_sv_gap;
             sv_flags[i] += g_sv_gap;
             sv_exists = 1;
@@ -3055,7 +3078,8 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             g_cmpll.min(shift_y, shift_y) << get_cord_y(cords[i] - cords[i - 1]); //del
             uint64_t cord1 = shift_cord(cords[i - 1], shift_x, shift_y);
             std::cout << "mg2 " << get_cord_y(cord1) << " " << get_cord_y(cord2) << " " << get_cord_x(cord1) << " " << get_cord_x(cord2) << " " << shift_y << " " << get_cord_y(cords[i - 1]) << " " << get_cord_y(cords[i]) << "\n";
-            //cord1 = cords[i - 1]; cord2 = cords[i];
+            cord1 = cords[i - 1]; 
+            cord2 = cords[i];
             mapGap_(seqs, read, comstr, 
                     cord1, cord2, 
                     g_hs, g_anchor, f1, f2, 
