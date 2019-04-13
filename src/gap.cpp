@@ -519,7 +519,7 @@ inline bool is_tile_body(uint64_t val)
 {
     return _defaultTile.isTileBody(val);
 }
-inline uint64_t shift_tile(uint64_t const & val, uint64_t x, uint64_t y)
+inline uint64_t shift_tile(uint64_t const & val, int64_t x, int64_t y)
 {
     return shift_cord (val, x, y);
 }
@@ -1392,6 +1392,36 @@ unsigned _get_tile_f_ (uint64_t const & tile,
     return fscore;
 }
 
+unsigned _get_tile_f_tri_ (uint64_t const & tile,
+                  StringSet<String<short> > & f1,
+                  StringSet<String<short> > & f2, 
+                  unsigned thd_accept_score,
+                  int block_size = window_size
+                  )
+{
+    int shift = window_size / 4;
+    uint64_t tile_l = shift_tile(tile, -shift, -shift);
+    uint64_t tile_r = shift_tile(tile, shift, shift);
+    unsigned fscore =  _get_tile_f_ (tile, f1, f2) ;
+    if (fscore < thd_accept_score)
+    {
+        return fscore;
+    }
+    else
+    {
+        fscore = std::min(_get_tile_f_(tile_l, f1, f2), fscore);
+        if (fscore < thd_accept_score)
+        {
+            return fscore;
+        }
+        else
+        {
+            return std::min(_get_tile_f_(tile_r, f1, f2), fscore);
+
+        }
+    }
+}
+
 /**
  * cluster all anchors and trim tiles for sv
  * Will conduct additional processing. 
@@ -1412,7 +1442,7 @@ unsigned _get_tile_f_ (uint64_t const & tile,
     int block_size = window_size;
     int64_t thd_min_segment = 100;
     int thd_k_in_window = 1;
-    int thd_fscore = 45;
+    int thd_fscore = 40;
     float thd_overlap_tile = thd_tileSize * 0.4;
     float thd_err_rate = 0.6;
     float thd_swap_tile = thd_tileSize * 0.05;
@@ -1433,7 +1463,12 @@ unsigned _get_tile_f_ (uint64_t const & tile,
     for (int k = 0; k < anchor_end + 1; k++)
     {
         //TODO: handle thd_min_segment, anchor 
-        std::cout << "gmas6 " << prek << " " << g_hs_anchor_getY(anchor[k]) << " " << g_hs_anchor_getX(anchor[k]) << " " << g_hs_anchor_get_strand(anchor[k]) << "\n";
+        //>>>debug
+        if (g_hs_anchor_get_strand(anchor[k]) == 1)
+        {
+            std::cout << "gmas6 " << prek << " " << g_hs_anchor_getY(anchor[k]) << " " << g_hs_anchor_getX(anchor[k]) << " " << g_hs_anchor_get_strand(anchor[k]) << "\n";
+        }
+        //<<<debug
         int64_t d = std::abs((int64_t)g_hs_anchor_getY(anchor[k]) - (int64_t)g_hs_anchor_getY(anchor[prek]));
         if (g_hs_anchor_getAnchor(anchor[k] - anchor[prek]) > 
             thd_err_rate * std::max(thd_min_segment, d))
@@ -1491,10 +1526,11 @@ unsigned _get_tile_f_ (uint64_t const & tile,
                         uint64_t tmp_tile = create_tile(0, tmp_tile_x, tmp_tile_y, 
                                             g_hs_anchor_get_strand(anchor[prek]));
                         //<<<debug
-                        std::cout << "gmas8 " << get_tile_y(tmp_tile) << " " << y << " " << get_tile_x(tmp_tile) << " " << get_tile_strand(tmp_tile) << " " << _get_tile_f_(tmp_tile, f1, f2) << " " << prej << " " << j << " " << prey << "\n";
+                        uint64_t d_tile = shift_tile(tmp_tile, 0, 0);
+                        std::cout << "gmas8 " << get_tile_strand(tmp_tile) << " " << y << " " << get_tile_y(d_tile) << " " << get_tile_x(d_tile) << " score " << _get_tile_f_tri_(d_tile, f1, f2, 40)  << " " << centroid_y << "\n";
                         //>>>debug
                         if (kcount >= thd_k_in_window  && 
-                            _get_tile_f_(tmp_tile, f1, f2) < thd_fscore)
+                            _get_tile_f_tri_(tmp_tile, f1, f2, thd_fscore) < thd_fscore)
                         {
                             if (empty(tiles) || is_tile_end(back(tiles)))
                             {
