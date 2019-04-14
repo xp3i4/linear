@@ -318,7 +318,7 @@ void print_cords_txt(Mapper & mapper)
                 CharString mark = "| ";
                 if (icon_strand != main_icon_strand)
                 {
-                    mark = (icon_strand > 0) ? "|**+++++++++++ " :"|**----------- ";
+                    mark = (icon_strand == '+') ? "|**+++++++++++ " :"|**----------- ";
                 }
                 int64_t d1 = 0;//_DefaultCord.getCordY(cords[k][1]);
                 int64_t d2 = 0;
