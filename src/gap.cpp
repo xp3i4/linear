@@ -723,6 +723,8 @@ int mapGaps(StringSet<String<Dna5> > & seqs, String<Dna5> & read, String<uint64_
  * While the kmers are always picked up from the genome and read rather than
  * the reverse complement of the read. 
  * This is different from anchors used in chainning.
+ * @anchor = x - y + g_hs_anchor_zero. g_hs_anchor_zero to restrict @anchor > 0.
+   -g_hs_anchor_zero <= x - y < g_hs_anchor_zero
  */
 uint64_t const g_hs_anchor_mask1 = (1ULL << 20) - 1;
 uint64_t const g_hs_anchor_mask1_ = ~ g_hs_anchor_mask1;
@@ -731,34 +733,35 @@ uint64_t const g_hs_anchor_mask5 = (1ULL << 31) - 1;
 uint64_t const g_hs_anchor_bit1 = 20;
 uint64_t const g_hs_anchor_bit2 = 50;
 uint64_t const g_hs_anchor_mask2 = ~(1ULL << 50);
+uint64_t const g_hs_anchor_zero = 1ULL << (20);
 
-int const g_sv_noe = 0;    //none
+int const g_sv_noe = 0;     //none
 int const g_sv_inv = 1;     //inversion
 int const g_sv_ins = 2;     //insertion
 int const g_sv_del = 4;     //deletion
 int const g_sv_trs = 8;     //translocation
 int const g_sv_dup = 16;    //duplication
 int const g_sv_l = 32;      //clip towards left
-int const g_sv_r = 64;   //clip towards right
-int const g_sv_gap = 128; //gap unmapped:inversion duplication translocation.
+int const g_sv_r = 64;      //clip towards right
+int const g_sv_gap = 128;   //gap unmapped:inversion duplication translocation.
 
 int const g_align_left = -1;
 int const g_align_closed = 0;
 int const g_align_right = 1;
-
- uint64_t g_hs_anchor_getCord (uint64_t anchor)
+uint64_t g_hs_anchor_getCord (uint64_t anchor)
 {
     return anchor & g_hs_anchor_mask1;
 }
 
- uint64_t g_hs_anchor_getAnchor (uint64_t anchor)
+uint64_t g_hs_anchor_getAnchor (uint64_t anchor)
 {
-    return (anchor >> g_hs_anchor_bit1) & g_hs_anchor_mask5;
+    return ((anchor >> g_hs_anchor_bit1) - g_hs_anchor_zero)& g_hs_anchor_mask5;
 }
 
 uint64_t g_hs_anchor_getX (uint64_t val)
 {
-    return ((val >> g_hs_anchor_bit1) & g_hs_anchor_mask3) + (val & g_hs_anchor_mask1);
+    return (((val >> g_hs_anchor_bit1) - g_hs_anchor_zero) & g_hs_anchor_mask3) + 
+           (val & g_hs_anchor_mask1);
 }
 
 uint64_t g_hs_anchor_getY (uint64_t val)
@@ -779,7 +782,7 @@ void print_g_hs_anchor(String<uint64_t> & anchors,
     for (int i = start; i < end; i++) 
     {
     std::cout << header <<" " << i << " " 
-              << g_hs_anchor_getAnchor(anchors[i]) << " "
+              << g_hs_anchor_getX(anchors[i]) << " "
               << g_hs_anchor_getY(anchors[i]) << " "
               << g_hs_anchor_get_strand(anchors[i]) << " "
               << "\n";
@@ -790,7 +793,7 @@ void print_g_hs_anchor(String<uint64_t> & anchors,
 static const uint64_t g_hs_mask2 = (1ULL << 30) - 1;
 static const uint64_t g_hs_mask3 = (1ULL << 32) - 1;
 
- void g_hs_setGhs_(uint64_t & val, 
+void g_hs_setGhs_(uint64_t & val, 
                          uint64_t xval, 
                          uint64_t type, 
                          uint64_t strand, 
@@ -799,33 +802,34 @@ static const uint64_t g_hs_mask3 = (1ULL << 32) - 1;
     val = (xval << 33) + (type<< 31) + (strand << 30) + coord;
 }
 
- int64_t g_hs_getCord(uint64_t & val)
+int64_t g_hs_getCord(uint64_t & val)
 {
     return int64_t(val & g_hs_mask2);
 }
 
- void g_hs_setAnchor_(uint64_t & val, 
+void g_hs_setAnchor_(uint64_t & val, 
                             uint64_t const & hs1, /*genome*/
                             uint64_t const & hs2, /*read*/
                             uint64_t revscomp_const)
 {
     uint64_t strand = ((hs1 ^ hs2) >> 30 ) & 1;
     uint64_t x = revscomp_const * strand - _nStrand(strand) * (hs2 & g_hs_mask2); 
-    val = (((hs1 - x) & (g_hs_mask2)) << 20) + x + (strand << g_hs_anchor_bit2);
+    val = (((hs1 - x + g_hs_anchor_zero) & (g_hs_mask2))<< 20) + 
+          x + (strand << g_hs_anchor_bit2);
 }
 ///get xvalue and type
- uint64_t g_hs_getXT (uint64_t const & val)
+uint64_t g_hs_getXT (uint64_t const & val)
 {
     return (val >> 31) & g_hs_mask3;
 }
 
- uint64_t g_hs_getX (uint64_t const & val)
+uint64_t g_hs_getX (uint64_t const & val)
 {
     uint64_t mask = ((1ULL << 30) - 1);
-    return (val >> 33) & mask;
+    return ((val >> 33) & mask) ;
 }
 
- uint64_t g_hs_anchor_2Tile (uint64_t & anchor, /*uint64_t main_strand,*/ uint64_t revscomp_const)
+uint64_t g_hs_anchor_2Tile (uint64_t & anchor, /*uint64_t main_strand,*/ uint64_t revscomp_const)
 {
     uint64_t strand = (anchor >> g_hs_anchor_bit2) & 1;
     /**
@@ -838,7 +842,9 @@ static const uint64_t g_hs_mask3 = (1ULL << 32) - 1;
      * easy for following processing (align)
      */
     uint64_t y = g_hs_anchor_getY(anchor);
-	return (((anchor + ((anchor & g_hs_anchor_mask1) << 20)) & g_hs_anchor_mask2) & g_hs_anchor_mask1_) + y + (strand << 61);
+	return (((anchor - (g_hs_anchor_zero << 20) + 
+            ((anchor & g_hs_anchor_mask1)<< 20)) & 
+              g_hs_anchor_mask2) & g_hs_anchor_mask1_) + y + (strand << 61);
 }
 
 int64_t tile_distance_x (uint64_t tile1, uint64_t tile2)
@@ -1098,12 +1104,12 @@ int check_tiles_(String<uint64_t> & tiles, uint64_t g_start, uint64_t g_end)
  * cluster all the anchor candidates within the gap: 
  */
  void g_mapHs_anchor_ (String<uint64_t> & anchor, 
-                             String<uint64_t> & tile, 
-                             int anchor_end, 
-                             int thd_tileSize,
-                             uint64_t  main_strand, 
-                             int revscomp_const
-                            )
+                       String<uint64_t> & tile, 
+                       int anchor_end, 
+                       int thd_tileSize,
+                       uint64_t  main_strand, 
+                       int revscomp_const
+                       )
 {
     int64_t thd_min_segment = 100;
     int64_t prek = 0;
@@ -1118,7 +1124,8 @@ int check_tiles_(String<uint64_t> & tiles, uint64_t g_start, uint64_t g_end)
     {
         //TODO: handle thd_min_segment, anchor 
         int64_t d = std::abs((int64_t)g_hs_anchor_getY(anchor[k]) - (int64_t)g_hs_anchor_getY(anchor[prek]));
-        if (g_hs_anchor_getAnchor(anchor[k] - anchor[prek]) > thd_error_percent * std::max(thd_min_segment, d))
+        if (g_hs_anchor_getAnchor(anchor[k]) - g_hs_anchor_getAnchor(anchor[prek]) > 
+            thd_error_percent * std::max(thd_min_segment, d))
         {
             if ((std::abs(anchor_len / (float)(g_hs_anchor_getY(anchor[k - 1]) - g_hs_anchor_getY(anchor[prek]))) > g_thd_anchor_density && anchor_len > 2) || anchor_len > g_thd_anchor)
             {
@@ -1207,7 +1214,7 @@ int check_tiles_(String<uint64_t> & tiles, uint64_t g_start, uint64_t g_end)
         //TODO: handle thd_min_segment, anchor 
         
         int64_t d = std::abs((int64_t)g_hs_anchor_getY(anchor[k]) - (int64_t)g_hs_anchor_getY(anchor[prek]));
-        if (g_hs_anchor_getAnchor(anchor[k] - anchor[prek]) > 
+        if (g_hs_anchor_getAnchor(anchor[k]) - g_hs_anchor_getAnchor(anchor[prek]) > 
             thd_err_rate * std::max(thd_min_segment, d))
         {
             if ((std::abs(anchor_len / (float)(g_hs_anchor_getY(anchor[k - 1]) - g_hs_anchor_getY(anchor[prek]))) > g_thd_anchor_density && anchor_len > 2) || anchor_len > g_thd_anchor)
@@ -1428,20 +1435,20 @@ unsigned _get_tile_f_tri_ (uint64_t const & tile,
  * Don't call it in the pipeline of approximate mapping.
  */
  int g_mapHs_anchor_sv2_ (String<uint64_t> & anchor, 
-                                String<uint64_t> & tiles, 
-                                StringSet<String<short> > & f1,
-                                StringSet<String<short> >& f2,
-                                uint64_t gap_str,
-                                uint64_t gap_end,
-                                int anchor_end, 
-                                int thd_tileSize,
-                                int revscomp_const,
-                                int direction
-                                )
+                          String<uint64_t> & tiles, 
+                          StringSet<String<short> > & f1,
+                          StringSet<String<short> >& f2,
+                          uint64_t gap_str,
+                          uint64_t gap_end,
+                          int anchor_end, 
+                          int thd_tileSize,
+                          int revscomp_const,
+                          int direction
+                          )
 {
     int block_size = window_size;
     int64_t thd_min_segment = 100;
-    int thd_k_in_window = 1;
+    int thd_pattern_in_window = 1;
     int thd_fscore = 40;
     float thd_overlap_tile = thd_tileSize * 0.4;
     float thd_err_rate = 0.6;
@@ -1457,9 +1464,12 @@ unsigned _get_tile_f_tri_ (uint64_t const & tile,
     int anchor_len = 0;
     std::sort (begin(anchor), begin(anchor) + anchor_end);
     anchor[anchor_end] = ~0;
-    g_print_tiles_ (tiles, "gmas3");
     int pre_tile_end = 0;
+    //<<<debug
+    g_print_tiles_ (tiles, "gmas3");
     print_g_hs_anchor(anchor, 0, anchor_end, "gmas_a");
+    //>>>debug
+    //std::cout << "gmas9 " << anchor_end << "\n";
     for (int k = 0; k < anchor_end + 1; k++)
     {
         //TODO: handle thd_min_segment, anchor 
@@ -1470,10 +1480,10 @@ unsigned _get_tile_f_tri_ (uint64_t const & tile,
         }
         //<<<debug
         int64_t d = std::abs((int64_t)g_hs_anchor_getY(anchor[k]) - (int64_t)g_hs_anchor_getY(anchor[prek]));
-        if (g_hs_anchor_getAnchor(anchor[k] - anchor[prek]) > 
+        if (g_hs_anchor_getAnchor(anchor[k]) - g_hs_anchor_getAnchor(anchor[prek]) > 
             thd_err_rate * std::max(thd_min_segment, d))
         {
-            std::cout << "gmas6 new \n";
+            std::cout << "gmas6 new " << k << " " << g_hs_anchor_getAnchor(anchor[k]) - g_hs_anchor_getAnchor(anchor[prek]) ;
             int thd_anchor_accpet = g_thd_anchor_density * 
             std::abs(int64_t(g_hs_anchor_getY(anchor[k - 1]) - 
                              g_hs_anchor_getY(anchor[prek])));
@@ -1529,8 +1539,8 @@ unsigned _get_tile_f_tri_ (uint64_t const & tile,
                         uint64_t d_tile = shift_tile(tmp_tile, 0, 0);
                         std::cout << "gmas8 " << get_tile_strand(tmp_tile) << " " << y << " " << get_tile_y(d_tile) << " " << get_tile_x(d_tile) << " score " << _get_tile_f_tri_(d_tile, f1, f2, 40)  << " " << centroid_y << "\n";
                         //>>>debug
-                        if (kcount >= thd_k_in_window  && 
-                            _get_tile_f_tri_(tmp_tile, f1, f2, thd_fscore) < thd_fscore)
+                        if (kcount >= thd_pattern_in_window  && 
+                            _get_tile_f_tri_(tmp_tile, f1, f2, thd_fscore, thd_tileSize) < thd_fscore)
                         {
                             if (empty(tiles) || is_tile_end(back(tiles)))
                             {
@@ -1716,11 +1726,16 @@ unsigned _get_tile_f_tri_ (uint64_t const & tile,
     g_hs_end = g_mapHs_kmer_(seq1, g_hs, gs_str, gs_end, g_hs_end, 10, 0);
     g_hs_end = g_mapHs_kmer_(seq2, g_hs, gr_str, gr_end, g_hs_end, 1, 1);
 
+
+
     std::sort (begin(g_hs), begin(g_hs) + g_hs_end);
 
     int p1 = 0, p2 = 0;
     for (int k = 1; k < g_hs_end; k++)
-    {
+    {    
+    //<<<debug
+        std::cout << "gmh_1 " << g_hs[k] << "\n";
+    //>>>debug
         switch (g_hs_getXT(g_hs[k] ^ g_hs[k - 1]))
         {
             case 0:       //x1 = x2 both from genome or read
@@ -1734,6 +1749,9 @@ unsigned _get_tile_f_tri_ (uint64_t const & tile,
                 p2 = k; 
         }
     }
+    //<<<debug
+    print_g_hs_anchor(g_hs_anchor, 0, g_hs_anchor_end, "gmh_2 ");
+    //>>>debug
     g_mapHs_anchor_sv_(g_hs_anchor, g_hs_tile, f1, f2, 
                        cord_str, cord_end,
                        g_hs_anchor_end, 
@@ -2389,7 +2407,7 @@ int c_clip_extend_(uint64_t & ex_d, // results
     int64_t j_end = 0;
     float drop_count = 0;
     String<short> tzs; //trailing zero of each pattern
-    String<short> lzs; //leading zeor of each pattern
+    String<short> lzs; //leading zero of each pattern
     String<short> chain_x;
     String<short> chain_y;
     appendValue(chain_x, 0);
