@@ -1749,9 +1749,6 @@ unsigned _get_tile_f_tri_ (uint64_t const & tile,
                 p2 = k; 
         }
     }
-    //<<<debug
-    print_g_hs_anchor(g_hs_anchor, 0, g_hs_anchor_end, "gmh_2 ");
-    //>>>debug
     g_mapHs_anchor_sv_(g_hs_anchor, g_hs_tile, f1, f2, 
                        cord_str, cord_end,
                        g_hs_anchor_end, 
@@ -2737,18 +2734,18 @@ int64_t c_clip_(String<Dna5> & genome,
  *         \
  *   path1 path2
  */
- int g_alignGap_(String<Dna5> & seq1,
-                 String<Dna5> & seq2,
-                 String<Dna5> & comstr, //complement reverse of the read (seq2)
-                 String<uint64_t> & tiles,
-                 String<uint64_t> & clips,
-                 String<uint64_t> & g_hs,
-                 String<uint64_t> & g_hs_anchor,
-                 uint64_t cord_str,
-                 uint64_t cord_end, 
-                 int direction,
-                 int thd_cord_gap
-                )
+ int g_extend_clip_(String<Dna5> & seq1,
+                    String<Dna5> & seq2,
+                    String<Dna5> & comstr, //complement reverse of the read (seq2)
+                    String<uint64_t> & tiles,
+                    String<uint64_t> & clips,
+                    String<uint64_t> & g_hs,
+                    String<uint64_t> & g_hs_anchor,
+                    uint64_t cord_str,
+                    uint64_t cord_end, 
+                    int direction,
+                    int thd_cord_gap
+                   )
 {
     // Insert the head and tail tile to process in one for loop
     // The inserted head tile and tail tile will be removed 
@@ -2850,6 +2847,10 @@ int64_t c_clip_(String<Dna5> & genome,
                                        << get_tile_y(tile2);
                     clip_str = shift_tile(tile2, -shift, -shift);
                     clip_direction = -1;
+                    std::cout << "gag61 " << get_cord_y(tile1) << " " 
+                            << get_cord_x(tile1) << " " << get_tile_strand(tile1) << " "
+                            << get_cord_y(tile2) << " " 
+                            << get_cord_x(tile2) << " " << get_tile_strand(tile2) << "\n ";
                 }
                 else //tile1 towards right
                 {
@@ -2863,6 +2864,10 @@ int64_t c_clip_(String<Dna5> & genome,
                                        << length(seq2) - 1 - get_tile_y(tile1);
                     clip_end = shift_tile(tile1, shift, shift);
                     clip_direction = 1;
+                                    std::cout << "gag62 " << get_cord_y(tile1) << " " 
+                            << get_cord_x(tile1) << " " << get_tile_strand(tile1) << " "
+                            << get_cord_y(tile2) << " " 
+                            << get_cord_x(tile2) << " " << get_tile_strand(tile2) << "\n ";
                 }
                 std::cout << "gag44 1 " << get_tile_y(clip_str) << " " << get_tile_y(clip_end) << " " << get_tile_x(clip_str) << " " << get_tile_x(clip_end) << " " << get_tile_strand(clip_str) << " " << get_tile_strand(clip_end) << "\n";
 
@@ -2888,7 +2893,11 @@ int64_t c_clip_(String<Dna5> & genome,
                 thd_band_ratio = 0.5;
                 std::cout << "gag44 2 " << get_tile_y(clip_str) << " " << get_tile_y(clip_end) << " " << get_tile_x(clip_str) << " " << get_tile_x(clip_end) << " " << get_tile_strand(clip_str) << " " << get_tile_strand(clip_end) << "\n";
                 clip = c_clip_ (seq1, seq2, comstr, clip_str, clip_end, g_hs, g_hs_anchor, thd_band_ratio, clip_direction);   
-                appendValue (clips, clip);            
+                appendValue (clips, clip);   
+                                std::cout << "gag63 " << get_cord_y(tile1) << " " 
+                            << get_cord_x(tile1) << " " << get_tile_strand(tile1) << " "
+                            << get_cord_y(tile2) << " " 
+                            << get_cord_x(tile2) << " " << get_tile_strand(tile2) << "\n ";         
             }
             else if (!(sv_flags[i] & g_sv_r) && (sv_flags[i + 1] & g_sv_l))
             {
@@ -2910,6 +2919,10 @@ int64_t c_clip_(String<Dna5> & genome,
                 std::cout << "gag44 3 " << i << " " << shift << " " << get_tile_x(tile1) << " " << get_tile_x(tile2) << " clip_str_y=" << get_tile_y(clip_str) << " " << get_tile_y(clip_end) << " " << get_tile_x(clip_str) << " " << get_tile_x(clip_end) << " " << get_tile_strand(clip_str) << " " << get_tile_strand(clip_end) << "\n";
                 clip = c_clip_ (seq1, seq2, comstr, clip_str, clip_end, g_hs, g_hs_anchor, thd_band_ratio, clip_direction);   
                 appendValue (clips, clip);
+                                std::cout << "gag64 " << get_cord_y(tile1) << " " 
+                            << get_cord_x(tile1) << " " << get_tile_strand(tile1) << " "
+                            << get_cord_y(tile2) << " " 
+                            << get_cord_x(tile2) << " " << get_tile_strand(tile2) << "\n ";
             }
             else if ((sv_flags[i] & g_sv_gap) && (sv_flags[i + 1] & g_sv_gap))
             {
@@ -2947,6 +2960,10 @@ int64_t c_clip_(String<Dna5> & genome,
                 std::cout << "gag44 5 " << get_tile_y(clip_str) << " " << get_tile_y(clip_end) << " " << get_tile_x(clip_str) << " " << get_tile_x(clip_end) << " " << get_tile_strand(clip_str) << " " << get_tile_strand(clip_end) << "\n";
                 clip = c_clip_ (seq1, seq2, comstr, clip_str, clip_end, g_hs, g_hs_anchor, thd_band_ratio, clip_direction);   
                 appendValue (clips, clip);
+                                std::cout << "gag65 " << get_cord_y(tile1) << " " 
+                            << get_cord_x(tile1) << " " << get_tile_strand(tile1) << " "
+                            << get_cord_y(tile2) << " " 
+                            << get_cord_x(tile2) << " " << get_tile_strand(tile2) << "\n ";
 
             }
         }
@@ -3040,7 +3057,7 @@ int64_t c_clip_(String<Dna5> & genome,
                 std::cout << "mg_ " << get_cord_y(tiles[i]) << " " << get_cord_y(tiles[i]) << " " << get_cord_strand(tiles[i]) << "\n";
             }
         }
-        g_alignGap_(seqs[genomeId], read, comstr, tiles, clips, g_hs, g_anchor, cord1, cord2, direction, thd_cord_gap);
+        g_extend_clip_(seqs[genomeId], read, comstr, tiles, clips, g_hs, g_anchor, cord1, cord2, direction, thd_cord_gap);
         g_print_tiles_(tiles, "mg_1");
     }
     /*
@@ -3048,7 +3065,7 @@ int64_t c_clip_(String<Dna5> & genome,
     {
         appendValue(tiles, cord1);
         appendValue(tiles, cord2);
-        g_alignGap_(seqs[genomeId], read, comstr, tiles, clips, g_hs, g_anchor, gs_start, gs_end, gr_start, gr_end, strand, genomeId, direction, thd_cord_gap);
+        g_extend_clip_(seqs[genomeId], read, comstr, tiles, clips, g_hs, g_anchor, gs_start, gs_end, gr_start, gr_end, strand, genomeId, direction, thd_cord_gap);
     }
     */
         std::cout << "mg_2 " << length(tiles) << "\n";
