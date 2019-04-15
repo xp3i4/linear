@@ -3,6 +3,16 @@
 #include <seqan/sequence.h>
 
 using namespace seqan;
+//ClipRecords : operator struct cord
+
+extern uint64_t EmptyClipConst;
+
+uint64_t getClipStr(String<uint64_t> &, int); //seq1
+uint64_t getClipEnd(String<uint64_t> &, int);
+int getClipsLen(String<uint64_t> &);
+void insertClipStr(String<uint64_t> &, uint64_t);
+void insertClipEnd(String<uint64_t> &, uint64_t);
+bool isClipEmpty(uint64_t);
 
 /**
  * Re-map gaps in cords.
@@ -20,5 +30,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             int const thd_gap, 
             int const thd_tileSize
            );
+
+
 
 #endif

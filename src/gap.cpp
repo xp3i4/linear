@@ -5,6 +5,9 @@
 #include "pmpfinder.h"
 #include "gap.h"
 
+/*=============================================
+=             Interface function             =
+=============================================*/
 struct CmpInt64
 {
     int64_t * p_rslt;
@@ -44,6 +47,56 @@ CmpInt64 & CmpInt64::operator >> (int64_t n)
     }
     return *this;
 }
+
+/**
+ * class ClipRecords:
+ * based on struct cord
+ */
+uint64_t EmptyClipConst = -1;
+
+uint64_t getClipStr(String<uint64_t> & clips, int i) 
+{
+    return clips[i << 1];
+}
+uint64_t getClipEnd(String<uint64_t> & clips, int i)
+{
+    return clips[(i << 1) + 1];
+}
+int getClipsLen(String<uint64_t> & clips)
+{
+    return length(clips) >> 1;
+}
+void insertClipStr(String<uint64_t> & clips, uint64_t clip)
+{
+    if (length(clips) >> 1 << 1 != length(clips))
+    {
+        appendValue (clips, EmptyClipConst);
+    }
+    appendValue(clips, clip);
+}
+void insertClipEnd(String<uint64_t> & clips, uint64_t clip)
+{
+    if (length(clips) >> 1 << 1 == length(clips))
+    {
+        appendValue (clips, EmptyClipConst);
+    }
+    appendValue (clips, clip);
+}
+bool isClipEmpty(uint64_t clip)
+{
+    return clip == EmptyClipConst;
+}
+
+int isClipTowardsLeft (int clip_direction)
+{
+    return clip_direction < 0; 
+}
+int isClipTowardsRight (int clip_direction)
+{
+    return clip_direction > 0;
+}
+/*=======  End of interface function  =======*/
+
 
 struct GNodeBase
 {
@@ -1383,7 +1436,7 @@ int check_tiles_(String<uint64_t> & tiles, uint64_t g_start, uint64_t g_end)
     //g_print_tiles_(tiles, f1, f2);
 }
 
-unsigned _get_tile_f_ (uint64_t const & tile,
+unsigned _get_tile_f_ (uint64_t & tile,
                   StringSet<String<short> > & f1,
                   StringSet<String<short> > & f2)
 {
@@ -1399,7 +1452,8 @@ unsigned _get_tile_f_ (uint64_t const & tile,
     return fscore;
 }
 
-unsigned _get_tile_f_tri_ (uint64_t const & tile,
+unsigned _get_tile_f_tri_ (uint64_t & tile,
+                  uint64_t & new_tile,
                   StringSet<String<short> > & f1,
                   StringSet<String<short> > & f2, 
                   unsigned thd_accept_score,
@@ -1412,6 +1466,7 @@ unsigned _get_tile_f_tri_ (uint64_t const & tile,
     unsigned fscore =  _get_tile_f_ (tile, f1, f2) ;
     if (fscore < thd_accept_score)
     {
+        new_tile = tile;
         return fscore;
     }
     else
@@ -1419,10 +1474,12 @@ unsigned _get_tile_f_tri_ (uint64_t const & tile,
         fscore = std::min(_get_tile_f_(tile_l, f1, f2), fscore);
         if (fscore < thd_accept_score)
         {
+            new_tile = tile_l;
             return fscore;
         }
         else
         {
+            new_tile = tile_r;
             return std::min(_get_tile_f_(tile_r, f1, f2), fscore);
 
         }
@@ -1510,7 +1567,6 @@ unsigned _get_tile_f_tri_ (uint64_t const & tile,
                 int prej = prek;
                 for (int j = prek; j < k; j++)
                 {
-
                     std::cout << "gmas7 " << j << " " << g_hs_anchor_getX(anchor[j]) << " " << g_hs_anchor_getY(anchor[j]) << "\n";
                     uint64_t x = g_hs_anchor_getX(anchor[j]);
                     uint64_t y = g_hs_anchor_getY(anchor[j]);
@@ -1535,19 +1591,20 @@ unsigned _get_tile_f_tri_ (uint64_t const & tile,
                         int64_t tmp_tile_y = centroid_y - tmp_shift ;
                         uint64_t tmp_tile = create_tile(0, tmp_tile_x, tmp_tile_y, 
                                             g_hs_anchor_get_strand(anchor[prek]));
+                        uint64_t new_tile;
                         //<<<debug
                         uint64_t d_tile = shift_tile(tmp_tile, 0, 0);
-                        std::cout << "gmas8 " << get_tile_strand(tmp_tile) << " " << y << " " << get_tile_y(d_tile) << " " << get_tile_x(d_tile) << " score " << _get_tile_f_tri_(d_tile, f1, f2, 40)  << " " << centroid_y << "\n";
+                        std::cout << "gmas8 " << get_tile_strand(tmp_tile) << " " << y << " " << get_tile_y(d_tile) << " " << get_tile_x(d_tile) << " score " << _get_tile_f_tri_(d_tile, new_tile, f1, f2, 40)  << " " << centroid_y << "\n";
                         //>>>debug
                         if (kcount >= thd_pattern_in_window  && 
-                            _get_tile_f_tri_(tmp_tile, f1, f2, thd_fscore, thd_tileSize) < thd_fscore)
+                            _get_tile_f_tri_(tmp_tile, new_tile, f1, f2, thd_fscore, thd_tileSize) < thd_fscore)
                         {
                             if (empty(tiles) || is_tile_end(back(tiles)))
                             {
-                                set_tile_start(tmp_tile);
+                                set_tile_start(new_tile);
                             }
-                            std::cout << "gmas6 append <<<<<<<<<<" << get_tile_y(tmp_tile) << " " << get_tile_x(tmp_tile) << " " <<  get_tile_strand(tmp_tile) << "\n";
-                            appendValue (tiles, tmp_tile);
+                            std::cout << "gmas6 append <<<<<<<<<<" << get_tile_y(new_tile) << " " << get_tile_x(new_tile) << " " <<  get_tile_strand(new_tile) << "\n";
+                            appendValue (tiles, new_tile);
                         }
                         prex = g_hs_anchor_getX(anchor[j - 1]);
                         prey = g_hs_anchor_getY(anchor[j - 1]);
@@ -1966,7 +2023,7 @@ inline int64_t c_sc_(int val1, int val2,
 /**
  * 
  * Clip the anchors when it reach the first anchor that can be well extended. 
- * @clip_direction: -1 extend toward the right; 1 extend toward the left
+ * @clip_direction: -1 gap-match; 1 match-gap
  */
 int64_t c_clip_anchors_ (String<uint64_t> & anchor, 
                          uint64_t gs_start,
@@ -2402,6 +2459,7 @@ int c_clip_extend_(uint64_t & ex_d, // results
     int k_str = 0;
     int64_t j_str = 0;
     int64_t j_end = 0;
+    int chain_init_len;
     float drop_count = 0;
     String<short> tzs; //trailing zero of each pattern
     String<short> lzs; //leading zero of each pattern
@@ -2417,7 +2475,8 @@ int c_clip_extend_(uint64_t & ex_d, // results
     {
         hashs[i] = hashNext_hs(shape, it_str1 + i);
     }   
-    if (clip_direction < 0) //-Gap-Match-
+    chain_init_len = length(chain_y);
+    if (isClipTowardsLeft(clip_direction)) //-Gap-Match-
     {
         hashInit_hs(shape, it_str2 + hs_len2 - shape.span, 1);
         for (int64_t i = hs_len2 - shape.span; i > 0; --i) //scan the read 
@@ -2450,6 +2509,8 @@ int c_clip_extend_(uint64_t & ex_d, // results
                             appendValue(chain_x, x);
                             appendValue(chain_y, y);
                             f_extend = true;
+                            chain_init_len = length(chain_y);
+                            std::cout << "ccre10 " << y << "\n";
                         }
                     }
                     else 
@@ -2469,6 +2530,7 @@ int c_clip_extend_(uint64_t & ex_d, // results
                                 appendValue(chain_x, x);
                                 appendValue(chain_y, y);
                                 f_extend = true;
+                            std::cout << "ccre12 " << y << "\n";
                                 break;
                             }
                         }
@@ -2477,26 +2539,29 @@ int c_clip_extend_(uint64_t & ex_d, // results
             }
             if (!f_extend)
             {
+                std::cout << "ccre8_2 " << drop_count << "\n";
                 if (++drop_count > thd_drop)
                 {
-                    if (!empty(chain_x))
+                    if (length(chain_x) > chain_init_len) //!empty
                     {
-                        std::cout << "ccre6 " << get_cord_y(extend_str) + back(chain_y) << "\n";
-                        return (back(chain_x) << 32) + back(chain_y);
+                        ex_d = (back(chain_x) << 32) + back(chain_y);
                     }
                     else
                     {
-                        return 0;
+                        ex_d = ((hs_len1 - 1) << 32) + hs_len2 - 1;
                     }
+                    std::cout << "ccre6 " << (ex_d & ((1ULL << 32) - 1)) << "\n";
+                    return ex_d;
                 }
             }
             else
             {
+                std::cout << "ccre8 " << drop_count << "\n";
                 drop_count = std::max (drop_count - 0.5, 0.0);
             }
         }
     }
-    else //-Match-Gap
+    else if (isClipTowardsRight(clip_direction)) //-Match-Gap
     {
         hashInit_hs(shape, it_str2, 0);
         for (int64_t i = 0; i < hs_len2 - shape.span + 1; i++) //scan the read 
@@ -2528,6 +2593,7 @@ int c_clip_extend_(uint64_t & ex_d, // results
                         {
                             appendValue(chain_x, x);
                             appendValue(chain_y, y);
+                            chain_init_len = length(chain_y);
                             f_extend = true;
                         }
                     }
@@ -2558,13 +2624,15 @@ int c_clip_extend_(uint64_t & ex_d, // results
             {
                 if (++drop_count > thd_drop)
                 {
-                    if (!empty(chain_x))
+                    if (length(chain_x) > chain_init_len)
                     {
-                        std::cout << "ccre6 " << get_cord_y(extend_str) + back(chain_y) << "\n";
-                        return (back(chain_x) << 32) + back(chain_y);
+                        std::cout << "ccre6 " << get_cord_y(extend_str) + back(chain_y) << " " << i << "\n";
+                        ex_d =  (back(chain_x) << 32) + back(chain_y);
+                        return ex_d;
                     }
                     else
                     {
+                        ex_d = 0;
                         return 0;
                     }
                 }
@@ -2575,6 +2643,7 @@ int c_clip_extend_(uint64_t & ex_d, // results
             }
         }
     }
+    ex_d = 0;
     return 0;
 
 }
@@ -2593,7 +2662,7 @@ struct ParmClipExtend
  *  1 left part is well aligned
  * -1 right part is well aligned
  */
- int c_clip_extend_(uint64_t & result_val, 
+int c_clip_extend_(uint64_t & result_val, 
                     String<uint64_t> & hs, 
                     String<uint64_t> & anchors,
                     String<Dna5> & seq1,
@@ -2603,7 +2672,7 @@ struct ParmClipExtend
                     ParmClipExtend & parm,
                     int clip_direction = -1 
     )
- {
+{
     c_clip_extend_(result_val, 
                    hs, 
                    seq1,
@@ -2668,11 +2737,11 @@ int64_t c_clip_(String<Dna5> & genome,
                                    thd_merge2, 
                                    clip_direction);    
     
-    ///clip breakpoints
     uint64_t dx = (g_anchor_val >> 32);
     uint64_t dy = (g_anchor_val & ((1ULL << 32) - 1));
     uint64_t clip = create_cord(genomeId, gs_str + dx, gr_str + dy, gr_strand);
 
+//call c_clip_extend to extend the clip further.
     int extend_window = 100;
     int band_gap = 5; 
     int thd_gap_shape = 5;
@@ -2681,26 +2750,27 @@ int64_t c_clip_(String<Dna5> & genome,
     uint64_t extend_str;
     uint64_t extend_end;
     uint64_t breakpoint;
-    if (clip_direction < 0)
+    int64_t shift;
+    if (isClipTowardsLeft (clip_direction))
     {
         extend_end = shift_cord (clip_str, dx, dy);
-        int64_t shift = extend_window;
-        g_cmpll.min(shift) << get_tile_x(extend_end - clip_str)
-                           << get_tile_y(extend_end - clip_str);
+        g_cmpll.min(shift, extend_window) 
+                    << get_tile_x(extend_end - clip_str)
+                    << get_tile_y(extend_end - clip_str);
         extend_str = shift_cord (extend_end, -shift, -shift);
     }
-    else if (clip_direction > 0)
+    else if (isClipTowardsRight (clip_direction))
     {
         extend_str = shift_cord(clip_str, dx, dy);
-        int64_t shift = extend_window;
-        g_cmpll.min(shift) << get_tile_x(clip_end - extend_str) 
-                           << get_tile_y(clip_end - extend_str);
+        g_cmpll.min(shift, extend_window) 
+                    << get_tile_x(clip_end - extend_str) 
+                    << get_tile_y(clip_end - extend_str);
         extend_end = shift_cord(extend_str, shift, shift);
     }
     int thd_error_level = 3; // >>3 == * 0.125
     int thd_scan_radius = 3;  //at least scan 5 elements in the genome for each kmer in the read
     uint64_t ex_d = 0;
-    std::cout << "cc2 " << gr_str << " " << gr_str + dy << "\n";
+    std::cout << "cc2 " << gr_str << " " << gr_str + dy << " " << dy << "\n";
     c_clip_extend_(ex_d, 
                    g_hs,
                    seq1,
@@ -2713,11 +2783,10 @@ int64_t c_clip_(String<Dna5> & genome,
                    thd_merge_drop,
                    clip_direction
                   );
-    int dyt = (ex_d & ((1ULL << 32) - 1));
-    dx -= extend_window - (ex_d >> 32);
-    dy -= extend_window -dyt; 
-    std::cout << "c_clip_2 " << gs_str + dx << " " << gr_str + dy << " " << length(read) << "\n";
-    clip = create_cord(genomeId, gs_str + dx, gr_str + dy, gr_strand); 
+    dx = ex_d >> 32;
+    dy = ex_d & ((1ULL << 32) - 1);
+    std::cout << "cc4 " << get_cord_y(clip_str) << " " << get_cord_y(extend_str) << " " << dy << " " << dx << " " << length(read) << "\n";
+    clip = shift_cord (extend_str, dx, dy);
 
     return clip;
 }
@@ -2747,74 +2816,80 @@ int64_t c_clip_(String<Dna5> & genome,
                     int thd_cord_gap
                    )
 {
-    // Insert the head and tail tile to process in one for loop
-    // The inserted head tile and tail tile will be removed 
-    // it does not affect the original tiles.uint64_t main_strand = get_cord_strand(cord_str);
     std::cout << "gag_str\n";
     uint64_t head_tile = cord_str;
     uint64_t tail_tile = cord_end; 
     uint64_t main_strand = get_cord_strand(cord_str);
-    int block_size = window_size;
-    int64_t thd_max_gap_size = 2 * block_size;
+    int64_t tile_size = window_size;
+    int64_t thd_max_gap_size = tile_size;
     float thd_band_ratio = 0.5;
     insert (tiles, 0, head_tile);
     appendValue (tiles, tail_tile);
     std::cout << "gag5 " << get_cord_x(head_tile) << "\n";
     String<int> sv_flags;
-    resize(sv_flags, length(tiles));
-    for (unsigned i = 0; i < length(sv_flags); i++)
+    resize (sv_flags, length(tiles));
+    for (int i = 0; i < length(sv_flags); i++)
     {
         sv_flags[i] = 0;
     }    
     int sv_exists = 0;
-    for (unsigned i = 1; i < length(tiles); i++)
+    for (int i = 1; i < length(tiles); i++)
     {
         int64_t distance_x = tile_distance_x(tiles[i - 1], tiles[i]);
         int64_t distance_y = tile_distance_y(tiles[i - 1], tiles[i]); 
         std::cout << "gag2 " << i << " " << distance_y << " " << distance_x << " " << thd_cord_gap << " " << get_cord_y(tiles[i - 1]) << "\n";
         ///check sv type
-        if (_defaultTile.getStrand(tiles[i] ^ tiles[i - 1]))
+        if (_defaultTile.getStrand(tiles[i] ^ tiles[i - 1])) //inv
         {
-            sv_flags[i - 1] |= g_sv_inv + g_sv_r;
-            sv_flags[i] |= g_sv_inv + g_sv_l;
+            if (get_tile_strand(tiles[i] ^ main_strand))
+            {
+                sv_flags[i - 1] |= g_sv_inv + g_sv_r;
+            }
+            else
+            {
+                sv_flags[i] |= g_sv_inv + g_sv_l;
+            }
             sv_exists = 1;
         }
-        else if (distance_x - distance_y > block_size)  //window: 192x192
+        else if (distance_x - distance_y > tile_size)   //del
         {
             sv_flags[i - 1] |= g_sv_ins + g_sv_r;
             sv_flags[i] |= g_sv_ins + g_sv_l;
             sv_exists = 1;
         }
-        else if (distance_y - distance_x > block_size)
+        else if (distance_y - distance_x > tile_size)  //ins 
         {
             sv_flags[i - 1] |= g_sv_del + g_sv_r;
             sv_flags[i] |= g_sv_del + g_sv_l;
             sv_exists = 1;
         }
-        else if (distance_y > thd_cord_gap && distance_x > thd_cord_gap)
+        else if (distance_y > thd_cord_gap && distance_x > thd_cord_gap) //gap, inv
         {
-            sv_flags[i - 1] += g_sv_gap;
-            sv_flags[i] += g_sv_gap;
+            sv_flags[i - 1] += g_sv_gap + g_sv_r;
+            sv_flags[i] += g_sv_gap + g_sv_l;
             sv_exists = 1;
         }
    std::cout << "gag1 " << i << " " << distance_y << " " << distance_x << " " << thd_cord_gap << " " << get_cord_y(tiles[i - 1]) << " " << get_cord_y(tiles[i]) << "\n";
     }
-    std::cout << "gag1\n";
-
-    g_print_tiles_(tiles);
-    switch (direction)
+    if (direction == g_align_left) 
     {
-        //NOTE sv_flags at least have 2 elements, namely the virtual head and tail. 
-        case g_align_left:
+        if (get_tile_y(tiles[0]) < thd_cord_gap && 
+            ! get_tile_strand(tiles[0] ^ tiles[1]))
         {
-            sv_flags[0] = 0;
-            break;
+            sv_flags[1] &= ~(g_sv_l);
         }
-        case g_align_right:   
+        sv_flags[0] = 0;
+    }
+    else if (direction == g_align_right)
+    {
+        uint64_t tile1 = back(tiles);
+        uint64_t tile2 = tiles[length(tiles) - 2];
+        if (get_tile_y(tile1 - tile2) < thd_cord_gap &&
+            !get_tile_strand(tile1 ^ tile2))
         {
-            back(sv_flags) = 0;
-            break; 
+            sv_flags[length(sv_flags) - 2] &= ~(g_sv_r);
         }
+        back(sv_flags) = 0;
     }
     
     uint64_t clip = -1;
@@ -2827,145 +2902,42 @@ int64_t c_clip_(String<Dna5> & genome,
     int clip_direction;
     if (sv_exists)
     {
-        for (unsigned i = 0; i < length(sv_flags) - 1; i++)
+        for (int i = 0; i < length(sv_flags); i++)
         {
-            uint64_t tile1 = tiles[i];
-            uint64_t tile2 = tiles[i + 1];
-            uint64_t *p_clip;
-            if ((sv_flags[i] & g_sv_r) && (sv_flags[i + 1] & g_sv_l)) 
+            uint64_t tile = tiles[i];
+            if (sv_flags[i] & g_sv_r)
             {
-                //TODO make the range to clip [clip_str, clip_end] more precise to avoid covering two well mapped segs such as  100M50Gaps100M
-                if (get_tile_strand(tile1) ^ main_strand) //tile2 towards left
-                {
-                    g_cmpll.min(shift) << block_size / 2 
-                                       << get_tile_x(tile2)
-                                       << get_tile_y(tile2);
-                    clip_end = shift_tile(tile2, shift, shift);
-                    g_cmpll.min(shift, shift + thd_max_gap_size) 
-                                       << get_tile_x(tile2 - tile1) + block_size / 2
-                                       << get_tile_x(tile2)
-                                       << get_tile_y(tile2);
-                    clip_str = shift_tile(tile2, -shift, -shift);
-                    clip_direction = -1;
-                    std::cout << "gag61 " << get_cord_y(tile1) << " " 
-                            << get_cord_x(tile1) << " " << get_tile_strand(tile1) << " "
-                            << get_cord_y(tile2) << " " 
-                            << get_cord_x(tile2) << " " << get_tile_strand(tile2) << "\n ";
-                }
-                else //tile1 towards right
-                {
-                    g_cmpll.min(shift) << int64_t(block_size / 2)
-                                       << length(seq1) - 1 - get_tile_x(tile1) 
-                                       << length(seq2) - 1 - get_tile_y(tile1);
-                    clip_str = shift_tile(tile1, shift, shift);
-                    g_cmpll.min(shift, shift + thd_max_gap_size) 
-                                       << get_tile_x(tile2 - tile1) + block_size / 2
-                                       << length(seq1) - 1 - get_tile_x(tile1) 
-                                       << length(seq2) - 1 - get_tile_y(tile1);
-                    clip_end = shift_tile(tile1, shift, shift);
-                    clip_direction = 1;
-                                    std::cout << "gag62 " << get_cord_y(tile1) << " " 
-                            << get_cord_x(tile1) << " " << get_tile_strand(tile1) << " "
-                            << get_cord_y(tile2) << " " 
-                            << get_cord_x(tile2) << " " << get_tile_strand(tile2) << "\n ";
-                }
-                std::cout << "gag44 1 " << get_tile_y(clip_str) << " " << get_tile_y(clip_end) << " " << get_tile_x(clip_str) << " " << get_tile_x(clip_end) << " " << get_tile_strand(clip_str) << " " << get_tile_strand(clip_end) << "\n";
-
-                thd_band_ratio = 0.5;
-                clip = c_clip_ (seq1, seq2, comstr, clip_str, clip_end, g_hs, g_hs_anchor, thd_band_ratio, clip_direction);   
-                appendValue (clips, clip);
-            }
-            else if ((sv_flags[i] & g_sv_r) && !(sv_flags[i + 1] & g_sv_l))
-            {
-                g_cmpll.min(shift) << int64_t(block_size / 2)
-                                   << length(seq1) - 1 - get_tile_x(tile1) 
-                                   << length(seq2) - 1 - get_tile_y(tile1);
-                clip_str = shift_tile(tile1, shift, shift);
-                int64_t shift_end = std::max (get_tile_x(tile2 - tile1),
-                                              get_tile_y(tile2 - tile1)) 
-                                              + block_size / 2;
+                g_cmpll.min(shift) << int64_t(tile_size / 2)
+                                   << length(seq1) - 1 - get_tile_x(tile) 
+                                   << length(seq2) - 1 - get_tile_y(tile);
+                clip_str = shift_tile(tile, shift, shift);
                 g_cmpll.min(shift, shift + thd_max_gap_size) 
-                                   << shift_end 
-                                   << length(seq1) - 1 - get_tile_x(tile1) 
-                                   << length(seq2) - 1 - get_tile_y(tile1);
-                clip_end = shift_tile(tile1, shift, shift);
+                                   << length(seq1) - 1 - get_tile_x(tile) 
+                                   << length(seq2) - 1 - get_tile_y(tile);
+                clip_end = shift_tile(tile, shift, shift);
                 clip_direction = 1;
                 thd_band_ratio = 0.5;
-                std::cout << "gag44 2 " << get_tile_y(clip_str) << " " << get_tile_y(clip_end) << " " << get_tile_x(clip_str) << " " << get_tile_x(clip_end) << " " << get_tile_strand(clip_str) << " " << get_tile_strand(clip_end) << "\n";
-                clip = c_clip_ (seq1, seq2, comstr, clip_str, clip_end, g_hs, g_hs_anchor, thd_band_ratio, clip_direction);   
-                appendValue (clips, clip);   
-                                std::cout << "gag63 " << get_cord_y(tile1) << " " 
-                            << get_cord_x(tile1) << " " << get_tile_strand(tile1) << " "
-                            << get_cord_y(tile2) << " " 
-                            << get_cord_x(tile2) << " " << get_tile_strand(tile2) << "\n ";         
+                clip = c_clip_ (seq1, seq2, comstr, clip_str, clip_end, g_hs, g_hs_anchor, thd_band_ratio, clip_direction); 
+                std::cout << "gec1 " << get_cord_y (clip_str) << " " << get_tile_y(clip_end) << " " << get_cord_x (clip_str) << " " << get_tile_x(clip_end) << " " << get_tile_strand(clip_str) << " " << get_cord_strand(clip_end) << " " << get_cord_y(clip) << "\n";
+                insertClipStr(clips, clip);
             }
-            else if (!(sv_flags[i] & g_sv_r) && (sv_flags[i + 1] & g_sv_l))
+            if (sv_flags[i] & g_sv_l)
             {
-                g_cmpll.min(shift) << block_size / 2 
-                                   << get_tile_x(tile2)
-                                   << get_tile_y(tile2);
-                clip_end = shift_tile(tile2, shift, shift);
-                int64_t shift_str = std::max (get_tile_x(tile2 - tile1),
-                                              get_tile_y(tile2 - tile1)) 
-                                              + block_size / 2;
-                g_cmpll.min(shift, shift + thd_max_gap_size) 
-                                   << shift_str
-                                   << get_tile_x(tile2)
-                                   << get_tile_y(tile2);
-                clip_str = shift_tile(tile2, -shift, -shift);
+                g_cmpll.min(shift) << tile_size / 2 
+                                   << length(seq1) - 1 - get_tile_x(tile) 
+                                   << length(seq2) - 1 - get_tile_y(tile);
+                clip_end = shift_tile(tile, shift, shift);
+                g_cmpll.min(shift) << tile_size / 2
+                                   << get_tile_x(tile)
+                                   << get_tile_y(tile);
+                clip_str = shift_tile(tile, -shift, -shift);
                 clip_direction = -1;
                 thd_band_ratio = 0.5;
-                
-                std::cout << "gag44 3 " << i << " " << shift << " " << get_tile_x(tile1) << " " << get_tile_x(tile2) << " clip_str_y=" << get_tile_y(clip_str) << " " << get_tile_y(clip_end) << " " << get_tile_x(clip_str) << " " << get_tile_x(clip_end) << " " << get_tile_strand(clip_str) << " " << get_tile_strand(clip_end) << "\n";
-                clip = c_clip_ (seq1, seq2, comstr, clip_str, clip_end, g_hs, g_hs_anchor, thd_band_ratio, clip_direction);   
-                appendValue (clips, clip);
-                                std::cout << "gag64 " << get_cord_y(tile1) << " " 
-                            << get_cord_x(tile1) << " " << get_tile_strand(tile1) << " "
-                            << get_cord_y(tile2) << " " 
-                            << get_cord_x(tile2) << " " << get_tile_strand(tile2) << "\n ";
+                clip = c_clip_ (seq1, seq2, comstr, clip_str, clip_end, g_hs, g_hs_anchor, thd_band_ratio, clip_direction); 
+                std::cout << "gec2 " << get_cord_y (clip_str) << " " << get_tile_y(clip_end) << " " << get_cord_x (clip_str) << " " << get_tile_x(clip_end) << " " << get_tile_strand(clip_str) << " " << get_cord_strand(clip_end) << " " << get_cord_y(clip) << "\n";
+                insertClipEnd(clips, clip);
             }
-            else if ((sv_flags[i] & g_sv_gap) && (sv_flags[i + 1] & g_sv_gap))
-            {
-                g_cmpll.min(shift) << int64_t(block_size / 2)
-                                   << length(seq1) - 1 - get_tile_x(tile1) 
-                                   << length(seq2) - 1 - get_tile_y(tile1);
-                clip_str = shift_tile(tile1, shift, shift);
-                int64_t shift_end = std::max (get_tile_x(tile2 - tile1),
-                                              get_tile_y(tile2 - tile1)) 
-                                              + block_size / 2;
-                g_cmpll.min(shift, shift + thd_max_gap_size) 
-                                   << shift_end 
-                                   << length(seq1) - 1 - get_tile_x(tile1) 
-                                   << length(seq2) - 1 - get_tile_y(tile1);
-                clip_end = shift_tile(tile1, shift, shift);
-                clip_direction = 1;
-                thd_band_ratio = 0.5;
-                std::cout << "gag44 4 " << get_tile_y(clip_str) << " " << get_tile_y(clip_end) << " " << get_tile_x(clip_str) << " " << get_tile_x(clip_end) << " " << get_tile_strand(clip_str) << " " << get_tile_strand(clip_end) << "\n";
-                clip = c_clip_ (seq1, seq2, comstr, clip_str, clip_end, g_hs, g_hs_anchor, thd_band_ratio, clip_direction);   
-                appendValue (clips, clip);
-                g_cmpll.min(shift) << block_size / 2 
-                                   << get_tile_x(tile2)
-                                   << get_tile_y(tile2);
-                clip_end = shift_tile(tile2, shift, shift);
-                int64_t shift_str = std::max (get_tile_x(tile2 - tile1),
-                                              get_tile_y(tile2 - tile1)) 
-                                              + block_size / 2;
-                g_cmpll.min(shift, shift + thd_max_gap_size) 
-                                   << shift_str
-                                   << get_tile_x(tile2)
-                                   << get_tile_y(tile2);
-                clip_str = shift_tile(tile2, -shift, -shift);
-                clip_direction = -1;
-                thd_band_ratio = 0.5;
-                std::cout << "gag44 5 " << get_tile_y(clip_str) << " " << get_tile_y(clip_end) << " " << get_tile_x(clip_str) << " " << get_tile_x(clip_end) << " " << get_tile_strand(clip_str) << " " << get_tile_strand(clip_end) << "\n";
-                clip = c_clip_ (seq1, seq2, comstr, clip_str, clip_end, g_hs, g_hs_anchor, thd_band_ratio, clip_direction);   
-                appendValue (clips, clip);
-                                std::cout << "gag65 " << get_cord_y(tile1) << " " 
-                            << get_cord_x(tile1) << " " << get_tile_strand(tile1) << " "
-                            << get_cord_y(tile2) << " " 
-                            << get_cord_x(tile2) << " " << get_tile_strand(tile2) << "\n ";
 
-            }
         }
     }
     if (length(tiles) > 2)
@@ -3174,9 +3146,9 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             if (length(read) - 1 - get_cord_y(cord1) > thd_cord_gap)
             {
                 shift_x = std::min(thd_max_extend, 
-                                  (int64_t)length(seqs[sid]) - get_cord_x(cord1));
+                                  length(seqs[sid]) - get_cord_x(cord1));
                 shift_y = std::min(thd_max_extend, 
-                                length(read) - get_cord_y(cord1) - 1);
+                                   length(read) - get_cord_y(cord1) - 1);
                 uint64_t infi_cord = _DefaultCord.shift(cord1, shift_x, shift_y);
                 uint64_t cord2 = infi_cord;
                 mapGap_ (seqs, read, comstr, 

@@ -380,34 +380,57 @@ int print_clips_gvf_(StringSet<String<uint64_t> > & clips,
     std::string file_path = outputPrefix + ".gvf";
     //std::cerr << "[]::filepath " << file_path << "\n";
     of.open(toCString(file_path));
-    of << "##gvf-version 1.10\n ";
+    of << "##gvf-version 1.10\n";
     std::string source = ".";
     std::string type = ".";
     for (unsigned i = 0; i < length(clips); i++)
     {
-        if (!empty(clips[i]))
+        for (unsigned j = 0; j < getClipsLen(clips[i]); j++)
         {
-            for (unsigned j = 0; j < length(clips[i]); j++)
+            uint64_t clip_str = getClipStr(clips[i], j);
+            uint64_t clip_end = getClipEnd(clips[i], j);
+            uint64_t cord_str1 = get_cord_x(clip_str);
+            uint64_t cord_str2 = get_cord_y(clip_str);
+            uint64_t cord_end1 = get_cord_x(clip_end);
+            uint64_t cord_end2 = get_cord_y(clip_end);
+            CharString genomeId = genomesId[get_cord_id(clips[i][j])];
+            of  << genomeId << "\t" 
+                << source << "\t" 
+                << type << "\t"; 
+            if (!isClipEmpty(clip_str))
             {
-                uint64_t cord_x = _getSA_i2(_DefaultCord.getCordX(clips[i][j]));
-                //uint64_t cord_y = _DefaultCord.getCordY(clips[i][j]);
-                CharString genomeId = genomesId[get_cord_id(clips[i][j])];
-                if ((j >> 1) << 1 == j)
-                {
-                    of  << genomeId << "\t" 
-                        << source << "\t" 
-                        << type << "\t" 
-                        << cord_x << "\t";   
-                    if (j == length(clips[i]) - 1)
-                    {
-                        of << " . readId=" << readsId[i] << ";" << i << "\n";
-                    }
-                }
-                else
-                {
-                    of << cord_x << " readId=" << readsId[i] << ";" << i << "\n";
-                }
+                of << cord_str1 << "\t";   
             }
+            else 
+            {
+                of << ".\t";
+            }
+            if (!isClipEmpty(clip_end))
+            {
+                of << cord_end1 << "\t";   
+            }
+            else 
+            {
+                of << ".\t";
+            }
+            of << "readId=" << readsId[i] << ";";
+            if (isClipEmpty(clip_str))
+            {
+                of << "readStr=.;";   
+            }
+            else 
+            {
+                of << "readStr=" << cord_str2 <<";";
+            }
+            if (isClipEmpty(clip_end))
+            {
+                of << "readEnd=.;";   
+            }
+            else 
+            {
+                of << "readEnd=" << cord_end2 << ";";
+            }
+            of << "\n";
         }
     }
     of.close();
