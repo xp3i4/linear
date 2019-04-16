@@ -2421,6 +2421,31 @@ if (t == 3)
     }
     return s;
 }
+
+//<<debug util
+String<char>  hash2kmer(uint64_t val)
+{
+    String<char> s;
+    for (int n = 64; n >= 1; n/=4)
+    {
+        int c = val / n;
+        val -= c * n; 
+        char a;
+        if (c == 0)
+            a = 'A';
+        if (c == 1)
+            a = 'C';
+        if (c == 2)
+            a = 'G';
+        if (c == 3)
+            a = 'T';
+        appendValue(s, a);
+        //std::cerr << val << " " << c << " " << n<< "\n";
+    }
+        //std::cerr << s << "\n";
+    return s;
+}
+
 /**
  * Extend the region around the breakpoint and clip it by gapped pattern.
  * The clip function is splitted into two independent functoins for
@@ -2446,6 +2471,8 @@ int c_clip_extend_(uint64_t & ex_d, // results
     int thd_init_chain_da = 10; 
     int thd_init_chain_num = 6;    
     int thd_init_scan_radius = 20;
+    int thd_da_upper = 3;
+    int thd_da_lower = -3;
     std::cout << "ccre7 " <<infix(seq1, get_cord_x(extend_str), get_cord_x(extend_end)) << " " << infix(seq2, get_cord_y(extend_str), get_cord_y(extend_end)) << "\n";
     uint64_t hs_len1 = get_cord_x(extend_end - extend_str);
     uint64_t hs_len2 = get_cord_y(extend_end - extend_str);
@@ -2465,8 +2492,7 @@ int c_clip_extend_(uint64_t & ex_d, // results
     String<short> lzs; //leading zero of each pattern
     String<short> chain_x;
     String<short> chain_y;
-    appendValue(chain_x, 0);
-    appendValue(chain_y, 0);
+
     Iterator<String<Dna5> >::Type it_str1 = begin(seq1) + get_cord_x(extend_str);
     Iterator<String<Dna5> >::Type it_str2 = begin(seq2) + get_cord_y(extend_str);
     LShape shape(shape_len);
@@ -2475,9 +2501,11 @@ int c_clip_extend_(uint64_t & ex_d, // results
     {
         hashs[i] = hashNext_hs(shape, it_str1 + i);
     }   
-    chain_init_len = length(chain_y);
     if (isClipTowardsLeft(clip_direction)) //-Gap-Match-
     {
+        appendValue(chain_x, hs_len1 - 1);
+        appendValue(chain_y, hs_len2 - 1);
+        chain_init_len = length(chain_y);
         hashInit_hs(shape, it_str2 + hs_len2 - shape.span, 1);
         for (int64_t i = hs_len2 - shape.span; i > 0; --i) //scan the read 
         {
@@ -2485,22 +2513,23 @@ int c_clip_extend_(uint64_t & ex_d, // results
             clear(lzs);
             bool f_extend = false; 
             uint64_t hash_read = hashPre_hs(shape, it_str2 + i);  
-            int64_t di = std::max (i >> thd_error_level, int64_t(thd_scan_radius));
+            int64_t di = (hs_len2 - i) >> thd_error_level;
+                    di = std::max((int64_t)thd_scan_radius, di);
             int64_t dj = thd_scan_radius << 1;
-            g_cmpll.min(j_end, i + di) << int64_t(chain_x[k_str]) << int64_t(hs_len2);
+            g_cmpll.min(j_end, i + di) << int64_t(chain_x[k_str]) << int64_t(hs_len2 - 1);
             g_cmpll.max(j_str, i - di) >> int64_t(j_end - dj) >> 0 ;
-            std::cout << "ccre4 " << i << " " << " " << chain_x[k_str] << " " << j_str << " " << j_end << " " << drop_count << " " << "\n";
-            for (int64_t j = j_str; j < j_end; j++) //scan the genome
+            std::cout << "ccre5 " << j_str << " " << j_end << " " << chain_x[k_str] << "\n";
+            for (int64_t j = j_end; j > j_str; j--) //scan the genome
             {
                 uint64_t dhash = hash_read ^ hashs[j];
                 appendValue(tzs, ctzb_4_(dhash));
                 appendValue(lzs, clzb_4_(dhash));
                 short x = j;
                 short y = i;
-                int m = j - j_str - 1;
-                if (m > 0 && c_isGapMatch_(dhash, tzs[m], tzs[m + 1], lzs[m], lzs[m + 1], c_shape_len3))
+                int m = j_end - j - 1;
+                if (m >= 0 && c_isGapMatch_(dhash, tzs[m], tzs[m + 1], lzs[m], lzs[m + 1], c_shape_len3))
                 {
-                    std::cout << "ccre2...... " << j << " " << i << " " << j_str << " " << j_end << " " << k_str << " " << length(chain_y)<< "\n";
+                    std::cout << "ccre2...... " << j << " " << i << " " << j_str << " " << j_end << " " << k_str << " " << length(chain_y) << " " << hash_read << " " << hashs[j] << " " << hash2kmer(hash_read) << " " << hash2kmer(hashs[j]) << " " << hash2kmer(hashs[j-1])<< " " << hash2kmer(hashs[j+1]) << "\n";
                     bool f_first = true;
                     if (hs_len2 - 1 - i < thd_init_chain_num)
                     {
@@ -2517,15 +2546,16 @@ int c_clip_extend_(uint64_t & ex_d, // results
                     {
                         for (int k = k_str; k < length(chain_y); k++)
                         {
-                            short dx = x - chain_x[k];
-                            short dy = y - chain_y[k];
+                            short dx = chain_x[k] - x;
+                            short dy = chain_y[k] - y;
                             short da = dx - dy;
+                            std::cout << "ccre13////// " << k << " " << da << "\n";
                             if (std::abs(dy) <= shape_len && f_first) 
                             {
                                 k_str = k;
                                 f_first = false;
                             }
-                            if (da < 3 && da > -1) 
+                            if (da < thd_da_upper && da > thd_da_lower) 
                             {
                                 appendValue(chain_x, x);
                                 appendValue(chain_y, y);
@@ -2544,13 +2574,13 @@ int c_clip_extend_(uint64_t & ex_d, // results
                 {
                     if (length(chain_x) > chain_init_len) //!empty
                     {
-                        ex_d = (back(chain_x) << 32) + back(chain_y);
+                        ex_d = shift_cord(extend_str, back(chain_x), back(chain_y));
                     }
                     else
                     {
-                        ex_d = ((hs_len1 - 1) << 32) + hs_len2 - 1;
+                        ex_d = extend_end;
                     }
-                    std::cout << "ccre6 " << (ex_d & ((1ULL << 32) - 1)) << "\n";
+                    std::cout << "ccre6 " << get_cord_y(ex_d) << " " << get_cord_x(ex_d) << " " << get_cord_id(ex_d) << " " << back(chain_x)<< "\n";
                     return ex_d;
                 }
             }
@@ -2562,7 +2592,10 @@ int c_clip_extend_(uint64_t & ex_d, // results
         }
     }
     else if (isClipTowardsRight(clip_direction)) //-Match-Gap
-    {
+    {    
+        appendValue(chain_x, 0);
+        appendValue(chain_y, 0);
+        chain_init_len = length(chain_y);
         hashInit_hs(shape, it_str2, 0);
         for (int64_t i = 0; i < hs_len2 - shape.span + 1; i++) //scan the read 
         {
@@ -2583,9 +2616,9 @@ int c_clip_extend_(uint64_t & ex_d, // results
                 short x = j;
                 short y = i;
                 int m = j - j_str - 1;
-                if (m > 0 && c_isGapMatch_(dhash, tzs[m], tzs[m + 1], lzs[m], lzs[m + 1], c_shape_len3))
+                if (m >= 0 && c_isGapMatch_(dhash, tzs[m], tzs[m + 1], lzs[m], lzs[m + 1], c_shape_len3))
                 {
-                    std::cout << "ccre2...... " << j << " " << i << " " << j_str << " " << j_end << " " << k_str << " " << length(chain_y)<< "\n";
+                    //std::cout << "ccre2...... " << j << " " << i << " " << j_str << " " << j_end << " " << k_str << " " << length(chain_y)<< "\n";
                     bool f_first = true;
                     if (i < thd_init_chain_num)
                     {
@@ -2609,7 +2642,7 @@ int c_clip_extend_(uint64_t & ex_d, // results
                                 k_str = k;
                                 f_first = false;
                             }
-                            if (da < 3 && da > -1) 
+                            if (da < thd_da_upper && da > thd_da_lower) 
                             {
                                 appendValue(chain_x, x);
                                 appendValue(chain_y, y);
@@ -2627,13 +2660,13 @@ int c_clip_extend_(uint64_t & ex_d, // results
                     if (length(chain_x) > chain_init_len)
                     {
                         std::cout << "ccre6 " << get_cord_y(extend_str) + back(chain_y) << " " << i << "\n";
-                        ex_d =  (back(chain_x) << 32) + back(chain_y);
+                        ex_d = shift_cord (extend_str, back(chain_x), back(chain_y));
                         return ex_d;
                     }
                     else
                     {
-                        ex_d = 0;
-                        return 0;
+                        ex_d = extend_str;
+                        return ex_d;
                     }
                 }
             }
@@ -2643,9 +2676,6 @@ int c_clip_extend_(uint64_t & ex_d, // results
             }
         }
     }
-    ex_d = 0;
-    return 0;
-
 }
 
 struct ParmClipExtend
@@ -2749,11 +2779,14 @@ int64_t c_clip_(String<Dna5> & genome,
     int thd_merge_drop = 6;
     uint64_t extend_str;
     uint64_t extend_end;
-    uint64_t breakpoint;
+    uint64_t breakpoints;
     int64_t shift;
     if (isClipTowardsLeft (clip_direction))
     {
+        //<<< debug
         extend_end = shift_cord (clip_str, dx, dy);
+        //>>>debug
+  //      extend_end = shift_cord (clip_str, dx, dy);
         g_cmpll.min(shift, extend_window) 
                     << get_tile_x(extend_end - clip_str)
                     << get_tile_y(extend_end - clip_str);
@@ -2769,9 +2802,8 @@ int64_t c_clip_(String<Dna5> & genome,
     }
     int thd_error_level = 3; // >>3 == * 0.125
     int thd_scan_radius = 3;  //at least scan 5 elements in the genome for each kmer in the read
-    uint64_t ex_d = 0;
-    std::cout << "cc2 " << gr_str << " " << gr_str + dy << " " << dy << "\n";
-    c_clip_extend_(ex_d, 
+    std::cout << "cc2 " << gr_str << " " << gr_str + dy << " " << dy << " " << get_cord_y(extend_str) << "\n";
+    c_clip_extend_(clip, 
                    g_hs,
                    seq1,
                    seq2,
@@ -2783,11 +2815,6 @@ int64_t c_clip_(String<Dna5> & genome,
                    thd_merge_drop,
                    clip_direction
                   );
-    dx = ex_d >> 32;
-    dy = ex_d & ((1ULL << 32) - 1);
-    std::cout << "cc4 " << get_cord_y(clip_str) << " " << get_cord_y(extend_str) << " " << dy << " " << dx << " " << length(read) << "\n";
-    clip = shift_cord (extend_str, dx, dy);
-
     return clip;
 }
 /**
