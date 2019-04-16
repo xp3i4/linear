@@ -2451,7 +2451,7 @@ String<char>  hash2kmer(uint64_t val)
  * The clip function is splitted into two independent functoins for
  * two @clip_direction value {-1,1} to reduce branches of if and else.
  */
-int c_clip_extend_(uint64_t & ex_d, // results
+int c_clip_extend_( int64_t & ex_d, // results
                     String<uint64_t> & hashs, 
                     String<Dna5> & seq1, 
                     String<Dna5> & seq2, 
@@ -2689,10 +2689,10 @@ struct ParmClipExtend
 /**
  * Wrapper 
  * @clip_direction:
- *  1 left part is well aligned
- * -1 right part is well aligned
+ *  1 towards right
+ * -1 towards left 
  */
-int c_clip_extend_(uint64_t & result_val, 
+int c_clip_extend_(int64_t & clip, 
                     String<uint64_t> & hs, 
                     String<uint64_t> & anchors,
                     String<Dna5> & seq1,
@@ -2734,6 +2734,7 @@ int64_t c_clip_(String<Dna5> & genome,
     uint64_t gr_end = get_tile_y(clip_end);
     uint64_t genomeId = get_tile_id (clip_str);
     uint64_t gr_strand = get_tile_strand(clip_str);
+//step1. extend anchor
     std::cout << "cc1 " << gs_str << " " << gr_str << " " << gs_end << " " << gr_end << " " << genomeId << " " << gr_strand << " " << clip_direction << "\n";
     String<Dna5> & seq1 = genome;
     String<Dna5> * p = (gr_strand)?(&comstr):(&read);
@@ -2767,16 +2768,17 @@ int64_t c_clip_(String<Dna5> & genome,
                                    thd_merge2, 
                                    clip_direction);    
     
-    uint64_t dx = (g_anchor_val >> 32);
-    uint64_t dy = (g_anchor_val & ((1ULL << 32) - 1));
-    uint64_t clip = create_cord(genomeId, gs_str + dx, gr_str + dy, gr_strand);
+    int64_t dx = (g_anchor_val >> 32);
+    int64_t dy = (g_anchor_val & ((1ULL << 32) - 1));
+    int64_t clip = create_cord(genomeId, gs_str + dx, gr_str + dy, gr_strand);
 
-//call c_clip_extend to extend the clip further.
+//step2. clip_extend gap pattern further.
     int extend_window = 100;
-    int band_gap = 5; 
-    int thd_gap_shape = 5;
+    int thd_ovlp_shift = 10;
     int thd_merge_anchor = 5;
     int thd_merge_drop = 6;
+    int thd_error_level = 3;  // >>3 == * 0.125
+    int thd_scan_radius = 3;  //at least scan 5 elements in the genome for each kmer in the read
     uint64_t extend_str;
     uint64_t extend_end;
     uint64_t breakpoints;
@@ -2784,24 +2786,31 @@ int64_t c_clip_(String<Dna5> & genome,
     if (isClipTowardsLeft (clip_direction))
     {
         //<<< debug
+        g_cmpll.min(dx, dx + thd_ovlp_shift) << get_cord_x(clip_end - clip_str) - 1;
+        g_cmpll.min(dy, dy + thd_ovlp_shift) << get_cord_y(clip_end - clip_str) - 1;
+        std::cout << "cc5 " << dx << " " << dy << "\n";
         extend_end = shift_cord (clip_str, dx, dy);
         //>>>debug
   //      extend_end = shift_cord (clip_str, dx, dy);
         g_cmpll.min(shift, extend_window) 
                     << get_tile_x(extend_end - clip_str)
                     << get_tile_y(extend_end - clip_str);
+        //<<<debug
+        //extend_str = shift_cord (extend_end, -shift-30, -shift-30);
+        //>>>debug
         extend_str = shift_cord (extend_end, -shift, -shift);
     }
     else if (isClipTowardsRight (clip_direction))
     {
+        g_cmpll.max(dx, dx - thd_ovlp_shift) >> 0;
+        g_cmpll.max(dy, dy - thd_ovlp_shift) >> 0;
         extend_str = shift_cord(clip_str, dx, dy);
         g_cmpll.min(shift, extend_window) 
                     << get_tile_x(clip_end - extend_str) 
                     << get_tile_y(clip_end - extend_str);
         extend_end = shift_cord(extend_str, shift, shift);
     }
-    int thd_error_level = 3; // >>3 == * 0.125
-    int thd_scan_radius = 3;  //at least scan 5 elements in the genome for each kmer in the read
+
     std::cout << "cc2 " << gr_str << " " << gr_str + dy << " " << dy << " " << get_cord_y(extend_str) << "\n";
     c_clip_extend_(clip, 
                    g_hs,
