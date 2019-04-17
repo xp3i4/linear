@@ -606,7 +606,6 @@ void g_print_tiles_(String<uint64_t> & tiles, CharString str = "")
             std::cout << str << "\n\n";
         }
     }
-    std::cout << str << "\n" << str << "\n";
 }
 
  uint64_t acoord2Tile(uint64_t val, 
@@ -1485,12 +1484,16 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
         }
     }
 }
+//!!TODO::[Important] tune the parm, especially the thd_err_rate 
+struct MapAnchorParm
+{
 
+};
 /**
  * cluster all anchors and trim tiles for sv
  * Will conduct additional processing. 
  * Don't call it in the pipeline of approximate mapping.
- */
+ */ 
  int g_mapHs_anchor_sv2_ (String<uint64_t> & anchor, 
                           String<uint64_t> & tiles, 
                           StringSet<String<short> > & f1,
@@ -1503,12 +1506,13 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
                           int direction
                           )
 {
+    std::cout << "gmas0 \n";
     int block_size = window_size;
     int64_t thd_min_segment = 100;
     int thd_pattern_in_window = 1;
     int thd_fscore = 40;
     float thd_overlap_tile = thd_tileSize * 0.4;
-    float thd_err_rate = 0.6;
+    float thd_err_rate = 0.2;
     float thd_swap_tile = thd_tileSize * 0.05;
     uint64_t main_strand = get_cord_strand(gap_str);
     
@@ -1531,16 +1535,16 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
     {
         //TODO: handle thd_min_segment, anchor 
         //>>>debug
-        if (g_hs_anchor_get_strand(anchor[k]) == 1)
-        {
-            std::cout << "gmas6 " << prek << " " << g_hs_anchor_getY(anchor[k]) << " " << g_hs_anchor_getX(anchor[k]) << " " << g_hs_anchor_get_strand(anchor[k]) << "\n";
-        }
+        //if (g_hs_anchor_get_strand(anchor[k]) == 1)
+        //{
+            std::cout << "gmas6 " << prek << " " << g_hs_anchor_getY(anchor[k]) << " " << g_hs_anchor_getX(anchor[k]) << " " << g_hs_anchor_get_strand(anchor[k]) << " " << g_hs_anchor_getAnchor(anchor[k]) << "\n";
+        //}
         //<<<debug
         int64_t d = std::abs((int64_t)g_hs_anchor_getY(anchor[k]) - (int64_t)g_hs_anchor_getY(anchor[prek]));
         if (g_hs_anchor_getAnchor(anchor[k]) - g_hs_anchor_getAnchor(anchor[prek]) > 
             thd_err_rate * std::max(thd_min_segment, d))
         {
-            std::cout << "gmas6 new " << k << " " << g_hs_anchor_getAnchor(anchor[k]) - g_hs_anchor_getAnchor(anchor[prek]) ;
+            std::cout << "gmas6 new " << k << " " << g_hs_anchor_getAnchor(anchor[k]) - g_hs_anchor_getAnchor(anchor[prek]) << "\n";
             int thd_anchor_accpet = g_thd_anchor_density * 
             std::abs(int64_t(g_hs_anchor_getY(anchor[k - 1]) - 
                              g_hs_anchor_getY(anchor[prek])));
@@ -1596,14 +1600,15 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
                         uint64_t d_tile = shift_tile(tmp_tile, 0, 0);
                         std::cout << "gmas8 " << get_tile_strand(tmp_tile) << " " << y << " " << get_tile_y(d_tile) << " " << get_tile_x(d_tile) << " score " << _get_tile_f_tri_(d_tile, new_tile, f1, f2, 40)  << " " << centroid_y << "\n";
                         //>>>debug
+                        unsigned score = _get_tile_f_tri_(tmp_tile, new_tile, f1, f2, thd_fscore, thd_tileSize);
                         if (kcount >= thd_pattern_in_window  && 
-                            _get_tile_f_tri_(tmp_tile, new_tile, f1, f2, thd_fscore, thd_tileSize) < thd_fscore)
+                             score < thd_fscore)
                         {
                             if (empty(tiles) || is_tile_end(back(tiles)))
                             {
                                 set_tile_start(new_tile);
                             }
-                            std::cout << "gmas6 append <<<<<<<<<<" << get_tile_y(new_tile) << " " << get_tile_x(new_tile) << " " <<  get_tile_strand(new_tile) << "\n";
+                            std::cout << "gmas6 append <<<<<<<<<<" << get_tile_y(new_tile) << " " << get_tile_x(new_tile) << " " <<  get_tile_strand(new_tile) << "  " << score << "\n";
                             appendValue (tiles, new_tile);
                         }
                         prex = g_hs_anchor_getX(anchor[j - 1]);
@@ -1635,12 +1640,15 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
             anchor_len++;
         }
     }
+    g_print_tiles_(tiles, "gmas10 ");
     //step 2. clip and merge 
     String<uint64_t> tmp_tiles = tiles;
     std::sort (begin(tmp_tiles), end(tmp_tiles),
     [](uint64_t & s1, uint64_t & s2)
     {  
-        return _defaultTile.getX(s1) < _defaultTile.getX(s2);
+
+      //  return _defaultTile.getX(s1) < _defaultTile.getX(s2);
+        return get_tile_x(s1) < get_tile_x(s2);
     });
     int merge_flag = 1;
     for (int i = 1; i < length(tmp_tiles); ++i)

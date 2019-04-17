@@ -298,7 +298,7 @@ void print_cords_txt(Mapper & mapper)
                     }
                     if (k > 0)
                     {
-                        mapper.getOf() << "\n";
+                        mapper.getOf() << "\n\n";
                     } 
                     mapper.getOf() << "@> "
                         << mapper.readsId()[k] << " " 
@@ -337,6 +337,7 @@ void print_cords_txt(Mapper & mapper)
                 cordCount++;
                 fflag = 0;
             }
+            mapper.getOf() << "\n";
         }
 
     }
@@ -385,6 +386,7 @@ int print_clips_gvf_(StringSet<String<uint64_t> > & clips,
     std::string type = ".";
     for (unsigned i = 0; i < length(clips); i++)
     {
+        std::cout << "pcg1 " << i << "\n";
         for (unsigned j = 0; j < getClipsLen(clips[i]); j++)
         {
             uint64_t clip_str = getClipStr(clips[i], j);
