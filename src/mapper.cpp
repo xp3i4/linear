@@ -1,37 +1,3 @@
-// ==========================================================================
-//                           Mapping SMRT reads 
-// ==========================================================================
-// Copyright (c) 2006-2016, Knut Reinert, FU Berlin
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-//
-//     * Redistributions of source code must retain the above copyright
-//       notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above copyright
-//       notice, this list of conditions and the following disclaimer in the
-//       documentation and/or other materials provided with the distribution.
-//     * Neither the name of Knut Reinert or the FU Berlin nor the names of
-//       its contributors may be used to endorse or promote products derived
-//       from this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL KNUT REINERT OR THE FU BERLIN BE LIABLE
-// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-// OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-// DAMAGE.
-//
-// ==========================================================================
-// Author: cxpan <chenxu.pan@fu-berlin.de>
-// ==========================================================================
-
 #include <seqan/arg_parse.h>
 #include <iostream>
 #include <fstream>
@@ -43,6 +9,8 @@
 #include "align_interface.h"
 
 using namespace seqan; 
+
+typedef StringSet<String<uint64_t> > CordsType;
 
 seqan::ArgumentParser::ParseResult
 parseCommandLine(Options & options, int argc, char const ** argv)
@@ -279,32 +247,31 @@ void Mapper::printCordsRaw()
 /**
  * print all cords with cordinates
  */
-void Mapper::printCordsRaw2()
+void print_cords_txt(Mapper & mapper)
 {
     std::cerr << ">>Write results to disk        \r";
     double time = sysTime();
     unsigned cordCount = 0;
-    CharString first_line = "";
-    cordCount = 0;
     uint64_t readCordEnd;
     uint64_t seqsCordEnd;
     char main_icon_strand = '+', icon_strand = '+';
     int fflag = 0;
-    for (unsigned k = 0; k < length(cordSet); k++)
+    CordsType & cords = mapper.cords();
+    for (unsigned k = 0; k < length(cords); k++)
     {
-        if (!empty(cordSet[k]))
+        if (!empty(cords[k]))
         {
-            for (unsigned j = 1; j < length(cordSet[k]); j++)
+            for (unsigned j = 1; j < length(cords[k]); j++)
             {
-                if (_DefaultHit.isBlockEnd(cordSet[k][j-1]))
+                if (_DefaultHit.isBlockEnd(cords[k][j-1]))
                 {
                     unsigned m = j; 
                     int main_strand_count = 0;
                     int block_len = 0;
                     ///>determine the main strand
-                    while (!_DefaultHit.isBlockEnd(cordSet[k][m]))
+                    while (!_DefaultHit.isBlockEnd(cords[k][m]))
                     {
-                        if (_DefaultCord.getCordStrand(cordSet[k][m]))
+                        if (_DefaultCord.getCordStrand(cords[k][m]))
                         {
                             main_strand_count++;
                         }
@@ -322,54 +289,63 @@ void Mapper::printCordsRaw2()
                     ///>print the header
                     for (unsigned i = j; ; i++)
                     {
-                        if (_DefaultHit.isBlockEnd(cordSet[k][i]) || i == length(cordSet[k]) - 1)
+                        if (_DefaultHit.isBlockEnd(cords[k][i]) || i == length(cords[k]) - 1)
                         {
-                            readCordEnd = _DefaultCord.getCordY(cordSet[k][i]) + window_size;
-                            seqsCordEnd = _getSA_i2(_DefaultCord.getCordX(cordSet[k][i])) + window_size;
+                            readCordEnd = _DefaultCord.getCordY(cords[k][i]) + window_size;
+                            seqsCordEnd = _getSA_i2(_DefaultCord.getCordX(cords[k][i])) + window_size;
                             break;
                         }
                     }
-                    of  << first_line;
-                    of  << record.id1[k] << " " 
-                        //<< length(record.seqs1[k]) << " "
-                        << rlens[k] << " "
-                        << _DefaultCord.getCordY(cordSet[k][j]) << " " 
-                        << std::min(readCordEnd, (uint64_t)rlens[k]) << " " 
+                    if (k > 0)
+                    {
+                        mapper.getOf() << "\n";
+                    } 
+                    mapper.getOf() << "@> "
+                        << mapper.readsId()[k] << " " 
+                        << mapper.readLens()[k] << " "
+                        << _DefaultCord.getCordY(cords[k][j]) << " " 
+                        << std::min(readCordEnd, (uint64_t)mapper.readLens()[k]) << " " 
                         << main_icon_strand<< " "
-                        << record.id2[_getSA_i1(_DefaultCord.getCordX(cordSet[k][j]))] << " " 
-                        << length(record.seq2[_getSA_i1(_DefaultCord.getCordX(cordSet[k][j]))]) << " "
-                        << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << " " 
+                        << mapper.genomesId()[get_cord_id(cords[k][j])] << " " 
+                        << length(mapper.genomes()[get_cord_id(cords[k][j])]) << " "
+                        << get_cord_x(cords[k][j]) << " " 
                         << seqsCordEnd << "\n";
-                    first_line = "\n";
                     cordCount = 0;
                     fflag = 1;
                 }
                 ///>print the coordinates
-                icon_strand = (_DefaultCord.getCordStrand(cordSet[k][j]))?'-':'+';
+                icon_strand = (get_cord_strand(cords[k][j]))?'-':'+';
                 CharString mark = "| ";
                 if (icon_strand != main_icon_strand)
-                    mark = "********** ";
-                int64_t d = 0;//_DefaultCord.getCordY(cordSet[k][1]);
+                {
+                    mark = (icon_strand == '+') ? "|**+++++++++++ " :"|**----------- ";
+                }
+                int64_t d1 = 0;//_DefaultCord.getCordY(cords[k][1]);
                 int64_t d2 = 0;
                 if (!fflag)
                 {
-                    d = (int64_t)_DefaultCord.getCordX(cordSet[k][j]) - (int64_t)_DefaultCord.getCordX(cordSet[k][j - 1]);
-                    d2 = (int64_t)_DefaultCord.getCordY(cordSet[k][j]) - (int64_t)_DefaultCord.getCordY(cordSet[k][j - 1]);
-                    
+                    d1 = int64_t(get_cord_x(cords[k][j]) - get_cord_x(cords[k][j - 1]));
+                    d2 = int64_t(get_cord_y(cords[k][j]) - get_cord_y(cords[k][j - 1]));
                 }
-                
-                of  << mark  << _DefaultCord.getCordY(cordSet[k][j]) << " " 
-                    << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j])) << " " << d2 << " " << d << " " << j << " \n";
+                mapper.getOf() << mark  
+                               << _DefaultCord.getCordY(cords[k][j]) << " " 
+                               << get_cord_x(cords[k][j]) << " " 
+                               << d2 << " " 
+                               << d1 << " " 
+                               << j << " \n";
+
                 cordCount++;
                 fflag = 0;
             }
         }
+
     }
-    close(of);
-    std::cerr << "--Write results to disk       100% Elapsed Time[s] " << sysTime() - time << std::endl;
+    close(mapper.getOf());
+    std::cerr << "--Write results to disk       100% Elapsed Time[s] " 
+              << sysTime() - time << "\n";
 }
 
-int print_clip_gff_(StringSet<String<uint64_t> > & clips, 
+int print_clips_gff_(StringSet<String<uint64_t> > & clips, 
               StringSet<CharString> & readsId, 
               std::ofstream & of, 
               std::string & outputPrefix)
@@ -395,7 +371,7 @@ int print_clip_gff_(StringSet<String<uint64_t> > & clips,
     return 0;
 }
 
-int print_clip_gvf_(StringSet<String<uint64_t> > & clips, 
+int print_clips_gvf_(StringSet<String<uint64_t> > & clips, 
               StringSet<CharString> & readsId, 
               StringSet<CharString> & genomesId,
               std::ofstream & of, 
@@ -404,45 +380,71 @@ int print_clip_gvf_(StringSet<String<uint64_t> > & clips,
     std::string file_path = outputPrefix + ".gvf";
     //std::cerr << "[]::filepath " << file_path << "\n";
     of.open(toCString(file_path));
+    of << "##gvf-version 1.10\n";
     std::string source = ".";
     std::string type = ".";
     for (unsigned i = 0; i < length(clips); i++)
     {
-        if (!empty(clips[i]))
+        for (unsigned j = 0; j < getClipsLen(clips[i]); j++)
         {
-            for (unsigned j = 0; j < length(clips[i]); j++)
+            uint64_t clip_str = getClipStr(clips[i], j);
+            uint64_t clip_end = getClipEnd(clips[i], j);
+            uint64_t cord_str1 = get_cord_x(clip_str);
+            uint64_t cord_str2 = get_cord_y(clip_str);
+            uint64_t cord_end1 = get_cord_x(clip_end);
+            uint64_t cord_end2 = get_cord_y(clip_end);
+            CharString genomeId = genomesId[get_cord_id(clips[i][j])];
+            of  << genomeId << "\t" 
+                << source << "\t" 
+                << type << "\t"; 
+            if (!isClipEmpty(clip_str))
             {
-                uint64_t cord_x = _getSA_i2(_DefaultCord.getCordX(clips[i][j]));
-                //uint64_t cord_y = _DefaultCord.getCordY(clips[i][j]);
-                CharString genomeId = genomesId[_getSA_i1(_DefaultCord.getCordX(clips[i][j]))];
-                if ((j >> 1) << 1 == j)
-                {
-                    of  << genomeId << " " << source << " " << type << " " << cord_x << " ";   
-                    if (j == length(clips[i]) - 1)
-                    {
-                        of << " . readId=" << readsId[i] << ";" << i << "\n";
-                    }
-                }
-                else
-                {
-                    of << cord_x << " readId=" << readsId[i] << ";" << i << "\n";
-                }
+                of << cord_str1 << "\t";   
             }
+            else 
+            {
+                of << ".\t";
+            }
+            if (!isClipEmpty(clip_end))
+            {
+                of << cord_end1 << "\t";   
+            }
+            else 
+            {
+                of << ".\t";
+            }
+            of << "readId=" << readsId[i] << ";";
+            if (isClipEmpty(clip_str))
+            {
+                of << "readStr=.;";   
+            }
+            else 
+            {
+                of << "readStr=" << cord_str2 <<";";
+            }
+            if (isClipEmpty(clip_end))
+            {
+                of << "readEnd=.;";   
+            }
+            else 
+            {
+                of << "readEnd=" << cord_end2 << ";";
+            }
+            of << "\n";
         }
     }
     of.close();
     return 0;
 }
-
-int print_clip_gff(Mapper & mapper)
+int print_clips_gff(Mapper & mapper)
 {
-    print_clip_gff_(mapper.getClips(), mapper.readsId(), mapper.getOf(), mapper.getOutputPrefix());
+    print_clips_gff_(mapper.getClips(), mapper.readsId(), mapper.getOf(), mapper.getOutputPrefix());
     return 0;
 }
 
-int print_clip_gvf(Mapper & mapper)
+int print_clips_gvf(Mapper & mapper)
 {
-    print_clip_gvf_(mapper.getClips(), mapper.readsId(), mapper.genomesId(), mapper.getOf(), mapper.getOutputPrefix());
+    print_clips_gvf_(mapper.getClips(), mapper.readsId(), mapper.genomesId(), mapper.getOf(), mapper.getOutputPrefix());
     return 0;
 }
 
@@ -512,7 +514,6 @@ int64_t len = 0;
         if (length(reads[j]) >= mapParm.minReadLen)
         {
             red_len[thd_id] += length(reads[j]);
-            std::cout << "[]::rawmap::j " << j <<"\n";
             float cordLenThr = length(reads[j]) * cordThr;
             _compltRvseStr(reads[j], comStr);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
@@ -590,9 +591,9 @@ int map(Mapper & mapper, int p1)
         k++;
     }
     mapper.index().clear(); 
-    mapper.printCordsRaw2();
+    print_cords_txt(mapper);
     print_align_sam(mapper);
-    print_clip_gvf(mapper);
+    print_clips_gvf(mapper);
     return 0;
 }
 int main(int argc, char const ** argv)

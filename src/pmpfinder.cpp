@@ -1,36 +1,3 @@
-// ==========================================================================
-//                          Mapping SMRT reads
-// ==========================================================================
-// Copyright (c) 2006-2016, Knut Reinert, FU Berlin
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-//
-//     * Redistributions of source code must retain the above copyright
-//       notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above copyright
-//       notice, this list of conditions and the following disclaimer in the
-//       documentation and/or other materials provided with the distribution.
-//     * Neither the name of Knut Reinert or the FU Berlin nor the names of
-//       its contributors may be used to endorse or promote products derived
-//       from this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL KNUT REINERT OR THE FU BERLIN BE LIABLE
-// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-// OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-// DAMAGE.
-//
-// ==========================================================================
-// Author: cxpan <chenxu.pan@fu-berlin.de>
-// ==========================================================================
 #include <iostream>
 #include <seqan/sequence.h>
 #include <seqan/stream.h>
@@ -232,11 +199,10 @@ uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y)
 
 int _scriptDist(int const & s1, int const & s2)
 {
-    int res = std::abs((s1 & scriptMask)
-            - (s2 & scriptMask)) 
-            + std::abs(((s1 >> scriptWindow) & scriptMask) 
-            - ((s2 >> scriptWindow) & scriptMask)) 
-            + std::abs((s1>>scriptWindow2) - (s2>>scriptWindow2));
+    int res = std::abs((s1 & scriptMask) - (s2 & scriptMask)) +
+              std::abs(((s1 >> scriptWindow) & scriptMask) -
+                       ((s2 >> scriptWindow) & scriptMask)) + 
+              std::abs((s1>>scriptWindow2) - (s2>>scriptWindow2));
     return res;
 }
 
@@ -335,13 +301,13 @@ void createFeatures(TIter5 const & itBegin, TIter5 const & itEnd, String<short> 
 }
 
  unsigned _windowDist(Iterator<String<short> >::Type const & it1, 
-                            Iterator<String<short> >::Type const & it2)
+                      Iterator<String<short> >::Type const & it2)
 {
     return _scriptDist(*it1, *it2) 
          + _scriptDist(*(it1 + 2), *(it2 + 2)) 
-         + _scriptDist(*(it1+4),*(it2+4)) 
+         + _scriptDist(*(it1 + 4), *(it2 + 4)) 
          + _scriptDist(*(it1 + 6), *(it2 + 6)) 
-         + _scriptDist(*(it1+8), *(it2+8)) 
+         + _scriptDist(*(it1 + 8), *(it2 + 8)) 
          + _scriptDist(*(it1 + 10), *(it2 + 10));
 }
 
