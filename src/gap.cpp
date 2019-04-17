@@ -2703,7 +2703,7 @@ int c_clip_extend_(int64_t & clip,
                     int clip_direction = -1 
     )
 {
-    c_clip_extend_(result_val, 
+    c_clip_extend_(clip, 
                    hs, 
                    seq1,
                    seq2,
