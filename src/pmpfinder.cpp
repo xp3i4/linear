@@ -175,6 +175,13 @@ uint64_t create_id_x(uint64_t const id, uint64_t const x)
 {
     return (id << _DefaultCordBase.bit_id) + x;
 }
+void print_cord(uint64_t cord, CharString header)
+{
+    std::cout << header << " " 
+              << get_cord_strand(cord) << " " 
+              << get_cord_x(cord) << " "
+              << get_cord_y(cord) << "\n";
+}
 uint64_t create_cord (uint64_t id, uint64_t cordx, uint64_t cordy, uint64_t strand)
 {
     return _DefaultCord.createCord(create_id_x (id, cordx), cordy, strand);

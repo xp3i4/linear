@@ -73,6 +73,7 @@ void insertClipStr(String<uint64_t> & clips, uint64_t clip)
         appendValue (clips, EmptyClipConst);
     }
     appendValue(clips, clip);
+    std::cout << "ics " << length(clips) << "\n";
 }
 void insertClipEnd(String<uint64_t> & clips, uint64_t clip)
 {
@@ -81,6 +82,7 @@ void insertClipEnd(String<uint64_t> & clips, uint64_t clip)
         appendValue (clips, EmptyClipConst);
     }
     appendValue (clips, clip);
+    std::cout << "ice " << length(clips) << "\n";
 }
 bool isClipEmpty(uint64_t clip)
 {
@@ -95,6 +97,77 @@ int isClipTowardsRight (int clip_direction)
 {
     return clip_direction > 0;
 }
+
+int print_clips_gvf_(StringSet<String<uint64_t> > & clips, 
+                     StringSet<CharString> & readsId, 
+                     StringSet<CharString> & genomesId,
+                     std::ofstream & of, 
+                     std::string outputPrefix)
+{
+    std::string file_path = outputPrefix + ".gvf";
+    //std::cerr << "[]::filepath " << file_path << "\n";
+    of.open(toCString(file_path));
+    of << "##gvf-version 1.10\n";
+    std::string source = ".";
+    std::string type = ".";
+    for (unsigned i = 0; i < length(clips); i++)
+    {
+        std::cout << "pcg1 " << i << " " << getClipsLen(clips[i]) << " " << length(clips) << "\n";
+        for (unsigned j = 0; j < getClipsLen(clips[i]); j++)
+        {
+            uint64_t clip_str = getClipStr(clips[i], j);
+            uint64_t clip_end = getClipEnd(clips[i], j);
+            uint64_t cord_str1 = get_cord_x(clip_str);
+            uint64_t cord_str2 = get_cord_y(clip_str);
+            uint64_t cord_end1 = get_cord_x(clip_end);
+            uint64_t cord_end2 = get_cord_y(clip_end);
+            char strand = !(get_cord_strand(clip_str))?'+':'-';
+            CharString genomeId = genomesId[get_cord_id(clips[i][j])];
+            of  << genomeId << "\t" 
+                << source << "\t" 
+                << type << "\t"; 
+            if (!isClipEmpty(clip_str))
+            {
+                of << cord_str1 << "\t";   
+            }
+            else 
+            {
+                of << ".\t";
+            }
+            if (!isClipEmpty(clip_end))
+            {
+                of << cord_end1 << "\t";   
+            }
+            else 
+            {
+                of << ".\t";
+            }
+            of << "readStrand=" << strand << ";";
+            of << "readId=" << readsId[i] << ";";
+            if (isClipEmpty(clip_str))
+            {
+                of << "readStr=.;";   
+            }
+            else 
+            {
+                of << "readStr=" << cord_str2 <<";";
+            }
+
+            if (isClipEmpty(clip_end))
+            {
+                of << "readEnd=.;";   
+            }
+            else 
+            {
+                of << "readEnd=" << cord_end2 << ";";
+            }
+            of << "\n";
+        }
+    }
+    of.close();
+    return 0;
+}
+
 /*=======  End of interface function  =======*/
 
 
@@ -2834,20 +2907,11 @@ int64_t c_clip_(String<Dna5> & genome,
                   );
     return clip;
 }
+
 /**
- * check gap type:
- * discontinuous tiles: ins or del
- * strand flip: invs
- * TODO 
- * handle multiple path
- * \
- *  \ ---
- *   \   \
- *    \   \
- *         \
- *   path1 path2
+ * cord_str and cord_end required to have same strand.
  */
- int g_extend_clip_(String<Dna5> & seq1,
+int g_extend_clip_(String<Dna5> & seq1,
                     String<Dna5> & seq2,
                     String<Dna5> & comstr, //complement reverse of the read (seq2)
                     String<uint64_t> & tiles,
@@ -2861,6 +2925,12 @@ int64_t c_clip_(String<Dna5> & genome,
                    )
 {
     std::cout << "gag_str\n";
+    if (get_cord_strand(cord_str ^ cord_end))
+    {
+        return 0;
+    }
+    print_cord (cord_str, "gag0");
+    print_cord (cord_end, "gag0");
     uint64_t head_tile = cord_str;
     uint64_t tail_tile = cord_end; 
     uint64_t main_strand = get_cord_strand(cord_str);
@@ -2872,6 +2942,7 @@ int64_t c_clip_(String<Dna5> & genome,
     std::cout << "gag5 " << get_cord_x(head_tile) << "\n";
     String<int> sv_flags;
     resize (sv_flags, length(tiles));
+    g_print_tiles_(tiles, "gag1t");
     for (int i = 0; i < length(sv_flags); i++)
     {
         sv_flags[i] = 0;
@@ -2885,13 +2956,17 @@ int64_t c_clip_(String<Dna5> & genome,
         ///check sv type
         if (_defaultTile.getStrand(tiles[i] ^ tiles[i - 1])) //inv
         {
-            if (get_tile_strand(tiles[i] ^ main_strand))
+            if (get_tile_strand(tiles[i]) ^ main_strand)
             {
-                sv_flags[i - 1] |= g_sv_inv + g_sv_r;
+                sv_flags[i] |= g_sv_inv + g_sv_l;
+                print_cord(tiles[i-1], "svr");
+                print_cord(tiles[i], "svr");
+                std::cout << "svr " << get_tile_strand(tiles[i]) << "\n";
             }
             else
             {
-                sv_flags[i] |= g_sv_inv + g_sv_l;
+                sv_flags[i - 1] |= g_sv_inv + g_sv_r;
+                print_cord(tiles[i-1], "svl");
             }
             sv_exists = 1;
         }
@@ -2963,7 +3038,7 @@ int64_t c_clip_(String<Dna5> & genome,
                 thd_band_ratio = 0.5;
                 clip = c_clip_ (seq1, seq2, comstr, clip_str, clip_end, g_hs, g_hs_anchor, thd_band_ratio, clip_direction); 
                 std::cout << "gec1 " << get_cord_y (clip_str) << " " << get_tile_y(clip_end) << " " << get_cord_x (clip_str) << " " << get_tile_x(clip_end) << " " << get_tile_strand(clip_str) << " " << get_cord_strand(clip_end) << " " << get_cord_y(clip) << "\n";
-                insertClipStr(clips, clip);
+                insertClipEnd(clips, clip);
             }
             if (sv_flags[i] & g_sv_l)
             {
@@ -2979,7 +3054,7 @@ int64_t c_clip_(String<Dna5> & genome,
                 thd_band_ratio = 0.5;
                 clip = c_clip_ (seq1, seq2, comstr, clip_str, clip_end, g_hs, g_hs_anchor, thd_band_ratio, clip_direction); 
                 std::cout << "gec2 " << get_cord_y (clip_str) << " " << get_tile_y(clip_end) << " " << get_cord_x (clip_str) << " " << get_tile_x(clip_end) << " " << get_tile_strand(clip_str) << " " << get_cord_strand(clip_end) << " " << get_cord_y(clip) << "\n";
-                insertClipEnd(clips, clip);
+                insertClipStr(clips, clip);
             }
 
         }

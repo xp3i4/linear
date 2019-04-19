@@ -14,6 +14,8 @@ void insertClipStr(String<uint64_t> &, uint64_t);
 void insertClipEnd(String<uint64_t> &, uint64_t);
 bool isClipEmpty(uint64_t);
 
+
+
 /**
  * Re-map gaps in cords.
  * Gaps at the beginning and the end of the read are also included.
@@ -31,6 +33,10 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             int const thd_tileSize
            );
 
-
+int print_clips_gvf_(StringSet<String<uint64_t> > & clips, 
+              StringSet<CharString> & readsId, 
+              StringSet<CharString> & genomesId,
+              std::ofstream & of, 
+              std::string outputPrefix);
 
 #endif
