@@ -4,6 +4,8 @@ Mapping reads efficiently.
 
 ## Usage
 
+read length < 1MBases
+
 ## Prerequisites
 
 | Platform                                              | Building tools            |
