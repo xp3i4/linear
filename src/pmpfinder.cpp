@@ -212,6 +212,26 @@ int _scriptDist(int const & s1, int const & s2)
               std::abs((s1>>scriptWindow2) - (s2>>scriptWindow2));
     return res;
 }
+int64_t _scriptDist2(int64_t const s1, int64_t const s2)
+{
+    int64_t mask = 15LL;
+    return  std::abs((s1 & mask) - (s2 & mask)) +
+            std::abs((s1 >> 4 & mask) - (s2 >> 4 & mask)) +
+            std::abs((s1 >> 8 & mask) - (s2 >> 8 & mask)) +
+            std::abs((s1 >> 12 & mask) - (s2 >> 12 & mask)) +
+            std::abs((s1 >> 16 & mask) - (s2 >> 16 & mask)) +
+            std::abs((s1 >> 20 & mask) - (s2 >> 20 & mask)) +
+            std::abs((s1 >> 24 & mask) - (s2 >> 24 & mask)) +
+            std::abs((s1 >> 28 & mask) - (s2 >> 28 & mask)) +
+            std::abs((s1 >> 32 & mask) - (s2 >> 32 & mask)) +
+            std::abs((s1 >> 36 & mask) - (s2 >> 36 & mask)) +
+            std::abs((s1 >> 40 & mask) - (s2 >> 40 & mask)) +
+            std::abs((s1 >> 44 & mask) - (s2 >> 44 & mask)) +
+            std::abs((s1 >> 48 & mask) - (s2 >> 48 & mask)) +
+            std::abs((s1 >> 52 & mask) - (s2 >> 52 & mask)) +
+            std::abs((s1 >> 56 & mask) - (s2 >> 56 & mask)) +
+            std::abs((s1 >> 60 & mask) - (s2 >> 60 & mask));
+}
 
 void createFeatures(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f)
 {
@@ -233,12 +253,11 @@ void createFeatures(TIter5 const & itBegin, TIter5 const & itEnd, String<short> 
         next++;
     }
 }
-
- uint64_t parallelParm_Static(uint64_t range, 
-                                    unsigned threads, 
-                                    unsigned & thd_id, 
-                                    uint64_t & thd_begin, 
-                                    uint64_t & thd_end)
+uint64_t parallelParm_Static(uint64_t range, 
+                             unsigned threads, 
+                             unsigned & thd_id, 
+                             uint64_t & thd_begin, 
+                             uint64_t & thd_end)
 {
     uint64_t ChunkSize = range / threads;
     unsigned id = range - ChunkSize * threads;
@@ -253,11 +272,10 @@ void createFeatures(TIter5 const & itBegin, TIter5 const & itEnd, String<short> 
     thd_end = thd_begin + ChunkSize; 
     return ChunkSize;
 }
-
 /**
  * Parallel 
  */
- void createFeatures(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f, unsigned threads)
+void createFeatures(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f, unsigned threads)
 {
     unsigned window = 1 << scriptWindow;
     resize (f, ((itEnd - itBegin -window) >> scriptBit) + 1);
@@ -290,25 +308,22 @@ void createFeatures(TIter5 const & itBegin, TIter5 const & itEnd, String<short> 
 }
 }
 
-/**
- * Parallel
- */
- void createFeatures(StringSet<String<Dna5> > & seq, StringSet<String<short> > & f, unsigned threads)
+void createFeatures(StringSet<String<Dna5> > & seq, StringSet<String<short> > & f, unsigned threads)
 {
     resize(f, length(seq));
     for (unsigned k = 0; k < length(seq); k++)
         createFeatures(begin(seq[k]), end(seq[k]), f[k], threads);
 }
 
- void createFeatures(StringSet<String<Dna5> > & seq, StringSet<String<short> > & f)
+void createFeatures(StringSet<String<Dna5> > & seq, StringSet<String<short> > & f)
 {
     resize(f, length(seq));
     for (unsigned k = 0; k < length(seq); k++)
         createFeatures(begin(seq[k]), end(seq[k]), f[k]);
 }
 
- unsigned _windowDist(Iterator<String<short> >::Type const & it1, 
-                      Iterator<String<short> >::Type const & it2)
+unsigned _windowDist(Iterator<String<short> >::Type const & it1, 
+                     Iterator<String<short> >::Type const & it2)
 {
     return _scriptDist(*it1, *it2) 
          + _scriptDist(*(it1 + 2), *(it2 + 2)) 
