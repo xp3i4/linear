@@ -3,7 +3,7 @@
 #include <seqan/sequence.h>
 using namespace seqan;
 
-//WARNING:The length of read should be < 1MB;
+//NOTE:Length of read < 1M;
 extern const float band_width;
 extern const unsigned cmask;
 extern const unsigned cell_size;
