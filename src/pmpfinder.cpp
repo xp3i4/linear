@@ -19,16 +19,14 @@ const unsigned inf = ceil((1 - 2 * band_width) * cell_num);
 const unsigned initx = 5; 
 const unsigned inity = 5;
 
-const unsigned scriptStep=16;
-const unsigned scriptBit=4;
-const unsigned scriptWindow=5; //script_length = 2^scriptWindow
-const unsigned scriptWindow2 = scriptWindow << 1;
-const unsigned scriptWindow3 = scriptWindow2 + scriptWindow;
-const int scriptCount[5] = {1, 1<<scriptWindow, 1 <<(scriptWindow * 2), 0, 0};
-const int scriptMask = (1 << scriptWindow) - 1;
-const int scriptMask2 = scriptMask << scriptWindow;
-const int scriptMask3 = scriptMask2 << scriptWindow;
-
+const unsigned scpt_step=16;
+const unsigned scpt_bit=4;
+const unsigned scpt_len=5; 
+const unsigned scpt_len2 = scpt_len << 1;
+const unsigned scpt_len3 = scpt_len2 + scpt_len;
+const int scriptMask = (1 << scpt_len) - 1;
+const int scriptMask2 = scriptMask << scpt_len;
+const int scriptMask3 = scriptMask2 << scpt_len;
 const uint64_t hmask = (1ULL << 20) - 1;
 const unsigned windowThreshold = 36; // 36;
 
@@ -203,16 +201,27 @@ uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y)
 
 
 //======HIndex getIndexMatch()
-
-int _scriptDist(int const & s1, int const & s2)
+//<<debug util
+int printScript(FeatureType & val, CharString header)
 {
-    int res = std::abs((s1 & scriptMask) - (s2 & scriptMask)) +
-              std::abs(((s1 >> scriptWindow) & scriptMask) -
-                       ((s2 >> scriptWindow) & scriptMask)) + 
-              std::abs((s1>>scriptWindow2) - (s2>>scriptWindow2));
-    return res;
+    int sum = 0;
+    std::cout << header << " "; 
+    for (int i = 0; i < 16; i++)
+    {
+
+        int v = (val >> (i << 2) & 15);
+        std::cout << (val >> (i << 2) & 15) << " ";
+        sum += v;
+    }
+    std::cout << " sum=" << sum << "\n";
+    return sum;
 }
-int64_t _scriptDist2(int64_t const s1, int64_t const s2)
+//
+/**
+ * Script is the feature of kmer
+ * Calculate distance of two scripts. 
+ */
+int64_t _scriptDist(int64_t const s1, int64_t const s2)
 {
     int64_t mask = 15LL;
     return  std::abs((s1 & mask) - (s2 & mask)) +
@@ -232,98 +241,142 @@ int64_t _scriptDist2(int64_t const s1, int64_t const s2)
             std::abs((s1 >> 56 & mask) - (s2 >> 56 & mask)) +
             std::abs((s1 >> 60 & mask) - (s2 >> 60 & mask));
 }
-
-void createFeatures(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f)
+//Map "N" to a larger number > 64, such that (1LL << ordN_(N)) = 0.
+inline int64_t ordN_(Dna5 & a)
 {
-    unsigned next = 1;
-    unsigned window = 1 << scriptWindow;
-    resize (f, ((itEnd - itBegin -window) >> scriptBit) + 1);
-    f[0] = 0;
-    for (unsigned k = 0; k < window; k++)
+    int64_t res = ordValue(a);
+    return (res == 4) ? 100LL : res;
+
+}
+/**
+ * Function only for counting 2mer in script
+ */
+inline void addCell(TIter5 it, FeatureType & val)
+{
+    int ordV = (ordN_(*it) << 2) + ordN_(*(it + 1));
+    val += 1LL << (ordV << 2);
+}
+inline void slideCell(TIter5 it, unsigned window, FeatureType & val)
+{
+    //printScript(val, "sc1 ");
+    //std::cout << "sc1 " << *it << *(it+1) << " " << *(it + window) <<*(it + window + 1) << "\n";
+    int ordV = (ordN_(*it) << 2) + ordN_(*(it + 1));
+    val -= 1LL << (ordV << 2);
+    addCell(it + window, val);
+}
+int createFeatures(TIter5 itBegin, TIter5 itEnd, String<FeatureType> & f)
+{
+    unsigned next = 0;
+    unsigned window = scpt_step;
+    resize (f, ((itEnd - itBegin -window) >> scpt_bit) + 1);
+    for (unsigned k = scpt_step; k < itEnd - itBegin - window - 1; k += scpt_step) 
     {
-        f[0] += scriptCount[ordValue(*(itBegin + k))];
-    }
-    for (unsigned k = scriptStep; k < itEnd - itBegin - window ; k+=scriptStep) 
-    {
-        f[next] = f[next - 1];
-        for (unsigned j = k - scriptStep; j < k; j++)
+        f[next] = 0;
+        for (unsigned j = k - scpt_step; j < k - 1; j++)
         {
-            f[next] += scriptCount[ordValue(*(itBegin + j + window))] - scriptCount[ordValue(*(itBegin + j))];
+            addCell(itBegin + j, f[next]);
         }
+        printScript(f[next], "cfs2_n ");
         next++;
     }
-}
-uint64_t parallelParm_Static(uint64_t range, 
-                             unsigned threads, 
-                             unsigned & thd_id, 
-                             uint64_t & thd_begin, 
-                             uint64_t & thd_end)
-{
-    uint64_t ChunkSize = range / threads;
-    unsigned id = range - ChunkSize * threads;
-    if (thd_id < id)
-    {
-        thd_begin = ++ChunkSize * thd_id; 
-    }
-    else
-    {
-       thd_begin = id + thd_id * ChunkSize;
-    }
-    thd_end = thd_begin + ChunkSize; 
-    return ChunkSize;
+    return 0;
 }
 /**
  * Parallel 
  */
-void createFeatures(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f, unsigned threads)
+int createFeatures(TIter5 itBegin, TIter5 itEnd, String<FeatureType> & f, unsigned threads)
 {
-    unsigned window = 1 << scriptWindow;
-    resize (f, ((itEnd - itBegin -window) >> scriptBit) + 1);
+    int window = scpt_step;
+    if (itEnd - itBegin < window)
+    {
+        return 0;
+    }
+    resize (f, ((itEnd - itBegin -window) >> scpt_bit) + 1);
+    int64_t range = (itEnd - itBegin - window) / scpt_step + 1; //numer of windows 
+    if (range < threads)
+    {
+        createFeatures(itBegin, itEnd, f);
+        return 0;
+    }
 #pragma omp parallel
 {
     unsigned thd_id = omp_get_thread_num();
-    uint64_t thd_begin;
-    uint64_t thd_end;
-    uint64_t range = (itEnd - itBegin - window - scriptStep) / scriptStep;
-    parallelParm_Static(range, threads, 
-                        thd_id,  thd_begin, thd_end);
-    uint64_t next = thd_begin;
-    thd_begin *= scriptStep;
-    thd_end *= scriptStep;
-    f[next] = 0;
-    for (unsigned k = thd_begin; k < thd_begin + window; k++)
+    int64_t chunk_size = range / threads; 
+    int64_t thd_begin = thd_id * (chunk_size + 1);
+    unsigned id1 = range - chunk_size * threads;
+    if (thd_id >= id1)
     {
-        f[next] += scriptCount[ordValue(*(itBegin + k))];
+        thd_begin = id1 + chunk_size * thd_id;
     }
-    next++;
-    for (unsigned k = thd_begin + scriptStep; k < thd_end ; k+=scriptStep) 
+    else
     {
-        f[next] = f[next - 1];
-        for (unsigned j = k - scriptStep; j < k; j++)
+        ++chunk_size;
+    }
+    int64_t thd_end = thd_begin + chunk_size;
+    int64_t next = thd_begin;
+    thd_begin *= scpt_step;
+    thd_end *= scpt_step;
+    //std::cout << "cfs2 " << thd_begin << " " << thd_end << "\n";
+    for (int64_t k = thd_begin + scpt_step; k < thd_end; k+=scpt_step) 
+    {
+        f[next] = 0;
+        for (int64_t j = k - scpt_step; j < k - 1; j++)
         {
-            f[next] += scriptCount[ordValue(*(itBegin + j + window))] - scriptCount[ordValue(*(itBegin + j))];
+            addCell(itBegin + j, f[next]);
         }
+        //std::cout << *(itBegin + k - 1) << " ";
+        printScript(f[next], "cfs2_n ");
         next++;
     }
+    /*
+    int count = 0;
+    int count1 = 0;
+            //<<debug
+    String<int> counts;
+    resize (counts, 25);
+    for (int i = 0; i < 25; i++)
+    {
+        counts[i] = 0;
+    }
+    for (int k = 0; k < 31; k++)
+    {
+        counts[ordValue(*(itBegin + k)) * 5 + ordValue(*(itBegin + k + 1))]++;
+    }
+    for (int k = 0; k < itEnd - itBegin; k++)
+    {
+        counts[ordValue(*(itBegin + k))* 5 + ordValue(*(itBegin + k + 1))]--;
+        counts[ordValue(*(itBegin + k + 30))* 5 + ordValue(*(itBegin + k + 1 + 30))]++;
+        for(int j = 0; j < 25; j++)
+            if (counts[j] > 15)
+            {
+                count1++;
+            }
+    }
+    std::cout << "cfs2_count " << (float)count1/(itEnd - itBegin) << "\n";
+        //>>debug
+*/
 }
 }
 
-void createFeatures(StringSet<String<Dna5> > & seq, StringSet<String<short> > & f, unsigned threads)
+int createFeatures(StringSet<String<Dna5> > & seq, 
+                   StringSet<String<FeatureType> > & f, 
+                   unsigned threads)
 {
     resize(f, length(seq));
     for (unsigned k = 0; k < length(seq); k++)
         createFeatures(begin(seq[k]), end(seq[k]), f[k], threads);
 }
 
-void createFeatures(StringSet<String<Dna5> > & seq, StringSet<String<short> > & f)
+int createFeatures(StringSet<String<Dna5> > & seq, 
+                   StringSet<String<FeatureType> > & f)
 {
     resize(f, length(seq));
     for (unsigned k = 0; k < length(seq); k++)
         createFeatures(begin(seq[k]), end(seq[k]), f[k]);
 }
 
-unsigned _windowDist(Iterator<String<short> >::Type const & it1, 
-                     Iterator<String<short> >::Type const & it2)
+unsigned _windowDist(Iterator<String<FeatureType> >::Type const & it1, 
+                     Iterator<String<FeatureType> >::Type const & it2)
 {
     return _scriptDist(*it1, *it2) 
          + _scriptDist(*(it1 + 2), *(it2 + 2)) 
@@ -348,7 +401,7 @@ unsigned _windowDist(Iterator<String<short> >::Type const & it1,
     return false;
 }
 
- bool initCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & cord)
+bool initCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & cord)
 {
     currentIt = 0;
     if (empty(hit))
@@ -358,10 +411,10 @@ unsigned _windowDist(Iterator<String<short> >::Type const & it1,
     return true;
 }
 
- bool previousWindow(String<short> & f1, 
-                           String<short> & f2, 
-                           String<uint64_t> & cord, 
-                           uint64_t & strand)
+bool previousWindow(String<FeatureType> & f1, 
+                    String<FeatureType> & f2, 
+                    String<uint64_t> & cord, 
+                    uint64_t & strand)
 {
     typedef uint64_t CordType;
     CordType genomeId = get_cord_id(back(cord));
@@ -399,11 +452,11 @@ unsigned _windowDist(Iterator<String<short> >::Type const & it1,
     return true;
 }
 
- bool previousWindow(String<short> & f1, 
-                           String<short> & f2, 
-                           String<uint64_t> & cord, 
-                           float & score, 
-                           uint64_t & strand)
+ bool previousWindow(String<FeatureType> & f1, 
+                     String<FeatureType> & f2, 
+                     String<uint64_t> & cord, 
+                     float & score, 
+                     uint64_t & strand)
 {
     typedef uint64_t CordType;
     CordType genomeId = get_cord_id(back(cord));
@@ -441,12 +494,12 @@ unsigned _windowDist(Iterator<String<short> >::Type const & it1,
     return true;
 }
 
- uint64_t previousWindow(String<short> & f1, 
-                               String<short> & f2, 
-                               uint64_t cordx,
-                               uint64_t cordy,
-                               uint64_t strand,
-                               unsigned window_threshold = windowThreshold )
+ uint64_t previousWindow(String<FeatureType> & f1, 
+                         String<FeatureType> & f2, 
+                         uint64_t cordx,
+                         uint64_t cordy,
+                         uint64_t strand,
+                         unsigned window_threshold = windowThreshold )
 {
     typedef uint64_t CordType;
     CordType genomeId = _getSA_i1(cordx);
@@ -486,7 +539,10 @@ unsigned _windowDist(Iterator<String<short> >::Type const & it1,
     return 0;
 }
 
- uint64_t previousWindow(String<short> & f1, String<short> & f2, uint64_t cord, unsigned window_threshold)
+ uint64_t previousWindow(String<FeatureType> & f1, 
+                         String<FeatureType> & f2, 
+                         uint64_t cord, 
+                         unsigned window_threshold)
 {
     return previousWindow(f1, 
                           f2, 
@@ -495,10 +551,10 @@ unsigned _windowDist(Iterator<String<short> >::Type const & it1,
                           _DefaultCord.getCordStrand(cord), window_threshold);
 }
 
- bool nextWindow(String<short> &f1, 
-                       String<short> & f2, 
-                       String<uint64_t> & cord, 
-                       uint64_t & strand)
+ bool nextWindow(String<FeatureType> &f1, 
+                 String<FeatureType> & f2, 
+                 String<uint64_t> & cord, 
+                 uint64_t & strand)
 {
     typedef uint64_t CordType;
     CordType genomeId = get_cord_id(back(cord));
@@ -537,11 +593,11 @@ unsigned _windowDist(Iterator<String<short> >::Type const & it1,
     return true;
 }
 
- bool nextWindow(String<short> &f1, 
-                       String<short> & f2, 
-                       String<uint64_t> & cord, 
-                       float & score, 
-                       uint64_t & strand)
+ bool nextWindow(String<FeatureType> &f1, 
+                 String<FeatureType> & f2, 
+                 String<uint64_t> & cord, 
+                 float & score, 
+                 uint64_t & strand)
 {
     typedef uint64_t CordType;
     CordType genomeId = get_cord_id(back(cord));
@@ -580,8 +636,8 @@ unsigned _windowDist(Iterator<String<short> >::Type const & it1,
     return true;
 }
 
- uint64_t nextWindow(String<short> & f1, 
-                           String<short> & f2, 
+ uint64_t nextWindow(String<FeatureType> & f1, 
+                           String<FeatureType> & f2, 
                            uint64_t cordx,
                            uint64_t cordy,
                            uint64_t strand,
@@ -624,12 +680,12 @@ unsigned _windowDist(Iterator<String<short> >::Type const & it1,
     return 0;
 }
 
- uint64_t nextWindow(String<short> & f1, String<short> & f2, uint64_t cord, unsigned window_threshold)
+ uint64_t nextWindow(String<FeatureType> & f1, String<FeatureType> & f2, uint64_t cord, unsigned window_threshold)
 {
     return nextWindow(f1, f2, _DefaultCord.getCordX(cord), get_cord_y(cord), _DefaultCord.getCordStrand(cord), window_threshold);
 }
 
- bool extendWindow(String<short> &f1, String<short> & f2, String<uint64_t> & cord, uint64_t strand)
+ bool extendWindow(String<FeatureType> &f1, String<FeatureType> & f2, String<uint64_t> & cord, uint64_t strand)
 {
     uint64_t preCord = (length(cord)==1)?0:back(cord);
     unsigned len = length(cord) - 1;
@@ -642,9 +698,9 @@ unsigned _windowDist(Iterator<String<short> >::Type const & it1,
     return true;
 }
 
- bool path(String<Dna5> & read, String<uint64_t> hit, StringSet<String<short> > & f2, String<uint64_t> & cords)
+ bool path(String<Dna5> & read, String<uint64_t> hit, StringSet<String<FeatureType> > & f2, String<uint64_t> & cords)
 {
-    String<short> f1;
+    String<FeatureType> f1;
     unsigned currentIt = 0;
     if(!initCord(hit, currentIt, cords))
         return false;
@@ -661,7 +717,7 @@ unsigned _windowDist(Iterator<String<short> >::Type const & it1,
 
 void path(String<uint64_t> & hits, StringSet<String<Dna5> > & reads, StringSet<String<Dna5> > & genomes, StringSet<String<uint64_t> > & cords)
 {
-    StringSet<String<short> > f2;
+    StringSet<String<FeatureType> > f2;
     createFeatures(genomes, f2);
     std::cerr << "raw mapping... " << std::endl;
     for (unsigned k = 0; k < length(reads); k++)
@@ -1317,8 +1373,8 @@ template <typename TDna, typename TSpec>
     }
 }
 
- bool extendWindowAll(String<short> &f1, 
-                            String<short> & f2, 
+ bool extendWindowAll(String<FeatureType> &f1, 
+                            String<FeatureType> & f2, 
                             String<uint64_t> & cord, 
                             float & score, 
                             uint64_t & strand)
@@ -1387,8 +1443,8 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
  * then call nextWindow for cord1 and previousWindow for cord2 along each own strand until it can't be extended any more.
  * 
  */         
- int extendPatch(StringSet<String<short> > & f1, 
-                 StringSet<String<short> > & f2, 
+ int extendPatch(StringSet<String<FeatureType> > & f1, 
+                 StringSet<String<FeatureType> > & f2, 
                  String<uint64_t> & cords,
                  int kk,
                  uint64_t cord1,
@@ -1556,8 +1612,8 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
  bool path_dst(
                  typename Iterator<String<uint64_t> >::Type hitBegin, 
                  typename Iterator<String<uint64_t> >::Type hitEnd, 
-                 StringSet<String<short> > & f1,
-                 StringSet<String<short> > & f2, 
+                 StringSet<String<FeatureType> > & f1,
+                 StringSet<String<FeatureType> > & f2, 
                  String<uint64_t> & cords,
                  float const & cordLenThr
                 )
@@ -1600,7 +1656,7 @@ int rawMap_dst( LIndex   & index,
     std::cerr << "[rawMap_dst] Raw Mapping \n"; 
 
     
-    StringSet<String<short> > f2;
+    StringSet<String<FeatureType> > f2;
     double time2 = sysTime();
     createFeatures(genomes, f2, threads);
     std::cerr << "init1 " << sysTime() - time2 << "\n";
@@ -1615,7 +1671,7 @@ int rawMap_dst( LIndex   & index,
     Anchors anchors;
     String<uint64_t> crhit;
     StringSet<String<uint64_t> >  cordsTmp;
-    StringSet< String<short> > f1;
+    StringSet< String<FeatureType> > f1;
     //printf ("done\n");
     unsigned thd_id =  omp_get_thread_num();
     if (thd_id < length(reads) - size2 * threads)

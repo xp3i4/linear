@@ -1301,8 +1301,8 @@ int check_tiles_(String<uint64_t> & tiles, uint64_t g_start, uint64_t g_end)
  */
  void g_mapHs_anchor_sv1_ (String<uint64_t> & anchor, 
                                 String<uint64_t> & tiles, 
-                                StringSet<String<short> > & f1,
-                                StringSet<String<short> >& f2,
+                                StringSet<String<FeatureType> > & f1,
+                                StringSet<String<FeatureType> >& f2,
                                 uint64_t gs_start,
                                 uint64_t gs_end,
                                 uint64_t gr_start,
@@ -1509,8 +1509,8 @@ int check_tiles_(String<uint64_t> & tiles, uint64_t g_start, uint64_t g_end)
 }
 
 unsigned _get_tile_f_ (uint64_t & tile,
-                  StringSet<String<short> > & f1,
-                  StringSet<String<short> > & f2)
+                  StringSet<String<FeatureType> > & f1,
+                  StringSet<String<FeatureType> > & f2)
 {
 
    // uint64_t tile = shift_tile(k_tile, )
@@ -1526,8 +1526,8 @@ unsigned _get_tile_f_ (uint64_t & tile,
 
 unsigned _get_tile_f_tri_ (uint64_t & tile,
                   uint64_t & new_tile,
-                  StringSet<String<short> > & f1,
-                  StringSet<String<short> > & f2, 
+                  StringSet<String<FeatureType> > & f1,
+                  StringSet<String<FeatureType> > & f2, 
                   unsigned thd_accept_score,
                   int block_size = window_size
                   )
@@ -1569,8 +1569,8 @@ struct MapAnchorParm
  */ 
  int g_mapHs_anchor_sv2_ (String<uint64_t> & anchor, 
                           String<uint64_t> & tiles, 
-                          StringSet<String<short> > & f1,
-                          StringSet<String<short> >& f2,
+                          StringSet<String<FeatureType> > & f1,
+                          StringSet<String<FeatureType> >& f2,
                           uint64_t gap_str,
                           uint64_t gap_end,
                           int anchor_end, 
@@ -1811,8 +1811,8 @@ struct MapAnchorParm
  */
  void g_mapHs_anchor_sv_ (String<uint64_t> & anchor, 
                                 String<uint64_t> & tiles, 
-                                StringSet<String<short> > & f1,
-                                StringSet<String<short> >& f2,
+                                StringSet<String<FeatureType> > & f1,
+                                StringSet<String<FeatureType> >& f2,
                                 uint64_t cord_str,
                                 uint64_t cord_end,
                                 int anchor_end, 
@@ -1838,8 +1838,8 @@ struct MapAnchorParm
               String<uint64_t> & g_hs,
               String<uint64_t> & g_hs_anchor,
               String<uint64_t> & g_hs_tile,    //results
-              StringSet<String<short> > & f1,  
-              StringSet<String<short> >& f2,
+              StringSet<String<FeatureType> > & f1,  
+              StringSet<String<FeatureType> >& f2,
               uint64_t cord_str,
               uint64_t cord_end, 
               int thd_tileSize,   //WARNING 192 not allowed to change.
@@ -1964,12 +1964,12 @@ int const clzb_4_index_[8] = {0, 0, 3, 1, 3, 2, 2, 1}; // de brujin sequence tab
     return clzb_4_index_[(tmp - (tmp >> 4) - (tmp >> 5)) & 255]; 
 }
 
- short clzb_4_(uint64_t a)
+short clzb_4_(uint64_t a)
 {
     return (a)?__builtin_clz(unsigned (a)) / 2 - 12:4;
 }
 
- short ctzb_4_(uint64_t a)
+short ctzb_4_(uint64_t a)
 {
     return (a)?__builtin_ctz(unsigned(a)) / 2:4;
 
@@ -3098,8 +3098,8 @@ int g_extend_clip_(String<Dna5> & seq1,
               uint64_t cord2, 
               String<uint64_t> & g_hs,
               String<uint64_t> & g_anchor,
-              StringSet<String<short> > & f1,
-              StringSet<String<short> >& f2,
+              StringSet<String<FeatureType> > & f1,
+              StringSet<String<FeatureType> >& f2,
               String<uint64_t> & tiles,     //results
               String<uint64_t> & clips,     //results 
               int direction,
@@ -3174,8 +3174,8 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             String<uint64_t> & g_hs,
             String<uint64_t> & g_anchor,
             String<uint64_t> & clips, // string for clips cords
-            StringSet<String<short> > & f1,
-            StringSet<String<short> >& f2,
+            StringSet<String<FeatureType> > & f1,
+            StringSet<String<FeatureType> >& f2,
             int const thd_gap, 
             int const thd_tileSize
            )

@@ -385,7 +385,7 @@ int print_clips_gvf(Mapper & mapper)
 }
 
 int rawMap_dst2_MF(LIndex & index,
-                   StringSet<String<short> > & f2,
+                   StringSet<String<FeatureType> > & f2,
                    StringSet<String<Dna5> > & reads,
                    MapParm & mapParm,
                    StringSet<String<uint64_t> > & cords,
@@ -425,7 +425,7 @@ int64_t len = 0;
     Anchors anchors;
     String<uint64_t> crhit;
     StringSet<String<uint64_t> >  cordsTmp;
-    StringSet< String<short> > f1;
+    StringSet<String<FeatureType> > f1;
     StringSet<String<uint64_t> > clipsTmp;
     StringSet<String<BamAlignmentRecordLink> > bam_records_tmp;
     unsigned thd_id =  omp_get_thread_num();
@@ -486,15 +486,29 @@ int64_t len = 0;
     return 0;
 }
 
+
 /*
  *[]::map
  */
 int map(Mapper & mapper, int p1)
 {
     //printStatus();
-    StringSet<String<short> > f2;
+    StringSet<String<FeatureType> > f2;
     mapper.createIndex(false); // true: destruct genomes string to reduce memory footprint
     createFeatures(mapper.genomes(), f2, mapper.thread());
+    //<<debug
+    int sum = 0;
+    for (int i = 0; i < length(f2); i++)
+    {
+        for (int j = 0; j < length(f2[i]); j++)
+        {
+            //std::cout << "fts1 " << i << " " << j << " " << f2[i][j] << "\n";
+            //sum = printScript(f2[i][j]);
+            //std::cout << "fts1_sum " << sum << "\n";
+        }
+    }
+    return 0;
+    //>>debug
     SeqFileIn rFile(toCString(mapper.readPath()));
     unsigned k = 1, j = 0;
     unsigned blockSize = 50000;

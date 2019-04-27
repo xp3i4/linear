@@ -4,6 +4,8 @@
 using namespace seqan;
 
 //NOTE:Length of read < 1M;
+typedef int64_t FeatureType;
+
 extern const float band_width;
 extern const unsigned cmask;
 extern const unsigned cell_size;
@@ -124,8 +126,9 @@ struct Hit
 };
 extern Hit _DefaultHit;
 
-void createFeatures(TIter5 const &, TIter5 const &, String<short> & );
-void createFeatures(StringSet<String<Dna5> > &, StringSet<String<short> > &, unsigned);
+int createFeatures(TIter5, TIter5, String<FeatureType> & );
+int createFeatures(StringSet<String<Dna5> > &, StringSet<String<FeatureType> > &, unsigned);
+int createFeatures(StringSet<String<Dna5> > &, StringSet<String<FeatureType> > &);
 void cmpRevCord(uint64_t, uint64_t, uint64_t &, uint64_t &, uint64_t);
 uint64_t get_cord_x (uint64_t);
 uint64_t get_cord_y (uint64_t); 
@@ -138,19 +141,21 @@ uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y);
 void set_cord_end (uint64_t &); 
 void print_cord(uint64_t, CharString = "");
 
+int printScript(FeatureType & val, CharString);
 
-unsigned _windowDist(Iterator<String<short> >::Type const &, 
-                     Iterator<String<short> >::Type const &);
+
+unsigned _windowDist(Iterator<String<FeatureType> >::Type const &, 
+                     Iterator<String<FeatureType> >::Type const &);
 
 bool path_dst(typename Iterator<String<uint64_t> >::Type, 
               typename Iterator<String<uint64_t> >::Type, 
-              StringSet<String<short> > &,
-              StringSet<String<short> > &, 
+              StringSet<String<FeatureType> > &,
+              StringSet<String<FeatureType> > &, 
               String<uint64_t> &,
               float const & );
 
-int extendPatch(StringSet<String<short> > & f1, 
-                StringSet<String<short> > & f2, 
+int extendPatch(StringSet<String<FeatureType> > & f1, 
+                StringSet<String<FeatureType> > & f2, 
                 String<uint64_t> & cords,
                 int k,
                 uint64_t cord1,
