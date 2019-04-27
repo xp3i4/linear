@@ -498,16 +498,21 @@ int map(Mapper & mapper, int p1)
     createFeatures(mapper.genomes(), f2, mapper.thread());
     //<<debug
     int sum = 0;
-    for (int i = 0; i < length(f2); i++)
+    String<FeatureType> f1;
+    createFeatures(begin(mapper.genomes()[0]) + 32, end(mapper.genomes()[0]), f1);
+    int count = 0;
+    for (int i = 0; i < length(f2[0]) - 500; i += 100)
     {
-        for (int j = 0; j < length(f2[i]); j++)
+        unsigned dist = _windowDist(begin(f1) + i, begin(f2[0]) + i);
+        //std::cout << "wdst " << dist << " " << length(f1) << " " << length(f2[0]) << "\n";
+        if (dist > 110)
         {
-            //std::cout << "fts1 " << i << " " << j << " " << f2[i][j] << "\n";
-            //sum = printScript(f2[i][j]);
-            //std::cout << "fts1_sum " << sum << "\n";
+            count++;
         }
+
     }
-    return 0;
+    std::cout << "wdst " << count/ (float) (length(f2[0])) << "\n";
+    //return 0;
     //>>debug
     SeqFileIn rFile(toCString(mapper.readPath()));
     unsigned k = 1, j = 0;

@@ -28,7 +28,7 @@ const int scriptMask = (1 << scpt_len) - 1;
 const int scriptMask2 = scriptMask << scpt_len;
 const int scriptMask3 = scriptMask2 << scpt_len;
 const uint64_t hmask = (1ULL << 20) - 1;
-const unsigned windowThreshold = 36; // 36;
+const unsigned windowThreshold = 96; // 36;
 
 CordBase::CordBase():
         bit(20),
@@ -276,7 +276,7 @@ int createFeatures(TIter5 itBegin, TIter5 itEnd, String<FeatureType> & f)
         {
             addCell(itBegin + j, f[next]);
         }
-        printScript(f[next], "cfs2_n ");
+        //printScript(f[next], "cfs2_n ");
         next++;
     }
     return 0;
@@ -325,7 +325,7 @@ int createFeatures(TIter5 itBegin, TIter5 itEnd, String<FeatureType> & f, unsign
             addCell(itBegin + j, f[next]);
         }
         //std::cout << *(itBegin + k - 1) << " ";
-        printScript(f[next], "cfs2_n ");
+        //printScript(f[next], "cfs2_n ");
         next++;
     }
     /*
@@ -378,12 +378,12 @@ int createFeatures(StringSet<String<Dna5> > & seq,
 unsigned _windowDist(Iterator<String<FeatureType> >::Type const & it1, 
                      Iterator<String<FeatureType> >::Type const & it2)
 {
-    return _scriptDist(*it1, *it2) 
-         + _scriptDist(*(it1 + 2), *(it2 + 2)) 
-         + _scriptDist(*(it1 + 4), *(it2 + 4)) 
-         + _scriptDist(*(it1 + 6), *(it2 + 6)) 
-         + _scriptDist(*(it1 + 8), *(it2 + 8)) 
-         + _scriptDist(*(it1 + 10), *(it2 + 10));
+    return _scriptDist(*it1 + *(it1 + 1), *it2 + *(it2 + 1)) 
+         + _scriptDist(*(it1 + 2) + *(it1 + 3), *(it2 + 2) + *(it2 + 3)) 
+         + _scriptDist(*(it1 + 4) + *(it1 + 5), *(it2 + 4) + *(it2 + 5)) 
+         + _scriptDist(*(it1 + 6) + *(it1 + 7), *(it2 + 6) + *(it2 + 7)) 
+         + _scriptDist(*(it1 + 8) + *(it1 + 9), *(it2 + 8) + *(it2 + 9)) 
+         + _scriptDist(*(it1 + 10) + *(it1 + 11), *(it2 + 10) + *(it2 + 11));
 }
 
  bool nextCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & cord)
