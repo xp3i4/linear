@@ -835,7 +835,57 @@ unsigned getIndexMatchAll_d_ (DIndex & index,
                               String<uint64_t> & set,
                               MapParm & mapPar)
 {
-
+    int dt = 0;
+    LShape shape(index.shape);
+    uint64_t xpre = 0;
+    hashInit(shape, begin(read));
+    for (unsigned k = 0; k < length(read); k++)
+    {
+        hashNexth(shape, begin(read) + k);
+        uint64_t pre = ~0;
+        if (++dt == mapParm.alpha)
+        {
+            dt = 0;
+            if(hashNextX(shape, begin(read) + k) ^ xpre)
+            {
+                xpre = shape.XValue;
+                uint64_t pos = getXDir(index, shape.XValue, shape.YValue);
+                uint64_t ptr = _DefaultHs.getHeadPtr(index.ysa[pos-1]);
+                int64_t str_ = queryHsStr(index, shape.XValue);
+                int64_t end_ = queryHsEnd(index,)
+                if (index.isEmptyDir(pos) || ptr >= mapParm.delta)
+                {
+                    dt = 0;
+                    continue;
+                }
+                while ((_DefaultHs.getHsBodyY(index.ysa[pos]) == shape.YValue || 
+                        _DefaultHs.getHsBodyY(index.ysa[pos]) == 0))
+                {
+                    if (_DefaultHs.getHsBodyS(pre - index.ysa[pos]) > mapParm.kmerStep)
+                    {
+                        if (((index.ysa[pos] & _DefaultHsBase.bodyCodeFlag) >>_DefaultHsBase.bodyCodeBit) ^ shape.strand)
+                        {
+                            
+                            uint64_t cordy = length(read) - 1 - k;
+                            appendValue(set, (((_DefaultHs.getHsBodyS(index.ysa[pos]) - cordy) << 20) 
+                                + cordy) | _DefaultHitBase.flag2);
+                        }
+                        else
+                        {    
+                            uint64_t cordy = k;
+                            appendValue(set, ((_DefaultHs.getHsBodyS(index.ysa[pos]) - cordy) << 20) | cordy);
+                        }
+                        pre = index.ysa[pos];
+                    }
+                    if (++pos > length(index.ysa) - 1)
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    return 0;    
     return 0;
 }
 
