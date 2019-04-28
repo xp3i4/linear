@@ -829,6 +829,16 @@ template <typename TDna, typename TSpec>
     return 0;
 }
 */
+
+unsigned getIndexMatchAll_d_ (DIndex & index,
+                              String<Dna5> & read,
+                              String<uint64_t> & set,
+                              MapParm & mapPar)
+{
+
+    return 0;
+}
+
 /**
  * Search double strand pattern in the index and
  * append to anchors

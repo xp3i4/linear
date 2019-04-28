@@ -40,8 +40,36 @@ extern const unsigned blocklimit;
 extern const unsigned index_shape_len;
 extern const float def_alpha;
 
-//========================================================
-//The is the section to optimize 25-mer index for mapping
+/*=============================================
+=  short mer direct index for error rate > 0.2 =
+=============================================*/
+
+class DIndex 
+{
+    //String <int> dir;
+    //String <int> hs;
+    String <int64_t> dir;
+    String <int64_t> hs;
+    void * pt_dir[2];
+    void * pt_hs[2];
+    int pt;
+    LShape shape;
+public:
+    DIndex();
+    DIndex(unsigned); //shape_len
+    String<int64_t> & getDir();
+    String<int64_t> & getHs();
+    LShape & getShape();
+    int fullSize();
+    int getShapeLen();
+}; 
+int createDIndex(StringSet<String<Dna5> > &, DIndex &, int64_t, int64_t);
+int64_t queryHsStr(DIndex & index, int64_t xval);
+int64_t queryHsEnd(DIndex & index, int64_t xval);
+
+/*=============================================
+=        Section to optimize 25-mer index     =
+=============================================*/
 //Structt Hs: String<uint64_t>
 //Types of node in Hs: 1.head node and 2.body node
 //Head: Headflag[1] = 0|sortFlag[1]|N/A[2]|Pointer[20]| xvalue[40]
@@ -158,4 +186,5 @@ bool createHIndex(StringSet<String<Dna5> > & seq, LIndex & index, unsigned & thr
 
 // uint64_t getXDir(LIndex const & index, uint64_t const & xval, uint64_t const & yval)
 
+/*=====  End of Section comment block  ======*/
 #endif
