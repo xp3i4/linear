@@ -12,6 +12,8 @@
 using namespace seqan; 
 
 typedef StringSet<String<uint64_t> > CordsType;
+int const typeDIx = 1;
+int const typeHIx = 2;
 
 Mapper::Mapper(Options & options):
     record(options),
@@ -38,12 +40,28 @@ Mapper::Mapper(Options & options):
         }
     }
     _thread = options.thread;
+    typeIx = typeHIx;
 }
 
 int Mapper::createIndex(bool efficient)
 {
     std::cerr << ">>Create index \r";
-    createHIndex(genomes(), qIndex, _thread, efficient);
+    switch(typeIx)
+    {
+        case typeDIx:
+        {
+            int thd_min_step = 0;
+            int thd_max_step = 0;
+            createDIndex(genomes(), dIndex, thd_min_step, thd_max_step);
+//            createDIndex(genomes(), dIndex, thd_min_step, thd_max_step, _thread);
+            break;
+        }
+        case typeHIx:
+        {
+            createHIndex(genomes(), qIndex, _thread, efficient);
+            break;
+        }
+    }   
     return 0;
 }
 
