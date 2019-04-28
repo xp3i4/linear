@@ -1096,6 +1096,19 @@ unsigned getIndexMatchAll_d_ (DIndex & index,
     return getAnchorMatchList(anchors, length(read), mapParm, hit);
 }
 
+uint64_t mnMapReadList( IndexDynamic & index,
+                        String<Dna5> & read,
+                        Anchors & anchors,
+                        MapParm & mapParm,
+                        String<uint64_t> & hit)
+{
+    if (index.isHIndex())
+    {
+        getIndexMatchAll(index.hindex, read, anchors.set, mapParm);    
+        //printf("done getinxmatchall\n");
+        return getAnchorMatchList(anchors, length(read), mapParm, hit);
+    }   
+}
 /*
  * this is initCord for double strand index(with flag in cord value)
  */

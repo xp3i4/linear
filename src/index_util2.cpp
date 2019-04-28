@@ -4,6 +4,9 @@
 #include "index_util.h"
 using namespace seqan;
 
+int const typeDIx = 1;
+int const typeHIx = 2;
+
 unsigned dshape_len = 14;
 DIndex::DIndex():
     shape(dshape_len)
@@ -110,3 +113,35 @@ int64_t queryHsEnd(DIndex & index, int64_t xval)
 {
     return index.getDir()[xval + 1];
 }
+
+int IndexDynamic::isHIndex()
+{
+    return typeIx == typeHIx;
+}
+
+int IndexDynamic::isDIndex()
+{
+    return typeIx == typeDIx;
+}
+
+void IndexDynamic::setHIndex()
+{
+    typeIx = typeHIx;
+}
+
+void IndexDynamic::setDIndex()
+{
+    typeIx = typeDIx;
+}
+
+IndexDynamic::IndexDynamic(StringSet<String<Dna5> > & seqs):hindex(seqs)
+{}
+
+bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned threads, bool efficient)
+{
+    if (index.isHIndex())
+    {
+        return createHIndex(seqs, index.hindex, threads, efficient);
+    }
+}
+

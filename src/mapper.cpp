@@ -12,12 +12,10 @@
 using namespace seqan; 
 
 typedef StringSet<String<uint64_t> > CordsType;
-int const typeDIx = 1;
-int const typeHIx = 2;
 
 Mapper::Mapper(Options & options):
     record(options),
-    qIndex(genomes()), 
+    index_dynamic(genomes()), 
     of(toCString(options.getOutputPath()))
 {
     outputPrefix = getFileName(getFileName(options.getReadPath()), '.', 0);
@@ -40,28 +38,15 @@ Mapper::Mapper(Options & options):
         }
     }
     _thread = options.thread;
-    typeIx = typeHIx;
+    index_dynamic.setHIndex();
 }
 
 int Mapper::createIndex(bool efficient)
 {
     std::cerr << ">>Create index \r";
-    switch(typeIx)
-    {
-        case typeDIx:
-        {
-            int thd_min_step = 0;
-            int thd_max_step = 0;
-            createDIndex(genomes(), dIndex, thd_min_step, thd_max_step);
+    createIndexDynamic(genomes(), index_dynamic, _thread, efficient);
 //            createDIndex(genomes(), dIndex, thd_min_step, thd_max_step, _thread);
-            break;
-        }
-        case typeHIx:
-        {
-            createHIndex(genomes(), qIndex, _thread, efficient);
-            break;
-        }
-    }   
+
     return 0;
 }
 
@@ -309,7 +294,7 @@ int print_clips_gvf(Mapper & mapper)
     return 0;
 }
 
-int rawMap_dst2_MF(LIndex & index,
+int rawMap_dst2_MF(IndexDynamic & index,
                    StringSet<String<short> > & f2,
                    StringSet<String<Dna5> > & reads,
                    MapParm & mapParm,
@@ -452,7 +437,8 @@ int map(Mapper & mapper, int p1)
         std::cerr <<  "--Map::file_I/O+Map block "<< k << " Size " << length(mapper.reads()) << " Elapsed Time[s]: file_I/O " << time1 << " map "<< time2 << "\n";
         k++;
     }
-    mapper.index().clear(); 
+    //!!TODO::clear index;
+    //mapper.index().clear(); 
     print_cords_txt(mapper);
     print_align_sam(mapper);
     print_clips_gvf(mapper);
