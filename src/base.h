@@ -158,4 +158,15 @@ int readRecords_block (StringSet<CharString> & ids, StringSet<String<Dna5> > & r
 void _compltStr(String<Dna5> & str, String<Dna5> & res);
 void _compltRvseStr(String<Dna5> & str, String<Dna5> & res);
 
+struct Dout //debug cout utility
+{
+    Dout & operator << (int);
+    Dout & operator << (unsigned);
+    Dout & operator << (int64_t);
+    Dout & operator << (uint64_t);
+    Dout & operator << (CharString);
+
+};
+extern Dout dout;
+
 #endif

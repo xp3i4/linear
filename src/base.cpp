@@ -360,3 +360,38 @@ static const String<Dna5> _complt = "tgcan";
         //std::cout << (unsigned)ordValue(str[length(str) - k - 1]) << std::endl;
     }
 }
+
+Dout dout;
+Dout & Dout::operator << (int n)
+{
+    std::cout << n << " "; 
+    return *this;
+}
+Dout & Dout::operator << (unsigned n)
+{
+    std::cout << n << " "; 
+    return *this;
+}
+Dout & Dout::operator << (int64_t n)
+{
+    std::cout << n << " "; 
+    return *this;
+}
+Dout & Dout::operator << (uint64_t n)
+{
+    std::cout << n << " "; 
+}
+Dout & Dout::operator << (CharString n)
+{
+    if (n == "\n")
+    {
+        std::cout << n;
+    }
+    else
+    {
+        std::cout << n << " "; 
+    }
+    return *this;
+}
+
+

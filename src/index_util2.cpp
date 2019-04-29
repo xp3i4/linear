@@ -7,7 +7,7 @@ using namespace seqan;
 int const typeDIx = 1;
 int const typeHIx = 2;
 
-unsigned dshape_len = 14;
+unsigned dshape_len = 22;
 DIndex::DIndex():
     shape(dshape_len)
 {}
@@ -139,9 +139,16 @@ IndexDynamic::IndexDynamic(StringSet<String<Dna5> > & seqs):hindex(seqs)
 
 bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned threads, bool efficient)
 {
-    if (index.isHIndex())
+    if (index.isDIndex())
+    {
+        std::cout << "cidx\n";
+        //TODO::parm wrapping 
+        return createDIndex(seqs, index.dindex, 0, 10);
+    }
+    else if (index.isHIndex())
     {
         return createHIndex(seqs, index.hindex, threads, efficient);
     }
+
 }
 

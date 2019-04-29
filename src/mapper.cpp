@@ -39,6 +39,7 @@ Mapper::Mapper(Options & options):
     }
     _thread = options.thread;
     index_dynamic.setHIndex();
+    index_dynamic.setDIndex();
 }
 
 int Mapper::createIndex(bool efficient)
