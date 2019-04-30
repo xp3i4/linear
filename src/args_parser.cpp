@@ -36,6 +36,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     addOption(parser, seqan::ArgParseOption(
         "t", "thread", "Default -t 4",
             seqan::ArgParseArgument::INTEGER, "INT"));
+    //addOption(parser, seqan::)
     
 // mapping parameters for tunning 
     addOption(parser, seqan::ArgParseOption(

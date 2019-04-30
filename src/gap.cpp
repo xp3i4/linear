@@ -112,7 +112,7 @@ int print_clips_gvf_(StringSet<String<uint64_t> > & clips,
     std::string type = ".";
     for (unsigned i = 0; i < length(clips); i++)
     {
-        std::cout << "pcg1 " << i << " " << getClipsLen(clips[i]) << " " << length(clips) << "\n";
+        //std::cout << "pcg1 " << i << " " << getClipsLen(clips[i]) << " " << length(clips) << "\n";
         for (unsigned j = 0; j < getClipsLen(clips[i]); j++)
         {
             uint64_t clip_str = getClipStr(clips[i], j);
