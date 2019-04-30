@@ -393,5 +393,17 @@ Dout & Dout::operator << (CharString n)
     }
     return *this;
 }
-
+Dout & Dout::operator << (String<int64_t> & n)
+{
+    for (int i = 0; i < length(n); i++)
+    {
+        std::cout << n[i] << " ";
+    }
+    return * this;
+}
+Dout & Dout::operator << (double n)
+{
+    std::cout << n << " " ;
+    return * this;
+}
 

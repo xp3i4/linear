@@ -189,6 +189,11 @@ uint64_t create_cord (uint64_t id, uint64_t cordx, uint64_t cordy, uint64_t stra
 {
     return _DefaultCord.createCord(create_id_x (id, cordx), cordy, strand);
 }
+int64_t atomic_inc_cord_y (int64_t & cord) 
+{
+    int64_t tmp = atomicInc(cord);
+    return tmp;
+}
 
 void cmpRevCord(uint64_t val1, 
                     uint64_t val2,
@@ -260,7 +265,7 @@ void createFeatures(TIter5 const & itBegin, TIter5 const & itEnd, String<short> 
 /**
  * Parallel 
  */
- void createFeatures(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f, unsigned threads)
+void createFeatures(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f, unsigned threads)
 {
     unsigned window = 1 << scriptWindow;
     resize (f, ((itEnd - itBegin -window) >> scriptBit) + 1);

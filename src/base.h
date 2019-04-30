@@ -165,6 +165,8 @@ struct Dout //debug cout utility
     Dout & operator << (int64_t);
     Dout & operator << (uint64_t);
     Dout & operator << (CharString);
+    Dout & operator << (String<int64_t> &);
+    Dout & operator << (double);
 
 };
 extern Dout dout;
