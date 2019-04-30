@@ -23,14 +23,15 @@ struct Options{
     bool        Sensitive; 
     unsigned    sensitivity;
     unsigned    thread;
+    int         index_t;
 //map tuning
-    unsigned listN;
-    unsigned listN2;
-    float alpha;
-    float alpha2;
-    float cordThr;
-    float senThr;
-    int p1;
+    unsigned    listN;
+    unsigned    listN2;
+    float       alpha;
+    float       alpha2;
+    float       cordThr;
+    float       senThr;
+    int         p1;
 
     Options();
     std::string getGenomePath() const; 
@@ -170,5 +171,13 @@ struct Dout //debug cout utility
 
 };
 extern Dout dout;
+
+class ostreamWapper
+{
+    CharString contents; 
+public:
+    void print_message(CharString strs, int start, int end_type, std::ostream & os);
+};
+extern ostreamWapper serr;
 
 #endif

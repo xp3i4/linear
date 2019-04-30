@@ -112,6 +112,7 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
                  unsigned threads
                 )
 {
+    serr.print_message(">>Index::initing ", 0, 2, std::cerr);
     double t = sysTime();
     LShape & t_shape = index.getShape();
     String<int> & dir = index.getDir();
@@ -172,6 +173,8 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
     int64_t EmptyVal = create_cord(length(seqs),0,0,0); 
     //make sure genomeid >= length(seqs) and cord y be 0! y points to next empty.
     resize (hs, sum, EmptyVal);
+    serr.print_message("--Index::inite   ", 0, 1, std::cerr);
+    serr.print_message(">>Index::hashing", 0, 2, std::cerr);
     for (int64_t i = 0; i < length(seqs); i++)
     {
         String<int64_t> t_blocks;
@@ -216,6 +219,8 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
     }
     }
     std::cout << "createDIndex " << sysTime() - t << " " << sysTime() - t2 << "\n";
+    serr.print_message("Index::hash        ", 2, 1, std::cerr);
+    serr.print_message("End createing index", 2, 1, std::cerr);
 }
 
 int64_t queryHsStr(DIndex & index, int64_t xval)

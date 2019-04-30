@@ -36,7 +36,10 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     addOption(parser, seqan::ArgParseOption(
         "t", "thread", "Default -t 4",
             seqan::ArgParseArgument::INTEGER, "INT"));
-    //addOption(parser, seqan::)
+    addOption(parser, seqan::ArgParseOption(
+        "idx", "index_type", "Default -idx 1",
+            seqan::ArgParseArgument::INTEGER, "INT"
+        ));
     
 // mapping parameters for tunning 
     addOption(parser, seqan::ArgParseOption(
@@ -81,6 +84,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     getOptionValue(options.oPath, parser, "output");
     getOptionValue(options.sensitivity, parser, "sensitivity");
     getOptionValue(options.thread, parser, "thread");
+    getOptionValue(options.index_t, parser, "index_type");
     
     getOptionValue(options.listN, parser, "listn1");
     getOptionValue(options.listN2, parser, "listn2");

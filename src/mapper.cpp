@@ -38,8 +38,14 @@ Mapper::Mapper(Options & options):
         }
     }
     _thread = options.thread;
-    index_dynamic.setHIndex();
-    index_dynamic.setDIndex();
+    if (options.index_t == 1)
+    {
+        index_dynamic.setHIndex();
+    }
+    else if (options.index_t == 0)
+    {
+        index_dynamic.setDIndex();
+    }
 }
 
 int Mapper::createIndex(bool efficient)
@@ -448,7 +454,7 @@ int map(Mapper & mapper, int p1)
 int main(int argc, char const ** argv)
 {
     double time = sysTime();
-    std::cerr << "[]\n";
+    std::cerr << "[1.2.1] ";
     (void)argc;
     Options options;
     seqan::ArgumentParser::ParseResult res = parseCommandLine(options, argc, argv);
