@@ -46,9 +46,7 @@ extern const float def_alpha;
 
 class DIndex 
 {
-    //String <int> dir;
-    //String <int> hs;
-    String <int64_t> dir;
+    String <int> dir;
     String <int64_t> hs;
     void * pt_dir[2];
     void * pt_hs[2];
@@ -57,7 +55,7 @@ class DIndex
 public:
     DIndex();
     DIndex(unsigned); //shape_len
-    String<int64_t> & getDir();
+    String<int> & getDir();
     String<int64_t> & getHs();
     LShape & getShape();
     int fullSize();
