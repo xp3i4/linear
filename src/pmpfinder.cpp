@@ -221,9 +221,9 @@ int printScript(FeatureType & val, CharString header)
  * Script is the feature of kmer
  * Calculate distance of two scripts. 
  */
-int64_t _scriptDist(int64_t const s1, int64_t const s2)
+int64_t _scriptDist64_15(int64_t const s1, int64_t const s2)
 {
-    int64_t mask = 15LL;
+    int64_t mask = 15;
     return  std::abs((s1 & mask) - (s2 & mask)) +
             std::abs((s1 >> 4 & mask) - (s2 >> 4 & mask)) +
             std::abs((s1 >> 8 & mask) - (s2 >> 8 & mask)) +
@@ -241,6 +241,53 @@ int64_t _scriptDist(int64_t const s1, int64_t const s2)
             std::abs((s1 >> 56 & mask) - (s2 >> 56 & mask)) +
             std::abs((s1 >> 60 & mask) - (s2 >> 60 & mask));
 }
+
+int64_t const max64 = 7;
+int64_t const mxu64 = (max64 << 8) +  (max64 << 4) + max64; 
+int64_t _scriptDist64_7 (int64_t & const s1, int64_t const & s2)
+{
+    int64_t s = s1 - s2 + mxu64; 
+    int64_t mask = 15;
+    return std((s & mask)) +
+           std::abs((s >> 4 & mask) - max64) +
+           std::abs((s >> 8 & mask) - max64) +
+           std::abs((s >> 12 & mask) - max64) +
+           std::abs((s >> 16 & mask) - max64) +
+           std::abs((s >> 20 & mask) - max64) +
+           std::abs((s >> 24 & mask) - max64) +
+           std::abs((s >> 28 & mask) - max64) +
+           std::abs((s >> 32 & mask) - max64) +
+           std::abs((s >> 36 & mask) - max64) +
+           std::abs((s >> 40 & mask) - max64) +
+           std::abs((s >> 44 & mask) - max64) +
+           std::abs((s >> 48 & mask) - max64) +
+           std::abs((s >> 52 & mask) - max64) +
+           std::abs((s >> 56 & mask) - max64) +
+           std::abs((s >> 60 & mask) - max64); 
+}
+
+short const max16 = 15; 
+short const mxu16 = (max16 << 10) + (max16 << 5) + max16;    //0011110111101111
+short __scriptDist(short & s1, short & s2)
+{
+    short d = s1 - s2 + maxu16;
+    return std::abs((d >> 10 & 31) - max16) + 
+           std::abs((d >> 5 & 31) - max16) +
+           std::abs((d & 31) - max16);
+}
+/**
+ * @s1* script1
+ * @s2* script2  
+ */
+int64_t _scriptDist80_15(short const & s11, short const & s12, short const & s13, 
+                     short const & s21, short const & s22, short const & s23) 
+{
+    short mask = 31;
+    return __scriptDist(s11, s21) + __scriptDist(s12, s22) + __scriptDist(s13, s23);
+}
+
+
+
 //Map "N" to a larger number > 64, such that (1LL << ordN_(N)) = 0.
 inline int64_t ordN_(Dna5 & a)
 {
@@ -255,14 +302,6 @@ inline void addCell(TIter5 it, FeatureType & val)
 {
     int ordV = (ordN_(*it) << 2) + ordN_(*(it + 1));
     val += 1LL << (ordV << 2);
-}
-inline void slideCell(TIter5 it, unsigned window, FeatureType & val)
-{
-    //printScript(val, "sc1 ");
-    //std::cout << "sc1 " << *it << *(it+1) << " " << *(it + window) <<*(it + window + 1) << "\n";
-    int ordV = (ordN_(*it) << 2) + ordN_(*(it + 1));
-    val -= 1LL << (ordV << 2);
-    addCell(it + window, val);
 }
 int createFeatures(TIter5 itBegin, TIter5 itEnd, String<FeatureType> & f)
 {
@@ -328,33 +367,6 @@ int createFeatures(TIter5 itBegin, TIter5 itEnd, String<FeatureType> & f, unsign
         //printScript(f[next], "cfs2_n ");
         next++;
     }
-    /*
-    int count = 0;
-    int count1 = 0;
-            //<<debug
-    String<int> counts;
-    resize (counts, 25);
-    for (int i = 0; i < 25; i++)
-    {
-        counts[i] = 0;
-    }
-    for (int k = 0; k < 31; k++)
-    {
-        counts[ordValue(*(itBegin + k)) * 5 + ordValue(*(itBegin + k + 1))]++;
-    }
-    for (int k = 0; k < itEnd - itBegin; k++)
-    {
-        counts[ordValue(*(itBegin + k))* 5 + ordValue(*(itBegin + k + 1))]--;
-        counts[ordValue(*(itBegin + k + 30))* 5 + ordValue(*(itBegin + k + 1 + 30))]++;
-        for(int j = 0; j < 25; j++)
-            if (counts[j] > 15)
-            {
-                count1++;
-            }
-    }
-    std::cout << "cfs2_count " << (float)count1/(itEnd - itBegin) << "\n";
-        //>>debug
-*/
 }
 }
 
