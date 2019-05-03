@@ -30,6 +30,7 @@ extern const uint64_t hmask;
 extern const unsigned windowThreshold; // 36;
 
 typedef Iterator <String <Dna5> >::Type TIter5;
+typedef std::array<int, 3> int96;
 /*
  * Cord(C): coordinates in the alignment matrix;
  * :=|N/A[2]|strand[1]|cordEnd[1] gC [40] |rC [20bits]
@@ -126,6 +127,7 @@ struct Hit
 };
 extern Hit _DefaultHit;
 
+int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f);
 int createFeatures(TIter5, TIter5, String<FeatureType> & );
 int createFeatures(StringSet<String<Dna5> > &, StringSet<String<FeatureType> > &, unsigned);
 int createFeatures(StringSet<String<Dna5> > &, StringSet<String<FeatureType> > &);
@@ -163,5 +165,12 @@ int extendPatch(StringSet<String<FeatureType> > & f1,
                 int revscomp_const,
                 int overlap_size = window_size,
                 int gap_size = window_size);
+
+int64_t _windowDist48_4(Iterator<String<int96> >::Type it1,  //feature string iterator
+                        Iterator<String<int96> >::Type it2);
+void printInt96(int96 val, CharString header);
+int createFeatures48(TIter5 itBegin, TIter5 itEnd, String<int96> & f, unsigned threads);
+
+
 
 #endif

@@ -396,7 +396,7 @@ int rawMap_dst2_MF(LIndex & index,
                    int p1
                   )
 {
-  
+
     typedef String<Dna5> Seq;
     //double time=sysTime();
     float senThr = mapParm.senThr / window_size;
@@ -486,6 +486,26 @@ int64_t len = 0;
     return 0;
 }
 
+//debug util
+int printFeatures48(String<int96> & f, CharString header)
+{
+    for (int i = 0; i < length(f); i++)
+    {
+        std::cout << header << " ";
+        for (int j = 0; j < 3; j++)
+        {
+            int v = f[i][j];
+            for (int ii = 0; ii < 5; ii++)
+            {
+                std::cout << (v & 63) << " ";
+                v >>= 6;
+            }
+            std::cout << "| ";
+        }
+    std::cout << "\n";
+    }
+    return 0;
+}
 
 /*
  *[]::map
@@ -494,23 +514,23 @@ int map(Mapper & mapper, int p1)
 {
     //printStatus();
     StringSet<String<FeatureType> > f2;
-    mapper.createIndex(false); // true: destruct genomes string to reduce memory footprint
-    createFeatures(mapper.genomes(), f2, mapper.thread());
+    //mapper.createIndex(false); // true: destruct genomes string to reduce memory footprint
+    //createFeatures(mapper.genomes(), f2, mapper.thread());
     //<<debug
     int sum = 0;
-    String<FeatureType> f1;
-    createFeatures(begin(mapper.genomes()[0]) + 32, end(mapper.genomes()[0]), f1);
-    int count = 0;
-    for (int i = 0; i < length(f2[0]) - 500; i += 100)
+    String<int96> f_t1, f_t2;
+    createFeatures48(begin(mapper.genomes()[0]), end(mapper.genomes()[0]) - 300, f_t1, mapper.thread());
+    createFeatures48(begin(mapper.genomes()[0]), end(mapper.genomes()[0]) - 300, f_t2);
+    for (int i = 0; i < length(f_t1) - 100; i++)
     {
-        unsigned dist = _windowDist(begin(f1) + i, begin(f2[0]) + i);
-        //std::cout << "wdst " << dist << " " << length(f1) << " " << length(f2[0]) << "\n";
-        if (dist > 110)
-        {
-            count++;
-        }
-
+        int val = _windowDist48_4 (begin(f_t1) + i, begin(f_t2) + i);
+        std::cout << "map2 " << i << " " << val << "\n";
+        //printInt96(*(begin(f_t1) + i + 1), "map21");
+        //printInt96(*(begin(f_t2) + i), "map22");
     }
+    printFeatures48(f_t1, "mpf1 ");
+    return 0;
+    int count = 0;
     std::cout << "wdst " << count/ (float) (length(f2[0])) << "\n";
     //return 0;
     //>>debug
@@ -555,7 +575,7 @@ int map(Mapper & mapper, int p1)
 int main(int argc, char const ** argv)
 {
     double time = sysTime();
-    std::cerr << "[]\n";
+    std::cerr << "[version]\n";
     (void)argc;
     Options options;
     seqan::ArgumentParser::ParseResult res = parseCommandLine(options, argc, argv);

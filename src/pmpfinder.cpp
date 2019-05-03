@@ -199,6 +199,12 @@ uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y)
     return (val & (~_DefaultCordBase.valueMask)) + (x << _DefaultCordBase.bit) + y;
 }
 
+//Map "N" to a larger number > 64, such that (1LL << ordN_(N)) = 0.
+inline int64_t ordN_(Dna5 & a)
+{
+    int64_t res = ordValue(a);
+    return (res == 4) ? 100LL : res;
+}
 
 //======HIndex getIndexMatch()
 //<<debug util
@@ -221,7 +227,7 @@ int printScript(FeatureType & val, CharString header)
  * Script is the feature of kmer
  * Calculate distance of two scripts. 
  */
-int64_t _scriptDist64_15(int64_t const s1, int64_t const s2)
+int64_t _scriptDist(int64_t const s1, int64_t const s2)
 {
     int64_t mask = 15;
     return  std::abs((s1 & mask) - (s2 & mask)) +
@@ -241,60 +247,224 @@ int64_t _scriptDist64_15(int64_t const s1, int64_t const s2)
             std::abs((s1 >> 56 & mask) - (s2 >> 56 & mask)) +
             std::abs((s1 >> 60 & mask) - (s2 >> 60 & mask));
 }
-
-int64_t const max64 = 7;
-int64_t const mxu64 = (max64 << 8) +  (max64 << 4) + max64; 
-int64_t _scriptDist64_7 (int64_t & const s1, int64_t const & s2)
+/*----------  Script encoding type II Start ----------*/
+/* TG TC TA GT GG int1  \
+   GC GA CT CG CC int2  -- int96 for 48 bases script; Each 2mer has 6 bits
+   CA AT AG AC AA int3  /
+ */
+//TODO!!! for 2mer > 32 occurrences out of boundary
+void decInt96 (int96 & val, int96 & dval) // val -= dval
 {
-    int64_t s = s1 - s2 + mxu64; 
-    int64_t mask = 15;
-    return std((s & mask)) +
-           std::abs((s >> 4 & mask) - max64) +
-           std::abs((s >> 8 & mask) - max64) +
-           std::abs((s >> 12 & mask) - max64) +
-           std::abs((s >> 16 & mask) - max64) +
-           std::abs((s >> 20 & mask) - max64) +
-           std::abs((s >> 24 & mask) - max64) +
-           std::abs((s >> 28 & mask) - max64) +
-           std::abs((s >> 32 & mask) - max64) +
-           std::abs((s >> 36 & mask) - max64) +
-           std::abs((s >> 40 & mask) - max64) +
-           std::abs((s >> 44 & mask) - max64) +
-           std::abs((s >> 48 & mask) - max64) +
-           std::abs((s >> 52 & mask) - max64) +
-           std::abs((s >> 56 & mask) - max64) +
-           std::abs((s >> 60 & mask) - max64); 
+    val[0] -= dval[0];
+    val[1] -= dval[1];
+    val[2] -= dval[2];
 }
-
-short const max16 = 15; 
-short const mxu16 = (max16 << 10) + (max16 << 5) + max16;    //0011110111101111
-short __scriptDist(short & s1, short & s2)
+void setInt96 (int96 & val, int96 & dval) // val = dval
 {
-    short d = s1 - s2 + maxu16;
-    return std::abs((d >> 10 & 31) - max16) + 
-           std::abs((d >> 5 & 31) - max16) +
-           std::abs((d & 31) - max16);
+    val[0] = dval[0];
+    val[1] = dval[1];
+    val[2] = dval[2];
+}
+void incInt96 (int96 & val, int96 & dval) // val += dval
+{
+    val[0] += dval[0];
+    val[1] += dval[1];
+    val[2] += dval[2];
+}
+void printInt96(int96 val, CharString header)
+{
+    std::cout << header << " ";
+    int sum = 0;
+    for (int i = 0; i < 3; i++)
+    {
+        int v = val[i];
+        for (int ii = 0; ii < 5; ii++)
+        {
+            sum += v & 63;
+            std::cout << (v & 63) << " ";
+            v >>= 6;
+        }
+        std::cout << "| ";
+    }
+    std::cout << sum << "\n";
+}
+int const window48 = 48;
+int const max31 = 31;
+int const mxu31 = (max31 << 24) + (max31 << 18) + (max31 << 12) +
+                  (max31 << 6) + max31;
+int64_t __scriptDist63_31(int const & s1, int const & s2)
+{
+    int d = s1 + mxu31 - s2;
+    int mask = 63; 
+    return std::abs((d >> 24 & mask) - max31) +
+           std::abs((d >> 18 & mask) - max31) +
+           std::abs((d >> 12 & mask) - max31) +
+           std::abs((d >> 6 & mask) - max31) +
+           std::abs((d & mask) - max31);
+}
+int64_t _scriptDist63_31(int const & s11, int const & s12, int const & s13,
+                         int const & s21, int const & s22, int const & s23)
+{
+    return __scriptDist63_31(s11, s21) +
+           __scriptDist63_31(s12, s22) +
+           __scriptDist63_31(s13, s23);
+}
+//wrapper into 96 bit integer.
+int64_t _scriptDist63_31(int96 & s1, int96 & s2)
+{
+    return  _scriptDist63_31(s1[0], s1[1], s1[2],
+                             s2[0], s2[1], s2[2]);
+}
+int64_t _windowDist48_4(Iterator<String<int96> >::Type it1,  //feature string iterator
+                        Iterator<String<int96> >::Type it2)
+{
+    printInt96(*it1, "4841");
+    printInt96(*(it1 + 1), "4841");
+    printInt96(*(it1 + 2), "4841");
+    printInt96(*(it1 + 3), "4841");
+    printInt96(*it2, "4842");
+    printInt96(*(it2 + 1), "4842");
+    printInt96(*(it2 + 2), "4842");
+    printInt96(*(it2 + 3), "4842");
+    return _scriptDist63_31(*it1, *it2) + 
+           _scriptDist63_31(*(it1 + 1), *(it2 + 1)) +
+           _scriptDist63_31(*(it1 + 2), *(it2 + 2)) + 
+           _scriptDist63_31(*(it1 + 3), *(it2 + 3));
+    
 }
 /**
- * @s1* script1
- * @s2* script2  
+ * 1.units[n] = (i << 8 + k) maps n to bits of int96 (ith int, kth bit);
+ * 2.NOTE::In gcc, x << y == x << (y|31) due to optimization concerning.
+ *   In other words if y > 31, it does nothing. 
+ *   Beacause of that the infiN is set to 31 for TT, N* and *N 
+ *   They are add to the 31bits and cut off the 30bits by & infi_mask30
  */
-int64_t _scriptDist80_15(short const & s11, short const & s12, short const & s13, 
-                     short const & s21, short const & s22, short const & s23) 
+short infiN = 31; //for base '*N' 'N*' and 'TT' 
+unsigned infi_mask30 = (1 << 31) - 1;
+short units[25] = {
+/*A**/ 0,             6,             12,            18,            infiN, 
+/*C**/ 24,            (1 << 8) + 0,  (1 << 8) + 6,  (1 << 8) + 12, infiN,
+/*G**/ (1 << 8) + 18, (1 << 8) + 24, (2 << 8) + 0,  (2 << 8) + 6,  infiN,
+/*T**/ (2 << 8) + 12, (2 << 8) + 18, (2 << 8) +24,  infiN,         infiN,  
+/*N**/ infiN,         infiN,         infiN,         infiN,         infiN};
+void add2merInt96 (int96 & val, TIter5 it)
 {
-    short mask = 31;
-    return __scriptDist(s11, s21) + __scriptDist(s12, s22) + __scriptDist(s13, s23);
+    unsigned ordV = ordValue(*it) * 5 + ordValue(*(it + 1)); // 5*ordV_i + ordV_{i+1}
+    unsigned i = units[ordV] >> 8;
+    unsigned addVal = (1 << (units[ordV] & 255)) & infi_mask30;
+    val[i] += addVal;
+    //std::cout << "a2i96 " << *it << *(it+1) << " " << ordV << " " << i << " " << addVal << " " << (1 << 255)<< "\n";
 }
-
-
-
-//Map "N" to a larger number > 64, such that (1LL << ordN_(N)) = 0.
-inline int64_t ordN_(Dna5 & a)
+int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f)
 {
-    int64_t res = ordValue(a);
-    return (res == 4) ? 100LL : res;
-
+    double t = sysTime();
+    int addMod3[3] = {1, 2, 0};   // adMod3[i] = ++ i % 3;
+    int96 zero96 = {0, 0, 0};
+    std::vector<int96> buffer(3, zero96); //buffer of 3 cells in one script
+    resize (f, (it_end - it_str - window48) / scpt_step + 1); 
+    setInt96(f[0], zero96);
+    std::cout << "cf48 " << length(f) << "\n";
+    for (int i = 0; i < 3; i++) //init f[0]
+    {
+        for (int j = i << scpt_bit; j < (i << scpt_bit) + scpt_step; j++)
+        {
+            add2merInt96(buffer[i], it_str + j);
+        }
+        printInt96(buffer[i], "cf3");
+        incInt96(f[0], buffer[i]);
+    }
+    std::cerr << " cf48 time " << sysTime() - t << "\n";
+    int next = 1; //stream f[next]
+    int ii = 0;
+    for (int i = scpt_step; i < it_end - it_str - window48 - 1; i += scpt_step) 
+    {
+        setInt96(f[next], f[next - 1]);
+        decInt96(f[next], buffer[ii]);
+        setInt96(buffer[ii], zero96); //clear to 0;
+        for (int j = i - scpt_step + window48; j < i + window48; j++)
+        {
+            add2merInt96(buffer[ii], it_str + j);
+            std::cout << *(it_str + j);
+        }
+        printInt96(buffer[ii], "cf2");
+        incInt96(f[next], buffer[ii]);
+        ii = addMod3[ii];
+        next++;
+    }
+    return 0;
 }
+int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f, unsigned threads)
+{
+    int window = window48;
+    if (it_end - it_str < window)
+    {
+        return 0;
+    }
+    resize (f, ((it_end - it_str -window) >> scpt_bit) + 1);
+    int64_t range = (it_end - it_str - window) / scpt_step + 1; //numer of windows 
+    if (range < threads)
+    {
+        createFeatures48(it_str, it_end, f);
+        return 0;
+    }
+#pragma omp parallel
+{
+    unsigned thd_id = omp_get_thread_num();
+    int64_t chunk_size = range / threads; 
+    int64_t thd_begin = thd_id * (chunk_size + 1);
+    unsigned id1 = range - chunk_size * threads;
+    if (thd_id >= id1)
+    {
+        thd_begin = id1 + chunk_size * thd_id;
+    }
+    else
+    {
+        ++chunk_size;
+    }
+    int64_t thd_end = thd_begin + chunk_size;
+    int64_t next = thd_begin;
+    thd_begin *= scpt_step;
+    thd_end *= scpt_step;
+    std::cout << "cfs2 " << thd_id << " " << thd_begin << " " << thd_end << "\n";
+
+    int addMod3[3] = {1, 2, 0};   // adMod3[i] = ++ i % 3;
+    int96 zero96 = {0, 0, 0};
+    std::vector<int96> buffer(3, zero96); //buffer of 3 cells in one script
+    setInt96(f[next], zero96);
+    std::cout << "cf48 " << length(f) << "\n";
+    for (int i = 0; i < 3; i++) //init buffer and f[next]
+    {
+        int tmp = thd_begin + (i << scpt_bit); 
+        for (int j = tmp; j < tmp + scpt_step; j++)
+        {
+            add2merInt96(buffer[i], it_str + j);
+        }
+        printInt96(buffer[i], "cfp3");
+        std::cout << "cfp3 " << tmp << '\n';
+        incInt96(f[next], buffer[i]);
+    }
+    int ii = 0;
+    next++; //stream f[next]
+    for (int i = thd_begin + scpt_step; i < thd_end; i += scpt_step) 
+    {
+        setInt96(f[next], f[next - 1]);
+        decInt96(f[next], buffer[ii]);
+        setInt96(buffer[ii], zero96); //clear to 0;
+        for (int j = i - scpt_step + window; j < i + window; j++)
+        {
+            add2merInt96(buffer[ii], it_str + j);
+            std::cout << *(it_str + j);
+        }
+        printInt96(buffer[ii], "cf2");
+        incInt96(f[next], buffer[ii]);
+        ii = addMod3[ii];
+        next++;
+    }
+}
+}
+/*----------  Script encoding type II End----------*/
+
+
 /**
  * Function only for counting 2mer in script
  */
@@ -385,6 +555,14 @@ int createFeatures(StringSet<String<Dna5> > & seq,
     resize(f, length(seq));
     for (unsigned k = 0; k < length(seq); k++)
         createFeatures(begin(seq[k]), end(seq[k]), f[k]);
+}
+
+int createFeatures(StringSet<String<Dna5> > & seq, 
+                   StringSet<String<int96> > & f)
+{
+    resize(f, length(seq));
+    for (unsigned k = 0; k < length(seq); k++)
+        createFeatures48(begin(seq[k]), end(seq[k]), f[k]);
 }
 
 unsigned _windowDist(Iterator<String<FeatureType> >::Type const & it1, 
