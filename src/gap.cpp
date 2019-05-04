@@ -1570,7 +1570,7 @@ struct MapAnchorParm
  int g_mapHs_anchor_sv2_ (String<uint64_t> & anchor, 
                           String<uint64_t> & tiles, 
                           StringSet<String<FeatureType> > & f1,
-                          StringSet<String<FeatureType> >& f2,
+                          StringSet<String<FeatureType> > & f2,
                           uint64_t gap_str,
                           uint64_t gap_end,
                           int anchor_end, 

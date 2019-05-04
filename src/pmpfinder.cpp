@@ -28,7 +28,7 @@ const int scriptMask = (1 << scpt_len) - 1;
 const int scriptMask2 = scriptMask << scpt_len;
 const int scriptMask3 = scriptMask2 << scpt_len;
 const uint64_t hmask = (1ULL << 20) - 1;
-const unsigned windowThreshold = 96; // 36;
+const unsigned windowThreshold = 50; // 36;
 
 CordBase::CordBase():
         bit(20),
@@ -208,7 +208,7 @@ inline int64_t ordN_(Dna5 & a)
 
 //======HIndex getIndexMatch()
 //<<debug util
-int printScript(FeatureType & val, CharString header)
+int printScript(int64_t & val, CharString header)
 {
     int sum = 0;
     std::cout << header << " "; 
@@ -222,6 +222,7 @@ int printScript(FeatureType & val, CharString header)
     std::cout << " sum=" << sum << "\n";
     return sum;
 }
+/*----------  Script encoding type III  ----------*/
 //
 /**
  * Script is the feature of kmer
@@ -247,7 +248,92 @@ int64_t _scriptDist(int64_t const s1, int64_t const s2)
             std::abs((s1 >> 56 & mask) - (s2 >> 56 & mask)) +
             std::abs((s1 >> 60 & mask) - (s2 >> 60 & mask));
 }
-/*----------  Script encoding type II Start ----------*/
+unsigned _windowDist(Iterator<String<int64_t> >::Type const & it1, 
+                     Iterator<String<int64_t> >::Type const & it2)
+{
+    return _scriptDist(*it1 + *(it1 + 1), *it2 + *(it2 + 1)) 
+         + _scriptDist(*(it1 + 2) + *(it1 + 3), *(it2 + 2) + *(it2 + 3)) 
+         + _scriptDist(*(it1 + 4) + *(it1 + 5), *(it2 + 4) + *(it2 + 5)) 
+         + _scriptDist(*(it1 + 6) + *(it1 + 7), *(it2 + 6) + *(it2 + 7)) 
+         + _scriptDist(*(it1 + 8) + *(it1 + 9), *(it2 + 8) + *(it2 + 9)) 
+         + _scriptDist(*(it1 + 10) + *(it1 + 11), *(it2 + 10) + *(it2 + 11));
+}
+/**
+ * Function only for counting 2mer in script
+ */
+inline void addCell(TIter5 it, int64_t & val)
+{
+    int ordV = (ordN_(*it) << 2) + ordN_(*(it + 1));
+    val += 1LL << (ordV << 2);
+}
+int createFeatures32(TIter5 itBegin, TIter5 itEnd, String<int64_t> & f)
+{
+    unsigned next = 0;
+    unsigned window = scpt_step;
+    resize (f, ((itEnd - itBegin -window) >> scpt_bit) + 1);
+    for (unsigned k = scpt_step; k < itEnd - itBegin - window - 1; k += scpt_step) 
+    {
+        f[next] = 0;
+        for (unsigned j = k - scpt_step; j < k - 1; j++)
+        {
+            addCell(itBegin + j, f[next]);
+        }
+        //printScript(f[next], "cfs2_n ");
+        next++;
+    }
+    return 0;
+}
+/**
+ * Parallel 
+ */
+int createFeatures32(TIter5 itBegin, TIter5 itEnd, String<int64_t> & f, unsigned threads)
+{
+    int window = scpt_step;
+    if (itEnd - itBegin < window)
+    {
+        return 0;
+    }
+    resize (f, ((itEnd - itBegin -window) >> scpt_bit) + 1);
+    int64_t range = (itEnd - itBegin - window) / scpt_step + 1; //numer of windows 
+    if (range < threads)
+    {
+        createFeatures32(itBegin, itEnd, f);
+        return 0;
+    }
+#pragma omp parallel
+{
+    unsigned thd_id = omp_get_thread_num();
+    int64_t chunk_size = range / threads; 
+    int64_t thd_begin = thd_id * (chunk_size + 1);
+    unsigned id1 = range - chunk_size * threads;
+    if (thd_id >= id1)
+    {
+        thd_begin = id1 + chunk_size * thd_id;
+    }
+    else
+    {
+        ++chunk_size;
+    }
+    int64_t thd_end = thd_begin + chunk_size;
+    int64_t next = thd_begin;
+    thd_begin *= scpt_step;
+    thd_end *= scpt_step;
+    //std::cout << "cfs2 " << thd_begin << " " << thd_end << "\n";
+    for (int64_t k = thd_begin + scpt_step; k < thd_end; k+=scpt_step) 
+    {
+        f[next] = 0;
+        for (int64_t j = k - scpt_step; j < k - 1; j++)
+        {
+            addCell(itBegin + j, f[next]);
+        }
+        //std::cout << *(itBegin + k - 1) << " ";
+        //printScript(f[next], "cfs2_n ");
+        next++;
+    }
+}
+}
+
+/*----------  Script encoding type II  ----------*/
 /* TG TC TA GT GG int1  \
    GC GA CT CG CC int2  -- int96 for 48 bases script; Each 2mer has 6 bits
    CA AT AG AC AA int3  /
@@ -318,6 +404,7 @@ int64_t _scriptDist63_31(int96 & s1, int96 & s2)
 int64_t _windowDist48_4(Iterator<String<int96> >::Type it1,  //feature string iterator
                         Iterator<String<int96> >::Type it2)
 {
+    /*
     printInt96(*it1, "4841");
     printInt96(*(it1 + 1), "4841");
     printInt96(*(it1 + 2), "4841");
@@ -326,6 +413,7 @@ int64_t _windowDist48_4(Iterator<String<int96> >::Type it1,  //feature string it
     printInt96(*(it2 + 1), "4842");
     printInt96(*(it2 + 2), "4842");
     printInt96(*(it2 + 3), "4842");
+    */
     return _scriptDist63_31(*it1, *it2) + 
            _scriptDist63_31(*(it1 + 1), *(it2 + 1)) +
            _scriptDist63_31(*(it1 + 2), *(it2 + 2)) + 
@@ -363,14 +451,14 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f)
     std::vector<int96> buffer(3, zero96); //buffer of 3 cells in one script
     resize (f, (it_end - it_str - window48) / scpt_step + 1); 
     setInt96(f[0], zero96);
-    std::cout << "cf48 " << length(f) << "\n";
+    //std::cout << "cf48 " << length(f) << "\n";
     for (int i = 0; i < 3; i++) //init f[0]
     {
         for (int j = i << scpt_bit; j < (i << scpt_bit) + scpt_step; j++)
         {
             add2merInt96(buffer[i], it_str + j);
         }
-        printInt96(buffer[i], "cf3");
+        //printInt96(buffer[i], "cf3");
         incInt96(f[0], buffer[i]);
     }
     std::cerr << " cf48 time " << sysTime() - t << "\n";
@@ -384,9 +472,9 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f)
         for (int j = i - scpt_step + window48; j < i + window48; j++)
         {
             add2merInt96(buffer[ii], it_str + j);
-            std::cout << *(it_str + j);
+            //std::cout << *(it_str + j);
         }
-        printInt96(buffer[ii], "cf2");
+        //printInt96(buffer[ii], "cf2");
         incInt96(f[next], buffer[ii]);
         ii = addMod3[ii];
         next++;
@@ -425,13 +513,13 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f, unsigned t
     int64_t next = thd_begin;
     thd_begin *= scpt_step;
     thd_end *= scpt_step;
-    std::cout << "cfs2 " << thd_id << " " << thd_begin << " " << thd_end << "\n";
+    //std::cout << "cfs2 " << thd_id << " " << thd_begin << " " << thd_end << "\n";
 
     int addMod3[3] = {1, 2, 0};   // adMod3[i] = ++ i % 3;
     int96 zero96 = {0, 0, 0};
     std::vector<int96> buffer(3, zero96); //buffer of 3 cells in one script
     setInt96(f[next], zero96);
-    std::cout << "cf48 " << length(f) << "\n";
+    //std::cout << "cf48 " << length(f) << "\n";
     for (int i = 0; i < 3; i++) //init buffer and f[next]
     {
         int tmp = thd_begin + (i << scpt_bit); 
@@ -439,8 +527,8 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f, unsigned t
         {
             add2merInt96(buffer[i], it_str + j);
         }
-        printInt96(buffer[i], "cfp3");
-        std::cout << "cfp3 " << tmp << '\n';
+        //printInt96(buffer[i], "cfp3");
+        //std::cout << "cfp3 " << tmp << '\n';
         incInt96(f[next], buffer[i]);
     }
     int ii = 0;
@@ -453,93 +541,37 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f, unsigned t
         for (int j = i - scpt_step + window; j < i + window; j++)
         {
             add2merInt96(buffer[ii], it_str + j);
-            std::cout << *(it_str + j);
+            //std::cout << *(it_str + j);
         }
-        printInt96(buffer[ii], "cf2");
+        //printInt96(buffer[ii], "cf2");
         incInt96(f[next], buffer[ii]);
         ii = addMod3[ii];
         next++;
     }
 }
 }
-/*----------  Script encoding type II End----------*/
 
-
-/**
- * Function only for counting 2mer in script
- */
-inline void addCell(TIter5 it, FeatureType & val)
+/*----------  Script encoding wrapper  ----------*/
+unsigned _windowDist(Iterator<String<FeatureType> >::Type const & it1, 
+                     Iterator<String<FeatureType> >::Type const & it2)
 {
-    int ordV = (ordN_(*it) << 2) + ordN_(*(it + 1));
-    val += 1LL << (ordV << 2);
+    _windowDist48_4(it1, it2);
 }
-int createFeatures(TIter5 itBegin, TIter5 itEnd, String<FeatureType> & f)
+int createFeatures(TIter5 it_str, TIter5 it_end, String<FeatureType> & f)
 {
-    unsigned next = 0;
-    unsigned window = scpt_step;
-    resize (f, ((itEnd - itBegin -window) >> scpt_bit) + 1);
-    for (unsigned k = scpt_step; k < itEnd - itBegin - window - 1; k += scpt_step) 
-    {
-        f[next] = 0;
-        for (unsigned j = k - scpt_step; j < k - 1; j++)
-        {
-            addCell(itBegin + j, f[next]);
-        }
-        //printScript(f[next], "cfs2_n ");
-        next++;
-    }
-    return 0;
+    createFeatures48(it_str, it_end, f);
 }
-/**
- * Parallel 
- */
-int createFeatures(TIter5 itBegin, TIter5 itEnd, String<FeatureType> & f, unsigned threads)
+int createFeatures(TIter5 it_str, TIter5 it_end, String<FeatureType> & f, unsigned threads)
 {
-    int window = scpt_step;
-    if (itEnd - itBegin < window)
-    {
-        return 0;
-    }
-    resize (f, ((itEnd - itBegin -window) >> scpt_bit) + 1);
-    int64_t range = (itEnd - itBegin - window) / scpt_step + 1; //numer of windows 
-    if (range < threads)
-    {
-        createFeatures(itBegin, itEnd, f);
-        return 0;
-    }
-#pragma omp parallel
+    createFeatures48(it_str, it_end, f, threads);
+}
+int createFeatures(StringSet<String<Dna5> > & seq, 
+                   StringSet<String<FeatureType> > & f)
 {
-    unsigned thd_id = omp_get_thread_num();
-    int64_t chunk_size = range / threads; 
-    int64_t thd_begin = thd_id * (chunk_size + 1);
-    unsigned id1 = range - chunk_size * threads;
-    if (thd_id >= id1)
-    {
-        thd_begin = id1 + chunk_size * thd_id;
-    }
-    else
-    {
-        ++chunk_size;
-    }
-    int64_t thd_end = thd_begin + chunk_size;
-    int64_t next = thd_begin;
-    thd_begin *= scpt_step;
-    thd_end *= scpt_step;
-    //std::cout << "cfs2 " << thd_begin << " " << thd_end << "\n";
-    for (int64_t k = thd_begin + scpt_step; k < thd_end; k+=scpt_step) 
-    {
-        f[next] = 0;
-        for (int64_t j = k - scpt_step; j < k - 1; j++)
-        {
-            addCell(itBegin + j, f[next]);
-        }
-        //std::cout << *(itBegin + k - 1) << " ";
-        //printScript(f[next], "cfs2_n ");
-        next++;
-    }
+    resize(f, length(seq));
+    for (unsigned k = 0; k < length(seq); k++)
+        createFeatures(begin(seq[k]), end(seq[k]), f[k]);
 }
-}
-
 int createFeatures(StringSet<String<Dna5> > & seq, 
                    StringSet<String<FeatureType> > & f, 
                    unsigned threads)
@@ -549,34 +581,9 @@ int createFeatures(StringSet<String<Dna5> > & seq,
         createFeatures(begin(seq[k]), end(seq[k]), f[k], threads);
 }
 
-int createFeatures(StringSet<String<Dna5> > & seq, 
-                   StringSet<String<FeatureType> > & f)
-{
-    resize(f, length(seq));
-    for (unsigned k = 0; k < length(seq); k++)
-        createFeatures(begin(seq[k]), end(seq[k]), f[k]);
-}
+/*----------  Dynamic programmign of extending path (tiles)  ----------*/
 
-int createFeatures(StringSet<String<Dna5> > & seq, 
-                   StringSet<String<int96> > & f)
-{
-    resize(f, length(seq));
-    for (unsigned k = 0; k < length(seq); k++)
-        createFeatures48(begin(seq[k]), end(seq[k]), f[k]);
-}
-
-unsigned _windowDist(Iterator<String<FeatureType> >::Type const & it1, 
-                     Iterator<String<FeatureType> >::Type const & it2)
-{
-    return _scriptDist(*it1 + *(it1 + 1), *it2 + *(it2 + 1)) 
-         + _scriptDist(*(it1 + 2) + *(it1 + 3), *(it2 + 2) + *(it2 + 3)) 
-         + _scriptDist(*(it1 + 4) + *(it1 + 5), *(it2 + 4) + *(it2 + 5)) 
-         + _scriptDist(*(it1 + 6) + *(it1 + 7), *(it2 + 6) + *(it2 + 7)) 
-         + _scriptDist(*(it1 + 8) + *(it1 + 9), *(it2 + 8) + *(it2 + 9)) 
-         + _scriptDist(*(it1 + 10) + *(it1 + 11), *(it2 + 10) + *(it2 + 11));
-}
-
- bool nextCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & cord)
+bool nextCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & cord)
 {
     uint64_t cordLY = get_cord_y(back(cord));
     while (++currentIt < length(hit)) 
@@ -601,57 +608,16 @@ bool initCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & c
     return true;
 }
 
-bool previousWindow(String<FeatureType> & f1, 
-                    String<FeatureType> & f2, 
-                    String<uint64_t> & cord, 
-                    uint64_t & strand)
-{
-    typedef uint64_t CordType;
-    CordType genomeId = get_cord_id(back(cord));
-    CordType x_suf = _DefaultCord.cord2Cell(get_cord_x(back(cord)));
-    CordType y_suf = _DefaultCord.cord2Cell(get_cord_y(back(cord)));
-    CordType x_min = 0;
-    CordType y;
-    if (y_suf < med || x_suf < sup)
-        return false;
-    else 
-        y = y_suf - med;
-
-    unsigned min = ~0;
-    for (CordType x = x_suf - sup; x < x_suf - inf; x += 1) 
-    {
-        unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
-        
-        if (tmp < min)
-        {
-            min = tmp;
-            x_min = x;
-        }
-    }
-    if (min > windowThreshold)
-        return false;
-    else 
-    {
-        if ( x_suf - x_min > med)
-        {
-            appendValue(cord, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand));
-        }
-        else
-            appendValue(cord, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
-    }
-    return true;
-}
-
  bool previousWindow(String<FeatureType> & f1, 
                      String<FeatureType> & f2, 
-                     String<uint64_t> & cord, 
+                     String<uint64_t> & cords, 
                      float & score, 
                      uint64_t & strand)
 {
     typedef uint64_t CordType;
-    CordType genomeId = get_cord_id(back(cord));
-    CordType x_suf = _DefaultCord.cord2Cell(get_cord_x(back(cord)));
-    CordType y_suf = _DefaultCord.cord2Cell(get_cord_y(back(cord)));
+    CordType genomeId = get_cord_id(back(cords));
+    CordType x_suf = _DefaultCord.cord2Cell(get_cord_x(back(cords)));
+    CordType y_suf = _DefaultCord.cord2Cell(get_cord_y(back(cords)));
     CordType x_min = 0;
     CordType y;
     if (y_suf < med || x_suf < sup)
@@ -675,10 +641,10 @@ bool previousWindow(String<FeatureType> & f1,
     {
         if ( x_suf - x_min > med)
         {
-            appendValue(cord, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand));
+            appendValue(cords, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand));
         }
         else
-            appendValue(cord, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
+            appendValue(cords, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
     }
     score += min;
     return true;
@@ -743,56 +709,14 @@ bool previousWindow(String<FeatureType> & f1,
 
  bool nextWindow(String<FeatureType> &f1, 
                  String<FeatureType> & f2, 
-                 String<uint64_t> & cord, 
-                 uint64_t & strand)
-{
-    typedef uint64_t CordType;
-    CordType genomeId = get_cord_id(back(cord));
-    CordType x_pre = _DefaultCord.cord2Cell(get_cord_x(back(cord)));
-    CordType y_pre = _DefaultCord.cord2Cell(get_cord_y(back(cord)));
-    CordType x_min = 0;
-    CordType y;
-    if (y_pre + sup * 2> length(f1) || x_pre + sup * 2 > length(f2))
-        return false;
-    else 
-        y = y_pre + med;
-    
-    unsigned min = ~0;
-    for (CordType x = x_pre + inf; x < x_pre + sup; x += 1) 
-    {
-
-        unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
-        if (tmp < min)
-        {
-            min = tmp;
-            x_min = x;
-        }
-    }
-
-    if (min > windowThreshold)
-       return false;
-    else 
-        if ( x_min - x_pre > med)
-        {
-            appendValue(cord, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y), strand));
-        }
-        else
-        {
-            appendValue(cord, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
-        }
-    return true;
-}
-
- bool nextWindow(String<FeatureType> &f1, 
-                 String<FeatureType> & f2, 
-                 String<uint64_t> & cord, 
+                 String<uint64_t> & cords, 
                  float & score, 
                  uint64_t & strand)
 {
     typedef uint64_t CordType;
-    CordType genomeId = get_cord_id(back(cord));
-    CordType x_pre = _DefaultCord.cord2Cell(get_cord_x(back(cord)));
-    CordType y_pre = _DefaultCord.cord2Cell(get_cord_y(back(cord)));
+    CordType genomeId = get_cord_id(back(cords));
+    CordType x_pre = _DefaultCord.cord2Cell(get_cord_x(back(cords)));
+    CordType y_pre = _DefaultCord.cord2Cell(get_cord_y(back(cords)));
     CordType x_min = 0;
     CordType y;
     unsigned min = ~0;
@@ -816,11 +740,11 @@ bool previousWindow(String<FeatureType> & f1,
     else 
         if ( x_min - x_pre > med)
         {
-            appendValue(cord, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y), strand));
+            appendValue(cords, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y), strand));
         }
         else
         {
-            appendValue(cord, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
+            appendValue(cords, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
         }
     score += min;
     return true;
@@ -875,46 +799,6 @@ bool previousWindow(String<FeatureType> & f1,
     return nextWindow(f1, f2, _DefaultCord.getCordX(cord), get_cord_y(cord), _DefaultCord.getCordStrand(cord), window_threshold);
 }
 
- bool extendWindow(String<FeatureType> &f1, String<FeatureType> & f2, String<uint64_t> & cord, uint64_t strand)
-{
-    uint64_t preCord = (length(cord)==1)?0:back(cord);
-    unsigned len = length(cord) - 1;
-    while (preCord <= back(cord) && previousWindow(f1, f2, cord, strand)){}
-    for (unsigned k = len; k < ((length(cord) + len) >> 1); k++) 
-    {
-        std::swap(cord[k], cord[length(cord) - k + len - 1]);
-    }
-    while (nextWindow(f1, f2, cord, strand)){}
-    return true;
-}
-
- bool path(String<Dna5> & read, String<uint64_t> hit, StringSet<String<FeatureType> > & f2, String<uint64_t> & cords)
-{
-    String<FeatureType> f1;
-    unsigned currentIt = 0;
-    if(!initCord(hit, currentIt, cords))
-        return false;
-    createFeatures(begin(read), end(read), f1);
-    unsigned genomeId = get_cord_id(cords[0]);
-    while (get_cord_y(back(cords)) < length(read) - window_size)
-    {
-        extendWindow(f1, f2[genomeId], cords, _DefaultCord.getCordStrand(back(cords)));
-        if(!nextCord(hit, currentIt, cords))
-                return false;
-    }
-    return true;
-}
-
-void path(String<uint64_t> & hits, StringSet<String<Dna5> > & reads, StringSet<String<Dna5> > & genomes, StringSet<String<uint64_t> > & cords)
-{
-    StringSet<String<FeatureType> > f2;
-    createFeatures(genomes, f2);
-    std::cerr << "raw mapping... " << std::endl;
-    for (unsigned k = 0; k < length(reads); k++)
-    {
-        path(reads[k], hits[k], f2, cords[k]);
-    }
-}
 
 void checkPath(StringSet<String<Dna5> > & cords, StringSet<String<Dna5> > const & reads)
 {
