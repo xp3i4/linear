@@ -5,8 +5,9 @@ using namespace seqan;
 
 //NOTE:Length of read < 1M;
 typedef std::array<int, 3> int96;
-typedef int96 FeatureType;
+//typedef short FeatureType;
 //typedef int64_t FeatureType;
+typedef int96 FeatureType;
 
 extern const float band_width;
 extern const unsigned cmask;

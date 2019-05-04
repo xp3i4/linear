@@ -28,7 +28,43 @@ const int scriptMask = (1 << scpt_len) - 1;
 const int scriptMask2 = scriptMask << scpt_len;
 const int scriptMask3 = scriptMask2 << scpt_len;
 const uint64_t hmask = (1ULL << 20) - 1;
-const unsigned windowThreshold = 50; // 36;
+const unsigned windowThreshold = 72; // 36;
+
+void decInt96 (int96 & val, int96 & dval) // val -= dval
+{
+    val[0] -= dval[0];
+    val[1] -= dval[1];
+    val[2] -= dval[2];
+}
+void setInt96 (int96 & val, int96 & dval) // val = dval
+{
+    val[0] = dval[0];
+    val[1] = dval[1];
+    val[2] = dval[2];
+}
+void incInt96 (int96 & val, int96 & dval) // val += dval
+{
+    val[0] += dval[0];
+    val[1] += dval[1];
+    val[2] += dval[2];
+}
+void printInt96(int96 val, CharString header)
+{
+    std::cout << header << " ";
+    int sum = 0;
+    for (int i = 0; i < 3; i++)
+    {
+        int v = val[i];
+        for (int ii = 0; ii < 5; ii++)
+        {
+            sum += v & 63;
+            std::cout << (v & 63) << " ";
+            v >>= 6;
+        }
+        std::cout << "| ";
+    }
+    std::cout << sum << "\n";
+}
 
 CordBase::CordBase():
         bit(20),
@@ -222,13 +258,109 @@ int printScript(int64_t & val, CharString header)
     std::cout << " sum=" << sum << "\n";
     return sum;
 }
+/*----------  Script encoding type I  ----------*/
+const int scptCount[5] = {1, 1<<scpt_len, 1 <<(scpt_len * 2), 0, 0};
+int _scriptDist1_32(int const & s1, int const & s2)
+{
+    int res = std::abs((s1 & scriptMask) - (s2 & scriptMask)) +
+              std::abs(((s1 >> scpt_len) & scriptMask) -
+                       ((s2 >> scpt_len) & scriptMask)) + 
+              std::abs((s1>> scpt_len2) - (s2 >> scpt_len2));
+    return res;
+}
+unsigned _windowDist1_32(Iterator<String<short> >::Type const & it1, 
+                      Iterator<String<short> >::Type const & it2)
+{
+    return _scriptDist1_32(*it1, *it2) 
+         + _scriptDist1_32(*(it1 + 2), *(it2 + 2)) 
+         + _scriptDist1_32(*(it1 + 4), *(it2 + 4)) 
+         + _scriptDist1_32(*(it1 + 6), *(it2 + 6)) 
+         + _scriptDist1_32(*(it1 + 8), *(it2 + 8)) 
+         + _scriptDist1_32(*(it1 + 10), *(it2 + 10));
+}
+void createFeatures1_32(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f)
+{
+    unsigned next = 1;
+    unsigned window = 1 << scpt_len;
+    resize (f, ((itEnd - itBegin -window) >> scpt_bit) + 1);
+    f[0] = 0;
+    for (unsigned k = 0; k < window; k++)
+    {
+        f[0] += scptCount[ordValue(*(itBegin + k))];
+    }
+    for (unsigned k = scpt_step; k < itEnd - itBegin - window ; k+=scpt_step) 
+    {
+        f[next] = f[next - 1];
+        for (unsigned j = k - scpt_step; j < k; j++)
+        {
+            f[next] += scptCount[ordValue(*(itBegin + j + window))] - scptCount[ordValue(*(itBegin + j))];
+        }
+        next++;
+    }
+}
+ uint64_t parallelParm_Static(uint64_t range, 
+                                    unsigned threads, 
+                                    unsigned & thd_id, 
+                                    uint64_t & thd_begin, 
+                                    uint64_t & thd_end)
+{
+    uint64_t ChunkSize = range / threads;
+    unsigned id = range - ChunkSize * threads;
+    if (thd_id < id)
+    {
+        thd_begin = ++ChunkSize * thd_id; 
+    }
+    else
+    {
+       thd_begin = id + thd_id * ChunkSize;
+    }
+    thd_end = thd_begin + ChunkSize; 
+    return ChunkSize;
+}
+
+/**
+ * Parallel 
+ */
+ void createFeatures1_32(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f, unsigned threads)
+{
+    unsigned window = 1 << scpt_len;
+    resize (f, ((itEnd - itBegin -window) >> scpt_bit) + 1);
+#pragma omp parallel
+{
+    unsigned thd_id = omp_get_thread_num();
+    uint64_t thd_begin;
+    uint64_t thd_end;
+    uint64_t range = (itEnd - itBegin - window - scpt_step) / scpt_step;
+    parallelParm_Static(range, threads, 
+                        thd_id,  thd_begin, thd_end);
+    uint64_t next = thd_begin;
+    thd_begin *= scpt_step;
+    thd_end *= scpt_step;
+    f[next] = 0;
+    for (unsigned k = thd_begin; k < thd_begin + window; k++)
+    {
+        f[next] += scptCount[ordValue(*(itBegin + k))];
+    }
+    next++;
+    for (unsigned k = thd_begin + scpt_step; k < thd_end ; k += scpt_step) 
+    {
+        f[next] = f[next - 1];
+        for (unsigned j = k - scpt_step; j < k; j++)
+        {
+            f[next] += scptCount[ordValue(*(itBegin + j + window))] - scptCount[ordValue(*(itBegin + j))];
+        }
+        next++;
+    }
+}
+}
+
 /*----------  Script encoding type III  ----------*/
 //
 /**
  * Script is the feature of kmer
  * Calculate distance of two scripts. 
  */
-int64_t _scriptDist(int64_t const s1, int64_t const s2)
+int64_t _scriptDist2_32(int64_t const s1, int64_t const s2)
 {
     int64_t mask = 15;
     return  std::abs((s1 & mask) - (s2 & mask)) +
@@ -248,15 +380,15 @@ int64_t _scriptDist(int64_t const s1, int64_t const s2)
             std::abs((s1 >> 56 & mask) - (s2 >> 56 & mask)) +
             std::abs((s1 >> 60 & mask) - (s2 >> 60 & mask));
 }
-unsigned _windowDist(Iterator<String<int64_t> >::Type const & it1, 
+unsigned _windowDist2_32(Iterator<String<int64_t> >::Type const & it1, 
                      Iterator<String<int64_t> >::Type const & it2)
 {
-    return _scriptDist(*it1 + *(it1 + 1), *it2 + *(it2 + 1)) 
-         + _scriptDist(*(it1 + 2) + *(it1 + 3), *(it2 + 2) + *(it2 + 3)) 
-         + _scriptDist(*(it1 + 4) + *(it1 + 5), *(it2 + 4) + *(it2 + 5)) 
-         + _scriptDist(*(it1 + 6) + *(it1 + 7), *(it2 + 6) + *(it2 + 7)) 
-         + _scriptDist(*(it1 + 8) + *(it1 + 9), *(it2 + 8) + *(it2 + 9)) 
-         + _scriptDist(*(it1 + 10) + *(it1 + 11), *(it2 + 10) + *(it2 + 11));
+    return _scriptDist2_32(*it1 + *(it1 + 1), *it2 + *(it2 + 1)) 
+         + _scriptDist2_32(*(it1 + 2) + *(it1 + 3), *(it2 + 2) + *(it2 + 3)) 
+         + _scriptDist2_32(*(it1 + 4) + *(it1 + 5), *(it2 + 4) + *(it2 + 5)) 
+         + _scriptDist2_32(*(it1 + 6) + *(it1 + 7), *(it2 + 6) + *(it2 + 7)) 
+         + _scriptDist2_32(*(it1 + 8) + *(it1 + 9), *(it2 + 8) + *(it2 + 9)) 
+         + _scriptDist2_32(*(it1 + 10) + *(it1 + 11), *(it2 + 10) + *(it2 + 11));
 }
 /**
  * Function only for counting 2mer in script
@@ -266,7 +398,7 @@ inline void addCell(TIter5 it, int64_t & val)
     int ordV = (ordN_(*it) << 2) + ordN_(*(it + 1));
     val += 1LL << (ordV << 2);
 }
-int createFeatures32(TIter5 itBegin, TIter5 itEnd, String<int64_t> & f)
+int createFeatures2_32(TIter5 itBegin, TIter5 itEnd, String<int64_t> & f)
 {
     unsigned next = 0;
     unsigned window = scpt_step;
@@ -286,7 +418,7 @@ int createFeatures32(TIter5 itBegin, TIter5 itEnd, String<int64_t> & f)
 /**
  * Parallel 
  */
-int createFeatures32(TIter5 itBegin, TIter5 itEnd, String<int64_t> & f, unsigned threads)
+int createFeatures2_32(TIter5 itBegin, TIter5 itEnd, String<int64_t> & f, unsigned threads)
 {
     int window = scpt_step;
     if (itEnd - itBegin < window)
@@ -297,7 +429,7 @@ int createFeatures32(TIter5 itBegin, TIter5 itEnd, String<int64_t> & f, unsigned
     int64_t range = (itEnd - itBegin - window) / scpt_step + 1; //numer of windows 
     if (range < threads)
     {
-        createFeatures32(itBegin, itEnd, f);
+        createFeatures2_32(itBegin, itEnd, f);
         return 0;
     }
 #pragma omp parallel
@@ -339,41 +471,7 @@ int createFeatures32(TIter5 itBegin, TIter5 itEnd, String<int64_t> & f, unsigned
    CA AT AG AC AA int3  /
  */
 //TODO!!! for 2mer > 32 occurrences out of boundary
-void decInt96 (int96 & val, int96 & dval) // val -= dval
-{
-    val[0] -= dval[0];
-    val[1] -= dval[1];
-    val[2] -= dval[2];
-}
-void setInt96 (int96 & val, int96 & dval) // val = dval
-{
-    val[0] = dval[0];
-    val[1] = dval[1];
-    val[2] = dval[2];
-}
-void incInt96 (int96 & val, int96 & dval) // val += dval
-{
-    val[0] += dval[0];
-    val[1] += dval[1];
-    val[2] += dval[2];
-}
-void printInt96(int96 val, CharString header)
-{
-    std::cout << header << " ";
-    int sum = 0;
-    for (int i = 0; i < 3; i++)
-    {
-        int v = val[i];
-        for (int ii = 0; ii < 5; ii++)
-        {
-            sum += v & 63;
-            std::cout << (v & 63) << " ";
-            v >>= 6;
-        }
-        std::cout << "| ";
-    }
-    std::cout << sum << "\n";
-}
+
 int const window48 = 48;
 int const max31 = 31;
 int const mxu31 = (max31 << 24) + (max31 << 18) + (max31 << 12) +
@@ -461,7 +559,7 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f)
         //printInt96(buffer[i], "cf3");
         incInt96(f[0], buffer[i]);
     }
-    std::cerr << " cf48 time " << sysTime() - t << "\n";
+    //std::cerr << " cf48 time " << sysTime() - t << "\n";
     int next = 1; //stream f[next]
     int ii = 0;
     for (int i = scpt_step; i < it_end - it_str - window48 - 1; i += scpt_step) 
@@ -555,14 +653,17 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f, unsigned t
 unsigned _windowDist(Iterator<String<FeatureType> >::Type const & it1, 
                      Iterator<String<FeatureType> >::Type const & it2)
 {
-    _windowDist48_4(it1, it2);
+    //return _windowDist1_32(it1, it2);
+    return _windowDist48_4(it1, it2);
 }
 int createFeatures(TIter5 it_str, TIter5 it_end, String<FeatureType> & f)
 {
+    //createFeatures1_32(it_str, it_end, f);
     createFeatures48(it_str, it_end, f);
 }
 int createFeatures(TIter5 it_str, TIter5 it_end, String<FeatureType> & f, unsigned threads)
 {
+    //createFeatures1_32(it_str, it_end, f, threads);
     createFeatures48(it_str, it_end, f, threads);
 }
 int createFeatures(StringSet<String<Dna5> > & seq, 
@@ -736,8 +837,11 @@ bool initCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & c
         }
     }
     if (min > windowThreshold)
+    {
        return false;
+    }
     else 
+    {
         if ( x_min - x_pre > med)
         {
             appendValue(cords, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y), strand));
@@ -746,7 +850,9 @@ bool initCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & c
         {
             appendValue(cords, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
         }
+    }
     score += min;
+    std::cout << "nxt_w " << min << "\n";
     return true;
 }
 
@@ -1161,6 +1267,7 @@ template <typename TDna, typename TSpec>
                 c_b += anchors.deltaPos2(k, k - 1); 
         }
     }
+    /*
     //<<debug
         for (int ii = 0; ii < anchors.length(); ii++)
         {
@@ -1171,6 +1278,7 @@ template <typename TDna, typename TSpec>
             std::cout << "gaml1 " << ii << " " << get_cord_y(tmp_cord) << " " << get_cord_x(anchors[ii]) << " " << get_cord_x(tmp_cord) << "\n";
         }
     //>>debug
+    */
     if (list[0])
     {
         std::sort (list, list + lcount, std::greater<uint64_t>());

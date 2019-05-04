@@ -298,7 +298,7 @@ void print_cords_txt(Mapper & mapper)
                     }
                     if (k > 0)
                     {
-                        mapper.getOf() << "\n\n";
+                        mapper.getOf() << "\n";
                     } 
                     mapper.getOf() << "@> "
                         << mapper.readsId()[k] << " " 
@@ -337,7 +337,7 @@ void print_cords_txt(Mapper & mapper)
                 cordCount++;
                 fflag = 0;
             }
-            mapper.getOf() << "\n";
+            //mapper.getOf() << "\n";
         }
 
     }
@@ -459,11 +459,13 @@ int64_t len = 0;
             clear(crhit);
             mnMapReadList(index, reads[j], anchors, mapParm, crhit);
             path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
-            std::cout << "rmap2 " << length(cordsTmp[c]) << "\n";
+            //std::cout << "krmap2 " << length(cordsTmp[c]) << "\n";
+            /*
             for (unsigned i = 0; i < length(cordsTmp[c]); i++)
             {
                 print_cord(cordsTmp[c][i], "rmap2_cords ");
             }
+            */
             if (_DefaultCord.getMaxLen(cordsTmp[c]) < length(reads[j]) * senThr)
             {
                 clear(cordsTmp[c]);
