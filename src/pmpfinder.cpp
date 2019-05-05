@@ -624,59 +624,16 @@ bool initCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & c
     return true;
 }
 
- bool previousWindow(String<FeatureType> & f1, 
-                     String<FeatureType> & f2, 
-                     String<uint64_t> & cords, 
-                     float & score, 
-                     uint64_t & strand)
-{
-    typedef uint64_t CordType;
-    CordType genomeId = get_cord_id(back(cords));
-    CordType x_suf = _DefaultCord.cord2Cell(get_cord_x(back(cords)));
-    CordType y_suf = _DefaultCord.cord2Cell(get_cord_y(back(cords)));
-    CordType x_min = 0;
-    CordType y;
-    if (y_suf < med || x_suf < sup)
-        return false;
-    else 
-       y = y_suf - med;
-
-    unsigned min = ~0;
-    for (CordType x = x_suf - sup; x < x_suf - inf; x += 1) 
-    {
-        unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
-        if (tmp < min)
-        {
-            min = tmp;
-            x_min = x;
-        }
-    }
-    if (min > windowThreshold)
-        return false;    
-    else 
-    {
-        if ( x_suf - x_min > med)
-        {
-            appendValue(cords, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand));
-        }
-        else
-            appendValue(cords, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
-    }
-    score += min;
-    return true;
-}
-
- uint64_t previousWindow(String<FeatureType> & f1, 
+uint64_t previousWindow(String<FeatureType> & f1, 
                          String<FeatureType> & f2, 
-                         uint64_t cordx,
-                         uint64_t cordy,
-                         uint64_t strand,
+                         uint64_t cord,
                          unsigned window_threshold = windowThreshold )
 {
     typedef uint64_t CordType;
-    CordType genomeId = _getSA_i1(cordx);
-    CordType x_suf = _DefaultCord.cord2Cell(_getSA_i2(cordx));
-    CordType y_suf = _DefaultCord.cord2Cell(cordy);
+    CordType genomeId = _getSA_i1(_DefaultCord.getCordX(cord));
+    CordType strand = get_cord_strand(cord);
+    CordType x_suf = _DefaultCord.cord2Cell(get_cord_x(cord));
+    CordType y_suf = _DefaultCord.cord2Cell(get_cord_y(cord));
     CordType x_min = 0;
     CordType y;
     
@@ -710,27 +667,76 @@ bool initCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & c
     }
     return 0;
 }
+/*
+bool previousWindow(String<FeatureType> & f1, 
+                     String<FeatureType> & f2, 
+                     String<uint64_t> & cords, 
+                     float & score, 
+                     uint64_t & strand)
 
- uint64_t previousWindow(String<FeatureType> & f1, 
-                         String<FeatureType> & f2, 
-                         uint64_t cord, 
-                         unsigned window_threshold)
 {
-    return previousWindow(f1, 
-                          f2, 
-                          _DefaultCord.getCordX(cord),
-                          get_cord_y(cord), 
-                          _DefaultCord.getCordStrand(cord), window_threshold);
+    uint64_t new_cord = previousWindow(f1, f2, back(cords), windowThreshold);
+    if (new_cord)
+    {
+        appendValue(cords, new_cord);
+    }
+    return new_cord;
 }
-
- bool nextWindow(String<FeatureType> & f1, 
-                 String<FeatureType> & f2, 
-                 String<uint64_t> & cords, 
-                 float & score, 
-                 uint64_t & strand)
+*/
+bool previousWindow(String<FeatureType> & f1, 
+                    String<FeatureType> & f2, 
+                    String<uint64_t> & cords, 
+                    float & score)
 {
     typedef uint64_t CordType;
     CordType genomeId = get_cord_id(back(cords));
+    CordType strand = get_cord_strand(back(cords));
+    CordType x_suf = _DefaultCord.cord2Cell(get_cord_x(back(cords)));
+    CordType y_suf = _DefaultCord.cord2Cell(get_cord_y(back(cords)));
+    CordType x_min = 0;
+    CordType y;
+
+    if (y_suf < med || x_suf < sup)
+        return false;
+    else 
+       y = y_suf - med;
+
+    unsigned min = ~0;
+    for (CordType x = x_suf - sup; x < x_suf - inf; x += 1) 
+    {
+        unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
+        if (tmp < min)
+        {
+            min = tmp;
+            x_min = x;
+        }
+    }
+    if (min > windowThreshold)
+        return false;    
+    else 
+    {
+        if ( x_suf - x_min > med)
+        {
+            appendValue(cords, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand));
+        }
+        else
+        {
+            appendValue(cords, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
+        }
+
+    }
+    score += min;
+    return true;
+}
+
+bool nextWindow(String<FeatureType> & f1, 
+                String<FeatureType> & f2, 
+                 String<uint64_t> & cords, 
+                 float & score)
+{
+    typedef uint64_t CordType;
+    CordType genomeId = get_cord_id(back(cords));
+    CordType strand = get_cord_strand(back(cords));
     CordType x_pre = _DefaultCord.cord2Cell(get_cord_x(back(cords)));
     CordType y_pre = _DefaultCord.cord2Cell(get_cord_y(back(cords)));
     CordType x_min = 0;
@@ -767,22 +773,20 @@ bool initCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & c
         }
     }
     score += min;
-    std::cout << "nxt_w " << min << "\n";
     return true;
 }
 
  uint64_t nextWindow(String<FeatureType> & f1, 
-                           String<FeatureType> & f2, 
-                           uint64_t cordx,
-                           uint64_t cordy,
-                           uint64_t strand,
-                           unsigned window_threshold = windowThreshold
-                          )
+                     String<FeatureType> & f2, 
+                     uint64_t cord,
+                     unsigned window_threshold = windowThreshold
+                    )
 {
     typedef uint64_t CordType;
-    CordType genomeId = _getSA_i1(cordx);
-    CordType x_pre = _DefaultCord.cord2Cell(_getSA_i2(cordx));
-    CordType y_pre = _DefaultCord.cord2Cell(cordy);
+    CordType genomeId = _getSA_i1(cord);
+    CordType strand = get_cord_strand(cord);
+    CordType x_pre = _DefaultCord.cord2Cell(get_cord_x(cord));
+    CordType y_pre = _DefaultCord.cord2Cell(get_cord_y(cord));
     CordType x_min = 0;
     CordType y;
     unsigned min = ~0;
@@ -814,12 +818,6 @@ bool initCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & c
         }
     return 0;
 }
-
- uint64_t nextWindow(String<FeatureType> & f1, String<FeatureType> & f2, uint64_t cord, unsigned window_threshold)
-{
-    return nextWindow(f1, f2, _DefaultCord.getCordX(cord), get_cord_y(cord), _DefaultCord.getCordStrand(cord), window_threshold);
-}
-
 
 void checkPath(StringSet<String<Dna5> > & cords, StringSet<String<Dna5> > const & reads)
 {
@@ -1199,15 +1197,6 @@ void _printHit(String<uint64_t>  & hit)
     return true;
 }
 
- bool endCord( String<uint64_t> & cord,
-                     unsigned & preCordStart
-                   )
-{
-    _DefaultHit.setBlockEnd(back(cord));
-    _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);
-    return true;
-}
-
 /*
  * endCord for double strand index
  */
@@ -1283,21 +1272,20 @@ void _printHit(String<uint64_t>  & hit)
 
 bool extendWindow(String<FeatureType> &f1, 
                    String<FeatureType> & f2, 
-                   String<uint64_t> & cord, 
+                   String<uint64_t> & cords, 
                    float & score, 
                    uint64_t & strand)
 {
-    uint64_t preCordY = (_DefaultHit.isBlockEnd(cord[length(cord) - 2]))?
-    0:get_cord_y(back(cord)) + window_delta;
-    unsigned len = length(cord) - 1;
-    while (preCordY<= get_cord_y(back(cord)) && 
-        previousWindow(f1, f2, cord, score, strand)){}
-    for (unsigned k = len; k < ((length(cord) + len) >> 1); k++) 
+    uint64_t preCordY = (_DefaultHit.isBlockEnd(cords[length(cords) - 2]))?
+    0:get_cord_y(back(cords)) + window_delta;
+    unsigned len = length(cords) - 1;
+    while (preCordY<= get_cord_y(back(cords)) && 
+        previousWindow(f1, f2, cords, score)){}
+    for (unsigned k = len; k < ((length(cords) + len) >> 1); k++) 
     {
-        std::swap(cord[k], cord[length(cord) - k + len - 1]);
+        std::swap(cords[k], cords[length(cords) - k + len - 1]);
     }
-    while (nextWindow(f1, f2, cord, score, strand)){}
-    //std::cout << "[]::extendWindow " << k << "\n";
+    while (nextWindow(f1, f2, cords, score)){}
     return true;
 }
 
