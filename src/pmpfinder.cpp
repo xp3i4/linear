@@ -808,7 +808,7 @@ bool initCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & c
                           _DefaultCord.getCordStrand(cord), window_threshold);
 }
 
- bool nextWindow(String<FeatureType> &f1, 
+ bool nextWindow(String<FeatureType> & f1, 
                  String<FeatureType> & f2, 
                  String<uint64_t> & cords, 
                  float & score, 
@@ -1555,7 +1555,7 @@ template <typename TDna, typename TSpec>
     }
 }
 
- bool extendWindowAll(String<FeatureType> &f1, 
+ bool extendWindow(String<FeatureType> &f1, 
                             String<FeatureType> & f2, 
                             String<uint64_t> & cord, 
                             float & score, 
@@ -1708,87 +1708,6 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
 }
 
 /*
- bool pathAll(String<Dna5> & read, 
-                 typename Iterator<String<uint64_t> >::Type hitBegin, 
-                 typename Iterator<String<uint64_t> >::Type hitEnd, 
-                 StringSet<String<int> > & f2, 
-                 String<uint64_t> & cords
-                   )
-{
-    String<int> f1;
-    typename Iterator<String<uint64_t> >::Type it = hitBegin;
-    unsigned preBlockPtr;
-    createFeatures(begin(read), end(read), f1);
-    float score;
-    if(initCord(it, hitEnd, preBlockPtr, cords))
-    {
-        do{
-            extendWindowAll(f1, f2[get_cord_id(back(cords))], cords, score;
-        }
-        while (nextCord(it, hitEnd, preBlockPtr, cords));
-        return endCord(cords, preBlockPtr);   
-    }
-    return false;
-}
-
- bool pathAll(String<Dna5> & read, 
-                 typename Iterator<String<uint64_t> >::Type hitBegin, 
-                 typename Iterator<String<uint64_t> >::Type hitEnd, 
-                 StringSet<String<int> > & f2, 
-                 String<uint64_t> & cords,
-                 float const & cordThr, 
-                 uint64_t const & strand
-                   )
-{
-    String<int> f1;
-    typename Iterator<String<uint64_t> >::Type it = hitBegin;
-    unsigned preBlockPtr;
-    float cordLenThr = length(read) * cordThr / window_size;
-    float score = 0;
-    createFeatures(begin(read), end(read), f1);
-    if(initCord(it, hitEnd, preBlockPtr, cords))
-    {
-        do{
-            extendWindowAll(f1, f2[get_cord_id(back(cords))], cords, score;
-        }
-        while (nextCord(it, hitEnd, preBlockPtr, cords, cordLenThr, strand, score));
-        return endCord(cords, preBlockPtr, cordLenThr, strand, score);   
-    }
-    return false;
-}
-*/
-
-/*
- * path functoin for single strand
- bool pathAll(String<Dna5> & read, 
-                 typename Iterator<String<uint64_t> >::Type hitBegin, 
-                 typename Iterator<String<uint64_t> >::Type hitEnd, 
-                 StringSet<String<int> > & f2, 
-                 String<uint64_t> & cords,
-                 float const & cordThr, 
-                 uint64_t const & strand
-                   )
-{
-    //std::cerr << "[pathall]\n";
-    String<int> f1;
-    typename Iterator<String<uint64_t> >::Type it = hitBegin;
-    unsigned preBlockPtr;
-    float cordLenThr = length(read) * cordThr / window_size;
-    float score = 0;
-    createFeatures(begin(read), end(read), f1);
-    if(initCord(it, hitEnd, preBlockPtr, cords))
-    {
-        do{
-            extendWindowAll(f1, f2[get_cord_id(back(cords))], cords, score;
-        }
-        while (nextCord(it, hitEnd, preBlockPtr, cords, cordLenThr, strand, score));
-        return endCord(cords, preBlockPtr, cordLenThr, strand, score);   
-    }
-    return false;
-}
-*/
-
-/*
  * path for double strand 
  */
  bool path_dst(
@@ -1807,7 +1726,7 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
     {
         do{
             uint64_t strand = _DefaultCord.getCordStrand(back(cords));
-            extendWindowAll(f1[strand], f2[get_cord_id(back(cords))], cords, score, strand);
+            extendWindow(f1[strand], f2[get_cord_id(back(cords))], cords, score, strand);
         }
         while (nextCord(it, hitEnd, preBlockPtr, cords, cordLenThr, score));
         return endCord(cords, preBlockPtr, cordLenThr, score);   
