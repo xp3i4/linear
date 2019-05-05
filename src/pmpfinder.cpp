@@ -912,89 +912,6 @@ void _printHit(String<uint64_t>  & hit)
     }
 }
 
-//===!Note:Need to put this parameterin the mapper threshold
-/*
-template <typename TDna, typename TSpec>
- unsigned getIndexMatchAll(typename LIndex & index,
-                              typename String<Dna5> const & read,
-                              uint64_t* const set,
-                              unsigned & len,
-                              MapParm & mapParm
-                             )
-{    
-    unsigned block = (mapParm.blockSize < length(read))?mapParm.blockSize:length(read);
-    unsigned dt = block * (mapParm.alpha / (1 - mapParm.alpha));
-    hashInit(index.shape, begin(read));
-    for (unsigned h=0; h <= length(read) - block; h += dt)
-    {
-        hashInit(index.shape, begin(read) + h);
-        for (unsigned k = h; k < h + block; k++)
-        {
-            hashNext(index.shape, begin(read) + k);
-            uint64_t pre = ~0;
-            uint64_t pos = getXYDir(index, index.shape.XValue, index.shape.YValue);
-            if (_DefaultHs.getHsBodyY(index.ysa[std::min(pos + mapParm.delta, length(index.ysa) - 1)]) ^ index.shape.YValue)
-            {
-                while (_DefaultHs.isBodyYEqual(index.ysa[pos], index.shape.YValue))
-                {
-//!Note: needs change
-//!Note: the sa is in reverse order in hindex. this is different from the generic index
-                    if (pre - index.ysa[pos] > mapParm.kmerStep)
-                    {
-                        set[len++] = (_DefaultHs.getHsBodyS(index.ysa[pos]-k) << 20)+k;
-                        pre = index.ysa[pos];
-                    }
-                    ++pos;
-                }
-            }
-        }
-    }
-    return 0;
-}
-*/
-/*
-template <typename TDna, typename TSpec>
- unsigned getIndexMatchAll(typename LIndex & index,
-                              typename String<Dna5> const & read,
-                              uint64_t* const set,
-                              unsigned & len,
-                              MapParm & mapParm
-                             )
-{   
-    typedef typename LIndex TIndex;
-    typedef typename TIndex::TShape PShape;
-    
-    unsigned block = (mapParm.blockSize < length(read))?mapParm.blockSize:length(read);
-    unsigned dt = block * (mapParm.alpha / (1 - mapParm.alpha));
-    PShape shape;
-    hashInit(shape, begin(read));
-    for (unsigned h=0; h <= length(read) - block; h += dt)
-    {
-        hashInit(shape, begin(read) + h);
-        for (unsigned k = h; k < h + block; k++)
-        {
-            hashNext(shape, begin(read) + k);
-            uint64_t pre = ~0;
-            uint64_t pos = getXYDir(index, shape.XValue, shape.YValue);
-            if (_DefaultHs.getHsBodyY(index.ysa[std::min(pos + mapParm.delta, length(index.ysa) - 1)]) ^ shape.YValue)
-            {
-                while (_DefaultHs.isBodyYEqual(index.ysa[pos], shape.YValue))
-                {
-//!Note: needs change
-//!Note: the sa is in reverse order in hindex. this is different from the generic index
-                    if (pre - index.ysa[pos] > mapParm.kmerStep)
-                    {
-                        set[len++] = (_DefaultHs.getHsBodyS(index.ysa[pos]-k) << 20)+k;
-                        pre = index.ysa[pos];
-                    }
-                    ++pos;
-                }
-            }
-        }
-    }
-    return 0;
-}
-*/
 /**
  * Search double strand pattern in the index and
  * append to anchors
@@ -1290,31 +1207,6 @@ template <typename TDna, typename TSpec>
     _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);
     return true;
 }
-/*
- * endCord for single strand index
- *
- bool endCord( String<uint64_t> & cord,
-                     unsigned & preCordStart,
-                     float const & cordThr,
-                     uint64_t const & strand,
-                     float & score
-                   )
-{
-    _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);   
-    if (length(cord) - preCordStart > cordThr)
-    {
-
-        _DefaultHit.setBlockEnd(back(cord));
-        _DefaultHit.setBlockStrand(cord[preCordStart], strand);
-    }
-    else
-    {
-        erase(cord, preCordStart, length(cord));
-    }
-    score = 0;
-    return true;
-}
-*/
 
 /*
  * endCord for double strand index
