@@ -30,6 +30,36 @@ const int scriptMask3 = scriptMask2 << scpt_len;
 const uint64_t hmask = (1ULL << 20) - 1;
 const unsigned windowThreshold = 72; // 36;
 
+int const typeFeatures1_32 = 1;
+int const typeFeatures2_48 = 2;
+int FeaturesDynamic::isFs1_32()
+{
+    return fs_type == typeFeatures1_32;
+}
+int FeaturesDynamic::isFs2_48()
+{
+    return fs_type == typeFeatures2_48;
+}
+void FeaturesDynamic::setFs1_32()
+{
+    fs_type = typeFeatures1_32;
+}
+void FeaturesDynamic::setFs2_48()
+{
+    fs_type = typeFeatures2_48;
+}
+FeaturesDynamic::FeaturesDynamic(int type)
+{
+    if (type == typeFeatures1_32)
+    {
+        fs_type = typeFeatures1_32;
+    }
+    else
+    {
+        fs_type = typeFeatures2_48;
+    }
+}
+
 void decInt96 (int96 & val, int96 & dval) // val -= dval
 {
     val[0] -= dval[0];
@@ -222,10 +252,10 @@ uint64_t create_cord (uint64_t id, uint64_t cordx, uint64_t cordy, uint64_t stra
 }
 
 void cmpRevCord(uint64_t val1, 
-                    uint64_t val2,
-                    uint64_t & cr_val1,
-                    uint64_t & cr_val2,
-                    uint64_t read_len)
+                uint64_t val2,
+                uint64_t & cr_val1,
+                uint64_t & cr_val2,
+                uint64_t read_len)
 {
     cr_val1 = (val1 - get_cord_y(val1) + read_len - get_cord_y(val2) - 1) ^ _DefaultCordBase.flag_strand;
     cr_val2 = (val2 - get_cord_y(val1) + read_len - get_cord_y(val2) - 1) ^ _DefaultCordBase.flag_strand;
@@ -269,7 +299,7 @@ int _scriptDist1_32(int const & s1, int const & s2)
     return res;
 }
 unsigned _windowDist1_32(Iterator<String<short> >::Type const & it1, 
-                      Iterator<String<short> >::Type const & it2)
+                         Iterator<String<short> >::Type const & it2)
 {
     return _scriptDist1_32(*it1, *it2) 
          + _scriptDist1_32(*(it1 + 2), *(it2 + 2)) 
@@ -298,11 +328,11 @@ void createFeatures1_32(TIter5 const & itBegin, TIter5 const & itEnd, String<sho
         next++;
     }
 }
- uint64_t parallelParm_Static(uint64_t range, 
-                                    unsigned threads, 
-                                    unsigned & thd_id, 
-                                    uint64_t & thd_begin, 
-                                    uint64_t & thd_end)
+uint64_t parallelParm_Static(uint64_t range, 
+                             unsigned threads, 
+                             unsigned & thd_id, 
+                             uint64_t & thd_begin, 
+                             uint64_t & thd_end)
 {
     uint64_t ChunkSize = range / threads;
     unsigned id = range - ChunkSize * threads;
@@ -317,11 +347,7 @@ void createFeatures1_32(TIter5 const & itBegin, TIter5 const & itEnd, String<sho
     thd_end = thd_begin + ChunkSize; 
     return ChunkSize;
 }
-
-/**
- * Parallel 
- */
- void createFeatures1_32(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f, unsigned threads)
+void createFeatures1_32(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f, unsigned threads)
 {
     unsigned window = 1 << scpt_len;
     resize (f, ((itEnd - itBegin -window) >> scpt_bit) + 1);
@@ -349,117 +375,6 @@ void createFeatures1_32(TIter5 const & itBegin, TIter5 const & itEnd, String<sho
         {
             f[next] += scptCount[ordValue(*(itBegin + j + window))] - scptCount[ordValue(*(itBegin + j))];
         }
-        next++;
-    }
-}
-}
-
-/*----------  Script encoding type III  ----------*/
-//
-/**
- * Script is the feature of kmer
- * Calculate distance of two scripts. 
- */
-int64_t _scriptDist2_32(int64_t const s1, int64_t const s2)
-{
-    int64_t mask = 15;
-    return  std::abs((s1 & mask) - (s2 & mask)) +
-            std::abs((s1 >> 4 & mask) - (s2 >> 4 & mask)) +
-            std::abs((s1 >> 8 & mask) - (s2 >> 8 & mask)) +
-            std::abs((s1 >> 12 & mask) - (s2 >> 12 & mask)) +
-            std::abs((s1 >> 16 & mask) - (s2 >> 16 & mask)) +
-            std::abs((s1 >> 20 & mask) - (s2 >> 20 & mask)) +
-            std::abs((s1 >> 24 & mask) - (s2 >> 24 & mask)) +
-            std::abs((s1 >> 28 & mask) - (s2 >> 28 & mask)) +
-            std::abs((s1 >> 32 & mask) - (s2 >> 32 & mask)) +
-            std::abs((s1 >> 36 & mask) - (s2 >> 36 & mask)) +
-            std::abs((s1 >> 40 & mask) - (s2 >> 40 & mask)) +
-            std::abs((s1 >> 44 & mask) - (s2 >> 44 & mask)) +
-            std::abs((s1 >> 48 & mask) - (s2 >> 48 & mask)) +
-            std::abs((s1 >> 52 & mask) - (s2 >> 52 & mask)) +
-            std::abs((s1 >> 56 & mask) - (s2 >> 56 & mask)) +
-            std::abs((s1 >> 60 & mask) - (s2 >> 60 & mask));
-}
-unsigned _windowDist2_32(Iterator<String<int64_t> >::Type const & it1, 
-                     Iterator<String<int64_t> >::Type const & it2)
-{
-    return _scriptDist2_32(*it1 + *(it1 + 1), *it2 + *(it2 + 1)) 
-         + _scriptDist2_32(*(it1 + 2) + *(it1 + 3), *(it2 + 2) + *(it2 + 3)) 
-         + _scriptDist2_32(*(it1 + 4) + *(it1 + 5), *(it2 + 4) + *(it2 + 5)) 
-         + _scriptDist2_32(*(it1 + 6) + *(it1 + 7), *(it2 + 6) + *(it2 + 7)) 
-         + _scriptDist2_32(*(it1 + 8) + *(it1 + 9), *(it2 + 8) + *(it2 + 9)) 
-         + _scriptDist2_32(*(it1 + 10) + *(it1 + 11), *(it2 + 10) + *(it2 + 11));
-}
-/**
- * Function only for counting 2mer in script
- */
-inline void addCell(TIter5 it, int64_t & val)
-{
-    int ordV = (ordN_(*it) << 2) + ordN_(*(it + 1));
-    val += 1LL << (ordV << 2);
-}
-int createFeatures2_32(TIter5 itBegin, TIter5 itEnd, String<int64_t> & f)
-{
-    unsigned next = 0;
-    unsigned window = scpt_step;
-    resize (f, ((itEnd - itBegin -window) >> scpt_bit) + 1);
-    for (unsigned k = scpt_step; k < itEnd - itBegin - window - 1; k += scpt_step) 
-    {
-        f[next] = 0;
-        for (unsigned j = k - scpt_step; j < k - 1; j++)
-        {
-            addCell(itBegin + j, f[next]);
-        }
-        //printScript(f[next], "cfs2_n ");
-        next++;
-    }
-    return 0;
-}
-/**
- * Parallel 
- */
-int createFeatures2_32(TIter5 itBegin, TIter5 itEnd, String<int64_t> & f, unsigned threads)
-{
-    int window = scpt_step;
-    if (itEnd - itBegin < window)
-    {
-        return 0;
-    }
-    resize (f, ((itEnd - itBegin -window) >> scpt_bit) + 1);
-    int64_t range = (itEnd - itBegin - window) / scpt_step + 1; //numer of windows 
-    if (range < threads)
-    {
-        createFeatures2_32(itBegin, itEnd, f);
-        return 0;
-    }
-#pragma omp parallel
-{
-    unsigned thd_id = omp_get_thread_num();
-    int64_t chunk_size = range / threads; 
-    int64_t thd_begin = thd_id * (chunk_size + 1);
-    unsigned id1 = range - chunk_size * threads;
-    if (thd_id >= id1)
-    {
-        thd_begin = id1 + chunk_size * thd_id;
-    }
-    else
-    {
-        ++chunk_size;
-    }
-    int64_t thd_end = thd_begin + chunk_size;
-    int64_t next = thd_begin;
-    thd_begin *= scpt_step;
-    thd_end *= scpt_step;
-    //std::cout << "cfs2 " << thd_begin << " " << thd_end << "\n";
-    for (int64_t k = thd_begin + scpt_step; k < thd_end; k+=scpt_step) 
-    {
-        f[next] = 0;
-        for (int64_t j = k - scpt_step; j < k - 1; j++)
-        {
-            addCell(itBegin + j, f[next]);
-        }
-        //std::cout << *(itBegin + k - 1) << " ";
-        //printScript(f[next], "cfs2_n ");
         next++;
     }
 }
@@ -1423,87 +1338,6 @@ template <typename TDna, typename TSpec>
 }
 
 /*
- bool nextCord(typename Iterator<String<uint64_t> >::Type & it, 
-                     typename Iterator<String<uint64_t> >::Type const & hitEnd,
-                     unsigned & preCordStart,
-                     String<uint64_t> & cord)
-{
-//TODO: add maxlen of anchor to the first node in cord;
-    if (it >= hitEnd)
-        return false;
-    while(!_DefaultHit.isBlockEnd(*(it - 1)))
-    {
-        if(get_cord_y(*(it))>get_cord_y(back(cord)) +  window_delta) 
-        {
-            appendValue(cord, _DefaultCord.hit2Cord(*(it)));
-            ++it;
-            return true;
-        }
-        ++it;
-    }
-    _DefaultHit.setBlockEnd(back(cord));
-    if(it < hitEnd)
-    {
-        _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);
-        preCordStart = length(cord);
-        appendValue(cord, _DefaultCord.hit2Cord(*(it)));
-        ++it;
-        return true;
-    }
-    else
-        return false;
-}
-*/
-
-/*
- * nextCord for single strand sequence
- *
- bool nextCord(typename Iterator<String<uint64_t> >::Type & it, 
-                     typename Iterator<String<uint64_t> >::Type const & hitEnd, 
-                     unsigned & preCordStart,
-                     String<uint64_t> & cord,
-                     float const & cordThr,
-                     uint64_t const & strand,
-                     float & score
-                    )
-{
-//TODO: add maxlen of anchor to the first node in cord;
-    if (it >= hitEnd)
-        return false;
-    
-    while(!_DefaultHit.isBlockEnd(*(it - 1)))
-    {
-        if(get_cord_y(*(it))>get_cord_y(back(cord)) +  window_delta) 
-        {
-            appendValue(cord, _DefaultCord.hit2Cord(*(it)));
-            ++it;
-            return true;
-        }
-        ++it;
-    }
-    _DefaultHit.setBlockEnd(back(cord));
-    _DefaultHit.setBlockStrand(cord[preCordStart], strand);
-    if(it < hitEnd)
-    {
-        if (length(cord) - preCordStart < cordThr )//|| std::abs(b1 - b2) < 10)
-        {
-            erase(cord, preCordStart, length(cord));
-        }
-        else
-        {
-            _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);
-        }
-        preCordStart = length(cord);
-        appendValue(cord, _DefaultCord.hit2Cord(*(it)));
-        ++it;
-        return true;
-    }
-    else
-        return false;
-    (void) score;
-}*/
-
-/*
  * nextCord for double strand sequence
  */
  bool nextCord(typename Iterator<String<uint64_t> >::Type & it, 
@@ -1555,11 +1389,11 @@ template <typename TDna, typename TSpec>
     }
 }
 
- bool extendWindow(String<FeatureType> &f1, 
-                            String<FeatureType> & f2, 
-                            String<uint64_t> & cord, 
-                            float & score, 
-                            uint64_t & strand)
+bool extendWindow(String<FeatureType> &f1, 
+                   String<FeatureType> & f2, 
+                   String<uint64_t> & cord, 
+                   float & score, 
+                   uint64_t & strand)
 {
     uint64_t preCordY = (_DefaultHit.isBlockEnd(cord[length(cord) - 2]))?
     0:get_cord_y(back(cord)) + window_delta;

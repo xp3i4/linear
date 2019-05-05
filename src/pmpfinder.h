@@ -8,6 +8,7 @@ typedef std::array<int, 3> int96;
 //typedef short FeatureType;
 //typedef int64_t FeatureType;
 typedef int96 FeatureType;
+typedef Iterator <String <Dna5> >::Type TIter5;
 
 extern const float band_width;
 extern const unsigned cmask;
@@ -32,7 +33,23 @@ extern const int scriptMask3;
 extern const uint64_t hmask;
 extern const unsigned windowThreshold; // 36;
 
-typedef Iterator <String <Dna5> >::Type TIter5;
+extern int const typeFeatures1_32;
+extern int const typeFeatures2_48;
+struct FeaturesDynamic
+{
+  int fs_type; //features type
+  String<short> fs1_32;
+  String<int96> fs2_48;
+
+  int isFs1_32();
+  int isFs2_48();
+  void setFs1_32();
+  void setFs2_48();
+
+  FeaturesDynamic(int type = typeFeatures2_48);
+};
+
+
 /*
  * Cord(C): coordinates in the alignment matrix;
  * :=|N/A[2]|strand[1]|cordEnd[1] gC [40] |rC [20bits]
@@ -168,8 +185,6 @@ int extendPatch(StringSet<String<FeatureType> > & f1,
                 int overlap_size = window_size,
                 int gap_size = window_size);
 
-int64_t _windowDist48_4(Iterator<String<int96> >::Type it1,  //feature string iterator
-                        Iterator<String<int96> >::Type it2);
 void printInt96(int96 val, CharString header);
 
 
