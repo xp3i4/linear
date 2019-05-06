@@ -625,17 +625,18 @@ bool initCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & c
 }
 
 uint64_t previousWindow(String<FeatureType> & f1, 
-                         String<FeatureType> & f2, 
-                         uint64_t cord,
-                         unsigned window_threshold = windowThreshold )
+                        String<FeatureType> & f2, 
+                        uint64_t cord,
+                        float & score,
+                        unsigned window_threshold = windowThreshold)
 {
-    typedef uint64_t CordType;
-    CordType genomeId = _getSA_i1(_DefaultCord.getCordX(cord));
-    CordType strand = get_cord_strand(cord);
-    CordType x_suf = _DefaultCord.cord2Cell(get_cord_x(cord));
-    CordType y_suf = _DefaultCord.cord2Cell(get_cord_y(cord));
-    CordType x_min = 0;
-    CordType y;
+    uint64_t genomeId = _getSA_i1(_DefaultCord.getCordX(cord));
+    uint64_t strand = get_cord_strand(cord);
+    uint64_t x_suf = _DefaultCord.cord2Cell(get_cord_x(cord));
+    uint64_t y_suf = _DefaultCord.cord2Cell(get_cord_y(cord));
+    uint64_t x_min = 0;
+    uint64_t y;
+    uint64_t new_cord = 0;
     
     if (y_suf < med || x_suf < sup)
         return 0;
@@ -643,7 +644,7 @@ uint64_t previousWindow(String<FeatureType> & f1,
         y = y_suf - med;
 
     unsigned min = ~0;
-    for (CordType x = x_suf - sup; x < x_suf - inf; x += 1) 
+    for (uint64_t x = x_suf - sup; x < x_suf - inf; x += 1) 
     {
         unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
         if (tmp < min)
@@ -658,137 +659,45 @@ uint64_t previousWindow(String<FeatureType> & f1,
     {
         if ( x_suf - x_min > med)
         {
-            return _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand);
+            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand);
         }
         else
         {
-            return _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
+            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         } 
     }
-    return 0;
+    score += min;
+    return new_cord;
 }
-/*
 bool previousWindow(String<FeatureType> & f1, 
                      String<FeatureType> & f2, 
                      String<uint64_t> & cords, 
-                     float & score, 
-                     uint64_t & strand)
+                     float & score)
 
 {
-    uint64_t new_cord = previousWindow(f1, f2, back(cords), windowThreshold);
+    uint64_t new_cord = previousWindow(f1, f2, back(cords), score, windowThreshold);
     if (new_cord)
     {
         appendValue(cords, new_cord);
     }
+    std::cout << "score " << score << "\n";
     return new_cord;
 }
-*/
-bool previousWindow(String<FeatureType> & f1, 
-                    String<FeatureType> & f2, 
-                    String<uint64_t> & cords, 
-                    float & score)
-{
-    typedef uint64_t CordType;
-    CordType genomeId = get_cord_id(back(cords));
-    CordType strand = get_cord_strand(back(cords));
-    CordType x_suf = _DefaultCord.cord2Cell(get_cord_x(back(cords)));
-    CordType y_suf = _DefaultCord.cord2Cell(get_cord_y(back(cords)));
-    CordType x_min = 0;
-    CordType y;
 
-    if (y_suf < med || x_suf < sup)
-        return false;
-    else 
-       y = y_suf - med;
-
-    unsigned min = ~0;
-    for (CordType x = x_suf - sup; x < x_suf - inf; x += 1) 
-    {
-        unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
-        if (tmp < min)
-        {
-            min = tmp;
-            x_min = x;
-        }
-    }
-    if (min > windowThreshold)
-        return false;    
-    else 
-    {
-        if ( x_suf - x_min > med)
-        {
-            appendValue(cords, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand));
-        }
-        else
-        {
-            appendValue(cords, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
-        }
-
-    }
-    score += min;
-    return true;
-}
-
-bool nextWindow(String<FeatureType> & f1, 
-                String<FeatureType> & f2, 
-                 String<uint64_t> & cords, 
-                 float & score)
-{
-    typedef uint64_t CordType;
-    CordType genomeId = get_cord_id(back(cords));
-    CordType strand = get_cord_strand(back(cords));
-    CordType x_pre = _DefaultCord.cord2Cell(get_cord_x(back(cords)));
-    CordType y_pre = _DefaultCord.cord2Cell(get_cord_y(back(cords)));
-    CordType x_min = 0;
-    CordType y;
-    unsigned min = ~0;
-    
-    if (y_pre + sup * 2 > length(f1) || x_pre + sup * 2> length(f2))
-        return false;
-    else 
-        y = y_pre + med;
-    
-    for (CordType x = x_pre + inf; x < x_pre + sup; x += 1) 
-    {
-        unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
-        if (tmp < min)
-        {
-            min = tmp;
-            x_min = x;
-        }
-    }
-    if (min > windowThreshold)
-    {
-       return false;
-    }
-    else 
-    {
-        if ( x_min - x_pre > med)
-        {
-            appendValue(cords, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y), strand));
-        }
-        else
-        {
-            appendValue(cords, _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand));
-        }
-    }
-    score += min;
-    return true;
-}
-
- uint64_t nextWindow(String<FeatureType> & f1, 
+uint64_t nextWindow(String<FeatureType> & f1, 
                      String<FeatureType> & f2, 
                      uint64_t cord,
+                     float & score,
                      unsigned window_threshold = windowThreshold
                     )
 {
-    typedef uint64_t CordType;
-    CordType genomeId = _getSA_i1(cord);
-    CordType strand = get_cord_strand(cord);
-    CordType x_pre = _DefaultCord.cord2Cell(get_cord_x(cord));
-    CordType y_pre = _DefaultCord.cord2Cell(get_cord_y(cord));
-    CordType x_min = 0;
-    CordType y;
+    uint64_t genomeId = get_cord_id(cord);
+    uint64_t strand = get_cord_strand(cord);
+    uint64_t x_pre = _DefaultCord.cord2Cell(get_cord_x(cord));
+    uint64_t y_pre = _DefaultCord.cord2Cell(get_cord_y(cord));
+    uint64_t x_min = 0;
+    uint64_t y;
+    uint64_t new_cord = 0;
     unsigned min = ~0;
     
     if (y_pre + sup * 2 > length(f1) || x_pre + sup * 2> length(f2))
@@ -796,7 +705,7 @@ bool nextWindow(String<FeatureType> & f1,
     else 
         y = y_pre + med;
     
-    for (CordType x = x_pre + inf; x < x_pre + sup; x += 1) 
+    for (uint64_t x = x_pre + inf; x < x_pre + sup; x += 1) 
     {
         unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
         if (tmp < min)
@@ -806,17 +715,22 @@ bool nextWindow(String<FeatureType> & f1,
         }
     }
     if (min > window_threshold)
+    {
        return 0;
+    }
     else 
+    {
         if ( x_min - x_pre > med)
         {
-            return _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y), strand);
+            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y), strand);
         }
         else
         {
-            return _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
+            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         }
-    return 0;
+    }
+    score += min;
+    return new_cord;
 }
 
 void checkPath(StringSet<String<Dna5> > & cords, StringSet<String<Dna5> > const & reads)
@@ -1279,13 +1193,35 @@ bool extendWindow(String<FeatureType> &f1,
     uint64_t preCordY = (_DefaultHit.isBlockEnd(cords[length(cords) - 2]))?
     0:get_cord_y(back(cords)) + window_delta;
     unsigned len = length(cords) - 1;
-    while (preCordY<= get_cord_y(back(cords)) && 
-        previousWindow(f1, f2, cords, score)){}
+    uint64_t new_cord;
+    while (preCordY<= get_cord_y(back(cords)))
+    {
+        new_cord = previousWindow(f1, f2, back(cords), score, windowThreshold);
+        if (new_cord)
+        {
+            appendValue(cords, new_cord);
+        }
+        else
+        {
+            break;
+        }
+    } 
     for (unsigned k = len; k < ((length(cords) + len) >> 1); k++) 
     {
         std::swap(cords[k], cords[length(cords) - k + len - 1]);
     }
-    while (nextWindow(f1, f2, cords, score)){}
+    while (true)
+    {
+        new_cord = nextWindow(f1, f2, back(cords), score, windowThreshold);
+        if (new_cord)
+        {
+            appendValue(cords, new_cord);
+        }
+        else
+        {
+            break;
+        }
+    }
     return true;
 }
 
@@ -1351,6 +1287,7 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
                 )
 {
     unsigned window_threshold = 30;
+    float score = 0;
     std::cout << "eP dg1_1 " << get_cord_y(cord1) << " " << get_cord_y(cord2) << "\n";
     if (isOverlap(cord1, cord2, revscomp_const, overlap_size))
     {
@@ -1375,7 +1312,7 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
     std::cout << "dg1_ " << get_cord_y(cord) << " " << get_cord_y(scord) << "\n";
     while (isPreGap(cord, scord, revscomp_const, gap_size))
     {
-        cord = nextWindow (f1[strand1], f2[genomeId1], cord, window_threshold);
+        cord = nextWindow (f1[strand1], f2[genomeId1], cord, score, window_threshold);
         std::cout << "dg1_ " << get_cord_y(cord) << "\n";
         if (cord)
         {
@@ -1398,7 +1335,7 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
     cord = scord;
     while (isSucGap(cord, nw, revscomp_const, gap_size))
     {
-        cord = previousWindow(f1[strand2], f2[genomeId2], cord, window_threshold);
+        cord = previousWindow(f1[strand2], f2[genomeId2], cord, score, window_threshold);
         if (cord)
         {
             //TODO do another round previousWindow if cord = 0.
