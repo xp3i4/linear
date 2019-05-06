@@ -135,7 +135,7 @@ Mapper::Mapper(Options & options):
 
 int Mapper::createIndex(bool efficient)
 {
-    std::cerr << ">>Create index \r";
+    std::cerr << ">Create index \r";
     createHIndex(genomes(), qIndex, _thread, efficient);
     return 0;
 }
@@ -249,7 +249,7 @@ void Mapper::printCordsRaw()
  */
 void print_cords_txt(Mapper & mapper)
 {
-    std::cerr << ">>Write results to disk        \r";
+    std::cerr << ">Write results to disk        \r";
     double time = sysTime();
     unsigned cordCount = 0;
     uint64_t readCordEnd;
@@ -459,13 +459,6 @@ int64_t len = 0;
             clear(crhit);
             mnMapReadList(index, reads[j], anchors, mapParm, crhit);
             path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
-            //std::cout << "krmap2 " << length(cordsTmp[c]) << "\n";
-            /*
-            for (unsigned i = 0; i < length(cordsTmp[c]); i++)
-            {
-                print_cord(cordsTmp[c][i], "rmap2_cords ");
-            }
-            */
             if (_DefaultCord.getMaxLen(cordsTmp[c]) < length(reads[j]) * senThr)
             {
                 clear(cordsTmp[c]);
@@ -536,10 +529,10 @@ int map(Mapper & mapper, int p1)
     {
         double time1 = sysTime();
         clear (mapper.reads());
-        std::cerr <<  ">>Map::file_I/O  block " << k << dotstatus[j++ % length(dotstatus)] << "\r";
+        std::cerr <<  ">Map::file_I/O  block " << k << dotstatus[j++ % length(dotstatus)] << "\r";
         readRecords_block(mapper.readsId(), mapper.reads(), mapper.readLens(), rFile, blockSize);
         std::cerr << "                                    \r";
-        std::cerr <<  ">>Map::mapping  block "<< k << " Size " << length(mapper.reads()) << " " << dotstatus[j++ % length(dotstatus)] << "\r";
+        std::cerr <<  ">Map::mapping  block "<< k << " Size " << length(mapper.reads()) << " " << dotstatus[j++ % length(dotstatus)] << "\r";
         time1 = sysTime() - time1;
         double time2 = sysTime();
         rawMap_dst2_MF(mapper.index(), 
