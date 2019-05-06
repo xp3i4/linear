@@ -618,22 +618,6 @@ int createFeatures(StringSet<String<Dna5> > & seq,
 }
 
 /*----------  Dynamic programmign of extending path (tiles)  ----------*/
-
-bool nextCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & cord)
-{
-    uint64_t cordLY = get_cord_y(back(cord));
-    while (++currentIt < length(hit)) 
-    {
-        uint64_t tmpCord = _DefaultCord.hit2Cord(hit[currentIt]);
-        if(get_cord_y(tmpCord) > cordLY + window_delta)
-        {
-            appendValue(cord, tmpCord);
-            return true;
-        }
-    }
-    return false;
-}
-
 bool initCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & cord)
 {
     currentIt = 0;
@@ -714,6 +698,9 @@ uint64_t previousWindow(String<int96> & f1,
     for (uint64_t x = x_suf - sup; x < x_suf - inf; x += 1) 
     {
         unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
+        //<<debug
+        std::cout << "pw1 " << tmp << " " << x * 16 << " " << get_cord_y(cord) << "\n";
+        //>>debug
         if (tmp < min)
         {
             min = tmp;
@@ -808,6 +795,7 @@ uint64_t nextWindow(String<int96> & f1,
     for (uint64_t x = x_pre + inf; x < x_pre + sup; x += 1) 
     {
         unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
+        std::cout << "nw1 " << tmp << " " << x * 16 << "\n";
         if (tmp < min)
         {
             min = tmp;
@@ -1237,12 +1225,12 @@ void _printHit(String<uint64_t>  & hit)
  * nextCord for double strand sequence
  */
  bool nextCord(typename Iterator<String<uint64_t> >::Type & it, 
-                     typename Iterator<String<uint64_t> >::Type const & hitEnd, 
-                     unsigned & preCordStart,
-                     String<uint64_t> & cord,
-                     float const & cordThr,
-                     float & score
-                    )
+               typename Iterator<String<uint64_t> >::Type const & hitEnd, 
+               unsigned & preCordStart,
+               String<uint64_t> & cord,
+               float const & cordThr,
+               float & score
+               )
 {
 //TODO: add maxlen of anchor to the first node in cord;
     if (it >= hitEnd)
@@ -1254,6 +1242,7 @@ void _printHit(String<uint64_t>  & hit)
         {
             appendValue(cord, _DefaultCord.hit2Cord_dstr(*(it)));
             ++it;
+            std::cout << "nc1 " << get_cord_y(back(cord)) << "\n";
             return true;
         }
         ++it;
@@ -1289,16 +1278,16 @@ bool extendWindow(String<short> &f1,
                   String<short> & f2, 
                   String<uint64_t> & cords, 
                   float & score, 
-                   uint64_t & strand)
+                  uint64_t & strand)
 {
-    uint64_t preCordY = (_DefaultHit.isBlockEnd(cords[length(cords) - 2]))?
-    0:get_cord_y(back(cords)) + window_delta;
+    uint64_t pre_cord_y = (_DefaultHit.isBlockEnd(cords[length(cords) - 2]))?
+    0:get_cord_y(cords[length(cords) - 2]) + window_delta;
     unsigned len = length(cords) - 1;
     uint64_t new_cord;
-    while (preCordY<= get_cord_y(back(cords)))
+    while (pre_cord_y<= get_cord_y(back(cords)))
     {
         new_cord = previousWindow(f1, f2, back(cords), score, windowThreshold);
-        if (new_cord)
+        if (new_cord && get_cord_y(new_cord) > pre_cord_y)
         {
             appendValue(cords, new_cord);
         }
@@ -1325,20 +1314,21 @@ bool extendWindow(String<short> &f1,
     }
     return true;
 }
-bool extendWindow(String<int96> &f1, 
+bool extendWindow(String<int96> & f1, 
                   String<int96> & f2, 
                   String<uint64_t> & cords, 
                   float & score, 
                    uint64_t & strand)
 {
-    uint64_t preCordY = (_DefaultHit.isBlockEnd(cords[length(cords) - 2]))?
-    0:get_cord_y(back(cords)) + window_delta;
+    uint64_t pre_cord_y = (_DefaultHit.isBlockEnd(cords[length(cords) - 2]))?
+    0:get_cord_y(cords[length(cords) - 2]) + window_delta;
     unsigned len = length(cords) - 1;
     uint64_t new_cord;
-    while (preCordY<= get_cord_y(back(cords)))
+    std::cout << "ew1 " << pre_cord_y << " " << get_cord_y(back(cords)) << "\n";
+    while (pre_cord_y < get_cord_y(back(cords)))
     {
         new_cord = previousWindow(f1, f2, back(cords), score, windowThreshold);
-        if (new_cord)
+        if (new_cord && get_cord_y(new_cord) > pre_cord_y)
         {
             appendValue(cords, new_cord);
         }
