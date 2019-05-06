@@ -385,7 +385,7 @@ int print_clips_gvf(Mapper & mapper)
 }
 
 int rawMap_dst2_MF(LIndex & index,
-                   StringSet<String<FeatureType> > & f2,
+                   StringSet<FeaturesDynamic> & f2,
                    StringSet<String<Dna5> > & reads,
                    MapParm & mapParm,
                    StringSet<String<uint64_t> > & cords,
@@ -425,7 +425,7 @@ int64_t len = 0;
     Anchors anchors;
     String<uint64_t> crhit;
     StringSet<String<uint64_t> >  cordsTmp;
-    StringSet<String<FeatureType> > f1;
+    StringSet<FeaturesDynamic> f1;
     StringSet<String<uint64_t> > clipsTmp;
     StringSet<String<BamAlignmentRecordLink> > bam_records_tmp;
     unsigned thd_id =  omp_get_thread_num();
@@ -520,27 +520,10 @@ int printFeatures48(String<int96> & f, CharString header)
 int map(Mapper & mapper, int p1)
 {
     //printStatus();
-    StringSet<String<FeatureType> > f2;
+    StringSet<FeaturesDynamic> f2;
     mapper.createIndex(false); // true: destruct genomes string to reduce memory footprint
     createFeatures(mapper.genomes(), f2, mapper.thread());
-    //<<debug
-    int sum = 0;
-    String<FeatureType> f_t1, f_t2;
-    createFeatures(begin(mapper.genomes()[0]), end(mapper.genomes()[0]) - 300, f_t1, mapper.thread());
-//    createFeatures48(begin(mapper.genomes()[0]), end(mapper.genomes()[0]) - 300, f_t2);
-    for (int i = 0; i < length(f_t1) - 100; i++)
-    {
- //       int val = _windowDist48_4 (begin(f_t1) + i, begin(f_t2) + i);
- //       std::cout << "map2 " << i << " " << val << "\n";
-        //printInt96(*(begin(f_t1) + i + 1), "map21");
-        //printInt96(*(begin(f_t2) + i), "map22");
-    }
-  //  printFeatures48(f_t1, "mpf1 ");
-    //return 0;
-    int count = 0;
-    std::cout << "wdst " << count/ (float) (length(f2[0])) << "\n";
-    //return 0;
-    //>>debug
+
     SeqFileIn rFile(toCString(mapper.readPath()));
     unsigned k = 1, j = 0;
     unsigned blockSize = 50000;

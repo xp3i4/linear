@@ -565,36 +565,56 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f, unsigned t
 }
 
 /*----------  Script encoding wrapper  ----------*/
-unsigned _windowDist(Iterator<String<FeatureType> >::Type const & it1, 
-                     Iterator<String<FeatureType> >::Type const & it2)
+unsigned _windowDist(Iterator<String<short> >::Type const & it1, 
+                     Iterator<String<short> >::Type const & it2)
 {
-    //return _windowDist1_32(it1, it2);
+    return _windowDist1_32(it1, it2);
+}
+unsigned _windowDist(Iterator<String<int96> >::Type const & it1, 
+                     Iterator<String<int96> >::Type const & it2)
+{
     return _windowDist48_4(it1, it2);
 }
-int createFeatures(TIter5 it_str, TIter5 it_end, String<FeatureType> & f)
+int createFeatures(TIter5 it_str, TIter5 it_end, FeaturesDynamic & f)
 {
-    //createFeatures1_32(it_str, it_end, f);
-    createFeatures48(it_str, it_end, f);
+    if (f.isFs1_32())
+    {
+        createFeatures1_32(it_str, it_end, f.fs1_32);
+    }
+    else if (f.isFs2_48())
+    {
+        createFeatures48(it_str, it_end, f.fs2_48);
+    }
 }
-int createFeatures(TIter5 it_str, TIter5 it_end, String<FeatureType> & f, unsigned threads)
+int createFeatures(TIter5 it_str, TIter5 it_end, FeaturesDynamic & f, unsigned threads)
 {
-    //createFeatures1_32(it_str, it_end, f, threads);
-    createFeatures48(it_str, it_end, f, threads);
+    if (f.isFs1_32())
+    {
+        createFeatures1_32(it_str, it_end, f.fs1_32, threads);
+    }
+    else if (f.isFs2_48())
+    {
+        createFeatures48(it_str, it_end, f.fs2_48, threads);
+    }
 }
 int createFeatures(StringSet<String<Dna5> > & seq, 
-                   StringSet<String<FeatureType> > & f)
+                   StringSet<FeaturesDynamic> & f)
 {
     resize(f, length(seq));
     for (unsigned k = 0; k < length(seq); k++)
+    {
         createFeatures(begin(seq[k]), end(seq[k]), f[k]);
+    }
 }
 int createFeatures(StringSet<String<Dna5> > & seq, 
-                   StringSet<String<FeatureType> > & f, 
+                   StringSet<FeaturesDynamic> & f, 
                    unsigned threads)
 {
     resize(f, length(seq));
     for (unsigned k = 0; k < length(seq); k++)
+    {
         createFeatures(begin(seq[k]), end(seq[k]), f[k], threads);
+    }
 }
 
 /*----------  Dynamic programmign of extending path (tiles)  ----------*/
@@ -623,9 +643,11 @@ bool initCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & c
         appendValue(cord, _DefaultCord.hit2Cord(hit[0]));
     return true;
 }
-
-uint64_t previousWindow(String<FeatureType> & f1, 
-                        String<FeatureType> & f2, 
+/*----------  previouse & next window(tile)  ----------*/
+//Template function is not used to speed up the compilation 
+//So there code for short are copied to int96.
+uint64_t previousWindow(String<short> & f1, 
+                        String<short> & f2, 
                         uint64_t cord,
                         float & score,
                         unsigned window_threshold = windowThreshold)
@@ -669,26 +691,104 @@ uint64_t previousWindow(String<FeatureType> & f1,
     score += min;
     return new_cord;
 }
-bool previousWindow(String<FeatureType> & f1, 
-                     String<FeatureType> & f2, 
-                     String<uint64_t> & cords, 
-                     float & score)
-
+uint64_t previousWindow(String<int96> & f1, 
+                        String<int96> & f2, 
+                        uint64_t cord,
+                        float & score,
+                        unsigned window_threshold = windowThreshold)
 {
-    uint64_t new_cord = previousWindow(f1, f2, back(cords), score, windowThreshold);
-    if (new_cord)
+    uint64_t genomeId = _getSA_i1(_DefaultCord.getCordX(cord));
+    uint64_t strand = get_cord_strand(cord);
+    uint64_t x_suf = _DefaultCord.cord2Cell(get_cord_x(cord));
+    uint64_t y_suf = _DefaultCord.cord2Cell(get_cord_y(cord));
+    uint64_t x_min = 0;
+    uint64_t y;
+    uint64_t new_cord = 0;
+    
+    if (y_suf < med || x_suf < sup)
+        return 0;
+    else 
+        y = y_suf - med;
+
+    unsigned min = ~0;
+    for (uint64_t x = x_suf - sup; x < x_suf - inf; x += 1) 
     {
-        appendValue(cords, new_cord);
+        unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
+        if (tmp < min)
+        {
+            min = tmp;
+            x_min = x;
+        }
     }
-    std::cout << "score " << score << "\n";
+    if (min > window_threshold)
+        return 0;    
+    else 
+    {
+        if ( x_suf - x_min > med)
+        {
+            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand);
+        }
+        else
+        {
+            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
+        } 
+    }
+    score += min;
     return new_cord;
 }
-
-uint64_t nextWindow(String<FeatureType> & f1, 
-                     String<FeatureType> & f2, 
-                     uint64_t cord,
-                     float & score,
-                     unsigned window_threshold = windowThreshold
+uint64_t nextWindow(String<short> & f1, 
+                    String<short> & f2, 
+                    uint64_t cord,
+                    float & score,
+                    unsigned window_threshold = windowThreshold
+                    )
+{
+    uint64_t genomeId = get_cord_id(cord);
+    uint64_t strand = get_cord_strand(cord);
+    uint64_t x_pre = _DefaultCord.cord2Cell(get_cord_x(cord));
+    uint64_t y_pre = _DefaultCord.cord2Cell(get_cord_y(cord));
+    uint64_t x_min = 0;
+    uint64_t y;
+    uint64_t new_cord = 0;
+    unsigned min = ~0;
+    
+    if (y_pre + sup * 2 > length(f1) || x_pre + sup * 2> length(f2))
+        return 0;
+    else 
+        y = y_pre + med;
+    
+    for (uint64_t x = x_pre + inf; x < x_pre + sup; x += 1) 
+    {
+        unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
+        if (tmp < min)
+        {
+            min = tmp;
+            x_min = x;
+        }
+    }
+    if (min > window_threshold)
+    {
+       return 0;
+    }
+    else 
+    {
+        if ( x_min - x_pre > med)
+        {
+            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y), strand);
+        }
+        else
+        {
+            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
+        }
+    }
+    score += min;
+    return new_cord;
+}
+uint64_t nextWindow(String<int96> & f1, 
+                    String<int96> & f2, 
+                    uint64_t cord,
+                    float & score,
+                    unsigned window_threshold = windowThreshold
                     )
 {
     uint64_t genomeId = get_cord_id(cord);
@@ -750,10 +850,10 @@ void checkPath(StringSet<String<Dna5> > & cords, StringSet<String<Dna5> > const 
     }
 }
 
-/**================================================================
- *  The following part implements different method of mapping 
- */
- void Hit::setBlockStart(uint64_t & val, uint64_t const & flag)
+/*=============================================
+=            Mapping and anchoring            =
+=============================================*/
+void Hit::setBlockStart(uint64_t & val, uint64_t const & flag)
 {
     val |= flag;
 }
@@ -1082,6 +1182,7 @@ void _printHit(String<uint64_t>  & hit)
     //printf("done getinxmatchall\n");
     return getAnchorMatchList(anchors, length(read), mapParm, hit);
 }
+/*=====  End of Mapping and anchoring  ======*/
 
 /*
  * this is initCord for double strand index(with flag in cord value)
@@ -1184,10 +1285,10 @@ void _printHit(String<uint64_t>  & hit)
     }
 }
 
-bool extendWindow(String<FeatureType> &f1, 
-                   String<FeatureType> & f2, 
-                   String<uint64_t> & cords, 
-                   float & score, 
+bool extendWindow(String<short> &f1, 
+                  String<short> & f2, 
+                  String<uint64_t> & cords, 
+                  float & score, 
                    uint64_t & strand)
 {
     uint64_t preCordY = (_DefaultHit.isBlockEnd(cords[length(cords) - 2]))?
@@ -1224,7 +1325,61 @@ bool extendWindow(String<FeatureType> &f1,
     }
     return true;
 }
-
+bool extendWindow(String<int96> &f1, 
+                  String<int96> & f2, 
+                  String<uint64_t> & cords, 
+                  float & score, 
+                   uint64_t & strand)
+{
+    uint64_t preCordY = (_DefaultHit.isBlockEnd(cords[length(cords) - 2]))?
+    0:get_cord_y(back(cords)) + window_delta;
+    unsigned len = length(cords) - 1;
+    uint64_t new_cord;
+    while (preCordY<= get_cord_y(back(cords)))
+    {
+        new_cord = previousWindow(f1, f2, back(cords), score, windowThreshold);
+        if (new_cord)
+        {
+            appendValue(cords, new_cord);
+        }
+        else
+        {
+            break;
+        }
+    } 
+    for (unsigned k = len; k < ((length(cords) + len) >> 1); k++) 
+    {
+        std::swap(cords[k], cords[length(cords) - k + len - 1]);
+    }
+    while (true)
+    {
+        new_cord = nextWindow(f1, f2, back(cords), score, windowThreshold);
+        if (new_cord)
+        {
+            appendValue(cords, new_cord);
+        }
+        else
+        {
+            break;
+        }
+    }
+    return true;
+}
+bool extendWindow(FeaturesDynamic & f1, 
+                  FeaturesDynamic & f2, 
+                  String<uint64_t> & cords, 
+                  float & score, 
+                   uint64_t & strand)
+{
+    if (f1.isFs1_32())
+    {
+        extendWindow (f1.fs1_32, f2.fs1_32, cords, score, strand);
+    }
+    else if (f1.isFs2_48())
+    {
+        extendWindow (f1.fs2_48, f2.fs2_48, cords, score, strand);
+    }
+}
 bool isOverlap (uint64_t cord1, uint64_t cord2, 
                 int revscomp_const, 
                 int overlap_size
@@ -1361,14 +1516,13 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
 /*
  * path for double strand 
  */
- bool path_dst(
-                 typename Iterator<String<uint64_t> >::Type hitBegin, 
-                 typename Iterator<String<uint64_t> >::Type hitEnd, 
-                 StringSet<String<FeatureType> > & f1,
-                 StringSet<String<FeatureType> > & f2, 
-                 String<uint64_t> & cords,
-                 float const & cordLenThr
-                )
+ bool path_dst(typename Iterator<String<uint64_t> >::Type hitBegin, 
+               typename Iterator<String<uint64_t> >::Type hitEnd, 
+               StringSet<FeaturesDynamic> & f1,
+               StringSet<FeaturesDynamic> & f2, 
+               String<uint64_t> & cords,
+               float const & cordLenThr
+               )
 {
     typename Iterator<String<uint64_t> >::Type it = hitBegin;
     unsigned preBlockPtr;
@@ -1385,96 +1539,6 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
     //std::cout << "[]::path_dist::cord " 
     return false;
 }
-
-/*
- * this mapping function use the hash value of double strand 
- * that allow to stream the sequence of double strand for only once
- */
-int rawMap_dst( LIndex   & index,
-             StringSet<String<Dna5> > & reads,
-             StringSet<String<Dna5> > & genomes, 
-            MapParm & mapParm,
-            StringSet<String<uint64_t> > & cords,
-            unsigned & threads)
-{
-  
-    typedef String<Dna5> Seq;
-    double time=sysTime();
-    float senThr = mapParm.senThr / window_size;
-    float cordThr = mapParm.cordThr / window_size;
-    MapParm complexParm = mapParm;
-    complexParm.alpha = complexParm.alpha2;
-    complexParm.listN = complexParm.listN2;
-    std::cerr << "[rawMap_dst] Raw Mapping \n"; 
-
-    
-    StringSet<String<FeatureType> > f2;
-    double time2 = sysTime();
-    createFeatures(genomes, f2, threads);
-    std::cerr << "init1 " << sysTime() - time2 << "\n";
-    
-    
-#pragma omp parallel
-{
-    unsigned size2 = length(reads) / threads;
-    unsigned ChunkSize = size2;
-    Seq comStr;
-    //Anchors anchors(Const_::_LLTMax, AnchorBase::size);
-    Anchors anchors;
-    String<uint64_t> crhit;
-    StringSet<String<uint64_t> >  cordsTmp;
-    StringSet< String<FeatureType> > f1;
-    //printf ("done\n");
-    unsigned thd_id =  omp_get_thread_num();
-    if (thd_id < length(reads) - size2 * threads)
-    {
-        ChunkSize = size2 + 1;
-    }
-    resize(cordsTmp, ChunkSize);
-    resize(f1, 2);
-    unsigned c = 0;
-
-    //printf ("done\n");
-    #pragma omp for
-    for (unsigned j = 0; j < length(reads); j++)
-    //for (unsigned j = 14456; j < 14457; j++)
-    {
-        //printf ("[debug] id %d %d %d\n", thd_id, j, length(reads[j]));
-        if (length(reads[j]) >= mapParm.minReadLen)
-        {
-            float cordLenThr = length(reads[j]) * cordThr;
-            _compltRvseStr(reads[j], comStr);
-            createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
-            createFeatures(begin(comStr), end(comStr), f1[1]);
-            anchors.init(1);
-            clear(crhit);
-            mnMapReadList(index, reads[j], anchors, mapParm, crhit);
-            path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
-            //printf("done1\n");
-            if (_DefaultCord.getMaxLen(cordsTmp[c]) < length(reads[j]) * senThr)// && 
-               //_DefaultCord.getMaxLen(cordsTmp[c]) > 0)
-            {
-                clear(cordsTmp[c]);
-                anchors.init(1);
-                clear(crhit);
-                mnMapReadList(index, reads[j], anchors, complexParm, crhit);
-                path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
-            }   
-        }
-        //printf("#done\n");
-        c += 1;
-    } 
-    #pragma omp for ordered
-    for (unsigned j = 0; j < threads; j++)
-        #pragma omp ordered
-        {
-            append(cords, cordsTmp);
-        }
-}
-    std::cerr << "    End raw mapping. Time[s]: " << sysTime() - time << std::endl;
-    return 0;
-}
-
 
 //End all mapper module
 //============================================

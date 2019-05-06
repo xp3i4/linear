@@ -146,10 +146,10 @@ struct Hit
 };
 extern Hit _DefaultHit;
 
-int createFeatures(TIter5, TIter5, String<FeatureType> & );
-int createFeatures(TIter5, TIter5, String<FeatureType> &,  unsigned);
-int createFeatures(StringSet<String<Dna5> > &, StringSet<String<FeatureType> > &, unsigned);
-int createFeatures(StringSet<String<Dna5> > &, StringSet<String<FeatureType> > &);
+int createFeatures(TIter5, TIter5, FeaturesDynamic & );
+int createFeatures(TIter5, TIter5, FeaturesDynamic &, unsigned);
+int createFeatures(StringSet<String<Dna5> > &, StringSet<FeaturesDynamic > &, unsigned);
+int createFeatures(StringSet<String<Dna5> > &, StringSet<FeaturesDynamic > &);
 void cmpRevCord(uint64_t, uint64_t, uint64_t &, uint64_t &, uint64_t);
 uint64_t get_cord_x (uint64_t);
 uint64_t get_cord_y (uint64_t); 
@@ -170,8 +170,8 @@ unsigned _windowDist(Iterator<String<FeatureType> >::Type const &,
 
 bool path_dst(typename Iterator<String<uint64_t> >::Type, 
               typename Iterator<String<uint64_t> >::Type, 
-              StringSet<String<FeatureType> > &,
-              StringSet<String<FeatureType> > &, 
+              StringSet<FeaturesDynamic> &,
+              StringSet<FeaturesDynamic> &, 
               String<uint64_t> &,
               float const & );
 
