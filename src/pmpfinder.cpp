@@ -720,6 +720,7 @@ uint64_t previousWindow(String<int96> & f1,
             new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         } 
     }
+    std::cout << "pw2 " << get_cord_y(new_cord) << " " << min << "\n";
     score += min;
     return new_cord;
 }
@@ -817,6 +818,7 @@ uint64_t nextWindow(String<int96> & f1,
             new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         }
     }
+    std::cout << "nw2 " << get_cord_y(new_cord) << " " << min << "\n";
     score += min;
     return new_cord;
 }
@@ -1328,6 +1330,7 @@ bool extendWindow(String<int96> & f1,
     while (pre_cord_y < get_cord_y(back(cords)))
     {
         new_cord = previousWindow(f1, f2, back(cords), score, windowThreshold);
+//        std::cout << "ew2 " << get_cord_y (new_cord) << " " << score << "\n";
         if (new_cord && get_cord_y(new_cord) > pre_cord_y)
         {
             appendValue(cords, new_cord);
@@ -1343,6 +1346,7 @@ bool extendWindow(String<int96> & f1,
     }
     while (true)
     {
+        //std::cout << "ew2 " << get_cord_y (new_cord) << " " << score << "\n";
         new_cord = nextWindow(f1, f2, back(cords), score, windowThreshold);
         if (new_cord)
         {
