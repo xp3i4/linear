@@ -343,13 +343,11 @@ const unsigned window_delta = window_size * (1 - 2 * _apx_parm_base.band_width);
 
 const unsigned scpt_step=16;
 const unsigned scpt_bit=4;
+
+/*----------  Script encoding type I  ----------*/
 const unsigned scpt_len=5; 
 const unsigned scpt_len2 = scpt_len << 1;
 const int scriptMask = (1 << scpt_len) - 1;
-const int scriptMask2 = scriptMask << scpt_len;
-const unsigned windowThreshold = 72; // 36;
-
-/*----------  Script encoding type I  ----------*/
 const int scptCount[5] = {1, 1<<scpt_len, 1 <<(scpt_len * 2), 0, 0};
 int _scriptDist1_32(int const & s1, int const & s2)
 {
