@@ -142,8 +142,11 @@ void print_cord(uint64_t, CharString = "");
 int printScript(FeatureType & val, CharString);
 
 
-unsigned _windowDist(Iterator<String<FeatureType> >::Type const &, 
-                     Iterator<String<FeatureType> >::Type const &);
+//A wrapper that is(only) used in the gap.cpp
+//Do not call this function frequently since the condition branch will drain the performance.
+unsigned _windowDist(FeaturesDynamic & f1,
+                     FeaturesDynamic & f2,
+                     uint64_t x1, uint64_t x2);
 
 bool path_dst(typename Iterator<String<uint64_t> >::Type, 
               typename Iterator<String<uint64_t> >::Type, 
@@ -152,8 +155,8 @@ bool path_dst(typename Iterator<String<uint64_t> >::Type,
               String<uint64_t> &,
               float const & );
 
-int extendPatch(StringSet<String<FeatureType> > & f1, 
-                StringSet<String<FeatureType> > & f2, 
+int extendPatch(StringSet<FeaturesDynamic> & f1, 
+                StringSet<FeaturesDynamic> & f2, 
                 String<uint64_t> & cords,
                 int k,
                 uint64_t cord1,

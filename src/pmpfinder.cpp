@@ -636,6 +636,22 @@ unsigned _windowDist(Iterator<String<int96> >::Type const & it1,
 {
     return _windowDist48_4(it1, it2);
 }
+//A wrapper that is(only) used in the gap.cpp
+//Do not call this function frequently since the condition branch will drain the performance.
+unsigned _windowDist(FeaturesDynamic & f1,
+                     FeaturesDynamic & f2,
+                     uint64_t x1, uint64_t x2)
+{
+    if (f1.isFs1_32())
+    {
+        return _windowDist (begin(f1.fs1_32) + x1, begin(f2.fs1_32) + x2);
+    }
+    else if (f1.isFs2_48())
+    {
+        return _windowDist (begin(f1.fs2_48) + x1, begin(f2.fs2_48) + x2);
+    }
+}
+
 int createFeatures(TIter5 it_str, TIter5 it_end, FeaturesDynamic & f)
 {
     if (f.isFs1_32())
@@ -679,23 +695,15 @@ int createFeatures(StringSet<String<Dna5> > & seq,
 }
 
 /*----------  Dynamic programming of extending path (tiles)  ----------*/
-bool initCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & cord)
-{
-    currentIt = 0;
-    if (empty(hit))
-        return false;
-    else
-        appendValue(cord, _DefaultCord.hit2Cord(hit[0]));
-    return true;
-}
+
 /*----------  previouse & next window(tile)  ----------*/
 //Template function is not used to speed up the compilation 
 //So there code for short are copied to int96.
-uint64_t previousWindow(String<short> & f1, 
-                        String<short> & f2, 
-                        uint64_t cord,
-                        float & score,
-                        ApxMapParm1_32 & parm = _apx_parm1_32)
+uint64_t previousWindow1_32(String<short> & f1, 
+                            String<short> & f2, 
+                            uint64_t cord,
+                            float & score,
+                            ApxMapParm1_32 & parm = _apx_parm1_32)
 {
     uint64_t genomeId = _getSA_i1(_DefaultCord.getCordX(cord));
     uint64_t strand = get_cord_strand(cord);
@@ -736,12 +744,12 @@ uint64_t previousWindow(String<short> & f1,
     score += min;
     return new_cord;
 }
-uint64_t previousWindow(String<int96> & f1, 
-                        String<int96> & f2, 
-                        uint64_t cord,
-                        float & score,
-                        ApxMapParm2_48 & parm = _apx_parm2_48
-                        )
+uint64_t previousWindow2_48(String<int96> & f1, 
+                            String<int96> & f2, 
+                            uint64_t cord,
+                            float & score,
+                            ApxMapParm2_48 & parm = _apx_parm2_48
+                            )
 {
     uint64_t genomeId = _getSA_i1(_DefaultCord.getCordX(cord));
     uint64_t strand = get_cord_strand(cord);
@@ -787,7 +795,7 @@ uint64_t previousWindow(String<int96> & f1,
     return new_cord;
 }
 
-uint64_t nextWindow(String<short> & f1, 
+uint64_t nextWindow1_32(String<short> & f1, 
                     String<short> & f2, 
                     uint64_t cord,
                     float & score,
@@ -835,12 +843,12 @@ uint64_t nextWindow(String<short> & f1,
     score += min;
     return new_cord;
 }
-uint64_t nextWindow(String<int96> & f1, 
-                    String<int96> & f2, 
-                    uint64_t cord,
-                    float & score,
-                    ApxMapParm2_48 & parm = _apx_parm2_48
-                    )
+uint64_t nextWindow2_48(String<int96> & f1, 
+                        String<int96> & f2, 
+                        uint64_t cord,
+                        float & score,
+                        ApxMapParm2_48 & parm = _apx_parm2_48
+                        )
 {
     uint64_t genomeId = get_cord_id(cord);
     uint64_t strand = get_cord_strand(cord);
@@ -892,11 +900,11 @@ uint64_t previousWindow(FeaturesDynamic & f1,
 {
     if (f1.isFs1_32())
     {
-        return previousWindow(f1.fs1_32, f2.fs1_32, cord, score, _apx_parm1_32);
+        return previousWindow1_32(f1.fs1_32, f2.fs1_32, cord, score, _apx_parm1_32);
     }
     else if (f1.isFs2_48())
     {
-        return previousWindow(f1.fs2_48, f2.fs2_48, cord, score, _apx_parm2_48);
+        return previousWindow2_48(f1.fs2_48, f2.fs2_48, cord, score, _apx_parm2_48);
     }
 }
 uint64_t nextWindow(FeaturesDynamic & f1, 
@@ -907,11 +915,11 @@ uint64_t nextWindow(FeaturesDynamic & f1,
 {
     if (f1.isFs1_32())
     {
-        return nextWindow(f1.fs1_32, f2.fs1_32, cord, score, _apx_parm1_32);
+        return nextWindow1_32(f1.fs1_32, f2.fs1_32, cord, score, _apx_parm1_32);
     }
     else if (f1.isFs2_48())
     {
-        return nextWindow(f1.fs2_48, f2.fs2_48, cord, score, _apx_parm2_48);
+        return nextWindow2_48(f1.fs2_48, f2.fs2_48, cord, score, _apx_parm2_48);
     }
 }
  bool initCord(typename Iterator<String<uint64_t> >::Type & it, 
@@ -1445,8 +1453,8 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
  * then call nextWindow for cord1 and previousWindow for cord2 along each own strand until it can't be extended any more.
  * 
  */         
- int extendPatch(StringSet<String<int96> > & f1, 
-                 StringSet<String<int96> > & f2, 
+ int extendPatch(StringSet<FeaturesDynamic> & f1, 
+                 StringSet<FeaturesDynamic> & f2, 
                  String<uint64_t> & cords,
                  int kk,
                  uint64_t cord1,
@@ -1482,7 +1490,7 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
     std::cout << "dg1_ " << get_cord_y(cord) << " " << get_cord_y(scord) << "\n";
     while (isPreGap(cord, scord, revscomp_const, gap_size))
     {
-        cord = nextWindow (f1[strand1], f2[genomeId1], cord, score, _apx_parm2_48);
+        cord = nextWindow (f1[strand1], f2[genomeId1], cord, score);
         std::cout << "dg1_ " << get_cord_y(cord) << "\n";
         if (cord)
         {
@@ -1505,7 +1513,7 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
     cord = scord;
     while (isSucGap(cord, nw, revscomp_const, gap_size))
     {
-        cord = previousWindow(f1[strand2], f2[genomeId2], cord, score, _apx_parm2_48);
+        cord = previousWindow(f1[strand2], f2[genomeId2], cord, score);
         if (cord)
         {
             //TODO do another round previousWindow if cord = 0.
