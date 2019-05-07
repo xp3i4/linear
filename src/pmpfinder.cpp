@@ -32,7 +32,7 @@ FeaturesDynamic::FeaturesDynamic(int type)
     {
         fs_type = typeFeatures1_32;
     }
-    else
+    else 
     {
         fs_type = typeFeatures2_48;
     }
@@ -782,10 +782,11 @@ uint64_t previousWindow(String<int96> & f1,
             new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         } 
     }
-    std::cout << "pw2 " << get_cord_y(new_cord) << " " << min << "\n";
+    //std::cout << "pw2 " << get_cord_y(new_cord) << " " << min << "\n";
     score += min;
     return new_cord;
 }
+
 uint64_t nextWindow(String<short> & f1, 
                     String<short> & f2, 
                     uint64_t cord,
@@ -880,26 +881,180 @@ uint64_t nextWindow(String<int96> & f1,
             new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         }
     }
-    std::cout << "nw2 " << get_cord_y(new_cord) << " " << min << "\n";
+    //std::cout << "nw2 " << get_cord_y(new_cord) << " " << min << "\n";
     score += min;
     return new_cord;
 }
-
-void checkPath(StringSet<String<Dna5> > & cords, StringSet<String<Dna5> > const & reads)
+uint64_t previousWindow(FeaturesDynamic & f1, 
+                        FeaturesDynamic & f2, 
+                        uint64_t cord,
+                        float & score)
 {
-    unsigned count = 0;
-    Iterator<StringSet<String<Dna5> > >::Type it = begin(cords);
-    for (auto && read : reads)
+    if (f1.isFs1_32())
     {
-        if(empty(*it))
-            count++;
-        else
-            if (get_cord_y(back(*it)) + window_size * 2 < length(read))
-            {
-                count++;
-            }
-        it++;
+        return previousWindow(f1.fs1_32, f2.fs1_32, cord, score, _apx_parm1_32);
     }
+    else if (f1.isFs2_48())
+    {
+        return previousWindow(f1.fs2_48, f2.fs2_48, cord, score, _apx_parm2_48);
+    }
+}
+uint64_t nextWindow(FeaturesDynamic & f1, 
+                    FeaturesDynamic & f2, 
+                    uint64_t cord,
+                    float & score
+                    )
+{
+    if (f1.isFs1_32())
+    {
+        return nextWindow(f1.fs1_32, f2.fs1_32, cord, score, _apx_parm1_32);
+    }
+    else if (f1.isFs2_48())
+    {
+        return nextWindow(f1.fs2_48, f2.fs2_48, cord, score, _apx_parm2_48);
+    }
+}
+ bool initCord(typename Iterator<String<uint64_t> >::Type & it, 
+                     typename Iterator<String<uint64_t> >::Type & hitEnd,
+                     unsigned & preCordStart,
+                     String<uint64_t> & cord
+                    )
+{
+        
+    if (empty(cord))
+    {
+        appendValue(cord, 0);
+        _DefaultHit.setBlockEnd(cord[0]);
+    }
+
+    if (it == hitEnd)
+        return false;
+    else
+    {
+        //hit2Cord_dstr keeps the strand flag in cord value
+        appendValue(cord, _DefaultCord.hit2Cord_dstr(*(it)));
+        ++it;
+        preCordStart = length(cord) - 1;   
+    }
+    return true;
+}
+
+/*
+ * endCord for double strand index
+ */
+ bool endCord( String<uint64_t> & cord,
+                     unsigned & preCordStart,
+                     float const & cordThr,
+                     float & score)
+{
+    _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);   
+    if (length(cord) - preCordStart > cordThr)// > std::max(score/25, cordThr))
+    {
+        _DefaultHit.setBlockEnd(back(cord));
+    }
+    else
+    {
+        erase(cord, preCordStart, length(cord));
+    }
+    (void)score;
+    return true;
+}
+
+/*
+ * nextCord for double strand sequence
+ */
+ bool nextCord(typename Iterator<String<uint64_t> >::Type & it, 
+               typename Iterator<String<uint64_t> >::Type const & hitEnd, 
+               unsigned & preCordStart,
+               String<uint64_t> & cord,
+               float const & cordThr,
+               float & score
+               )
+{
+//TODO: add maxlen of anchor to the first node in cord;
+    if (it >= hitEnd)
+        return false;
+    
+    while(!_DefaultHit.isBlockEnd(*(it - 1)))
+    {
+        if(get_cord_y(*(it))>get_cord_y(back(cord)) +  window_delta) 
+        {
+            appendValue(cord, _DefaultCord.hit2Cord_dstr(*(it)));
+            ++it;
+            //std::cout << "nc1 " << get_cord_y(back(cord)) << "\n";
+            return true;
+        }
+        ++it;
+    }
+    _DefaultHit.setBlockEnd(back(cord));
+    
+    if(it < hitEnd)
+    {
+        if (length(cord) - preCordStart < std::max(score/25,  cordThr) )//|| std::abs(b1 - b2) < 10)
+        {
+            erase(cord, preCordStart, length(cord));
+            //std::cerr << "[]::nextCord erase cord\n";
+        }
+        else
+        {
+            _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);
+    //printf("[debug]::nextcord new block %f %d %f\n", (float)score/(length(cord) - preCordStart), length(cord) - preCordStart, cordThr);
+        }
+        preCordStart = length(cord);
+        appendValue(cord, _DefaultCord.hit2Cord_dstr(*(it)));
+        score = 0;
+        ++it;
+        return true;
+    }
+    else
+    {
+        score = 0;
+        return false;
+    }
+}
+
+bool extendWindow(FeaturesDynamic & f1, 
+                  FeaturesDynamic & f2, 
+                  String<uint64_t> & cords, 
+                  float & score, 
+                  uint64_t & strand)
+{
+    uint64_t pre_cord_y = (_DefaultHit.isBlockEnd(cords[length(cords) - 2]))?
+    0:get_cord_y(cords[length(cords) - 2]) + window_delta;
+    unsigned len = length(cords) - 1;
+    uint64_t new_cord;
+    //std::cout << "ew1 " << pre_cord_y << " " << get_cord_y(back(cords)) << "\n";
+    while (pre_cord_y < get_cord_y(back(cords)))
+    {
+        new_cord = previousWindow(f1, f2, back(cords), score);
+//        std::cout << "ew2 " << get_cord_y (new_cord) << " " << score << "\n";
+        if (new_cord && get_cord_y(new_cord) > pre_cord_y)
+        {
+            appendValue(cords, new_cord);
+        }
+        else
+        {
+            break;
+        }
+    } 
+    for (unsigned k = len; k < ((length(cords) + len) >> 1); k++) 
+    {
+        std::swap(cords[k], cords[length(cords) - k + len - 1]);
+    }
+    while (true)
+    {
+        //std::cout << "ew2 " << get_cord_y (new_cord) << " " << score << "\n";
+        new_cord = nextWindow(f1, f2, back(cords), score);
+        if (new_cord)
+        {
+            appendValue(cords, new_cord);
+        }
+        else
+        {
+            break;
+        }
+    }
+    return true;    
 }
 /*=============================================
 =            Mapping and anchoring            =
@@ -1192,7 +1347,7 @@ void _printHit(String<uint64_t>  & hit)
           else
               break;
         }
-        std::cout << "gaml2 " << anchors.length() << " " << length(hit) << "\n";
+        //std::cout << "gaml2 " << anchors.length() << " " << length(hit) << "\n";
         return (list[0] >> 40);   
     }
     else
@@ -1238,207 +1393,8 @@ void _printHit(String<uint64_t>  & hit)
 /*
  * this is initCord for double strand index(with flag in cord value)
  */
- bool initCord(typename Iterator<String<uint64_t> >::Type & it, 
-                     typename Iterator<String<uint64_t> >::Type & hitEnd,
-                     unsigned & preCordStart,
-                     String<uint64_t> & cord
-                    )
-{
-        
-    if (empty(cord))
-    {
-        appendValue(cord, 0);
-        _DefaultHit.setBlockEnd(cord[0]);
-    }
 
-    if (it == hitEnd)
-        return false;
-    else
-    {
-        //hit2Cord_dstr keeps the strand flag in cord value
-        appendValue(cord, _DefaultCord.hit2Cord_dstr(*(it)));
-        ++it;
-        preCordStart = length(cord) - 1;   
-    }
-    return true;
-}
 
-/*
- * endCord for double strand index
- */
- bool endCord( String<uint64_t> & cord,
-                     unsigned & preCordStart,
-                     float const & cordThr,
-                     float & score)
-{
-    _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);   
-    if (length(cord) - preCordStart > cordThr)// > std::max(score/25, cordThr))
-    {
-        _DefaultHit.setBlockEnd(back(cord));
-    }
-    else
-    {
-        erase(cord, preCordStart, length(cord));
-    }
-    (void)score;
-    return true;
-}
-
-/*
- * nextCord for double strand sequence
- */
- bool nextCord(typename Iterator<String<uint64_t> >::Type & it, 
-               typename Iterator<String<uint64_t> >::Type const & hitEnd, 
-               unsigned & preCordStart,
-               String<uint64_t> & cord,
-               float const & cordThr,
-               float & score
-               )
-{
-//TODO: add maxlen of anchor to the first node in cord;
-    if (it >= hitEnd)
-        return false;
-    
-    while(!_DefaultHit.isBlockEnd(*(it - 1)))
-    {
-        if(get_cord_y(*(it))>get_cord_y(back(cord)) +  window_delta) 
-        {
-            appendValue(cord, _DefaultCord.hit2Cord_dstr(*(it)));
-            ++it;
-            //std::cout << "nc1 " << get_cord_y(back(cord)) << "\n";
-            return true;
-        }
-        ++it;
-    }
-    _DefaultHit.setBlockEnd(back(cord));
-    
-    if(it < hitEnd)
-    {
-        if (length(cord) - preCordStart < std::max(score/25,  cordThr) )//|| std::abs(b1 - b2) < 10)
-        {
-            erase(cord, preCordStart, length(cord));
-            //std::cerr << "[]::nextCord erase cord\n";
-        }
-        else
-        {
-            _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);
-    //printf("[debug]::nextcord new block %f %d %f\n", (float)score/(length(cord) - preCordStart), length(cord) - preCordStart, cordThr);
-        }
-        preCordStart = length(cord);
-        appendValue(cord, _DefaultCord.hit2Cord_dstr(*(it)));
-        score = 0;
-        ++it;
-        return true;
-    }
-    else
-    {
-        score = 0;
-        return false;
-    }
-}
-
-bool extendWindow(String<short> &f1, 
-                  String<short> & f2, 
-                  String<uint64_t> & cords, 
-                  float & score, 
-                  uint64_t & strand,
-                  ApxMapParm1_32 & parm = _apx_parm1_32
-                  )
-{
-    uint64_t pre_cord_y = (_DefaultHit.isBlockEnd(cords[length(cords) - 2]))?
-    0:get_cord_y(cords[length(cords) - 2]) + window_delta;
-    unsigned len = length(cords) - 1;
-    uint64_t new_cord;
-    while (pre_cord_y<= get_cord_y(back(cords)))
-    {
-        new_cord = previousWindow(f1, f2, back(cords), score, parm);
-        if (new_cord && get_cord_y(new_cord) > pre_cord_y)
-        {
-            appendValue(cords, new_cord);
-        }
-        else
-        {
-            break;
-        }
-    } 
-    for (unsigned k = len; k < ((length(cords) + len) >> 1); k++) 
-    {
-        std::swap(cords[k], cords[length(cords) - k + len - 1]);
-    }
-    while (true)
-    {
-        new_cord = nextWindow(f1, f2, back(cords), score, parm);
-        if (new_cord)
-        {
-            appendValue(cords, new_cord);
-        }
-        else
-        {
-            break;
-        }
-    }
-    return true;
-}
-bool extendWindow(String<int96> & f1, 
-                  String<int96> & f2, 
-                  String<uint64_t> & cords, 
-                  float & score, 
-                  uint64_t & strand,
-                  ApxMapParm2_48 & parm
-                 )
-{
-    uint64_t pre_cord_y = (_DefaultHit.isBlockEnd(cords[length(cords) - 2]))?
-    0:get_cord_y(cords[length(cords) - 2]) + window_delta;
-    unsigned len = length(cords) - 1;
-    uint64_t new_cord;
-    std::cout << "ew1 " << pre_cord_y << " " << get_cord_y(back(cords)) << "\n";
-    while (pre_cord_y < get_cord_y(back(cords)))
-    {
-        new_cord = previousWindow(f1, f2, back(cords), score, parm);
-//        std::cout << "ew2 " << get_cord_y (new_cord) << " " << score << "\n";
-        if (new_cord && get_cord_y(new_cord) > pre_cord_y)
-        {
-            appendValue(cords, new_cord);
-        }
-        else
-        {
-            break;
-        }
-    } 
-    for (unsigned k = len; k < ((length(cords) + len) >> 1); k++) 
-    {
-        std::swap(cords[k], cords[length(cords) - k + len - 1]);
-    }
-    while (true)
-    {
-        //std::cout << "ew2 " << get_cord_y (new_cord) << " " << score << "\n";
-        new_cord = nextWindow(f1, f2, back(cords), score, parm);
-        if (new_cord)
-        {
-            appendValue(cords, new_cord);
-        }
-        else
-        {
-            break;
-        }
-    }
-    return true;
-}
-bool extendWindow(FeaturesDynamic & f1, 
-                  FeaturesDynamic & f2, 
-                  String<uint64_t> & cords, 
-                  float & score, 
-                  uint64_t & strand)
-{
-    if (f1.isFs1_32())
-    {
-        extendWindow (f1.fs1_32, f2.fs1_32, cords, score, strand, _apx_parm1_32);
-    }
-    else if (f1.isFs2_48())
-    {
-        extendWindow (f1.fs2_48, f2.fs2_48, cords, score, strand, _apx_parm2_48);
-    }
-}
 bool isOverlap (uint64_t cord1, uint64_t cord2, 
                 int revscomp_const, 
                 int overlap_size
