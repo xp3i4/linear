@@ -6,29 +6,7 @@
 #include "chain_map.h"
 
 using namespace seqan;
-const float band_width = 0.25;
-const unsigned cmask = ((uint64_t)1<<20) - 1;
-const unsigned cell_size = 16;
-const unsigned cell_num = 12;
-const unsigned window_size = cell_size * cell_num; //16*12
-const unsigned window_delta = window_size * (1 - 2 * band_width);
-const unsigned sup = cell_num;
-const unsigned med =ceil((1 - band_width) * cell_num);
-const unsigned inf = ceil((1 - 2 * band_width) * cell_num);
 
-const unsigned initx = 5; 
-const unsigned inity = 5;
-
-const unsigned scpt_step=16;
-const unsigned scpt_bit=4;
-const unsigned scpt_len=5; 
-const unsigned scpt_len2 = scpt_len << 1;
-const unsigned scpt_len3 = scpt_len2 + scpt_len;
-const int scriptMask = (1 << scpt_len) - 1;
-const int scriptMask2 = scriptMask << scpt_len;
-const int scriptMask3 = scriptMask2 << scpt_len;
-const uint64_t hmask = (1ULL << 20) - 1;
-const unsigned windowThreshold = 72; // 36;
 
 int const typeFeatures1_32 = 1;
 int const typeFeatures2_48 = 2;
@@ -288,6 +266,89 @@ int printScript(int64_t & val, CharString header)
     std::cout << " sum=" << sum << "\n";
     return sum;
 }
+
+/*===================================================
+=            Approximate mapping section            =
+===================================================*/
+struct ApxMapParm
+{
+    float band_width;
+    unsigned cell_size;
+    unsigned cell_num;
+    unsigned window_size; //16*12
+    unsigned window_delta;
+    unsigned sup;
+    unsigned med;
+    unsigned inf; 
+    ApxMapParm ();
+};
+
+ApxMapParm::ApxMapParm():
+    band_width(0.25),
+    cell_size(16),
+    cell_num(12),
+    window_size(cell_size * cell_num),
+    window_delta(window_size * (1 - 2 * band_width)),
+    sup(cell_num),
+    med(ceil((1 - band_width) * cell_num)),
+    inf(ceil((1 - 2 * band_width) * cell_num))
+{}
+
+struct ApxMapParm1_32 : ApxMapParm
+{
+    unsigned scpt_step;
+    unsigned scpt_bit;
+    unsigned scpt_len;
+    unsigned scpt_len2;
+    int scriptMask;
+    int scriptMask2;
+    unsigned windowThreshold;
+    ApxMapParm1_32 ();
+};
+
+ApxMapParm1_32::ApxMapParm1_32():
+    ApxMapParm(),
+    scpt_step(16),
+    scpt_bit(4),
+    scpt_len(5),
+    scpt_len2(scpt_len << 1),
+    scriptMask((1 << scpt_len) - 1),
+    scriptMask2(scriptMask << scpt_len),
+    windowThreshold(36)
+{}
+
+
+struct ApxMapParm2_48 : ApxMapParm
+{
+    unsigned scpt_step;
+    unsigned scpt_bit; 
+    unsigned windowThreshold;
+    ApxMapParm2_48();
+};
+
+ApxMapParm2_48::ApxMapParm2_48():
+    ApxMapParm(),
+    scpt_step(16),
+    scpt_bit(4),
+    windowThreshold(72)
+{}
+
+ApxMapParm _apx_parm_base;
+ApxMapParm1_32 _apx_parm1_32;
+ApxMapParm2_48 _apx_parm2_48;
+
+const unsigned window_size = _apx_parm_base.window_size;
+const unsigned window_delta = window_size * (1 - 2 * _apx_parm_base.band_width);
+
+
+const unsigned scpt_step=16;
+const unsigned scpt_bit=4;
+const unsigned scpt_len=5; 
+const unsigned scpt_len2 = scpt_len << 1;
+const int scriptMask = (1 << scpt_len) - 1;
+const int scriptMask2 = scriptMask << scpt_len;
+const unsigned windowThreshold = 72; // 36;
+
 /*----------  Script encoding type I  ----------*/
 const int scptCount[5] = {1, 1<<scpt_len, 1 <<(scpt_len * 2), 0, 0};
 int _scriptDist1_32(int const & s1, int const & s2)
@@ -617,7 +678,7 @@ int createFeatures(StringSet<String<Dna5> > & seq,
     }
 }
 
-/*----------  Dynamic programmign of extending path (tiles)  ----------*/
+/*----------  Dynamic programming of extending path (tiles)  ----------*/
 bool initCord(String<uint64_t> & hit, unsigned & currentIt, String<uint64_t> & cord)
 {
     currentIt = 0;
@@ -634,7 +695,7 @@ uint64_t previousWindow(String<short> & f1,
                         String<short> & f2, 
                         uint64_t cord,
                         float & score,
-                        unsigned window_threshold = windowThreshold)
+                        ApxMapParm1_32 & parm = _apx_parm1_32)
 {
     uint64_t genomeId = _getSA_i1(_DefaultCord.getCordX(cord));
     uint64_t strand = get_cord_strand(cord);
@@ -644,13 +705,13 @@ uint64_t previousWindow(String<short> & f1,
     uint64_t y;
     uint64_t new_cord = 0;
     
-    if (y_suf < med || x_suf < sup)
+    if (y_suf < parm.med || x_suf < parm.sup)
         return 0;
     else 
-        y = y_suf - med;
+        y = y_suf - parm.med;
 
     unsigned min = ~0;
-    for (uint64_t x = x_suf - sup; x < x_suf - inf; x += 1) 
+    for (uint64_t x = x_suf - parm.sup; x < x_suf - parm.inf; x += 1) 
     {
         unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
         if (tmp < min)
@@ -659,13 +720,13 @@ uint64_t previousWindow(String<short> & f1,
             x_min = x;
         }
     }
-    if (min > window_threshold)
+    if (min > parm.windowThreshold)
         return 0;    
     else 
     {
-        if ( x_suf - x_min > med)
+        if ( x_suf - x_min > parm.med)
         {
-            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand);
+            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_suf - parm.med)),  _DefaultCord.cell2Cord(x_suf - x_min - parm.med + y), strand);
         }
         else
         {
@@ -679,7 +740,8 @@ uint64_t previousWindow(String<int96> & f1,
                         String<int96> & f2, 
                         uint64_t cord,
                         float & score,
-                        unsigned window_threshold = windowThreshold)
+                        ApxMapParm2_48 & parm = _apx_parm2_48
+                        )
 {
     uint64_t genomeId = _getSA_i1(_DefaultCord.getCordX(cord));
     uint64_t strand = get_cord_strand(cord);
@@ -689,17 +751,17 @@ uint64_t previousWindow(String<int96> & f1,
     uint64_t y;
     uint64_t new_cord = 0;
     
-    if (y_suf < med || x_suf < sup)
+    if (y_suf < parm.med || x_suf < parm.sup)
         return 0;
     else 
-        y = y_suf - med;
+        y = y_suf - parm.med;
 
     unsigned min = ~0;
-    for (uint64_t x = x_suf - sup; x < x_suf - inf; x += 1) 
+    for (uint64_t x = x_suf - parm.sup; x < x_suf - parm.inf; x += 1) 
     {
         unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
         //<<debug
-        std::cout << "pw1 " << tmp << " " << x * 16 << " " << get_cord_y(cord) << "\n";
+        //std::cout << "pw1 " << tmp << " " << x * 16 << " " << get_cord_y(cord) << "\n";
         //>>debug
         if (tmp < min)
         {
@@ -707,13 +769,13 @@ uint64_t previousWindow(String<int96> & f1,
             x_min = x;
         }
     }
-    if (min > window_threshold)
+    if (min > parm.windowThreshold)
         return 0;    
     else 
     {
-        if ( x_suf - x_min > med)
+        if ( x_suf - x_min > parm.med)
         {
-            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_suf - med)),  _DefaultCord.cell2Cord(x_suf - x_min - med + y), strand);
+            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_suf - parm.med)),  _DefaultCord.cell2Cord(x_suf - x_min - parm.med + y), strand);
         }
         else
         {
@@ -728,7 +790,7 @@ uint64_t nextWindow(String<short> & f1,
                     String<short> & f2, 
                     uint64_t cord,
                     float & score,
-                    unsigned window_threshold = windowThreshold
+                    ApxMapParm1_32 & parm = _apx_parm1_32 
                     )
 {
     uint64_t genomeId = get_cord_id(cord);
@@ -740,12 +802,12 @@ uint64_t nextWindow(String<short> & f1,
     uint64_t new_cord = 0;
     unsigned min = ~0;
     
-    if (y_pre + sup * 2 > length(f1) || x_pre + sup * 2> length(f2))
+    if (y_pre + parm.sup * 2 > length(f1) || x_pre + parm.sup * 2> length(f2))
         return 0;
     else 
-        y = y_pre + med;
+        y = y_pre + parm.med;
     
-    for (uint64_t x = x_pre + inf; x < x_pre + sup; x += 1) 
+    for (uint64_t x = x_pre + parm.inf; x < x_pre + parm.sup; x += 1) 
     {
         unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
         if (tmp < min)
@@ -754,15 +816,15 @@ uint64_t nextWindow(String<short> & f1,
             x_min = x;
         }
     }
-    if (min > window_threshold)
+    if (min > parm.windowThreshold)
     {
        return 0;
     }
     else 
     {
-        if ( x_min - x_pre > med)
+        if ( x_min - x_pre > parm.med)
         {
-            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y), strand);
+            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_pre + parm.med)),  _DefaultCord.cell2Cord(x_pre + parm.med - x_min + y), strand);
         }
         else
         {
@@ -776,7 +838,7 @@ uint64_t nextWindow(String<int96> & f1,
                     String<int96> & f2, 
                     uint64_t cord,
                     float & score,
-                    unsigned window_threshold = windowThreshold
+                    ApxMapParm2_48 & parm = _apx_parm2_48
                     )
 {
     uint64_t genomeId = get_cord_id(cord);
@@ -788,30 +850,30 @@ uint64_t nextWindow(String<int96> & f1,
     uint64_t new_cord = 0;
     unsigned min = ~0;
     
-    if (y_pre + sup * 2 > length(f1) || x_pre + sup * 2> length(f2))
+    if (y_pre + parm.sup * 2 > length(f1) || x_pre + parm.sup * 2> length(f2))
         return 0;
     else 
-        y = y_pre + med;
+        y = y_pre + parm.med;
     
-    for (uint64_t x = x_pre + inf; x < x_pre + sup; x += 1) 
+    for (uint64_t x = x_pre + parm.inf; x < x_pre + parm.sup; x += 1) 
     {
         unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
-        std::cout << "nw1 " << tmp << " " << x * 16 << "\n";
+        //std::cout << "nw1 " << tmp << " " << x * 16 << "\n";
         if (tmp < min)
         {
             min = tmp;
             x_min = x;
         }
     }
-    if (min > window_threshold)
+    if (min > parm.windowThreshold)
     {
        return 0;
     }
     else 
     {
-        if ( x_min - x_pre > med)
+        if ( x_min - x_pre > parm.med)
         {
-            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_pre + med)),  _DefaultCord.cell2Cord(x_pre + med - x_min + y), strand);
+            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_pre + parm.med)),  _DefaultCord.cell2Cord(x_pre + parm.med - x_min + y), strand);
         }
         else
         {
@@ -839,7 +901,6 @@ void checkPath(StringSet<String<Dna5> > & cords, StringSet<String<Dna5> > const 
         it++;
     }
 }
-
 /*=============================================
 =            Mapping and anchoring            =
 =============================================*/
@@ -1244,7 +1305,7 @@ void _printHit(String<uint64_t>  & hit)
         {
             appendValue(cord, _DefaultCord.hit2Cord_dstr(*(it)));
             ++it;
-            std::cout << "nc1 " << get_cord_y(back(cord)) << "\n";
+            //std::cout << "nc1 " << get_cord_y(back(cord)) << "\n";
             return true;
         }
         ++it;
@@ -1280,7 +1341,9 @@ bool extendWindow(String<short> &f1,
                   String<short> & f2, 
                   String<uint64_t> & cords, 
                   float & score, 
-                  uint64_t & strand)
+                  uint64_t & strand,
+                  ApxMapParm1_32 & parm = _apx_parm1_32
+                  )
 {
     uint64_t pre_cord_y = (_DefaultHit.isBlockEnd(cords[length(cords) - 2]))?
     0:get_cord_y(cords[length(cords) - 2]) + window_delta;
@@ -1288,7 +1351,7 @@ bool extendWindow(String<short> &f1,
     uint64_t new_cord;
     while (pre_cord_y<= get_cord_y(back(cords)))
     {
-        new_cord = previousWindow(f1, f2, back(cords), score, windowThreshold);
+        new_cord = previousWindow(f1, f2, back(cords), score, parm);
         if (new_cord && get_cord_y(new_cord) > pre_cord_y)
         {
             appendValue(cords, new_cord);
@@ -1304,7 +1367,7 @@ bool extendWindow(String<short> &f1,
     }
     while (true)
     {
-        new_cord = nextWindow(f1, f2, back(cords), score, windowThreshold);
+        new_cord = nextWindow(f1, f2, back(cords), score, parm);
         if (new_cord)
         {
             appendValue(cords, new_cord);
@@ -1320,7 +1383,9 @@ bool extendWindow(String<int96> & f1,
                   String<int96> & f2, 
                   String<uint64_t> & cords, 
                   float & score, 
-                   uint64_t & strand)
+                  uint64_t & strand,
+                  ApxMapParm2_48 & parm
+                 )
 {
     uint64_t pre_cord_y = (_DefaultHit.isBlockEnd(cords[length(cords) - 2]))?
     0:get_cord_y(cords[length(cords) - 2]) + window_delta;
@@ -1329,7 +1394,7 @@ bool extendWindow(String<int96> & f1,
     std::cout << "ew1 " << pre_cord_y << " " << get_cord_y(back(cords)) << "\n";
     while (pre_cord_y < get_cord_y(back(cords)))
     {
-        new_cord = previousWindow(f1, f2, back(cords), score, windowThreshold);
+        new_cord = previousWindow(f1, f2, back(cords), score, parm);
 //        std::cout << "ew2 " << get_cord_y (new_cord) << " " << score << "\n";
         if (new_cord && get_cord_y(new_cord) > pre_cord_y)
         {
@@ -1347,7 +1412,7 @@ bool extendWindow(String<int96> & f1,
     while (true)
     {
         //std::cout << "ew2 " << get_cord_y (new_cord) << " " << score << "\n";
-        new_cord = nextWindow(f1, f2, back(cords), score, windowThreshold);
+        new_cord = nextWindow(f1, f2, back(cords), score, parm);
         if (new_cord)
         {
             appendValue(cords, new_cord);
@@ -1363,15 +1428,15 @@ bool extendWindow(FeaturesDynamic & f1,
                   FeaturesDynamic & f2, 
                   String<uint64_t> & cords, 
                   float & score, 
-                   uint64_t & strand)
+                  uint64_t & strand)
 {
     if (f1.isFs1_32())
     {
-        extendWindow (f1.fs1_32, f2.fs1_32, cords, score, strand);
+        extendWindow (f1.fs1_32, f2.fs1_32, cords, score, strand, _apx_parm1_32);
     }
     else if (f1.isFs2_48())
     {
-        extendWindow (f1.fs2_48, f2.fs2_48, cords, score, strand);
+        extendWindow (f1.fs2_48, f2.fs2_48, cords, score, strand, _apx_parm2_48);
     }
 }
 bool isOverlap (uint64_t cord1, uint64_t cord2, 
@@ -1424,8 +1489,8 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
  * then call nextWindow for cord1 and previousWindow for cord2 along each own strand until it can't be extended any more.
  * 
  */         
- int extendPatch(StringSet<String<FeatureType> > & f1, 
-                 StringSet<String<FeatureType> > & f2, 
+ int extendPatch(StringSet<String<int96> > & f1, 
+                 StringSet<String<int96> > & f2, 
                  String<uint64_t> & cords,
                  int kk,
                  uint64_t cord1,
@@ -1461,7 +1526,7 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
     std::cout << "dg1_ " << get_cord_y(cord) << " " << get_cord_y(scord) << "\n";
     while (isPreGap(cord, scord, revscomp_const, gap_size))
     {
-        cord = nextWindow (f1[strand1], f2[genomeId1], cord, score, window_threshold);
+        cord = nextWindow (f1[strand1], f2[genomeId1], cord, score, _apx_parm2_48);
         std::cout << "dg1_ " << get_cord_y(cord) << "\n";
         if (cord)
         {
@@ -1484,7 +1549,7 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
     cord = scord;
     while (isSucGap(cord, nw, revscomp_const, gap_size))
     {
-        cord = previousWindow(f1[strand2], f2[genomeId2], cord, score, window_threshold);
+        cord = previousWindow(f1[strand2], f2[genomeId2], cord, score, _apx_parm2_48);
         if (cord)
         {
             //TODO do another round previousWindow if cord = 0.

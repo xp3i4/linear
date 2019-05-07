@@ -5,33 +5,10 @@ using namespace seqan;
 
 //NOTE:Length of read < 1M;
 typedef std::array<int, 3> int96;
-//typedef short FeatureType;
-//typedef int64_t FeatureType;
 typedef int96 FeatureType;
 typedef Iterator <String <Dna5> >::Type TIter5;
 
-extern const float band_width;
-extern const unsigned cmask;
-extern const unsigned cell_size;
-extern const unsigned cell_num;
 extern const unsigned window_size; //16*12
-extern const unsigned window_delta;
-extern const unsigned sup;
-extern const unsigned med;
-extern const unsigned inf;
-extern const unsigned initx; 
-extern const unsigned inity;
-extern const unsigned scriptStep;
-extern const unsigned scriptBit;
-extern const unsigned scriptWindow; //script_length = 2^scriptWindow
-extern const unsigned scriptWindow2;
-extern const unsigned scriptWindow3;
-extern const int scriptCount[5];
-extern const int scriptMask;
-extern const int scriptMask2;
-extern const int scriptMask3;
-extern const uint64_t hmask;
-extern const unsigned windowThreshold; // 36;
 
 extern int const typeFeatures1_32;
 extern int const typeFeatures2_48;
