@@ -7,4 +7,9 @@ uint64_t mnMapReadList( LIndex  & index,
                         Anchors & anchors,
                         MapParm & mapParm,
                         String<uint64_t> & hit);
+uint64_t mnMapReadList( IndexDynamic  & index,
+                        String<Dna5> & read,
+                        Anchors & anchors,
+                        MapParm & mapParm,
+                        String<uint64_t> & hit);
 #endif

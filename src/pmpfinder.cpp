@@ -6,7 +6,10 @@
 #include "chain_map.h"
 
 using namespace seqan;
+using std::cout;
 
+int64_t const LLMAX = (1LL << 63) - 1;
+int64_t const LLMIN = -LLMAX;
 
 int const typeFeatures1_32 = 1;
 int const typeFeatures2_48 = 2;
@@ -227,6 +230,11 @@ void print_cord(uint64_t cord, CharString header)
 uint64_t create_cord (uint64_t id, uint64_t cordx, uint64_t cordy, uint64_t strand)
 {
     return _DefaultCord.createCord(create_id_x (id, cordx), cordy, strand);
+}
+int64_t atomic_inc_cord_y (int64_t & cord) 
+{
+    int64_t tmp = atomicInc(cord);
+    return tmp;
 }
 
 void cmpRevCord(uint64_t val1, 
@@ -1121,7 +1129,7 @@ void _printHit(unsigned j, unsigned id1, unsigned id2, String<uint64_t> & hit, u
     }
 }
 
-void _printHit(String<uint64_t>  & hit)
+void _printHit(String<uint64_t>  & hit, CharString header)
 {
     for (unsigned k = 0; k < length(hit); k++)
     {
@@ -1132,10 +1140,62 @@ void _printHit(String<uint64_t>  & hit)
         if (_DefaultHit.isBlockEnd(hit[k]))
         {
             std::cout << "[P]::_printHit() end\n";
+
         }
     }
 }
 
+unsigned getDIndexMatchAll (DIndex & index,
+                              String<Dna5> & read,
+                              String<uint64_t> & set,
+                              MapParm & mapParm)
+{
+    int dt = 0;
+    LShape shape(index.getShape());
+    uint64_t xpre = 0;
+    std::cout << shape.span << shape.weight << "\n";
+    hashInit(shape, begin(read));
+    for (unsigned k = 0; k < length(read); k++)
+    {
+        hashNexth(shape, begin(read) + k);
+        uint64_t pre = ~0;
+        if (++dt == mapParm.alpha)
+        {
+            dt = 0;
+            if(hashNextX(shape, begin(read) + k) ^ xpre)
+            {
+                int64_t str_ = queryHsStr(index, shape.XValue);
+                int64_t end_ = queryHsEnd(index, shape.XValue);
+                if (end_ - str_ > mapParm.delta || end_ - str_ == 0)
+                {
+                    continue; 
+                }
+                for (int64_t i = str_; i < end_; i++)
+                {
+                    int64_t val = index.getHs()[i];
+                    int64_t cordy = k;
+                    if (get_cord_strand(val) ^ shape.strand)
+                    {
+                        cordy = length(read) - 1 - cordy;
+                        //!TODO::when val < cordy:  map reads to itself
+                        //val - cody out of bounds.
+                        val |= _DefaultHitBase.flag2;
+                    }
+                    //std::cout << "gimad " << get_cord_strand(val) << " " << get_cord_x(val) << " " << cordy << " " << get_cord_x(val) - cordy << "\n";
+                    //NOTE: make sure data structure of anchor is same to cord
+                    if (get_cord_x(val) > cordy)
+                    {
+                        val = shift_cord (val, -cordy, cordy - get_cord_y(val));
+                        appendValue(set, val);
+                    }
+                }
+                xpre = shape.XValue;
+            }
+        }
+    }
+    //std::cout << "gimad2 " << length(set) << "\n";
+    return 0;    
+}
 /**
  * Search double strand pattern in the index and
  * append to anchors
@@ -1289,26 +1349,35 @@ void _printHit(String<uint64_t>  & hit)
     return maxAnchor;
 }
 
- uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapParm & mapParm, String<uint64_t> & hit)
+//<< debug util
+void printAnchors(Anchors & anchors, CharString header)
 {
+    for (int i = 0; i < anchors.length(); i++)
+    {
+        std::cout << header << " " << get_cord_y(anchors[i]) << " " << get_cord_x(anchors[i]) << "\n";
+    }
+}
+
+uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapParm & mapParm, String<uint64_t> & hit)
+{
+    float thd_anchor_err = 0.1;
     uint64_t ak;
     uint64_t c_b=mapParm.shapeLen, sb=0, sc = 0;
     anchors[0] = anchors[1];
     ak=anchors[0];
     anchors.sort(anchors.begin(), anchors.end());
+    //_printHit(anchors.set, "sa");
     uint64_t mask = (1ULL << 20) - 1;
-    int64_t list[200000]={0};
-    unsigned lcount = 0;
+    String<int64_t> list;
     //printf("[debug]::getAnchorMatchList %d\n", anchors.length());
     for (unsigned k = 1; k < anchors.length(); k++)
     {
-//TODO 0.1 should be replaced by a cutoff in marpparm
-        if (anchors[k] - ak > (((unsigned)(0.1 * readLen)) << 20))//mapParm.anchorDeltaThr)
+        if (get_cord_x(anchors[k] - ak) > thd_anchor_err * readLen)
         {
             if (c_b > mapParm.anchorLenThr * readLen)
             {
                 anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
-                list[lcount++] = (c_b << 40) + (sb << 20) + k;
+                appendValue(list, (c_b << 40) + (sb << 20) + k);
             }
             sb = k;
             ak = anchors[k];
@@ -1335,10 +1404,11 @@ void _printHit(String<uint64_t>  & hit)
         }
     //>>debug
     */
-    if (list[0])
+    if (!empty(list))
     {
-        std::sort (list, list + lcount, std::greater<uint64_t>());
-        for (unsigned k = 0; k < mapParm.listN; k++)
+        std::sort (begin(list), end(list), std::greater<uint64_t>());
+        int tmp = length(list) > mapParm.listN ? mapParm.listN : length(list);
+        for (int k = 0; k < tmp; k++)
         {
           if (((list[0] / 10) < list[k])  && list[k])
           {
@@ -1354,6 +1424,78 @@ void _printHit(String<uint64_t>  & hit)
               break;
         }
         //std::cout << "gaml2 " << anchors.length() << " " << length(hit) << "\n";
+        //_printHit(hit, "gaml2");
+        return (list[0] >> 40);   
+    }
+    else
+    {
+       return 0;
+    }
+}
+
+uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapParm & mapParm, String<uint64_t> & hit)
+{
+    //std::cout << "gdaml\n";
+    float thd_anchor_err = 0.2;
+    int thd_sig = 10;
+    uint64_t ak;
+    uint64_t c_b=mapParm.shapeLen, sb=0, sc = 0;
+    anchors[0] = anchors[1];
+    ak=anchors[0];
+    anchors.sort(anchors.begin(), anchors.end());
+    //_printHit(anchors.set, "sa");
+    uint64_t mask = (1ULL << 20) - 1;
+    String<int64_t> list;
+    //printf("[debug]::getAnchorMatchList %d\n", anchors.length());
+    for (unsigned k = 1; k < anchors.length(); k++)
+    {
+        int64_t d_anchor = std::abs(int64_t(get_cord_y(anchors[k]) - get_cord_y(ak)));
+        //cout << "gdimal4x "  << get_cord_strand(anchors[k]) << " " << get_cord_y(ak) << " " <<  get_cord_y(anchors[k]) << " " << get_cord_x(anchors[k]) + get_cord_y(anchors[k]) << " "  << get_cord_x(anchors[k]) << "\n";
+        if (get_cord_x(anchors[k] - ak) > 
+            thd_anchor_err * d_anchor)
+        {
+         //   cout << "gdimal4 xxxxxxxxxxxx \n";
+            if (c_b > mapParm.anchorLenThr * readLen)
+            {
+                anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
+                appendValue(list, (c_b << 40) + (sb << 20) + k);
+            }
+            sb = k;
+            ak = anchors[k];
+            c_b = mapParm.shapeLen;
+        }
+        else 
+        {
+            if(anchors.deltaPos2(k, k - 1) >  mapParm.shapeLen)
+                c_b += mapParm.shapeLen;
+            else
+                c_b += anchors.deltaPos2(k, k - 1); 
+            ak = anchors[(sb + k) >> 1]; //update the ak to the median 
+        }
+    }
+    if (!empty(list))
+    {
+        std::sort (begin(list), end(list), std::greater<uint64_t>());
+        int tmp = length(list) > mapParm.listN ? mapParm.listN : length(list);
+        for (int k = 0; k < tmp; k++)
+        {
+            if ((list[0] / 10) < list[k] && list[k])
+            {
+                sb = ((list[k] >> 20) & mask);
+                sc = list[k] & mask;
+                for (unsigned n = sb; n < sc; n++)
+                {
+                    appendValue(hit, anchors[n]);
+                }   
+                _DefaultHit.setBlockEnd(back(hit));
+            }
+            else
+            {
+                break;
+            }
+        }
+        //std::cout << "gaml2 " << anchors.length() << " " << length(hit) << "\n";
+        //_printHit(hit, "gaml2");
         return (list[0] >> 40);   
     }
     else
@@ -1396,6 +1538,32 @@ void _printHit(String<uint64_t>  & hit)
 }
 /*=====  End of Mapping and anchoring  ======*/
 
+uint64_t mnMapReadList( IndexDynamic & index,
+                        String<Dna5> & read,
+                        Anchors & anchors,
+                        MapParm & mapParm,
+                        String<uint64_t> & hit)
+{
+    if (index.isHIndex())
+    {
+        double t1 = sysTime();
+        getIndexMatchAll(index.hindex, read, anchors.set, mapParm);    
+        t1 = sysTime() - t1;
+        double t2 = sysTime();
+        //printf("done getinxmatchall\n");
+        getAnchorMatchList(anchors, length(read), mapParm, hit);
+        //std::cout << "mnmrl " << (sysTime() - t2) / t1 << "\n";
+    }   
+    else if (index.isDIndex())
+    {
+        double t1 = sysTime();
+        getDIndexMatchAll(index.dindex, read, anchors.set, mapParm);    
+        t1 = sysTime() - t1;
+        double t2 = sysTime();
+        getDAnchorMatchList(anchors, length(read), mapParm, hit);
+        //std::cout << "mnmrl " << (sysTime() - t2) / t1 << "\n";
+    }
+}
 /*
  * this is initCord for double strand index(with flag in cord value)
  */
