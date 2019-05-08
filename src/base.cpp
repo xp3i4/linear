@@ -20,8 +20,11 @@ Options::Options():
         Sensitive(false),
         sensitivity(1),
         thread(16),
-        index_t(1)
-        {}
+        index_t(1),
+        feature_t(2)
+        {
+           date = __DATE__; 
+        }
 
 std::string Options::getGenomePath() const {return gPath;};
 std::string Options::getReadPath() const {return rPath;};
@@ -172,11 +175,11 @@ int PMRecord::loadRecord(Options & options)
                 std::cerr << "                                                            \r";
                 if (seqCount > 2)
                 {
-                    std::cerr << ">>Read genomes" << dotstatus[(k - 1)/10 %3] << "            " << seqCount << "/" << std::setprecision(2) << std::fixed << showpercent << "%\r";
+                    std::cerr << "->Read genomes" << dotstatus[(k - 1)/10 %3] << "            " << seqCount << "/" << std::setprecision(2) << std::fixed << showpercent << "%\r";
                 }
                 else
                 {
-                    std::cerr << ">>Read genomes" << dotstatus[(k - 1)/10 %3] << "\r";
+                    std::cerr << "->Read genomes" << dotstatus[(k - 1)/10 %3] << "\r";
                 }
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 k++;

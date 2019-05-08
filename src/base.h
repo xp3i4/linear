@@ -24,6 +24,7 @@ struct Options{
     unsigned    sensitivity;
     unsigned    thread;
     int         index_t;
+    int         feature_t;
 //map tuning
     unsigned    listN;
     unsigned    listN2;
@@ -32,6 +33,10 @@ struct Options{
     float       cordThr;
     float       senThr;
     int         p1;
+
+//global options status
+    std::string versions;
+    std::string date; 
 
     Options();
     std::string getGenomePath() const; 

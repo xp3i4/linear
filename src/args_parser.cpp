@@ -8,8 +8,8 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     seqan::ArgumentParser parser("Linear");
     // Set short description, version, and date.
     setShortDescription(parser, "Alignment of SMRT sequencing read");
-    setVersion(parser, "1.8.2");
-    setDate(parser, "May 2018");
+    setVersion(parser, options.versions);
+    setDate(parser, options.date);
 
     // Define usage line and long description.
     addUsageLine(parser,
@@ -40,7 +40,10 @@ parseCommandLine(Options & options, int argc, char const ** argv)
         "idx", "index_type", "Default -idx 1",
             seqan::ArgParseArgument::INTEGER, "INT"
         ));
-    
+    addOption(parser, seqan::ArgParseOption(
+        "f", "feature_type", "{1,2}. Default -f 2 (2-mer, 48bases)",
+            seqan::ArgParseArgument::INTEGER, "INT"
+        )); 
 // mapping parameters for tunning 
     addOption(parser, seqan::ArgParseOption(
         "l1", "listn1", "mapping::listn1",
@@ -85,6 +88,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     getOptionValue(options.sensitivity, parser, "sensitivity");
     getOptionValue(options.thread, parser, "thread");
     getOptionValue(options.index_t, parser, "index_type");
+    getOptionValue(options.feature_t, parser, "feature_type");
     
     getOptionValue(options.listN, parser, "listn1");
     getOptionValue(options.listN2, parser, "listn2");

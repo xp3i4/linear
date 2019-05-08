@@ -29,6 +29,18 @@ void FeaturesDynamic::setFs2_48()
 {
     fs_type = typeFeatures2_48;
 }
+void FeaturesDynamic::setFeatureType(int type)
+{
+    if (type == typeFeatures1_32)
+    {
+        setFs1_32();
+    }
+    else if (type == typeFeatures2_48)
+    {
+        setFs2_48();
+    }
+}
+
 FeaturesDynamic::FeaturesDynamic(int type)
 {
     if (type == typeFeatures1_32)
@@ -681,30 +693,33 @@ int createFeatures(TIter5 it_str, TIter5 it_end, FeaturesDynamic & f, unsigned t
     }
 }
 int createFeatures(StringSet<String<Dna5> > & seq, 
-                   StringSet<FeaturesDynamic> & f)
+                   StringSet<FeaturesDynamic> & f,
+                   int feature_type
+                   )
 {
     resize(f, length(seq));
     for (unsigned k = 0; k < length(seq); k++)
     {
+        f[k].setFeatureType(feature_type);
         createFeatures(begin(seq[k]), end(seq[k]), f[k]);
     }
 }
 int createFeatures(StringSet<String<Dna5> > & seq, 
                    StringSet<FeaturesDynamic> & f, 
+                   int feature_type,
                    unsigned threads)
 {
     resize(f, length(seq));
     for (unsigned k = 0; k < length(seq); k++)
     {
+        f[k].setFeatureType(feature_type);
         createFeatures(begin(seq[k]), end(seq[k]), f[k], threads);
     }
 }
 
 /*----------  Dynamic programming of extending path (tiles)  ----------*/
 
-/*----------  previouse & next window(tile)  ----------*/
 //Template function is not used to speed up the compilation 
-//So there code for short are copied to int96.
 uint64_t previousWindow1_32(String<short> & f1, 
                             String<short> & f2, 
                             uint64_t cord,
@@ -796,7 +811,7 @@ uint64_t previousWindow2_48(String<int96> & f1,
             new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         } 
     }
-    //std::cout << "pw2 " << get_cord_y(new_cord) << " " << min << "\n";
+    std::cout << "pw2 " << get_cord_y(new_cord) << " " << min << "\n";
     score += min;
     return new_cord;
 }
@@ -849,7 +864,7 @@ uint64_t nextWindow1_32(String<short> & f1,
     score += min;
     return new_cord;
 }
-uint64_t nextWindow2_48(String<int96> & f1, 
+uint64_t nextWindow2_48(String<int96> & f1, //read  
                         String<int96> & f2, 
                         uint64_t cord,
                         float & score,
@@ -895,7 +910,7 @@ uint64_t nextWindow2_48(String<int96> & f1,
             new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         }
     }
-    //std::cout << "nw2 " << get_cord_y(new_cord) << " " << min << "\n";
+    std::cout << "nw2 " << get_cord_y(new_cord) << " " << min << "\n";
     score += min;
     return new_cord;
 }
@@ -926,104 +941,6 @@ uint64_t nextWindow(FeaturesDynamic & f1,
     else if (f1.isFs2_48())
     {
         return nextWindow2_48(f1.fs2_48, f2.fs2_48, cord, score, _apx_parm2_48);
-    }
-}
- bool initCord(typename Iterator<String<uint64_t> >::Type & it, 
-                     typename Iterator<String<uint64_t> >::Type & hitEnd,
-                     unsigned & preCordStart,
-                     String<uint64_t> & cord
-                    )
-{
-        
-    if (empty(cord))
-    {
-        appendValue(cord, 0);
-        _DefaultHit.setBlockEnd(cord[0]);
-    }
-
-    if (it == hitEnd)
-        return false;
-    else
-    {
-        //hit2Cord_dstr keeps the strand flag in cord value
-        appendValue(cord, _DefaultCord.hit2Cord_dstr(*(it)));
-        ++it;
-        preCordStart = length(cord) - 1;   
-    }
-    return true;
-}
-
-/*
- * endCord for double strand index
- */
- bool endCord( String<uint64_t> & cord,
-                     unsigned & preCordStart,
-                     float const & cordThr,
-                     float & score)
-{
-    _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);   
-    if (length(cord) - preCordStart > cordThr)// > std::max(score/25, cordThr))
-    {
-        _DefaultHit.setBlockEnd(back(cord));
-    }
-    else
-    {
-        erase(cord, preCordStart, length(cord));
-    }
-    (void)score;
-    return true;
-}
-
-/*
- * nextCord for double strand sequence
- */
- bool nextCord(typename Iterator<String<uint64_t> >::Type & it, 
-               typename Iterator<String<uint64_t> >::Type const & hitEnd, 
-               unsigned & preCordStart,
-               String<uint64_t> & cord,
-               float const & cordThr,
-               float & score
-               )
-{
-//TODO: add maxlen of anchor to the first node in cord;
-    if (it >= hitEnd)
-        return false;
-    
-    while(!_DefaultHit.isBlockEnd(*(it - 1)))
-    {
-        if(get_cord_y(*(it))>get_cord_y(back(cord)) +  window_delta) 
-        {
-            appendValue(cord, _DefaultCord.hit2Cord_dstr(*(it)));
-            ++it;
-            //std::cout << "nc1 " << get_cord_y(back(cord)) << "\n";
-            return true;
-        }
-        ++it;
-    }
-    _DefaultHit.setBlockEnd(back(cord));
-    
-    if(it < hitEnd)
-    {
-        if (length(cord) - preCordStart < std::max(score/25,  cordThr) )//|| std::abs(b1 - b2) < 10)
-        {
-            erase(cord, preCordStart, length(cord));
-            //std::cerr << "[]::nextCord erase cord\n";
-        }
-        else
-        {
-            _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);
-    //printf("[debug]::nextcord new block %f %d %f\n", (float)score/(length(cord) - preCordStart), length(cord) - preCordStart, cordThr);
-        }
-        preCordStart = length(cord);
-        appendValue(cord, _DefaultCord.hit2Cord_dstr(*(it)));
-        score = 0;
-        ++it;
-        return true;
-    }
-    else
-    {
-        score = 0;
-        return false;
     }
 }
 
@@ -1070,6 +987,152 @@ bool extendWindow(FeaturesDynamic & f1,
     }
     return true;    
 }
+
+bool initCord(typename Iterator<String<uint64_t> >::Type & it, 
+              typename Iterator<String<uint64_t> >::Type & hitEnd,
+              unsigned & preCordStart,
+              String<uint64_t> & cord
+             )
+{
+        
+    if (empty(cord))
+    {
+        appendValue(cord, 0);
+        _DefaultHit.setBlockEnd(cord[0]);
+    }
+
+    if (it == hitEnd)
+        return false;
+    else
+    {
+        //hit2Cord_dstr keeps the strand flag in cord value
+        appendValue(cord, _DefaultCord.hit2Cord_dstr(*(it)));
+        ++it;
+        preCordStart = length(cord) - 1;   
+    }
+    return true;
+}
+
+/*
+ * endCord for double strand index
+ */
+ bool endCord( String<uint64_t> & cord,
+                     unsigned & preCordStart,
+                     float const & cordThr,
+                     float & score)
+{
+    _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);   
+    if (length(cord) - preCordStart > cordThr)// > std::max(score/25, cordThr))
+    {
+        _DefaultHit.setBlockEnd(back(cord));
+    }
+    else
+    {
+        erase(cord, preCordStart, length(cord));
+    }
+    (void)score;
+    return true;
+}
+
+/*
+ * nextCord for double strand sequence
+ */
+ bool nextCord(typename Iterator<String<uint64_t> >::Type & it, 
+               typename Iterator<String<uint64_t> >::Type const & hitEnd, 
+               StringSet<FeaturesDynamic> & f1, 
+               StringSet<FeaturesDynamic> & f2,
+               unsigned & preCordStart,
+               String<uint64_t> & cord,
+               float const & cordThr,
+               float & score
+               )
+{
+//TODO: add maxlen of anchor to the first node in cord;
+    if (it >= hitEnd)
+        return false;
+    unsigned distThd;
+    while(!_DefaultHit.isBlockEnd(*(it - 1)))
+    {
+
+        if(get_cord_y(*(it))>get_cord_y(back(cord)) +  window_delta) 
+        {
+            uint64_t new_cord = _DefaultCord.hit2Cord_dstr(*(it));
+            uint64_t strand = get_cord_strand(new_cord);
+            uint64_t genomeId = get_cord_id(new_cord);
+            
+            unsigned dist = _windowDist(f1[strand], f2[genomeId], 
+                        _DefaultCord.cord2Cell(get_cord_x(new_cord)),
+                        _DefaultCord.cord2Cell(get_cord_y(new_cord)));
+            if (f1[strand].isFs1_32()) 
+            {
+                distThd = _apx_parm1_32.windowThreshold;
+            }
+            else if (f1[strand].isFs2_48())
+            {
+                distThd = _apx_parm2_48.windowThreshold;
+            }
+            if(dist < distThd)
+            {
+                appendValue(cord, new_cord);
+                ++it;
+                return true;
+            }
+            dout << "nc1 " << get_cord_y(back(cord)) << dist << "\n";
+        }
+        ++it;
+    }
+    _DefaultHit.setBlockEnd(back(cord));
+    
+    if(it < hitEnd)
+    {
+        if (length(cord) - preCordStart < std::max(score/25,  cordThr) )//|| std::abs(b1 - b2) < 10)
+        {
+            erase(cord, preCordStart, length(cord));
+            //std::cerr << "[]::nextCord erase cord\n";
+        }
+        else
+        {
+            _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);
+    //printf("[debug]::nextcord new block %f %d %f\n", (float)score/(length(cord) - preCordStart), length(cord) - preCordStart, cordThr);
+        }
+        preCordStart = length(cord);
+        appendValue(cord, _DefaultCord.hit2Cord_dstr(*(it)));
+        score = 0;
+        ++it;
+        return true;
+    }
+    else
+    {
+        score = 0;
+        return false;
+    }
+}
+
+ bool path_dst(typename Iterator<String<uint64_t> >::Type hitBegin, 
+               typename Iterator<String<uint64_t> >::Type hitEnd, 
+               StringSet<FeaturesDynamic> & f1,
+               StringSet<FeaturesDynamic> & f2, 
+               String<uint64_t> & cords,
+               float const & cordLenThr
+               )
+{
+    typename Iterator<String<uint64_t> >::Type it = hitBegin;
+    unsigned preBlockPtr;
+    float score = 0;
+    if(initCord(it, hitEnd, preBlockPtr, cords))
+    {
+        do{
+            uint64_t strand = get_cord_strand(back(cords));
+            uint64_t genomeId = get_cord_id(back(cords));
+            extendWindow(f1[strand], f2[genomeId], cords, score, strand);
+        }
+        while (nextCord(it, hitEnd, f1, f2, preBlockPtr, cords, cordLenThr, score));
+        return endCord(cords, preBlockPtr, cordLenThr, score);   
+    }
+    //std::cout << "[]::path_dist::cord " 
+    return false;
+}
+
 /*=============================================
 =            Mapping and anchoring            =
 =============================================*/
@@ -1536,7 +1599,6 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
     //printf("done getinxmatchall\n");
     return getAnchorMatchList(anchors, length(read), mapParm, hit);
 }
-/*=====  End of Mapping and anchoring  ======*/
 
 uint64_t mnMapReadList( IndexDynamic & index,
                         String<Dna5> & read,
@@ -1564,11 +1626,10 @@ uint64_t mnMapReadList( IndexDynamic & index,
         //std::cout << "mnmrl " << (sysTime() - t2) / t1 << "\n";
     }
 }
-/*
- * this is initCord for double strand index(with flag in cord value)
- */
 
-
+/*===================================================
+=            Features extension for gaps            =
+=====================================================*/
 bool isOverlap (uint64_t cord1, uint64_t cord2, 
                 int revscomp_const, 
                 int overlap_size
@@ -1702,32 +1763,6 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
     return len;
 }
 
-/*
- * path for double strand 
- */
- bool path_dst(typename Iterator<String<uint64_t> >::Type hitBegin, 
-               typename Iterator<String<uint64_t> >::Type hitEnd, 
-               StringSet<FeaturesDynamic> & f1,
-               StringSet<FeaturesDynamic> & f2, 
-               String<uint64_t> & cords,
-               float const & cordLenThr
-               )
-{
-    typename Iterator<String<uint64_t> >::Type it = hitBegin;
-    unsigned preBlockPtr;
-    float score = 0;
-    if(initCord(it, hitEnd, preBlockPtr, cords))
-    {
-        do{
-            uint64_t strand = _DefaultCord.getCordStrand(back(cords));
-            extendWindow(f1[strand], f2[get_cord_id(back(cords))], cords, score, strand);
-        }
-        while (nextCord(it, hitEnd, preBlockPtr, cords, cordLenThr, score));
-        return endCord(cords, preBlockPtr, cordLenThr, score);   
-    }
-    //std::cout << "[]::path_dist::cord " 
-    return false;
-}
 
 //End all mapper module
 //============================================

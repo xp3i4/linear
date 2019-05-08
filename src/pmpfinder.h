@@ -22,6 +22,7 @@ struct FeaturesDynamic
   int isFs2_48();
   void setFs1_32();
   void setFs2_48();
+  void setFeatureType(int);
 
   FeaturesDynamic(int type = typeFeatures2_48);
 };
@@ -123,10 +124,13 @@ struct Hit
 };
 extern Hit _DefaultHit;
 
-int createFeatures(TIter5, TIter5, FeaturesDynamic & );
-int createFeatures(TIter5, TIter5, FeaturesDynamic &, unsigned);
-int createFeatures(StringSet<String<Dna5> > &, StringSet<FeaturesDynamic > &, unsigned);
-int createFeatures(StringSet<String<Dna5> > &, StringSet<FeaturesDynamic > &);
+int createFeatures(TIter5, TIter5, FeaturesDynamic & ); //serial
+int createFeatures(TIter5, TIter5, FeaturesDynamic &, unsigned); //parallel
+//@int feature_type, @unsigned threads
+int createFeatures(StringSet<String<Dna5> > &, 
+                   StringSet<FeaturesDynamic > &, int, unsigned); //parallel
+int createFeatures(StringSet<String<Dna5> > &, 
+                   StringSet<FeaturesDynamic > &, int); //serial
 void cmpRevCord(uint64_t, uint64_t, uint64_t &, uint64_t &, uint64_t);
 uint64_t get_cord_x (uint64_t);
 uint64_t get_cord_y (uint64_t); 

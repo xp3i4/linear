@@ -42,9 +42,17 @@ Mapper::Mapper(Options & options):
     {
         index_dynamic.setHIndex();
     }
-    else if (options.index_t == 0)
+    else if (options.index_t == 2)
     {
         index_dynamic.setDIndex();
+    }
+    if (options.feature_t == 1)
+    {
+        feature_type = typeFeatures1_32; 
+    }
+    else if (options.feature_t == 2)
+    {
+        feature_type = typeFeatures2_48;
     }
 }
 
@@ -54,6 +62,11 @@ int Mapper::createIndex(bool efficient)
     createIndexDynamic(genomes(), index_dynamic, _thread, efficient);
 //            createDIndex(genomes(), dIndex, thd_min_step, thd_max_step, _thread);
     return 0;
+}
+
+int Mapper::getFeatureType()
+{
+    return feature_type;
 }
 
 int print_align_sam_header_ (StringSet<CharString> & genomesId,
@@ -353,6 +366,8 @@ int64_t len = 0;
     resize(clipsTmp, ChunkSize);
     resize(bam_records_tmp, ChunkSize);
     resize(f1, 2);
+    f1[0].fs_type = f2[0].fs_type;
+    f1[1].fs_type = f2[0].fs_type;
     unsigned c = 0;
     
     String<uint64_t> g_hs;
@@ -383,7 +398,7 @@ int64_t len = 0;
                 mnMapReadList(index, reads[j], anchors, complexParm, crhit);
                 path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
             }   
-            //gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, p1, 192);
+            gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, p1, window_size);
             //align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c], p1);
         }   
         c += 1;
@@ -429,10 +444,10 @@ int printFeatures48(String<int96> & f, CharString header)
 int map(Mapper & mapper, int p1)
 {
     //printStatus();
-    StringSet<FeaturesDynamic> f2;
     mapper.createIndex(false); // true: destruct genomes string to reduce memory footprint
-    createFeatures(mapper.genomes(), f2, mapper.thread());
-
+    StringSet<FeaturesDynamic> f2;
+    createFeatures(mapper.genomes(), f2, mapper.getFeatureType(), mapper.thread());
+    std::cout << "mapf " << mapper.getFeatureType() << "\n";
     SeqFileIn rFile(toCString(mapper.readPath()));
     unsigned k = 1, j = 0;
     unsigned blockSize = 50000;
@@ -475,13 +490,14 @@ int map(Mapper & mapper, int p1)
 int main(int argc, char const ** argv)
 {
     double time = sysTime();
-    std::cerr << "[version]\n";
     (void)argc;
     Options options;
+    options.versions = "1.8.2";
+    std::cerr << "["<< options.versions
+              << "]\nEncapsulated: Mapping reads efficiently" << std::endl;
     seqan::ArgumentParser::ParseResult res = parseCommandLine(options, argc, argv);
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res == seqan::ArgumentParser::PARSE_ERROR;
-    std::cerr << "Encapsulated version: Mapping reads efficiently" << std::endl;
     Mapper mapper(options);
     omp_set_num_threads(mapper.thread());
     map(mapper, options.p1);
