@@ -102,7 +102,7 @@ CordBase::CordBase():
         cell_size(16),
         headFlag((1ULL<<63)),
         valueMask_dstr(valueMask | flag_strand),
-        bit_id (40)
+        bit_id (30)
 {}
 CordBase _DefaultCordBase;   
 Cord _DefaultCord;
@@ -228,6 +228,10 @@ uint64_t shift_cord(uint64_t const & val, int64_t x, int64_t y)
     return _DefaultCord.shift(val, x, y);
 }
 void set_cord_end (uint64_t & val) {_DefaultCord.setCordEnd(val);}
+void set_cord_id (uint64_t & val, uint64_t id)
+{
+    val -= ((get_cord_id(val) - id) << 50);
+}
 uint64_t create_id_x(uint64_t const id, uint64_t const x)
 {
     return (id << _DefaultCordBase.bit_id) + x;
@@ -323,6 +327,7 @@ struct ApxMapParm1_32 : ApxMapParm
     int scriptMask;
     int scriptMask2;
     unsigned windowThreshold;
+    unsigned abort_score;
     ApxMapParm1_32 ();
 };
 
@@ -334,7 +339,8 @@ ApxMapParm1_32::ApxMapParm1_32():
     scpt_len2(scpt_len << 1),
     scriptMask((1 << scpt_len) - 1),
     scriptMask2(scriptMask << scpt_len),
-    windowThreshold(36)
+    windowThreshold(36),
+    abort_score(1000)
 {}
 
 
@@ -343,6 +349,7 @@ struct ApxMapParm2_48 : ApxMapParm
     unsigned scpt_step;
     unsigned scpt_bit; 
     unsigned windowThreshold;
+    unsigned abort_score;
     ApxMapParm2_48();
 };
 
@@ -350,7 +357,8 @@ ApxMapParm2_48::ApxMapParm2_48():
     ApxMapParm(),
     scpt_step(16),
     scpt_bit(4),
-    windowThreshold(72)
+    windowThreshold(72),
+    abort_score(1000)
 {}
 
 ApxMapParm _apx_parm_base;
@@ -463,6 +471,7 @@ void createFeatures1_32(TIter5 const & itBegin, TIter5 const & itEnd, String<sho
 /* TG TC TA GT GG int1  \
    GC GA CT CG CC int2  -- int96 for 48 bases script; Each 2mer has 6 bits
    CA AT AG AC AA int3  /
+   features[i] for 48 bases. 
  */
 //TODO!!! for 2mer > 32 occurrences out of boundary
 
@@ -543,7 +552,7 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f)
     std::vector<int96> buffer(3, zero96); //buffer of 3 cells in one script
     resize (f, (it_end - it_str - window48) / scpt_step + 1); 
     setInt96(f[0], zero96);
-    //std::cout << "cf48 " << length(f) << "\n";
+    dout << "cf48" << length(f) << it_end - it_str << "\n";
     for (int i = 0; i < 3; i++) //init f[0]
     {
         for (int j = i << scpt_bit; j < (i << scpt_bit) + scpt_step; j++)
@@ -556,7 +565,7 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f)
     //std::cerr << " cf48 time " << sysTime() - t << "\n";
     int next = 1; //stream f[next]
     int ii = 0;
-    for (int i = scpt_step; i < it_end - it_str - window48 - 1; i += scpt_step) 
+    for (int i = scpt_step; i < it_end - it_str - scpt_step - 1; i += scpt_step) 
     {
         setInt96(f[next], f[next - 1]);
         decInt96(f[next], buffer[ii]);
@@ -580,7 +589,7 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f, unsigned t
     {
         return 0;
     }
-    resize (f, ((it_end - it_str -window) >> scpt_bit) + 1);
+    resize (f, ((it_end - it_str - window) >> scpt_bit) + 1);
     int64_t range = (it_end - it_str - window) / scpt_step + 1; //numer of windows 
     if (range < threads)
     {
@@ -644,11 +653,13 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f, unsigned t
 }
 
 /*----------  Script encoding wrapper  ----------*/
+//NOTE::!! need to check if it1 & it2 is out of boundary of features when calling
 unsigned _windowDist(Iterator<String<short> >::Type const & it1, 
                      Iterator<String<short> >::Type const & it2)
 {
     return _windowDist1_32(it1, it2);
 }
+//NOTE::!! need to check if it1 & it2 is out of boundary of features when calling
 unsigned _windowDist(Iterator<String<int96> >::Type const & it1, 
                      Iterator<String<int96> >::Type const & it2)
 {
@@ -656,17 +667,40 @@ unsigned _windowDist(Iterator<String<int96> >::Type const & it1,
 }
 //A wrapper that is(only) used in the gap.cpp
 //Do not call this function frequently since the condition branch will drain the performance.
+//NOTE::!! boundary of features has been checked
 unsigned _windowDist(FeaturesDynamic & f1,
                      FeaturesDynamic & f2,
                      uint64_t x1, uint64_t x2)
 {
+    //<<debug
+    if (length(f1.fs2_48) < x1 + 1 || length(f2.fs2_48) < x2 + 1)
+    {
+        dout << "wd1 " << length(f1.fs2_48) << x1 <<length(f2.fs2_48) << x2 << "\n";
+        //return 1000;
+    }
+    //>>debug
     if (f1.isFs1_32())
     {
-        return _windowDist (begin(f1.fs1_32) + x1, begin(f2.fs1_32) + x2);
+        if (x1 < length(f1.fs1_32) && x2 < length(f2.fs1_32))
+        {
+            return _windowDist (begin(f1.fs1_32) + x1, begin(f2.fs1_32) + x2);
+        }
+        else
+        {
+            return _apx_parm1_32.abort_score;
+        }
     }
     else if (f1.isFs2_48())
     {
-        return _windowDist (begin(f1.fs2_48) + x1, begin(f2.fs2_48) + x2);
+        if (x1 < length(f1.fs2_48) && x2 < length(f2.fs2_48))
+        {
+            return _windowDist (begin(f1.fs2_48) + x1, begin(f2.fs2_48) + x2);
+        }
+        else
+        {
+        dout << "wd2 " << length(f1.fs2_48) << x1 <<length(f2.fs2_48) << x2 << "\n";
+            return _apx_parm2_48.abort_score;
+        }
     }
 }
 
@@ -880,7 +914,7 @@ uint64_t nextWindow2_48(String<int96> & f1, //read
     uint64_t new_cord = 0;
     unsigned min = ~0;
     
-    if (y_pre + parm.sup * 2 > length(f1) || x_pre + parm.sup * 2> length(f2))
+    if (y_pre + parm.sup * 2 > length(f1) || x_pre + parm.sup * 2 > length(f2))
         return 0;
     else 
         y = y_pre + parm.med;
@@ -910,7 +944,7 @@ uint64_t nextWindow2_48(String<int96> & f1, //read
             new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         }
     }
-    std::cout << "nw2 " << get_cord_y(new_cord) << " " << min << "\n";
+    dout << "nw2 " << get_cord_y(new_cord) << get_cord_x(new_cord) << min << "\n";
     score += min;
     return new_cord;
 }
@@ -1059,10 +1093,11 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
             uint64_t new_cord = _DefaultCord.hit2Cord_dstr(*(it));
             uint64_t strand = get_cord_strand(new_cord);
             uint64_t genomeId = get_cord_id(new_cord);
-            
-            unsigned dist = _windowDist(f1[strand], f2[genomeId], 
-                        _DefaultCord.cord2Cell(get_cord_x(new_cord)),
-                        _DefaultCord.cord2Cell(get_cord_y(new_cord)));
+            unsigned dist = _windowDist(f1[strand],                
+                                        f2[genomeId], 
+                                        _DefaultCord.cord2Cell(get_cord_y(new_cord)),
+                                        _DefaultCord.cord2Cell(get_cord_x(new_cord)));
+            dout << "nc2 " << strand << genomeId << get_cord_y(new_cord) << dist << "\n";
             if (f1[strand].isFs1_32()) 
             {
                 distThd = _apx_parm1_32.windowThreshold;
@@ -1075,9 +1110,12 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
             {
                 appendValue(cord, new_cord);
                 ++it;
+
+            dout << "nc11 " << get_cord_y(back(cord)) << dist << "\n";
                 return true;
             }
-            dout << "nc1 " << get_cord_y(back(cord)) << dist << "\n";
+            else
+            dout << "nc12 " << get_cord_y(back(cord)) << dist << "\n";
         }
         ++it;
     }
