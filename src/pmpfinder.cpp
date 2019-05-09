@@ -577,7 +577,7 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f)
     std::vector<int96> buffer(3, zero96); //buffer of 3 cells in one script
     resize (f, (it_end - it_str - window48) / scpt_step + 1); 
     setInt96(f[0], zero96);
-    dout << "cf48" << length(f) << it_end - it_str << "\n";
+    //dout << "cf48" << length(f) << it_end - it_str << "\n";
     for (int i = 0; i < 3; i++) //init f[0]
     {
         for (int j = i << scpt_bit; j < (i << scpt_bit) + scpt_step; j++)
@@ -590,7 +590,7 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f)
     //std::cerr << " cf48 time " << sysTime() - t << "\n";
     int next = 1; //stream f[next]
     int ii = 0;
-    for (int i = scpt_step; i < it_end - it_str - scpt_step - 1; i += scpt_step) 
+    for (int i = scpt_step; i < it_end - it_str - window48 - 1; i += scpt_step) 
     {
         setInt96(f[next], f[next - 1]);
         decInt96(f[next], buffer[ii]);
@@ -698,11 +698,13 @@ unsigned _windowDist(FeaturesDynamic & f1,
                      uint64_t x1, uint64_t x2)
 {
     //<<debug
+    /*
     if (length(f1.fs2_48) < x1 + 1 || length(f2.fs2_48) < x2 + 1)
     {
         dout << "wd1 " << length(f1.fs2_48) << x1 <<length(f2.fs2_48) << x2 << "\n";
         //return 1000;
     }
+    */
     //>>debug
     if (f1.isFs1_32())
     {
@@ -870,7 +872,7 @@ uint64_t previousWindow2_48(String<int96> & f1,
             new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         } 
     }
-    std::cout << "pw2 " << get_cord_y(new_cord) << " " << min << "\n";
+    //std::cout << "pw2 " << get_cord_y(new_cord) << " " << min << "\n";
     score += min;
     return new_cord;
 }
@@ -969,7 +971,7 @@ uint64_t nextWindow2_48(String<int96> & f1, //read
             new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         }
     }
-    dout << "nw2 " << get_cord_y(new_cord) << get_cord_x(new_cord) << min << "\n";
+    //dout << "nw2 " << get_cord_y(new_cord) << get_cord_x(new_cord) << min << "\n";
     score += min;
     return new_cord;
 }
@@ -1122,7 +1124,7 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
                                         f2[genomeId], 
                                         _DefaultCord.cord2Cell(get_cord_y(new_cord)),
                                         _DefaultCord.cord2Cell(get_cord_x(new_cord)));
-            dout << "nc2 " << strand << genomeId << get_cord_y(new_cord) << dist << "\n";
+            //dout << "nc2 " << strand << genomeId << get_cord_y(new_cord) << dist << "\n";
             if (f1[strand].isFs1_32()) 
             {
                 distThd = _apx_parm1_32.windowThreshold;
@@ -1136,11 +1138,11 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
                 appendValue(cord, new_cord);
                 ++it;
 
-            dout << "nc11 " << get_cord_y(back(cord)) << dist << "\n";
+//            dout << "nc11 " << get_cord_y(back(cord)) << dist << "\n";
                 return true;
             }
-            else
-            dout << "nc12 " << get_cord_y(back(cord)) << dist << "\n";
+ //           else
+//            dout << "nc12 " << get_cord_y(back(cord)) << dist << "\n";
         }
         ++it;
     }

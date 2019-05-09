@@ -16,7 +16,7 @@ const uint64_t base_llt_max_ = ~0;
 Options::Options():
         rPath(""),
         gPath(""),
-        oPath("mapper_result.txt"),
+        oPath(""),
         Sensitive(false),
         sensitivity(1),
         thread(16),

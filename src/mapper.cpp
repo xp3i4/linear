@@ -179,7 +179,9 @@ void Mapper::printCordsRaw()
 void print_cords_txt(Mapper & mapper)
 {
     std::cerr << ">Write results to disk        \r";
+    std::string file_path = mapper.getOutputPrefix() + ".apf";
     double time = sysTime();
+    mapper.getOf().open(toCString(file_path));
     unsigned cordCount = 0;
     uint64_t readCordEnd;
     uint64_t seqsCordEnd;
@@ -398,7 +400,7 @@ int64_t len = 0;
                 mnMapReadList(index, reads[j], anchors, complexParm, crhit);
                 path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
             }   
-            gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, p1, window_size);
+            //gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, p1, window_size);
             //align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c], p1);
         }   
         c += 1;
@@ -502,8 +504,7 @@ int main(int argc, char const ** argv)
     omp_set_num_threads(mapper.thread());
     map(mapper, options.p1);
 
-    //mapper.print_vcf();
-    std::cerr << "  Result Files: \033[1;31m" << options.oPath << "\033[0m" << std::endl;
+    std::cerr << "  Result Files: \033[1;31m" << (mapper.getOutputPrefix() + ".apf")<< "\033[0m" << std::endl;
     std::cerr << "                \033[1;31m" << (mapper.getOutputPrefix() + ".gvf") << "\033[0m" << std::endl;
     std::cerr << "                \033[1;31m" << (mapper.getOutputPrefix() + ".sam") << "\033[0m" << std::endl;
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;

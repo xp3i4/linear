@@ -128,7 +128,7 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
             appendValue(t_blocks, length(seqs[i]) / threads * j); 
         }
         appendValue (t_blocks, length(seqs[i]) - t_shape.span);
-        dout << t_blocks << "cdx2\n";
+        //dout << t_blocks << "cdx2\n";
     #pragma omp parallel
     {
         unsigned t_id = omp_get_thread_num();
@@ -139,7 +139,7 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
         int64_t count = 0;
         LShape shape = t_shape;
         hashInit (shape, begin(seqs[i]) + t_str);
-        dout << "cdx1 " << t_str<< t_end <<"\n";
+        //dout << "cdx1 " << t_str<< t_end <<"\n";
         for (int64_t j = t_str; j < t_end; j++)
         {
             hashNexth(shape, begin(seqs[i]) + j);
@@ -183,7 +183,7 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
             appendValue(t_blocks, length(seqs[i]) / threads * j); 
         }
         appendValue (t_blocks, length(seqs[i]) - t_shape.span);
-        dout << "cx22"<<t_blocks << "\n";
+        //dout << "cx22"<<t_blocks << "\n";
     #pragma omp parallel
     {   
         unsigned t_id = omp_get_thread_num();
@@ -194,7 +194,7 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
         int64_t count = 0;
         LShape shape = t_shape;
         hashInit (shape, begin(seqs[i]) + t_str);
-        dout << "strd " << t_str << t_end << "\n";
+        //dout << "strd " << t_str << t_end << "\n";
         for (int64_t j = t_str; j < t_end; j++)
         {
             hashNexth (shape, begin(seqs[i]) + j);
