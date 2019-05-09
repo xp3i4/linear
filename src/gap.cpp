@@ -1610,7 +1610,7 @@ struct MapAnchorParm
     int block_size = window_size;
     int64_t thd_min_segment = 100;
     int thd_pattern_in_window = 1;
-    int thd_fscore = 40;
+    unsigned thd_fscore = get_windowThreshold(f1);
     float thd_overlap_tile = thd_tileSize * 0.4;
     float thd_err_rate = 0.2;
     float thd_swap_tile = thd_tileSize * 0.05;

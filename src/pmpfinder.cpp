@@ -365,6 +365,31 @@ ApxMapParm _apx_parm_base;
 ApxMapParm1_32 _apx_parm1_32;
 ApxMapParm2_48 _apx_parm2_48;
 
+unsigned get_windowThreshold(FeaturesDynamic & fs)
+{
+    if (fs.isFs1_32())
+    {
+        return _apx_parm1_32.windowThreshold;
+    }
+    if (fs.isFs2_48())
+    {
+        return _apx_parm2_48.windowThreshold;
+    }
+    //return _apx_parm_base.windowThreshold;
+    return 1000;
+}
+unsigned get_windowThreshold(StringSet<FeaturesDynamic> & fss)
+{
+    if (!empty(fss))
+    {
+        return get_windowThreshold(fss[0]);
+    }
+    else
+    {
+        return 1000;
+    }
+}
+
 const unsigned window_size = _apx_parm_base.window_size;
 const unsigned window_delta = window_size * (1 - 2 * _apx_parm_base.band_width);
 

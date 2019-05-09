@@ -23,10 +23,11 @@ struct FeaturesDynamic
   void setFs1_32();
   void setFs2_48();
   void setFeatureType(int);
-
   FeaturesDynamic(int type = typeFeatures2_48);
 };
 
+unsigned get_windowThreshold(FeaturesDynamic &);
+unsigned get_windowThreshold(StringSet<FeaturesDynamic> &);
 
 /*
  * Cord(C): coordinates in the alignment matrix;
