@@ -3098,11 +3098,31 @@ int g_extend_clip_(String<Dna5> & seq1,
             }
             dout << "gec5" << clip_str << clip_end << tile << get_cord_x(tile) << get_cord_y(tile)<< "\n";
         }
+        //Insert clip and str and end to the clips records list.
+        //Using the brackets matching methods for clips of same strands as the following
+        //[{(< >)}]   [] {} () <> indicates pairs of clip str and end.
         std::sort (begin(clips_tmp), end(clips_tmp));
-        for (int i = 0; i < length(clips_tmp) / 2; i++)
+        int end0 = 0;
+        for (int i = 0; i < length(clips_tmp); i++)
+        {
+            if (!get_tile_strand(clips_tmp[i]))
+            {
+                ++end0;
+            }
+        }
+        if (!empty(clips_tmp))
+        std::cout << "cg4 " << end0 << " " << length(clips_tmp) << " " << get_cord_x(clips_tmp[0]) << "\n";
+        for (int i = 0; i < end0 / 2; i++)
         {
             insertClipStr(clips, clips_tmp[i]);
-            insertClipEnd(clips, clips_tmp[length(clips_tmp) - 1 - i]);
+            insertClipEnd(clips, clips_tmp[end0 - 1 - i]);
+            print_cord(clips_tmp[i], "cg3 ");
+            print_cord(clips_tmp[i + 1], "cg3 ");
+        }
+        for (int i = end0; i < (end0 + length(clips_tmp)) / 2 ; i++)
+        {
+            insertClipStr(clips, clips_tmp[i]);
+            insertClipEnd(clips, clips_tmp[length(clips_tmp) + end0 - 1 - i]);
             print_cord(clips_tmp[i], "cg3 ");
             print_cord(clips_tmp[i + 1], "cg3 ");
         }
