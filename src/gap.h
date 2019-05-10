@@ -1,6 +1,7 @@
 #ifndef LINEAR_HEADER_GAP_H
 #define LINEAR_HEADER_GAP_H
 #include <seqan/sequence.h>
+#include "pmpfinder.h"
 
 using namespace seqan;
 //ClipRecords : operator struct cord
@@ -14,6 +15,8 @@ void insertClipStr(String<uint64_t> &, uint64_t);
 void insertClipEnd(String<uint64_t> &, uint64_t);
 bool isClipEmpty(uint64_t);
 
+
+
 /**
  * Re-map gaps in cords.
  * Gaps at the beginning and the end of the read are also included.
@@ -25,12 +28,16 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             String<uint64_t> & g_hs,
             String<uint64_t> & g_anchor,
             String<uint64_t> & clips,
-            StringSet<String<short> > & f1,
-            StringSet<String<short> >& f2,
+            StringSet<FeaturesDynamic> & f1,
+            StringSet<FeaturesDynamic>& f2,
             int const thd_gap, 
             int const thd_tileSize
            );
 
-
+int print_clips_gvf_(StringSet<String<uint64_t> > & clips, 
+              StringSet<CharString> & readsId, 
+              StringSet<CharString> & genomesId,
+              std::ofstream & of, 
+              std::string outputPrefix);
 
 #endif

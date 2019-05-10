@@ -3,6 +3,7 @@
 #include <fstream>
 #include <ctime>
 #include "mapper.h"
+#include "args_parser.h"
 #include "pmpfinder.h"
 #include "chain_map.h"
 #include "gap.h"
@@ -12,103 +13,9 @@ using namespace seqan;
 
 typedef StringSet<String<uint64_t> > CordsType;
 
-seqan::ArgumentParser::ParseResult
-parseCommandLine(Options & options, int argc, char const ** argv)
-{
-    // Setup ArgumentParser.
-    seqan::ArgumentParser parser("Linear");
-    // Set short description, version, and date.
-    setShortDescription(parser, "Alignment of SMRT sequencing read");
-    setVersion(parser, "1.0");
-    setDate(parser, "May 2018");
-
-    // Define usage line and long description.
-    addUsageLine(parser,
-                    "[\\fIOPTIONS\\fP] \"\\fIread.fa\\fP\" \"\\fIgnome.fa\\fP\"");
-    addDescription(parser,
-                    "Program for mapping raw SMRT sequencing reads to reference genome.");
-
-    // Argument.
-    addArgument(parser, seqan::ArgParseArgument(
-        seqan::ArgParseArgument::INPUT_FILE, "read"));
-    setHelpText(parser, 0, "Reads file .fa, .fasta");
-
-    addArgument(parser, seqan::ArgParseArgument(
-        seqan::ArgParseArgument::INPUT_FILE, "genome", true));
-    setHelpText(parser, 1, "Reference file .fa, .fasta");
-
-    addSection(parser, "Mapping Options");
-    addOption(parser, seqan::ArgParseOption(
-        "o", "output", "choose output file.",
-            seqan::ArgParseArgument::STRING, "STR"));
-    addOption(parser, seqan::ArgParseOption(
-        "s", "sensitivity", "Sensitivity mode. -s 0 normal {DEFAULT} -s 1 fast  -s 2 sensitive",
-            seqan::ArgParseArgument::INTEGER, "INT"));
-    addOption(parser, seqan::ArgParseOption(
-        "t", "thread", "Default -t 4",
-            seqan::ArgParseArgument::INTEGER, "INT"));
-    
-// mapping parameters for tunning 
-    addOption(parser, seqan::ArgParseOption(
-        "l1", "listn1", "mapping::listn1",
-            seqan::ArgParseArgument::INTEGER, "INT"));     
-    addOption(parser, seqan::ArgParseOption(
-        "l2", "listn2", "mapping::listn2",
-            seqan::ArgParseArgument::INTEGER, "INT"));   
-    addOption(parser, seqan::ArgParseOption(
-        "a1", "alpha1", "mapping::alpha1",
-            seqan::ArgParseArgument::DOUBLE, "DOUBLE"));        
-    addOption(parser, seqan::ArgParseOption(
-        "a2", "alpha2", "mapping::alpha2",
-            seqan::ArgParseArgument::DOUBLE, "DOUBLE"));  
-    addOption(parser, seqan::ArgParseOption(
-        "t1", "cordThr", "mapping::cordThr",
-            seqan::ArgParseArgument::DOUBLE, "DOUBLE"));
-    addOption(parser, seqan::ArgParseOption(
-        "t2", "senThr", "mapping::senThr",
-            seqan::ArgParseArgument::DOUBLE, "DOUBLE"));        
-    addOption(parser, seqan::ArgParseOption(
-        "p1", "par1", "options::p1",
-            seqan::ArgParseArgument::INTEGER, "INT")); 
-        
-    // Add Examples Section.
-////////////////////////
-    addTextSection(parser, "Examples");
-    addListItem(parser,
-                "\\fBlinear \\fP \\fIreads.fa genomes.fa\\fP",
-                "raw map reads.fa to genomes.fa");
-    addTextSection(parser, "Examples");
-    addListItem(parser,
-                "\\fBlinear\\fP \\fP-a \\fIreads.fa genomes.fa\\fP",
-                "align reads.fa to genomes.fa");
-
-    // Parse command line.
-    seqan::ArgumentParser::ParseResult res = seqan::parse(parser, argc, argv);
-
-    if (res != seqan::ArgumentParser::PARSE_OK)
-        return res;
-
-    getOptionValue(options.oPath, parser, "output");
-    getOptionValue(options.sensitivity, parser, "sensitivity");
-    getOptionValue(options.thread, parser, "thread");
-    
-    getOptionValue(options.listN, parser, "listn1");
-    getOptionValue(options.listN2, parser, "listn2");
-    getOptionValue(options.alpha, parser, "alpha1");
-    getOptionValue(options.alpha2, parser, "alpha2");
-    getOptionValue(options.cordThr, parser, "cordThr");
-    getOptionValue(options.senThr, parser, "senThr");
-    getOptionValue(options.p1, parser, "p1");
-    seqan::getArgumentValue(options.rPath, parser, 0);
-    seqan::getArgumentValue(options.gPath, parser, 1);
-
-    return seqan::ArgumentParser::PARSE_OK;
-
-}
-
 Mapper::Mapper(Options & options):
     record(options),
-    qIndex(genomes()), 
+    index_dynamic(genomes()), 
     of(toCString(options.getOutputPath()))
 {
     outputPrefix = getFileName(getFileName(options.getReadPath()), '.', 0);
@@ -131,13 +38,35 @@ Mapper::Mapper(Options & options):
         }
     }
     _thread = options.thread;
+    if (options.index_t == 1)
+    {
+        index_dynamic.setHIndex();
+    }
+    else if (options.index_t == 2)
+    {
+        index_dynamic.setDIndex();
+    }
+    if (options.feature_t == 1)
+    {
+        feature_type = typeFeatures1_32; 
+    }
+    else if (options.feature_t == 2)
+    {
+        feature_type = typeFeatures2_48;
+    }
 }
 
 int Mapper::createIndex(bool efficient)
 {
-    std::cerr << ">>Create index \r";
-    createHIndex(genomes(), qIndex, _thread, efficient);
+    std::cerr << ">Create index \r";
+    createIndexDynamic(genomes(), index_dynamic, _thread, efficient);
+//            createDIndex(genomes(), dIndex, thd_min_step, thd_max_step, _thread);
     return 0;
+}
+
+int Mapper::getFeatureType()
+{
+    return feature_type;
 }
 
 int print_align_sam_header_ (StringSet<CharString> & genomesId,
@@ -249,8 +178,10 @@ void Mapper::printCordsRaw()
  */
 void print_cords_txt(Mapper & mapper)
 {
-    std::cerr << ">>Write results to disk        \r";
+    std::cerr << ">Write results to disk        \r";
+    std::string file_path = mapper.getOutputPrefix() + ".apf";
     double time = sysTime();
+    mapper.getOf().open(toCString(file_path));
     unsigned cordCount = 0;
     uint64_t readCordEnd;
     uint64_t seqsCordEnd;
@@ -337,6 +268,7 @@ void print_cords_txt(Mapper & mapper)
                 cordCount++;
                 fflag = 0;
             }
+            //mapper.getOf() << "\n";
         }
 
     }
@@ -371,71 +303,6 @@ int print_clips_gff_(StringSet<String<uint64_t> > & clips,
     return 0;
 }
 
-int print_clips_gvf_(StringSet<String<uint64_t> > & clips, 
-              StringSet<CharString> & readsId, 
-              StringSet<CharString> & genomesId,
-              std::ofstream & of, 
-              std::string outputPrefix)
-{
-    std::string file_path = outputPrefix + ".gvf";
-    //std::cerr << "[]::filepath " << file_path << "\n";
-    of.open(toCString(file_path));
-    of << "##gvf-version 1.10\n";
-    std::string source = ".";
-    std::string type = ".";
-    for (unsigned i = 0; i < length(clips); i++)
-    {
-        for (unsigned j = 0; j < getClipsLen(clips[i]); j++)
-        {
-            uint64_t clip_str = getClipStr(clips[i], j);
-            uint64_t clip_end = getClipEnd(clips[i], j);
-            uint64_t cord_str1 = get_cord_x(clip_str);
-            uint64_t cord_str2 = get_cord_y(clip_str);
-            uint64_t cord_end1 = get_cord_x(clip_end);
-            uint64_t cord_end2 = get_cord_y(clip_end);
-            CharString genomeId = genomesId[get_cord_id(clips[i][j])];
-            of  << genomeId << "\t" 
-                << source << "\t" 
-                << type << "\t"; 
-            if (!isClipEmpty(clip_str))
-            {
-                of << cord_str1 << "\t";   
-            }
-            else 
-            {
-                of << ".\t";
-            }
-            if (!isClipEmpty(clip_end))
-            {
-                of << cord_end1 << "\t";   
-            }
-            else 
-            {
-                of << ".\t";
-            }
-            of << "readId=" << readsId[i] << ";";
-            if (isClipEmpty(clip_str))
-            {
-                of << "readStr=.;";   
-            }
-            else 
-            {
-                of << "readStr=" << cord_str2 <<";";
-            }
-            if (isClipEmpty(clip_end))
-            {
-                of << "readEnd=.;";   
-            }
-            else 
-            {
-                of << "readEnd=" << cord_end2 << ";";
-            }
-            of << "\n";
-        }
-    }
-    of.close();
-    return 0;
-}
 int print_clips_gff(Mapper & mapper)
 {
     print_clips_gff_(mapper.getClips(), mapper.readsId(), mapper.getOf(), mapper.getOutputPrefix());
@@ -448,8 +315,8 @@ int print_clips_gvf(Mapper & mapper)
     return 0;
 }
 
-int rawMap_dst2_MF(LIndex & index,
-                   StringSet<String<short> > & f2,
+int rawMap_dst2_MF(IndexDynamic & index,
+                   StringSet<FeaturesDynamic > & f2,
                    StringSet<String<Dna5> > & reads,
                    MapParm & mapParm,
                    StringSet<String<uint64_t> > & cords,
@@ -460,7 +327,7 @@ int rawMap_dst2_MF(LIndex & index,
                    int p1
                   )
 {
-  
+
     typedef String<Dna5> Seq;
     //double time=sysTime();
     float senThr = mapParm.senThr / window_size;
@@ -489,7 +356,7 @@ int64_t len = 0;
     Anchors anchors;
     String<uint64_t> crhit;
     StringSet<String<uint64_t> >  cordsTmp;
-    StringSet< String<short> > f1;
+    StringSet<FeaturesDynamic> f1;
     StringSet<String<uint64_t> > clipsTmp;
     StringSet<String<BamAlignmentRecordLink> > bam_records_tmp;
     unsigned thd_id =  omp_get_thread_num();
@@ -501,6 +368,8 @@ int64_t len = 0;
     resize(clipsTmp, ChunkSize);
     resize(bam_records_tmp, ChunkSize);
     resize(f1, 2);
+    f1[0].fs_type = f2[0].fs_type;
+    f1[1].fs_type = f2[0].fs_type;
     unsigned c = 0;
     
     String<uint64_t> g_hs;
@@ -530,7 +399,7 @@ int64_t len = 0;
                 mnMapReadList(index, reads[j], anchors, complexParm, crhit);
                 path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
             }   
-            gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, p1, 192);
+            gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, p1, window_size);
             //align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c], p1);
         }   
         c += 1;
@@ -549,15 +418,37 @@ int64_t len = 0;
     return 0;
 }
 
+//debug util
+int printFeatures48(String<int96> & f, CharString header)
+{
+    for (int i = 0; i < length(f); i++)
+    {
+        std::cout << header << " ";
+        for (int j = 0; j < 3; j++)
+        {
+            int v = f[i][j];
+            for (int ii = 0; ii < 5; ii++)
+            {
+                std::cout << (v & 63) << " ";
+                v >>= 6;
+            }
+            std::cout << "| ";
+        }
+    std::cout << "\n";
+    }
+    return 0;
+}
+
 /*
  *[]::map
  */
 int map(Mapper & mapper, int p1)
 {
     //printStatus();
-    StringSet<String<short> > f2;
     mapper.createIndex(false); // true: destruct genomes string to reduce memory footprint
-    createFeatures(mapper.genomes(), f2, mapper.thread());
+    StringSet<FeaturesDynamic> f2;
+    createFeatures(mapper.genomes(), f2, mapper.getFeatureType(), mapper.thread());
+    std::cout << "mapf " << mapper.getFeatureType() << "\n";
     SeqFileIn rFile(toCString(mapper.readPath()));
     unsigned k = 1, j = 0;
     unsigned blockSize = 50000;
@@ -570,10 +461,10 @@ int map(Mapper & mapper, int p1)
     {
         double time1 = sysTime();
         clear (mapper.reads());
-        std::cerr <<  ">>Map::file_I/O  block " << k << dotstatus[j++ % length(dotstatus)] << "\r";
+        std::cerr <<  ">Map::file_I/O  block " << k << dotstatus[j++ % length(dotstatus)] << "\r";
         readRecords_block(mapper.readsId(), mapper.reads(), mapper.readLens(), rFile, blockSize);
         std::cerr << "                                    \r";
-        std::cerr <<  ">>Map::mapping  block "<< k << " Size " << length(mapper.reads()) << " " << dotstatus[j++ % length(dotstatus)] << "\r";
+        std::cerr <<  ">Map::mapping  block "<< k << " Size " << length(mapper.reads()) << " " << dotstatus[j++ % length(dotstatus)] << "\r";
         time1 = sysTime() - time1;
         double time2 = sysTime();
         rawMap_dst2_MF(mapper.index(), 
@@ -590,7 +481,8 @@ int map(Mapper & mapper, int p1)
         std::cerr <<  "--Map::file_I/O+Map block "<< k << " Size " << length(mapper.reads()) << " Elapsed Time[s]: file_I/O " << time1 << " map "<< time2 << "\n";
         k++;
     }
-    mapper.index().clear(); 
+    //!!TODO::clear index;
+    //mapper.index().clear(); 
     print_cords_txt(mapper);
     print_align_sam(mapper);
     print_clips_gvf(mapper);
@@ -599,19 +491,19 @@ int map(Mapper & mapper, int p1)
 int main(int argc, char const ** argv)
 {
     double time = sysTime();
-    std::cerr << "[]\n";
     (void)argc;
     Options options;
+    options.versions = "1.8.2";
+    std::cerr << "["<< options.versions
+              << "]\nEncapsulated: Mapping reads efficiently" << std::endl;
     seqan::ArgumentParser::ParseResult res = parseCommandLine(options, argc, argv);
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res == seqan::ArgumentParser::PARSE_ERROR;
-    std::cerr << "Encapsulated version: Mapping reads efficiently" << std::endl;
     Mapper mapper(options);
     omp_set_num_threads(mapper.thread());
     map(mapper, options.p1);
 
-    //mapper.print_vcf();
-    std::cerr << "  Result Files: \033[1;31m" << options.oPath << "\033[0m" << std::endl;
+    std::cerr << "  Result Files: \033[1;31m" << (mapper.getOutputPrefix() + ".apf")<< "\033[0m" << std::endl;
     std::cerr << "                \033[1;31m" << (mapper.getOutputPrefix() + ".gvf") << "\033[0m" << std::endl;
     std::cerr << "                \033[1;31m" << (mapper.getOutputPrefix() + ".sam") << "\033[0m" << std::endl;
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;

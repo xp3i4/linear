@@ -6,10 +6,11 @@
 #include "f_io.h"
 #include "mapparm.h"
 
+
 class Mapper {
     PMRecord    record;
     MapParm     parm;
-    LIndex      qIndex;
+    IndexDynamic index_dynamic;
     StringSet<String<uint64_t> >  cordSet;
     std::ofstream of;
     unsigned _thread;
@@ -17,6 +18,7 @@ class Mapper {
     StringSet<String<uint64_t> > clip_set;
     StringSet<String<BamAlignmentRecordLink> > bam_records;
     std::string outputPrefix;
+    int feature_type;
 
 public:
     Mapper();
@@ -24,7 +26,7 @@ public:
     StringSet<String<Dna5> > & reads() {return record.seq1;}             
     StringSet<String<Dna5> > & genomes() {return record.seq2;}             
     MapParm & mapParm() {return parm;}
-    LIndex & index() {return qIndex;}
+    IndexDynamic & index() {return index_dynamic;}
     StringSet<String<uint64_t> > & cords() {return cordSet;}            //returns cord set 
     
     void printCords(std::ostream & );
@@ -43,6 +45,7 @@ public:
     std::ofstream & getOf() {return of;}
     std::string & getOutputPrefix(){return outputPrefix;}
     StringSet<String<BamAlignmentRecordLink> > & getBamRecords() {return bam_records;}
+    int getFeatureType();
 };
 
 #endif

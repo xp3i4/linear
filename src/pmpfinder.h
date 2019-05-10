@@ -3,31 +3,32 @@
 #include <seqan/sequence.h>
 using namespace seqan;
 
-//WARNING:The length of read should be < 1MB;
-extern const float band_width;
-extern const unsigned cmask;
-extern const unsigned cell_size;
-extern const unsigned cell_num;
-extern const unsigned window_size; //16*12
-extern const unsigned window_delta;
-extern const unsigned sup;
-extern const unsigned med;
-extern const unsigned inf;
-extern const unsigned initx; 
-extern const unsigned inity;
-extern const unsigned scriptStep;
-extern const unsigned scriptBit;
-extern const unsigned scriptWindow; //script_length = 2^scriptWindow
-extern const unsigned scriptWindow2;
-extern const unsigned scriptWindow3;
-extern const int scriptCount[5];
-extern const int scriptMask;
-extern const int scriptMask2;
-extern const int scriptMask3;
-extern const uint64_t hmask;
-extern const unsigned windowThreshold; // 36;
-
+//NOTE:Length of read < 1M;
+typedef std::array<int, 3> int96;
+typedef int96 FeatureType;
 typedef Iterator <String <Dna5> >::Type TIter5;
+
+extern const unsigned window_size; //16*12
+
+extern int const typeFeatures1_32;
+extern int const typeFeatures2_48;
+struct FeaturesDynamic
+{
+  int fs_type; //features type
+  String<short> fs1_32;
+  String<int96> fs2_48;
+
+  int isFs1_32();
+  int isFs2_48();
+  void setFs1_32();
+  void setFs2_48();
+  void setFeatureType(int);
+  FeaturesDynamic(int type = typeFeatures2_48);
+};
+
+unsigned get_windowThreshold(FeaturesDynamic &);
+unsigned get_windowThreshold(StringSet<FeaturesDynamic> &);
+
 /*
  * Cord(C): coordinates in the alignment matrix;
  * :=|N/A[2]|strand[1]|cordEnd[1] gC [40] |rC [20bits]
@@ -124,8 +125,13 @@ struct Hit
 };
 extern Hit _DefaultHit;
 
-void createFeatures(TIter5 const &, TIter5 const &, String<short> & );
-void createFeatures(StringSet<String<Dna5> > &, StringSet<String<short> > &, unsigned);
+int createFeatures(TIter5, TIter5, FeaturesDynamic & ); //serial
+int createFeatures(TIter5, TIter5, FeaturesDynamic &, unsigned); //parallel
+//@int feature_type, @unsigned threads
+int createFeatures(StringSet<String<Dna5> > &, 
+                   StringSet<FeaturesDynamic > &, int, unsigned); //parallel
+int createFeatures(StringSet<String<Dna5> > &, 
+                   StringSet<FeaturesDynamic > &, int); //serial
 void cmpRevCord(uint64_t, uint64_t, uint64_t &, uint64_t &, uint64_t);
 uint64_t get_cord_x (uint64_t);
 uint64_t get_cord_y (uint64_t); 
@@ -135,21 +141,29 @@ uint64_t shift_cord(uint64_t const &, int64_t, int64_t);
 uint64_t create_id_x (uint64_t, uint64_t);
 uint64_t create_cord (uint64_t, uint64_t, uint64_t, uint64_t);
 uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y);
+void set_cord_id (uint64_t & val, uint64_t id);
 void set_cord_end (uint64_t &); 
+void print_cord(uint64_t, CharString = "");
+int64_t atomic_inc_cord_y (int64_t & cord); // atomic cord++, return the new cord
+
+int printScript(FeatureType & val, CharString);
 
 
-unsigned _windowDist(Iterator<String<short> >::Type const &, 
-                     Iterator<String<short> >::Type const &);
+//A wrapper that is(only) used in the gap.cpp
+//Do not call this function frequently since the condition branch will drain the performance.
+unsigned _windowDist(FeaturesDynamic & f1,
+                     FeaturesDynamic & f2,
+                     uint64_t x1, uint64_t x2);
 
 bool path_dst(typename Iterator<String<uint64_t> >::Type, 
               typename Iterator<String<uint64_t> >::Type, 
-              StringSet<String<short> > &,
-              StringSet<String<short> > &, 
+              StringSet<FeaturesDynamic> &,
+              StringSet<FeaturesDynamic> &, 
               String<uint64_t> &,
               float const & );
 
-int extendPatch(StringSet<String<short> > & f1, 
-                StringSet<String<short> > & f2, 
+int extendPatch(StringSet<FeaturesDynamic> & f1, 
+                StringSet<FeaturesDynamic> & f2, 
                 String<uint64_t> & cords,
                 int k,
                 uint64_t cord1,
@@ -157,5 +171,9 @@ int extendPatch(StringSet<String<short> > & f1,
                 int revscomp_const,
                 int overlap_size = window_size,
                 int gap_size = window_size);
+
+void printInt96(int96 val, CharString header);
+
+
 
 #endif
