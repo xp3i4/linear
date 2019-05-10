@@ -2941,6 +2941,7 @@ uint64_t c_clip_(String<Dna5> & genome,
 
 /**
  * cord_str and cord_end required to have same strand.
+ * TODO::process multiple tile_start and tile_end. Currently it handles tiles having one block.
  */
 int g_extend_clip_(String<Dna5> & seq1,
                    String<Dna5> & seq2,
@@ -3050,6 +3051,7 @@ int g_extend_clip_(String<Dna5> & seq1,
     uint64_t delta;
     uint64_t clip_str, clip_end;
     int64_t shift;
+    String<uint64_t> clips_tmp;
     int clip_direction;
     if (sv_exists)
     {
@@ -3072,7 +3074,9 @@ int g_extend_clip_(String<Dna5> & seq1,
                 thd_band_ratio = 0.5;
                 clip = c_clip_ (seq1, seq2, comstr, clip_str, clip_end, g_hs, g_hs_anchor, thd_band_ratio, clip_direction); 
                 clip1 = clip;
+                remove_tile_sgn(clip1);
                 std::cout << "gec1 " << get_cord_y (clip_str) << " " << get_tile_y(clip_end) << " " << get_cord_x (clip_str) << " " << get_tile_x(clip_end) << " " << get_tile_strand(clip_str) << " " << get_cord_strand(clip_end) << " " << get_cord_y(clip) << " " << get_cord_x(clip) << " " << get_cord_x(tile) << "\n";
+                appendValue(clips_tmp, clip1);
             }
             if (sv_flags[i] & g_sv_l)
             {
@@ -3088,48 +3092,19 @@ int g_extend_clip_(String<Dna5> & seq1,
                 thd_band_ratio = 0.5;
                 clip = c_clip_ (seq1, seq2, comstr, clip_str, clip_end, g_hs, g_hs_anchor, thd_band_ratio, clip_direction); 
                 clip2 = clip;
+                remove_tile_sgn(clip2);
                 std::cout << "gec2 " << get_cord_y (clip_str) << " " << get_tile_y(clip_end) << " " << get_cord_x (clip_str) << " " << get_tile_x(clip_end) << " " << get_tile_strand(clip_str) << " " << get_cord_strand(clip_end) << " " << get_cord_y(clip) << " " << get_cord_x(clip) << "\n";
+                appendValue(clips_tmp, clip2);
             }
             dout << "gec5" << clip_str << clip_end << tile << get_cord_x(tile) << get_cord_y(tile)<< "\n";
-            if ((sv_flags[i] & g_sv_l) && (sv_flags[i] & g_sv_r))
-            {
-                if (sv_flags[i] & g_sv_shrink)
-                {
-                    insertClipStr(clips, clip1);
-                    insertClipEnd(clips, clip2);
-                }
-                else if (sv_flags[i] & g_sv_extend)
-                {
-                dout << "gec3" << get_cord_x(clip1) << get_cord_x(clip2) << "\n";
-                    insertClipStr(clips, clip2);
-                    insertClipEnd(clips, clip1);
-                    int k = 0;
-                    while (k < length(clips))
-                        dout << "gec3" << get_cord_x(clips[k++]) << clip1<< "\n";
-                }
-            }
-            else if (sv_flags[i] & g_sv_r)
-            {
-                if (sv_flags[i] & g_sv_shrink)
-                {
-                    insertClipStr(clips, clip1);
-                }
-                else if (sv_flags[i] & g_sv_extend)
-                {
-                    insertClipEnd(clips, clip1);
-                }
-            }
-            else if (sv_flags[i] & g_sv_l)
-            {
-                if (sv_flags[i] & g_sv_shrink)
-                {
-                    insertClipEnd(clips, clip2);
-                }
-                else if (sv_flags[i] & g_sv_extend)
-                {
-                    insertClipStr(clips, clip2);
-                }
-            }
+        }
+        std::sort (begin(clips_tmp), end(clips_tmp));
+        for (int i = 0; i < length(clips_tmp) / 2; i++)
+        {
+            insertClipStr(clips, clips_tmp[i]);
+            insertClipEnd(clips, clips_tmp[length(clips_tmp) - 1 - i]);
+            print_cord(clips_tmp[i], "cg3 ");
+            print_cord(clips_tmp[i + 1], "cg3 ");
         }
     }
     if (length(tiles) > 2)
@@ -3275,7 +3250,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
         if (_DefaultCord.isBlockEnd(cords[i - 1]))  ///left clip first cord
         {
             uint64_t cord2 = cords[i];
-            if (get_cord_y(cord2) > thd_cord_gap) ///left clip first cord
+            if (get_cord_y(cord2) > thd_cord_gap) 
             {            
                 shift_x = std::min(thd_max_extend, get_cord_x(cord2));
                 shift_y = std::min(thd_max_extend, get_cord_y(cord2));
