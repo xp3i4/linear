@@ -726,7 +726,6 @@ unsigned _windowDist(FeaturesDynamic & f1,
         }
         else
         {
-        dout << "wd2 " << length(f1.fs2_48) << x1 <<length(f2.fs2_48) << x2 << "\n";
             return _apx_parm2_48.abort_score;
         }
     }
@@ -1495,10 +1494,8 @@ uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapParm
     anchors[0] = anchors[1];
     ak=anchors[0];
     anchors.sort(anchors.begin(), anchors.end());
-    //_printHit(anchors.set, "sa");
     uint64_t mask = (1ULL << 20) - 1;
     String<int64_t> list;
-    //printf("[debug]::getAnchorMatchList %d\n", anchors.length());
     for (unsigned k = 1; k < anchors.length(); k++)
     {
         if (get_cord_x(anchors[k] - ak) > thd_anchor_err * readLen)
@@ -1521,19 +1518,6 @@ uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapParm
                 c_b += anchors.deltaPos2(k, k - 1); 
         }
     }
-    std::cout << "gaml1 " << anchors.length() << "\n";
-    /*
-    //<<debug
-        for (int ii = 0; ii < anchors.length(); ii++)
-        {
-            uint64_t mask1 = (1ULL << 20) - 1;
-            uint64_t mask2 = (1ULL << 40) - 1;
-            uint64_t tmp_cord = _DefaultCord.hit2Cord(anchors[ii]);
-
-            std::cout << "gaml1 " << ii << " " << get_cord_y(tmp_cord) << " " << get_cord_x(anchors[ii]) << " " << get_cord_x(tmp_cord) << "\n";
-        }
-    //>>debug
-    */
     if (!empty(list))
     {
         std::sort (begin(list), end(list), std::greater<uint64_t>());
@@ -1553,8 +1537,6 @@ uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapParm
           else
               break;
         }
-        //std::cout << "gaml2 " << anchors.length() << " " << length(hit) << "\n";
-        //_printHit(hit, "gaml2");
         return (list[0] >> 40);   
     }
     else
@@ -1565,8 +1547,6 @@ uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapParm
 
 uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapParm & mapParm, String<uint64_t> & hit)
 {
-    //std::cout << "gdaml\n";
-    // 
     double t1 = sysTime();
     float thd_anchor_err = 0.2;
     int thd_sig = 10;
@@ -1577,18 +1557,14 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
     anchors.sort(anchors.begin(), anchors.end());
     t1 = sysTime() - t1;
     double t2 = sysTime();
-    //_printHit(anchors.set, "sa");
     uint64_t mask = (1ULL << 20) - 1;
     String<int64_t> list;
-    //printf("[debug]::getAnchorMatchList %d\n", anchors.length());
     for (unsigned k = 1; k < anchors.length(); k++)
     {
         int64_t d_anchor = std::abs(int64_t(get_cord_y(anchors[k]) - get_cord_y(ak)));
-        //cout << "gdimal4x "  << get_cord_strand(anchors[k]) << " " << get_cord_y(ak) << " " <<  get_cord_y(anchors[k]) << " " << get_cord_x(anchors[k]) + get_cord_y(anchors[k]) << " "  << get_cord_x(anchors[k]) << "\n";
         if (get_cord_x(anchors[k] - ak) > 
             thd_anchor_err * d_anchor)
         {
-         //   cout << "gdimal4 xxxxxxxxxxxx \n";
             if (c_b > mapParm.anchorLenThr * readLen)
             {
                 anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
@@ -1629,9 +1605,6 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
                 break;
             }
         }
-        //std::cout << "gaml2 " << anchors.length() << " " << length(hit) << "\n";
-        //_printHit(hit, "gaml2");
-        cout << "gdaml1 " << (t1 / (sysTime() - t2)) << " " << anchors.length() << endl;
         return (list[0] >> 40);   
     }
     else
@@ -1685,9 +1658,7 @@ uint64_t mnMapReadList( IndexDynamic & index,
         getIndexMatchAll(index.hindex, read, anchors.set, mapParm);    
         t1 = sysTime() - t1;
         double t2 = sysTime();
-        //printf("done getinxmatchall\n");
         getAnchorMatchList(anchors, length(read), mapParm, hit);
-        std::cout << "mnmrl " << (sysTime() - t2) / t1 << "\n";
     }   
     else if (index.isDIndex())
     {
@@ -1696,7 +1667,6 @@ uint64_t mnMapReadList( IndexDynamic & index,
         t1 = sysTime() - t1;
         double t2 = sysTime();
         getDAnchorMatchList(anchors, length(read), mapParm, hit);
-        std::cout << "mnmrl " << (sysTime() - t2) / t1 << "\n";
     }
     return 0;
 }
@@ -1767,7 +1737,6 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
 {
     unsigned window_threshold = 30;
     float score = 0;
-    std::cout << "eP dg1_1 " << get_cord_y(cord1) << " " << get_cord_y(cord2) << "\n";
     if (isOverlap(cord1, cord2, revscomp_const, overlap_size))
     {
         return 0;
@@ -1791,7 +1760,6 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
     while (isPreGap(cord, scord, revscomp_const, gap_size))
     {
         cord = nextWindow (f1[strand1], f2[genomeId1], cord, score);
-        std::cout << "dg1_ " << get_cord_y(cord) << "\n";
         if (cord)
         {
             appendValue (tmp, cord);

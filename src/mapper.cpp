@@ -448,7 +448,6 @@ int map(Mapper & mapper, int p1)
     mapper.createIndex(false); // true: destruct genomes string to reduce memory footprint
     StringSet<FeaturesDynamic> f2;
     createFeatures(mapper.genomes(), f2, mapper.getFeatureType(), mapper.thread());
-    std::cout << "mapf " << mapper.getFeatureType() << "\n";
     SeqFileIn rFile(toCString(mapper.readPath()));
     unsigned k = 1, j = 0;
     unsigned blockSize = 50000;
