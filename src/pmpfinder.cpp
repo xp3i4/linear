@@ -7,6 +7,7 @@
 
 using namespace seqan;
 using std::cout;
+using std::endl;
 
 int64_t const LLMAX = (1LL << 63) - 1;
 int64_t const LLMIN = -LLMAX;
@@ -1281,7 +1282,7 @@ unsigned getDIndexMatchAll (DIndex & index,
     int dt = 0;
     LShape shape(index.getShape());
     uint64_t xpre = 0;
-    std::cout << shape.span << shape.weight << "\n";
+    //std::cout << shape.span << shape.weight << "\n";
     hashInit(shape, begin(read));
     for (unsigned k = 0; k < length(read); k++)
     {
@@ -1520,6 +1521,7 @@ uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapParm
                 c_b += anchors.deltaPos2(k, k - 1); 
         }
     }
+    std::cout << "gaml1 " << anchors.length() << "\n";
     /*
     //<<debug
         for (int ii = 0; ii < anchors.length(); ii++)
@@ -1564,6 +1566,8 @@ uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapParm
 uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapParm & mapParm, String<uint64_t> & hit)
 {
     //std::cout << "gdaml\n";
+    // 
+    double t1 = sysTime();
     float thd_anchor_err = 0.2;
     int thd_sig = 10;
     uint64_t ak;
@@ -1571,6 +1575,8 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
     anchors[0] = anchors[1];
     ak=anchors[0];
     anchors.sort(anchors.begin(), anchors.end());
+    t1 = sysTime() - t1;
+    double t2 = sysTime();
     //_printHit(anchors.set, "sa");
     uint64_t mask = (1ULL << 20) - 1;
     String<int64_t> list;
@@ -1601,6 +1607,7 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
             ak = anchors[(sb + k) >> 1]; //update the ak to the median 
         }
     }
+
     if (!empty(list))
     {
         std::sort (begin(list), end(list), std::greater<uint64_t>());
@@ -1624,6 +1631,7 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
         }
         //std::cout << "gaml2 " << anchors.length() << " " << length(hit) << "\n";
         //_printHit(hit, "gaml2");
+        cout << "gdaml1 " << (t1 / (sysTime() - t2)) << " " << anchors.length() << endl;
         return (list[0] >> 40);   
     }
     else
@@ -1662,7 +1670,7 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
 {
     getIndexMatchAll(index, read, anchors.set, mapParm);    
     //printf("done getinxmatchall\n");
-    return getAnchorMatchList(anchors, length(read), mapParm, hit);
+    return  getAnchorMatchList(anchors, length(read), mapParm, hit);
 }
 
 uint64_t mnMapReadList( IndexDynamic & index,
@@ -1679,7 +1687,7 @@ uint64_t mnMapReadList( IndexDynamic & index,
         double t2 = sysTime();
         //printf("done getinxmatchall\n");
         getAnchorMatchList(anchors, length(read), mapParm, hit);
-        //std::cout << "mnmrl " << (sysTime() - t2) / t1 << "\n";
+        std::cout << "mnmrl " << (sysTime() - t2) / t1 << "\n";
     }   
     else if (index.isDIndex())
     {
@@ -1688,8 +1696,9 @@ uint64_t mnMapReadList( IndexDynamic & index,
         t1 = sysTime() - t1;
         double t2 = sysTime();
         getDAnchorMatchList(anchors, length(read), mapParm, hit);
-        //std::cout << "mnmrl " << (sysTime() - t2) / t1 << "\n";
+        std::cout << "mnmrl " << (sysTime() - t2) / t1 << "\n";
     }
+    return 0;
 }
 
 /*===================================================

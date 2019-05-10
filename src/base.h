@@ -44,6 +44,7 @@ struct Options{
     std::string getOutputPath() const;
     int print();
 }; 
+
 struct RecordBase
 {
     typedef Dna5 DefaultAlphabet;
@@ -184,5 +185,17 @@ public:
     void print_message(CharString strs, int start, int end_type, std::ostream & os);
 };
 extern ostreamWapper serr;
+/*
+class status
+{
+    String<float> percents;
+    String<double> times;
+public :
+    float getPercents();v
+    double getTimes();
+    int registPercents(); //return numeric iterator;
+    int registTime();
+}
+*/
 
 #endif
