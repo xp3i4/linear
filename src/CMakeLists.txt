@@ -10,14 +10,14 @@ message (STATUS "Configuring linear/src")
 # ----------------------------------------------------------------------------
 # Dependencies
 # ----------------------------------------------------------------------------
-#find_package(CXX11 REQUIRED)
-#if (NOT CXX11_FOUND)
-#    message (STATUS " C++11 compiler needed to build linear")
-#    return ()
-#endif (NOT CXX11_FOUND)
 find_package (ZLIB)
 find_package (BZip2)
 find_package(OpenMP)
+if (ZLIB_FOUND)
+   
+else ()
+    message(STATUS "ZLIB required to build linear")
+endif()
 if (OPENMP_FOUND)
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
@@ -26,7 +26,6 @@ else()
 endif()
 
 # Search SeqAn and select dependencies.
-set (SEQAN_FIND_DEPENDENCIES NONE)
 find_package (SeqAn REQUIRED)
 
 # ----------------------------------------------------------------------------
@@ -59,11 +58,7 @@ target_link_libraries (linear ${SEQAN_LIBRARIES} linear_base linear_index_util l
 add_executable (test_case test_case.cpp)
 target_link_libraries (test_case ${SEQAN_LIBRARIES} linear_base linear_index_util linear_args_parser linear_pmpfinder linear_index_util2 linear_gap linear_fio linear_align)
 
-# Add CXX flags found by find_package (SeqAn).
-SET(GCC_COVERAGE_COMPILE_FLAGS "-fprofile-arcs -ftest-coverage")
-SET(GCC_COVERAGE_LINK_FLAGS    "-lgcov")
-#SET(COMP_PROF_FLAGS "-ftime-report")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS} ${CXX11_CXX_FLAGS} ${COMP_PROF_FLAGS}")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS}")
 set (CMAKE_BUILD_TYPE Release)
 #set (CMAKE_BUILD_TYPE Debug)
 
