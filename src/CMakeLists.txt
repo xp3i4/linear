@@ -59,8 +59,8 @@ add_executable (test_case test_case.cpp)
 target_link_libraries (test_case ${SEQAN_LIBRARIES} linear_base linear_index_util linear_args_parser linear_pmpfinder linear_index_util2 linear_gap linear_fio linear_align)
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS}")
-#set (CMAKE_BUILD_TYPE Release)
-set (CMAKE_BUILD_TYPE Debug)
+set (CMAKE_BUILD_TYPE Release)
+#set (CMAKE_BUILD_TYPE Debug)
 
 # ----------------------------------------------------------------------------
 # Installation

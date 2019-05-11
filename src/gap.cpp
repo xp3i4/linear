@@ -1805,7 +1805,19 @@ struct MapAnchorParm
         gr_end = rvcp_const - gr_end;
         std::swap (gr_end, gr_str);
     }
+    //<<debug
+    if (length(g_hs) < g_hs_end + gs_end - gs_str || length(g_hs) < g_hs_end + gs_end - gs_str)
+    {
+        return 0;
+    }
+    //>>debug
     g_hs_end = g_mapHs_kmer_(seq1, g_hs, gs_str, gs_end, g_hs_end, 10, 0);
+    //<<debug
+    if (length(g_hs) < g_hs_end + gr_end - gr_str || length(g_hs) < g_hs_end + gr_end - gr_str )
+    {
+        return 0;
+    }
+    //>>debug
     g_hs_end = g_mapHs_kmer_(seq2, g_hs, gr_str, gr_end, g_hs_end, 1, 1);
 
 
@@ -2508,12 +2520,6 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
                                        << int64_t(hs_len2 - 1)
                                        << int64_t(length(hashs));
             g_cmpll.max(j_str, i - di) >> int64_t(j_end - dj) >> 0 ;
-
-            if (j_str > length(hashs) || j_end > length(hashs))
-            {
-                std::cout << "xxx1" << j_str << " " << i - di << " " << j_end << " " << dj  << j_end << " " << length(hashs) << "\n\n";
-                return 0;
-            }
             for (int64_t j = j_end; j > j_str; j--) //scan the genome
             {
                 uint64_t dhash = hash_read ^ hashs[j];
@@ -2773,7 +2779,7 @@ uint64_t c_clip_(String<Dna5> & genome,
     int64_t shift;
     if (isClipTowardsLeft (clip_direction))
     {
-        //<<< debug
+        //<<<debug
         g_cmpll.min(dx, dx + thd_ovlp_shift) << get_cord_x(clip_end - clip_str) - 1;
         g_cmpll.min(dy, dy + thd_ovlp_shift) << get_cord_y(clip_end - clip_str) - 1;
         extend_end = shift_cord (clip_str, dx, dy);
@@ -3119,6 +3125,12 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
     for (unsigned i = 1; i < length(cords); i++)
     {
         unsigned sid = get_cord_id(cords[i]);
+        uint64_t cordx1 = get_cord_x(cords[i - 1]);
+        uint64_t cordy1 = get_cord_x(cords[i - 1]);
+        uint64_t cordx2 = get_cord_x(cords[i]);
+        uint64_t cordy2 = get_cord_x(cords[i]);
+        int64_t dcordx = cordx2 - cordx1;
+        int64_t dcordy = cordy2 - cordy1;
         if (_DefaultCord.isBlockEnd(cords[i - 1]))  ///left clip first cord
         {
             uint64_t cord2 = cords[i];
@@ -3147,8 +3159,13 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             continue;
         }
         ///clip closed interval for middle cords
-        else if (get_cord_x(cords[i] - cords[i - 1]) > thd_cord_gap ||
-                 get_cord_y(cords[i] - cords[i - 1]) > thd_cord_gap)         
+        else if ((cordx2 - cordx1 > thd_cord_gap  ||
+                  cordy2 - cordy1 > thd_cord_gap) && 
+                  cordx1 < cordx2 &&
+                  cordy1 < cordy2 &&
+                  dcordx < thd_max_extend && 
+                  dcordy < thd_max_extend
+                )        
         {
             g_cmpll.min(shift_x, block_size / 2) 
                     << int64_t(length(seqs[sid]) - 1 - get_cord_x(cords[i - 1]));
@@ -3157,8 +3174,8 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             uint64_t cord2 = shift_cord(cords[i], shift_x, shift_y);
             g_cmpll.min(shift_x, shift_x) << get_cord_x(cords[i] - cords[i - 1]); //ins
             g_cmpll.min(shift_y, shift_y) << get_cord_y(cords[i] - cords[i - 1]); //del
-            uint64_t cord1 = shift_cord(cords[i - 1], shift_x, shift_y);
-            cord1 = cords[i - 1]; 
+            //uint64_t cord1 = shift_cord(cords[i - 1], shift_x, shift_y);
+            uint64_t cord1 = cords[i - 1]; 
             cord2 = cords[i];
             mapGap_(seqs, read, comstr, 
                     cord1, cord2, 
