@@ -21,9 +21,17 @@ read length < 1MBases
 
 ## Built with
 
+### Included in the source
 - [SeqAn 2.0](<https://seqan.readthedocs.io/en/master/>)-Library for sequence analysis
 
 - [googletest](<https://github.com/google/googletest>)-Unit test(optional)
+
+### Pre-install 
+- [zlib](<https://www.zlib.net/>)-(File compression I/O)
+If not installed by default on Debian (Ubuntu, Mint,..) based distributions:
+```bash
+   $sudo apt install zlib1g-dev libbz2-dev
+```
 
 ## File format
 ### Approximate mapping file (.amf)

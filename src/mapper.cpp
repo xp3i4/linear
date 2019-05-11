@@ -399,7 +399,7 @@ int64_t len = 0;
                 mnMapReadList(index, reads[j], anchors, complexParm, crhit);
                 path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
             }   
-            gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, p1, window_size);
+            //gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, p1, window_size);
             //align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c], p1);
         }   
         c += 1;
