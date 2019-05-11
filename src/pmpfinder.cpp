@@ -1491,6 +1491,10 @@ uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapParm
     float thd_anchor_err = 0.1;
     uint64_t ak;
     uint64_t c_b=mapParm.shapeLen, sb=0, sc = 0;
+    if (anchors.length() <= 1)
+    {
+        return 0;
+    }
     anchors[0] = anchors[1];
     ak=anchors[0];
     anchors.sort(anchors.begin(), anchors.end());
@@ -1547,6 +1551,10 @@ uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapParm
 
 uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapParm & mapParm, String<uint64_t> & hit)
 {
+    if (anchors.length() < 2)
+    {
+        return 0;
+    }
     double t1 = sysTime();
     float thd_anchor_err = 0.2;
     int thd_sig = 10;
