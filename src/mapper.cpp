@@ -399,7 +399,7 @@ int64_t len = 0;
                 mnMapReadList(index, reads[j], anchors, complexParm, crhit);
                 path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
             }   
-            //gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, p1, window_size);
+            gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, p1, window_size);
             //align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c], p1);
         }   
         c += 1;
@@ -460,10 +460,10 @@ int map(Mapper & mapper, int p1)
     {
         double time1 = sysTime();
         clear (mapper.reads());
-        std::cerr <<  ">Map::file_I/O  block " << k << dotstatus[j++ % length(dotstatus)] << "\r";
+        std::cerr <<  "=>Map::file_I/O  block " << k << dotstatus[j++ % length(dotstatus)] << "\r";
         readRecords_block(mapper.readsId(), mapper.reads(), mapper.readLens(), rFile, blockSize);
         std::cerr << "                                    \r";
-        std::cerr <<  ">Map::mapping  block "<< k << " Size " << length(mapper.reads()) << " " << dotstatus[j++ % length(dotstatus)] << "\r";
+        std::cerr <<  "=>Map::mapping  block "<< k << " Size " << length(mapper.reads()) << " " << dotstatus[j++ % length(dotstatus)] << "\r";
         time1 = sysTime() - time1;
         double time2 = sysTime();
         rawMap_dst2_MF(mapper.index(), 
@@ -485,6 +485,7 @@ int map(Mapper & mapper, int p1)
     print_cords_txt(mapper);
     print_align_sam(mapper);
     print_clips_gvf(mapper);
+    
     return 0;
 }
 int main(int argc, char const ** argv)
@@ -498,6 +499,7 @@ int main(int argc, char const ** argv)
     seqan::ArgumentParser::ParseResult res = parseCommandLine(options, argc, argv);
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res == seqan::ArgumentParser::PARSE_ERROR;
+
     Mapper mapper(options);
     omp_set_num_threads(mapper.thread());
     map(mapper, options.p1);

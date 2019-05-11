@@ -198,4 +198,14 @@ public :
 }
 */
 
+struct CmpInt64
+{
+    int64_t * p_rslt;
+    CmpInt64 & init (int64_t & rslt, int64_t init_val);
+    CmpInt64 & min (int64_t & rslt, int64_t val = (~(1LL << 63)));
+    CmpInt64 & max (int64_t & rslt, int64_t val = ((1LL << 63) + 1));
+    CmpInt64 & operator << (int64_t); //get min of the suffix 
+    CmpInt64 & operator >> (int64_t); //get max of ...
+};
+
 #endif

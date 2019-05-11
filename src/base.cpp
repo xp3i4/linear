@@ -23,7 +23,9 @@ Options::Options():
         index_t(1),
         feature_t(2)
         {
-           date = __DATE__; 
+           date += __TIME__; 
+           date += " ";
+           date += __DATE__;
         }
 
 std::string Options::getGenomePath() const {return gPath;};
@@ -404,3 +406,36 @@ void ostreamWapper::print_message(CharString strs,
 }
 
 ostreamWapper serr;
+
+CmpInt64 & CmpInt64::init(int64_t & rslt, int64_t init_val) 
+{ 
+    p_rslt = & rslt;
+    *p_rslt = init_val;
+    return *this;
+}
+CmpInt64 & CmpInt64::min(int64_t & rslt, int64_t val) 
+{
+    return init(rslt, val);
+}
+CmpInt64 & CmpInt64::max(int64_t & rslt, int64_t val) 
+{
+    return init(rslt, val);
+}
+CmpInt64 & CmpInt64::operator << (int64_t n)
+{
+    if (*p_rslt > n)
+    {
+        *p_rslt = n;
+    }
+    return *this;
+}
+CmpInt64 & CmpInt64::operator >> (int64_t n)
+{
+    if (*p_rslt < n)
+    {
+        *p_rslt = n;
+    }
+    return *this;
+}
+
+CmpInt64 g_cmpll;
