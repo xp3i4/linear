@@ -126,7 +126,7 @@ std::ifstream::pos_type _filesize(const char* filename)
     return in.tellg(); 
 }
 
-int readRecords_block (StringSet<CharString> & ids, StringSet<String<Dna5> > & reads, String<int> & lens, SeqFileIn & fin, int blockSize)
+int readRecords_block (StringSet<CharString> & ids, StringSet<String<Dna5> > & reads, String<size_t> & lens, SeqFileIn & fin, int blockSize)
 {
     int start = length(reads);
     readRecords(ids, reads, fin, blockSize);

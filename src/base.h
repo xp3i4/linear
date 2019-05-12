@@ -161,7 +161,7 @@ struct MapParm{
     void print ();
 };
 
-int readRecords_block (StringSet<CharString> & ids, StringSet<String<Dna5> > & reads, String<int> & lens, SeqFileIn & fin, int blockSize);
+int readRecords_block (StringSet<CharString> & ids, StringSet<String<Dna5> > & reads, String<size_t> & lens, SeqFileIn & fin, int blockSize);
 void _compltStr(String<Dna5> & str, String<Dna5> & res);
 void _compltRvseStr(String<Dna5> & str, String<Dna5> & res);
 

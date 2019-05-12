@@ -7,9 +7,111 @@
 #include <seqan/vcf_io.h>
 #include <iostream>
 #include <fstream>
+#include "pmpfinder.h"
 #include "f_io.h"
 
 using namespace seqan;
+/*============================================================
+=               print Approximate mapping records            =
+============================================================*/
+void print_cords_apf(CordsSetType & cords, 
+                     StringSet<String<Dna5> > & genomes,
+                     StringSet<String<Dna5> > & reads,
+                     StringSet<CharString> & genomesId,
+                     StringSet<CharString> & readsId,
+                     std::ofstream & of)
+{
+    unsigned cordCount = 0;
+    uint64_t readCordEnd;
+    uint64_t seqsCordEnd;
+    char main_icon_strand = '+', icon_strand = '+';
+    int fflag = 0;
+    for (unsigned k = 0; k < length(cords); k++)
+    {
+        if (!empty(cords[k]))
+        {
+            for (unsigned j = 1; j < length(cords[k]); j++)
+            {
+                if (_DefaultHit.isBlockEnd(cords[k][j-1]))
+                {
+                    unsigned m = j; 
+                    int main_strand_count = 0;
+                    int block_len = 0;
+                    ///>determine the main strand
+                    while (!_DefaultHit.isBlockEnd(cords[k][m]))
+                    {
+                        if (_DefaultCord.getCordStrand(cords[k][m]))
+                        {
+                            main_strand_count++;
+                        }
+                        block_len++;
+                        m++;
+                    }
+                    if (main_strand_count > (block_len >> 1))
+                    {
+                        main_icon_strand = '-';
+                    }
+                    else
+                    {
+                        main_icon_strand = '+';
+                    }
+                    ///>print the header
+                    for (unsigned i = j; ; i++)
+                    {
+                        if (_DefaultHit.isBlockEnd(cords[k][i]) || i == length(cords[k]) - 1)
+                        {
+                            readCordEnd = get_cord_y(cords[k][i]) + window_size;
+                            seqsCordEnd = get_cord_x(cords[k][i]) + window_size;
+                            break;
+                        }
+                    }
+                    if (k > 0)
+                    {
+                        of << "\n";
+                    } 
+                    of << "@> "
+                       << readsId[k] << " " 
+                       << length(reads[k]) << " "
+                       << get_cord_y(cords[k][j]) << " " 
+                       << std::min(readCordEnd, (uint64_t)length(reads[k])) << " " 
+                       << main_icon_strand<< " "
+                       << genomesId[get_cord_id(cords[k][j])] << " " 
+                       << length(genomes[get_cord_id(cords[k][j])]) << " "
+                       << get_cord_x(cords[k][j]) << " " 
+                       << seqsCordEnd << "\n";
+                    cordCount = 0;
+                    fflag = 1;
+                }
+                ///>print the coordinates
+                icon_strand = (get_cord_strand(cords[k][j]))?'-':'+';
+                CharString mark = "| ";
+                if (icon_strand != main_icon_strand)
+                {
+                    mark = (icon_strand == '+') ? "|**+++++++++++ " :"|**----------- ";
+                }
+                int64_t d1 = 0;//_DefaultCord.getCordY(cords[k][1]);
+                int64_t d2 = 0;
+                if (!fflag)
+                {
+                    d1 = int64_t(get_cord_x(cords[k][j]) - get_cord_x(cords[k][j - 1]));
+                    d2 = int64_t(get_cord_y(cords[k][j]) - get_cord_y(cords[k][j - 1]));
+                }
+                of << mark  
+                   << get_cord_y(cords[k][j]) << " " 
+                   << get_cord_x(cords[k][j]) << " " 
+                   << d2 << " " 
+                   << d1 << " " 
+                   << j << " \n";
+                cordCount++;
+                fflag = 0;
+            }
+        }
+    }
+}
+
+/*=================================================
+=                print SAM records                =
+===================================================*/
 
 BamAlignmentRecordLink::BamAlignmentRecordLink()
 {
@@ -502,3 +604,5 @@ void printRows(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
     clear(line00);
     std::cout << "\n";
 }
+
+

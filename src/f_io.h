@@ -2,7 +2,15 @@
 #define LINEAR_HEADER_F_IO_H
 
 #include <seqan/bam_io.h>
+#include "pmpfinder.h"
 using namespace seqan;
+
+void print_cords_apf(CordsSetType & cords, 
+                     StringSet<String<Dna5> > & genomes,
+                     StringSet<String<Dna5> > & reads,
+                     StringSet<CharString> & genomesId,
+                     StringSet<CharString> & readsId,
+                     std::ofstream & of);
 
 class BamAlignmentRecordLink : public BamAlignmentRecord 
 { 

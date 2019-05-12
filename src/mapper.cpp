@@ -11,11 +11,10 @@
 
 using namespace seqan; 
 
-typedef StringSet<String<uint64_t> > CordsType;
 
 Mapper::Mapper(Options & options):
     record(options),
-    index_dynamic(genomes()), 
+    index_dynamic(getGenomes()), 
     of(toCString(options.getOutputPath()))
 {
     outputPrefix = getFileName(getFileName(options.getReadPath()), '.', 0);
@@ -54,12 +53,13 @@ Mapper::Mapper(Options & options):
     {
         feature_type = typeFeatures2_48;
     }
+    of_type = OF_NEW;
 }
 
 int Mapper::createIndex(bool efficient)
 {
     std::cerr << ">Create index \r";
-    createIndexDynamic(genomes(), index_dynamic, _thread, efficient);
+    createIndexDynamic(getGenomes(), index_dynamic, _thread, efficient);
 //            createDIndex(genomes(), dIndex, thd_min_step, thd_max_step, _thread);
     return 0;
 }
@@ -112,7 +112,7 @@ int print_align_sam_record_(StringSet<String< BamAlignmentRecordLink> > & record
             records[i][j].qName = readsId[i];
             CharString g_id = genomesId[records[i][j].rID];
             int dt = writeSam(of, records[i], j, g_id);
-            //<<<debug 
+        //<<<debug 
         }
 
         for (int j = 0; j < length(records[i]); j++)
@@ -122,7 +122,7 @@ int print_align_sam_record_(StringSet<String< BamAlignmentRecordLink> > & record
             if (records[i][j].isEnd())
                 std::cout << "\n";
             std::cout << "cigarLen " << lens.first << " " << lens.second << "\n";
-            //>>>debug
+        //>>>debug
         }
     }
 }
@@ -130,14 +130,14 @@ int print_align_sam (Mapper & mapper)
 {
     std::string filePath = mapper.getOutputPrefix() + ".sam";
     mapper.getOf().open(toCString(filePath));
-    print_align_sam_header_(mapper.genomesId(), 
-                            mapper.genomes(),
+    print_align_sam_header_(mapper.getGenomesId(), 
+                            mapper.getGenomes(),
                             mapper.getOf()
                            );
     print_align_sam_record_(mapper.getBamRecords(),
-                            mapper.cords(),
-                            mapper.readsId(),
-                            mapper.genomesId(),
+                            mapper.getCords(),
+                            mapper.getReadsId(),
+                            mapper.getGenomesId(),
                             mapper.getOf()
                            ); 
     mapper.getOf().close();
@@ -159,7 +159,7 @@ void Mapper::printCordsRaw()
             {
                 if (_DefaultHit.isBlockEnd(cordSet[k][j-1]) )//&& ++recordCount < 10)
                 {
-                    of <<"@S1_"<< k+1 << " " << length(reads()[k]) << " "
+                    of <<"@S1_"<< k+1 << " " << length(getReads()[k]) << " "
                     << _DefaultCord.getCordY(cordSet[k][j]) << " " << length(cordSet[k]) << " x " 
                     << _getSA_i1(_DefaultCord.getCordX(cordSet[k][j])) << " " << cordCount << " "
                     << _getSA_i2(_DefaultCord.getCordX(cordSet[k][j]))  << " " 
@@ -172,109 +172,6 @@ void Mapper::printCordsRaw()
     }
     std::cerr << ">Write results to disk          " << std::endl;
     std::cerr << "    End writing results. Time[s]" << sysTime() - time << std::endl; 
-}
-/**
- * print all cords with cordinates
- */
-void print_cords_txt(Mapper & mapper)
-{
-    std::cerr << ">Write results to disk        \r";
-    std::string file_path = mapper.getOutputPrefix() + ".apf";
-    double time = sysTime();
-    mapper.getOf().open(toCString(file_path));
-    unsigned cordCount = 0;
-    uint64_t readCordEnd;
-    uint64_t seqsCordEnd;
-    char main_icon_strand = '+', icon_strand = '+';
-    int fflag = 0;
-    CordsType & cords = mapper.cords();
-    for (unsigned k = 0; k < length(cords); k++)
-    {
-        if (!empty(cords[k]))
-        {
-            for (unsigned j = 1; j < length(cords[k]); j++)
-            {
-                if (_DefaultHit.isBlockEnd(cords[k][j-1]))
-                {
-                    unsigned m = j; 
-                    int main_strand_count = 0;
-                    int block_len = 0;
-                    ///>determine the main strand
-                    while (!_DefaultHit.isBlockEnd(cords[k][m]))
-                    {
-                        if (_DefaultCord.getCordStrand(cords[k][m]))
-                        {
-                            main_strand_count++;
-                        }
-                        block_len++;
-                        m++;
-                    }
-                    if (main_strand_count > (block_len >> 1))
-                    {
-                        main_icon_strand = '-';
-                    }
-                    else
-                    {
-                        main_icon_strand = '+';
-                    }
-                    ///>print the header
-                    for (unsigned i = j; ; i++)
-                    {
-                        if (_DefaultHit.isBlockEnd(cords[k][i]) || i == length(cords[k]) - 1)
-                        {
-                            readCordEnd = _DefaultCord.getCordY(cords[k][i]) + window_size;
-                            seqsCordEnd = _getSA_i2(_DefaultCord.getCordX(cords[k][i])) + window_size;
-                            break;
-                        }
-                    }
-                    if (k > 0)
-                    {
-                        mapper.getOf() << "\n";
-                    } 
-                    mapper.getOf() << "@> "
-                        << mapper.readsId()[k] << " " 
-                        << mapper.readLens()[k] << " "
-                        << _DefaultCord.getCordY(cords[k][j]) << " " 
-                        << std::min(readCordEnd, (uint64_t)mapper.readLens()[k]) << " " 
-                        << main_icon_strand<< " "
-                        << mapper.genomesId()[get_cord_id(cords[k][j])] << " " 
-                        << length(mapper.genomes()[get_cord_id(cords[k][j])]) << " "
-                        << get_cord_x(cords[k][j]) << " " 
-                        << seqsCordEnd << "\n";
-                    cordCount = 0;
-                    fflag = 1;
-                }
-                ///>print the coordinates
-                icon_strand = (get_cord_strand(cords[k][j]))?'-':'+';
-                CharString mark = "| ";
-                if (icon_strand != main_icon_strand)
-                {
-                    mark = (icon_strand == '+') ? "|**+++++++++++ " :"|**----------- ";
-                }
-                int64_t d1 = 0;//_DefaultCord.getCordY(cords[k][1]);
-                int64_t d2 = 0;
-                if (!fflag)
-                {
-                    d1 = int64_t(get_cord_x(cords[k][j]) - get_cord_x(cords[k][j - 1]));
-                    d2 = int64_t(get_cord_y(cords[k][j]) - get_cord_y(cords[k][j - 1]));
-                }
-                mapper.getOf() << mark  
-                               << _DefaultCord.getCordY(cords[k][j]) << " " 
-                               << get_cord_x(cords[k][j]) << " " 
-                               << d2 << " " 
-                               << d1 << " " 
-                               << j << " \n";
-
-                cordCount++;
-                fflag = 0;
-            }
-            //mapper.getOf() << "\n";
-        }
-
-    }
-    close(mapper.getOf());
-    std::cerr << "--Write results to disk       100% Elapsed Time[s] " 
-              << sysTime() - time << "\n";
 }
 
 int print_clips_gff_(StringSet<String<uint64_t> > & clips, 
@@ -305,13 +202,13 @@ int print_clips_gff_(StringSet<String<uint64_t> > & clips,
 
 int print_clips_gff(Mapper & mapper)
 {
-    print_clips_gff_(mapper.getClips(), mapper.readsId(), mapper.getOf(), mapper.getOutputPrefix());
+    print_clips_gff_(mapper.getClips(), mapper.getReadsId(), mapper.getOf(), mapper.getOutputPrefix());
     return 0;
 }
 
 int print_clips_gvf(Mapper & mapper)
 {
-    print_clips_gvf_(mapper.getClips(), mapper.readsId(), mapper.genomesId(), mapper.getOf(), mapper.getOutputPrefix());
+    print_clips_gvf_(mapper.getClips(), mapper.getReadsId(), mapper.getGenomesId(), mapper.getOf(), mapper.getOutputPrefix());
     return 0;
 }
 
@@ -400,7 +297,7 @@ int64_t len = 0;
                 mnMapReadList(index, reads[j], anchors, complexParm, crhit);
                 path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
             }   
-            gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, p1, window_size);
+            //gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, p1, window_size);
             //align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c], p1);
         }   
         c += 1;
@@ -419,24 +316,58 @@ int64_t len = 0;
     return 0;
 }
 
-//debug util
-int printFeatures48(String<int96> & f, CharString header)
+void Mapper::setOfApp ()
 {
-    for (int i = 0; i < length(f); i++)
+    of_type = OF_APP;
+}
+bool Mapper::isOfNew()
+{
+    return of_type == OF_NEW;
+}
+bool Mapper::isOfApp()
+{
+    return of_type == OF_APP;
+}
+
+void open_mapper_file(Mapper & mapper, std::string extension)
+{
+    std::string file_path = mapper.getOutputPrefix();
+    file_path += extension;
+    if (mapper.isOfNew())
     {
-        std::cout << header << " ";
-        for (int j = 0; j < 3; j++)
-        {
-            int v = f[i][j];
-            for (int ii = 0; ii < 5; ii++)
-            {
-                std::cout << (v & 63) << " ";
-                v >>= 6;
-            }
-            std::cout << "| ";
-        }
-    std::cout << "\n";
+        //std::cerr << "new............\n" << file_path << "\n\n";
+        mapper.getOf().open(toCString(file_path));
     }
+    else if (mapper.isOfApp())
+    {
+        //std::cerr << "n..............\n" << file_path << "\n\n";
+        mapper.getOf().open(toCString(file_path), std::ios::app);
+    }
+}
+void close_mapper_of (Mapper & mapper)
+{
+    close (mapper.getOf());
+}
+/**
+ * will append contents to the end of the file if called multiple times
+ */
+int print_mapper_results(Mapper & mapper, int f_prints = 0 /*print options control flags*/)
+{
+    double time = sysTime();
+    open_mapper_file(mapper, ".apf");
+    print_cords_apf(mapper.getCords(), 
+                    mapper.getGenomes(),
+                    mapper.getReads(),
+                    mapper.getGenomesId(),
+                    mapper.getReadsId(),
+                    mapper.getOf()
+                );
+    close_mapper_of(mapper);
+    //print_align_sam(mapper);
+    //print_clips_gvf(mapper);
+    mapper.setOfApp(); //set of_type to std::ios::app;
+    std::cerr << "--Write results to disk       100% Elapsed Time[s] " 
+              << sysTime() - time << "\n";
     return 0;
 }
 
@@ -445,14 +376,15 @@ int printFeatures48(String<int96> & f, CharString header)
  */
 int map(Mapper & mapper, int p1)
 {
+    int thd_buffer_size = 10000; // every thd_buffer_size reads triggers print results.
     //printStatus();
     mapper.createIndex(false); // true: destruct genomes string to reduce memory footprint
     StringSet<FeaturesDynamic> f2;
-    createFeatures(mapper.genomes(), f2, mapper.getFeatureType(), mapper.thread());
+    createFeatures(mapper.getGenomes(), f2, mapper.getFeatureType(), mapper.thread());
     std::cout << "mapf " << mapper.getFeatureType() << "\n";
     SeqFileIn rFile(toCString(mapper.readPath()));
     unsigned k = 1, j = 0;
-    unsigned blockSize = 50000;
+    unsigned blockSize = 10;
     StringSet<String<char> > dotstatus;
     resize(dotstatus, 3);
     dotstatus[0] = ".   ";
@@ -461,32 +393,43 @@ int map(Mapper & mapper, int p1)
     while (!atEnd(rFile))
     {
         double time1 = sysTime();
-        clear (mapper.reads());
         std::cerr <<  ">Map::file_I/O  block " << k << dotstatus[j++ % length(dotstatus)] << "\r";
-        readRecords_block(mapper.readsId(), mapper.reads(), mapper.readLens(), rFile, blockSize);
+        //readRecords_block(mapper.getReadsId(), mapper.reads(), mapper.getReadsLen(), rFile, blockSize);
+        readRecords(mapper.getReadsId(), mapper.getReads(), rFile, blockSize);
         std::cerr << "                                    \r";
-        std::cerr <<  ">Map::mapping  block "<< k << " Size " << length(mapper.reads()) << " " << dotstatus[j++ % length(dotstatus)] << "\r";
+        std::cerr <<  ">Map::mapping  block "<< k << " Size " << length(mapper.getReads()) << " " << dotstatus[j++ % length(dotstatus)] << "\r";
         time1 = sysTime() - time1;
         double time2 = sysTime();
         rawMap_dst2_MF(mapper.index(), 
                        f2, 
-                       mapper.reads(), 
+                       mapper.getReads(), 
                        mapper.mapParm(), 
-                       mapper.cords(), 
+                       mapper.getCords(), 
                        mapper.getClips(),
-                       mapper.genomes(),
+                       mapper.getGenomes(),
                        mapper.getBamRecords(),
                        mapper.thread(), 
                        p1);
         time2 = sysTime() - time2;
-        std::cerr <<  "--Map::file_I/O+Map block "<< k << " Size " << length(mapper.reads()) << " Elapsed Time[s]: file_I/O " << time1 << " map "<< time2 << "\n";
+        std::cerr <<  "--Map::file_I/O+Map block "<< k << " Size " << length(mapper.getReads()) << " Elapsed Time[s]: file_I/O " << time1 << " map "<< time2 << "\n";
+        //if (buffer_size > thd_buffer_size)
+        //{
+        std::cerr << ">Write results to disk        \r";
+        print_mapper_results(mapper);
+        //}
+        clear (mapper.getCords());
+        clear (mapper.getClips());
+        clear (mapper.getBamRecords());
+        clear (mapper.getReads());
+        clear (mapper.getReadsId());
+        clear (mapper.getClips());
+        clear (mapper.getBamRecords());
         k++;
     }
     //!!TODO::clear index;
     //mapper.index().clear(); 
-    print_cords_txt(mapper);
-    print_align_sam(mapper);
-    print_clips_gvf(mapper);
+    //std::cerr << ">Write results to disk        \r";
+    //print_mapper_results(mapper);
     return 0;
 }
 int main(int argc, char const ** argv)

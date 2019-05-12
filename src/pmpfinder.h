@@ -37,6 +37,9 @@ unsigned get_windowThreshold(StringSet<FeaturesDynamic> &);
  * gC(genome coordinate):= SA node := Seq_id[10] | base_x i2[30]  
  * rC:= base_y[20]. Read coordinate
  */
+typedef uint64_t CordType;
+typedef String<CordType> CordsType;
+typedef StringSet<CordsType > CordsSetType;
 struct CordBase
 {
     typedef unsigned Bit;
