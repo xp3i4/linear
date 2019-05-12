@@ -3112,7 +3112,7 @@ int g_extend_clip_(String<Dna5> & seq1,
         }
         if (!empty(clips_tmp))
         std::cout << "cg4 " << end0 << " " << length(clips_tmp) << " " << get_cord_x(clips_tmp[0]) << "\n";
-        if (length(clis_tmp) / 2 * 2 == length(clips_tmp))
+        if (length(clips_tmp) / 2 * 2 == length(clips_tmp))
         {
         //TODO::change the if 
         //WARNING::it's incorrect, just for temporarily use.
