@@ -6,48 +6,9 @@
 #include "gap.h"
 
 /*=============================================
-=             Interface function             =
+=             Interface function              =
 =============================================*/
 using std::endl;
-struct CmpInt64
-{
-    int64_t * p_rslt;
-    CmpInt64 & init (int64_t & rslt, int64_t init_val);
-    CmpInt64 & min (int64_t & rslt, int64_t val = (~(1LL << 63)));
-    CmpInt64 & max (int64_t & rslt, int64_t val = ((1LL << 63) + 1));
-    CmpInt64 & operator << (int64_t); //get min of all the suffix 
-    CmpInt64 & operator >> (int64_t); //get max of ...
-}g_cmpll;
-CmpInt64 & CmpInt64::init(int64_t & rslt, int64_t init_val) 
-{ 
-    p_rslt = & rslt;
-    *p_rslt = init_val;
-    return *this;
-}
-CmpInt64 & CmpInt64::min(int64_t & rslt, int64_t val) 
-{
-    return init(rslt, val);
-}
-CmpInt64 & CmpInt64::max(int64_t & rslt, int64_t val) 
-{
-    return init(rslt, val);
-}
-CmpInt64 & CmpInt64::operator << (int64_t n)
-{
-    if (*p_rslt > n)
-    {
-        *p_rslt = n;
-    }
-    return *this;
-}
-CmpInt64 & CmpInt64::operator >> (int64_t n)
-{
-    if (*p_rslt < n)
-    {
-        *p_rslt = n;
-    }
-    return *this;
-}
 
 /**
  * class ClipRecords:
@@ -1606,6 +1567,7 @@ struct MapAnchorParm
                           int direction
                           )
 {
+    CmpInt64 g_cmpll;
     dout << "gmas0 " << get_cord_y(gap_str) << get_cord_y(gap_end) << "\n";
     int block_size = window_size;
     int64_t thd_min_segment = 100;
@@ -2578,6 +2540,7 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
     //extend_str = shift_cord(extend_str, 0, 10);
     //extend_end = shift_cord(extend_end, 0, 10);
     //>>debug
+    CmpInt64 g_cmpll;
     std::cout << "ccre3 " << get_cord_y(extend_str) << " " << get_cord_y(extend_end) <<" " << get_cord_x(extend_str) << " " << get_cord_x(extend_end) << "\n";    
     int thd_init_chain_da = 10; 
     int thd_init_chain_num = 6;    
@@ -2627,9 +2590,17 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
             int64_t di = (hs_len2 - i) >> thd_error_level; 
                     di = std::max((int64_t)thd_scan_radius, di);
             int64_t dj = thd_scan_radius << 1;
-            g_cmpll.min(j_end, i + di) << int64_t(chain_x[k_str]) << int64_t(hs_len2 - 1);
+            g_cmpll.min(j_end, i + di) << int64_t(chain_x[k_str]) 
+                                       << int64_t(hs_len2 - 1)
+                                       << int64_t(length(hashs));
             g_cmpll.max(j_str, i - di) >> int64_t(j_end - dj) >> 0 ;
             std::cout << "ccre5 " << j_str << " " << j_end << " " << chain_x[k_str] << "\n";
+            if (j_str > length(hashs) || j_end > length(hashs))
+            {
+                return 0;
+            }
+            //TODO::check boundary of j_str and j_end
+            
             for (int64_t j = j_end; j > j_str; j--) //scan the genome
             {
                 uint64_t dhash = hash_read ^ hashs[j];
@@ -2717,8 +2688,14 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
             int64_t di = std::max (i >> thd_error_level, int64_t(thd_scan_radius));
             int64_t dj = thd_scan_radius << 1;
             g_cmpll.max(j_str, i - di) >> int64_t(chain_x[k_str]) >> 0 ;
-            g_cmpll.min(j_end, i + di) << int64_t(j_str + dj) << int64_t(hs_len2);
+            g_cmpll.min(j_end, i + di) << int64_t(j_str + dj) 
+                                       << int64_t(hs_len2) 
+                                       << length(hashs);
             std::cout << "ccre4 " << i << " " << " " << chain_x[k_str] << " " << j_str << " " << j_end << " " << drop_count << " " << "\n";
+            if (j_str > length(hashs) || j_end > length(hashs))
+            {
+                return 0;
+            }
             for (int64_t j = j_str; j < j_end; j++) //scan the genome
             {
                 uint64_t dhash = hash_read ^ hashs[j];
@@ -2839,6 +2816,7 @@ uint64_t c_clip_(String<Dna5> & genome,
             int clip_direction = 1
         )
 {
+    CmpInt64 g_cmpll;
     uint64_t gs_str = get_tile_x(clip_str);
     uint64_t gr_str = get_tile_y(clip_str);
     uint64_t gs_end = get_tile_x(clip_end);
@@ -2956,6 +2934,7 @@ int g_extend_clip_(String<Dna5> & seq1,
                    int thd_cord_gap
                   )
 {
+    CmpInt64 g_cmpll;
     std::cout << "gag_str\n";
     if (get_cord_strand(cord_str ^ cord_end))
     {
@@ -3254,6 +3233,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             int const thd_tileSize
            )
 {
+    CmpInt64 g_cmpll;
     if  (length(cords) <= 1)
     {
         return 0;

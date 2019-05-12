@@ -1489,6 +1489,10 @@ void printAnchors(Anchors & anchors, CharString header)
 
 uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapParm & mapParm, String<uint64_t> & hit)
 {
+    if (anchors.length() <= 1)
+    {
+        return 0;
+    }
     float thd_anchor_err = 0.1;
     uint64_t ak;
     uint64_t c_b=mapParm.shapeLen, sb=0, sc = 0;
@@ -1570,6 +1574,10 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
     double t1 = sysTime();
     float thd_anchor_err = 0.2;
     int thd_sig = 10;
+    if (anchors.length() <= 1)
+    {
+        return 0;
+    }
     uint64_t ak;
     uint64_t c_b=mapParm.shapeLen, sb=0, sc = 0;
     anchors[0] = anchors[1];
