@@ -415,7 +415,7 @@ int map(Mapper & mapper, int p1)
     StringSet<FeaturesDynamic> f2;
     createFeatures(mapper.getGenomes(), f2, mapper.getFeatureType(), mapper.thread());
     std::cout << "mapf " << mapper.getFeatureType() << "\n";
-    unsigned blockSize = 1000;
+    unsigned blockSize = 50000;
     StringSet<String<char> > dotstatus;
     resize(dotstatus, 3);
     SeqFileIn rFile;
