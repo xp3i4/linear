@@ -17,9 +17,14 @@ extern const unsigned base_kmer_step_;
 extern const uint64_t base_llt_max_;
 
 struct Options{
-    typename    std::string rPath;
-    typename    std::string gPath;
-    typename    std::string oPath;
+    typedef std::string PathType;
+    typedef StringSet<PathType> PathsType;
+    PathType rPath;
+    PathType gPath;
+    PathType oPath;
+    PathsType r_paths;
+    PathsType g_paths;
+
     bool        Sensitive; 
     unsigned    sensitivity;
     unsigned    thread;
@@ -45,6 +50,13 @@ struct Options{
     int print();
 }; 
 
+int loadRecords(StringSet<String<Dna5> > & seqs, 
+                StringSet<CharString> & ids, 
+                Options::PathType path);
+int loadRecords(StringSet<String<Dna5> > & seqs, 
+                StringSet<CharString> & ids, 
+                Options::PathsType & paths);
+
 struct RecordBase
 {
     typedef Dna5 DefaultAlphabet;
@@ -67,7 +79,7 @@ struct PMRecord
     RecIds id1, id2;
     RecSeqs seq1, seq2; //seq1=read, seq2=ref
 
-    int loadRecord(Options & options);
+    //int loadRecord(Options & options);
 };
 
 struct AnchorBase{
@@ -182,7 +194,9 @@ class ostreamWapper
 {
     CharString contents; 
 public:
-    void print_message(CharString strs, int start, int end_type, std::ostream & os);
+    void print_message(std::string strs, size_t start, int end_type, std::ostream & os);
+    void print_message(double data, size_t start, int end_type, std::ostream & os);
+    void print_message(unsigned data, size_t start, int end_type, std::ostream & os);
 };
 extern ostreamWapper serr;
 /*

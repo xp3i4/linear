@@ -57,8 +57,8 @@ target_link_libraries (test_case ${SEQAN_LIBRARIES} linear_base linear_index_uti
 #SET(GCC_COVERAGE_LINK_FLAGS    "-lgcov")
 #SET(COMP_PROF_FLAGS "-ftime-report")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS} ${CXX11_CXX_FLAGS}")
-set (CMAKE_BUILD_TYPE Release)
-#set (CMAKE_BUILD_TYPE Debug)
+#set (CMAKE_BUILD_TYPE Release)
+set (CMAKE_BUILD_TYPE Debug)
 
 # ----------------------------------------------------------------------------
 # Installation

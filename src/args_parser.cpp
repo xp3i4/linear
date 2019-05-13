@@ -1,6 +1,6 @@
 #include <seqan/arg_parse.h>
 #include "base.h"
-
+std::string CARTESIAN = "x";
 seqan::ArgumentParser::ParseResult
 parseCommandLine(Options & options, int argc, char const ** argv)
 {
@@ -19,13 +19,14 @@ parseCommandLine(Options & options, int argc, char const ** argv)
 
     // Argument.
     addArgument(parser, seqan::ArgParseArgument(
-        seqan::ArgParseArgument::INPUT_FILE, "read"));
-    setHelpText(parser, 0, "Reads file .fa, .fasta");
+        seqan::ArgParseArgument::INPUT_FILE, "read",true));
+    setHelpText(parser, 0, "Reads file .fa(.gz), .fasta(.gz), .fq(.gz), .fastq(.gz) ");
 
+/*
     addArgument(parser, seqan::ArgParseArgument(
-        seqan::ArgParseArgument::INPUT_FILE, "genome", true));
-    setHelpText(parser, 1, "Reference file .fa, .fasta");
-
+        seqan::ArgParseArgument::INPUT_FILE, "genome"));
+    setHelpText(parser, 1, "Reference file .fa(.gz), .fasta(.gz)");
+*/
     addSection(parser, "Mapping Options");
     addOption(parser, seqan::ArgParseOption(
         "o", "output", "choose output file.",
@@ -44,6 +45,10 @@ parseCommandLine(Options & options, int argc, char const ** argv)
         "f", "feature_type", "{1,2}. Default -f 2 (2-mer, 48bases)",
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
+    addOption(parser, seqan::ArgParseOption(
+        "r", "reads", "Specify the reads file paths",
+            seqan::ArgParseArgument::STRING, "STR", true)); 
+
 // mapping parameters for tunning 
     addOption(parser, seqan::ArgParseOption(
         "l1", "listn1", "mapping::listn1",
@@ -89,7 +94,34 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     getOptionValue(options.thread, parser, "thread");
     getOptionValue(options.index_t, parser, "index_type");
     getOptionValue(options.feature_t, parser, "feature_type");
-    
+    std::vector<std::string> args;
+    args = getArgumentValues(parser, 0);
+    if (length(args) < 2)
+    {
+        std::cerr << "[Err]::At least two argments required to specify the reads and genomes \n";
+        return seqan::ArgumentParser::PARSE_ERROR;
+    }
+    else if (length(args) == 2)
+    {
+        //appendValue(options.rPath, args[0]);
+        appendValue (options.r_paths, args[0]);
+        appendValue (options.g_paths, args[1]);
+    }
+    else
+    {
+        Options::PathsType * pp = & options.r_paths;
+        for (size_t i = 0; i < length(args); i++)
+        {
+            if (args[i] == CARTESIAN)
+            {
+                pp = & options.g_paths;
+            }
+            else
+            {
+                appendValue (*pp, args[i]);
+            }
+        }
+    }
     getOptionValue(options.listN, parser, "listn1");
     getOptionValue(options.listN2, parser, "listn2");
     getOptionValue(options.alpha, parser, "alpha1");
@@ -97,8 +129,6 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     getOptionValue(options.cordThr, parser, "cordThr");
     getOptionValue(options.senThr, parser, "senThr");
     getOptionValue(options.p1, parser, "p1");
-    seqan::getArgumentValue(options.rPath, parser, 0);
-    seqan::getArgumentValue(options.gPath, parser, 1);
 
     return seqan::ArgumentParser::PARSE_OK;
 

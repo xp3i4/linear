@@ -22,6 +22,8 @@ class Mapper {
     int of_type;
     const int OF_APP = 0; //set of std::ios::app
     const int OF_NEW = 1;
+    Options::PathsType r_paths;
+    Options::PathsType g_paths;
 
 public:
     Mapper();
@@ -52,6 +54,8 @@ public:
     void setOfApp();
     bool isOfNew();
     bool isOfApp();
+    Options::PathsType & getRPaths();
+    Options::PathsType & getGPaths();
 
 };
 
