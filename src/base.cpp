@@ -12,6 +12,7 @@ const unsigned base_delta_ = 32;
 const unsigned base_threshold_= 30; 
 const unsigned base_kmer_step_ = 1000;
 const uint64_t base_llt_max_ = ~0;
+
 using std::cerr;
 
 Options::Options():
@@ -139,19 +140,22 @@ int readRecords_block (StringSet<CharString> & ids, StringSet<String<Dna5> > & r
 }
 
 /*
- *[]::lr
+ *[]::load all records in one genome file
  */
-int loadRecords(StringSet<String<Dna5> > & seqs, 
-                StringSet<CharString> & ids, 
-                Options::PathType path)
+std::pair<uint, uint> loadRecords(StringSet<String<Dna5> > & seqs, 
+            StringSet<CharString> & ids, 
+            Options::PathType path
+            )
 {
     double time = sysTime();
     SeqFileIn gFile;
+    std::pair<uint, uint> res;
     if (!open(gFile, toCString(path)))
     {
         serr.print_message("\033[1;31mError:\033[0m can't open file ", 2, 0, std::cerr);
         serr.print_message(toCString(path), 0, 1, std::cerr);
-        return 1;
+        res =std::make_pair (uint(~0), uint(~0));
+        return res;
     }
     double fileSize = _filesize (toCString(path));
     bool flag = false;
@@ -163,6 +167,7 @@ int loadRecords(StringSet<String<Dna5> > & seqs,
     dotstatus[1] = "..  ";
     dotstatus[2] = "... ";
     unsigned len_sum = 0;
+    int error = 0;
 #pragma omp parallel
 {
     #pragma omp sections
@@ -184,11 +189,11 @@ int loadRecords(StringSet<String<Dna5> > & seqs,
                 std::cerr << "                                                            \r";
                 if (seqCount > 2)
                 {
-                    std::cerr << "->Read genomes" << dotstatus[(k - 1)/10 %3] << "            " << seqCount << "/" << std::setprecision(2) << std::fixed << showpercent << "%\r";
+                    std::cerr << "=>Read genomes" << dotstatus[(k - 1)/10 %3] << "            " << seqCount << "/" << std::setprecision(2) << std::fixed << showpercent << "%\r";
                 }
                 else
                 {
-                    std::cerr << "->Read genomes" << dotstatus[(k - 1)/10 %3] << "\r";
+                    std::cerr << "=>Read genomes" << dotstatus[(k - 1)/10 %3] << "\r";
                 }
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 k++;
@@ -212,6 +217,7 @@ int loadRecords(StringSet<String<Dna5> > & seqs,
                     serr.print_message (msg1, 2, 0, std::cerr);
                     serr.print_message ("[", 20, 0, std::cerr);
                     serr.print_message("\033[1;31mError:\033[0m can't read records in file]", 0, 1, std::cerr);
+                    error = 1;
                 }
                 currentFileSize += length(tmp_seq);
                 appendValue (ids, tmp_id);
@@ -223,38 +229,56 @@ int loadRecords(StringSet<String<Dna5> > & seqs,
         }
     }
 }
-    //std::cerr << "--Read genomes                "<< length(seqs) <<"/100%                   \n";
-    std::string msg1 = "File: " + path + " ";
-    serr.print_message (msg1, 2, 0, std::cerr);
-
-    serr.print_message ("[", 20, 0, std::cerr);
-    serr.print_message (double(seqCount), 0, 0, std::cerr);
-    serr.print_message (" sequences; ", 0, 0, std::cerr);
-
-    serr.print_message (double(len_sum >> 20), 0, 0, std::cerr);
-    serr.print_message (" mbases; ", 0, 0, std::cerr);
-
-    std::string msg3 = "Elapsed time[s] ";
-    serr.print_message (msg3, 0, 0, std::cerr);
-    serr.print_message (sysTime() - time, 0, 0, std::cerr);
-    
-    serr.print_message ("\033[1;32m 100%\033[0m", 0, 0, std::cerr);
-
-    serr.print_message ("]", 0, 1, std::cerr);
-    //serr.print_message ()
-
-    return 0;
+    if (error)
+    {
+        res = std::make_pair(uint(~0), uint(~0));
+    }
+    else
+    {
+        res = std::make_pair (len_sum, seqCount);
+    }
+    return res;
 }
 
 int loadRecords(StringSet<String<Dna5> > & seqs, 
                 StringSet<CharString> & ids, 
                 Options::PathsType & paths)
 {
-    serr.print_message ("--Read genomes ", 0, 1, std::cerr);
     int status = 0;
-    for (size_t i = 0 ; i < length(paths); i++)
+    for (uint i = 0 ; i < length(paths); i++)
     {
-        status += loadRecords(seqs, ids, paths[i]);
+        double time = sysTime();
+        std::pair<uint, uint> res = loadRecords(seqs, ids, paths[i]);
+        uint len_sum = res.first;
+        uint seqCount = res.second; 
+        if (len_sum == ~0 || seqCount == ~0)
+        {
+            status += 1;
+            continue;
+        }
+        if (i == 0)
+        {
+            serr.print_message ("--Read genomes      ", 0, 1, cerr);
+        }
+        std::string msg1 = "File: " + paths[i] + " ";
+        serr.print_message (msg1, 2, 0, cerr);
+
+        serr.print_message ("[", 20, 0, cerr);
+        serr.print_message (double(seqCount), 0, 0, cerr);
+        serr.print_message (" sequences; ", 0, 0, cerr);
+
+        serr.print_message (double(len_sum >> 20), 0, 0, cerr);
+        serr.print_message (" mbases; ", 0, 0, cerr);
+
+        std::string msg3 = "Elapsed time[s] ";
+        serr.print_message (msg3, 0, 0, cerr);
+        serr.print_message (sysTime() - time, 0, 0, cerr);
+        
+        serr.print_message ("\033[1;32m 100%\033[0m", 0, 0, cerr);
+
+        serr.print_message ("]", 0, 1, cerr);
+        //serr.print_message ()
+
     }
     return status;
 }

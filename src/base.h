@@ -16,6 +16,8 @@ extern const unsigned base_threshold_;
 extern const unsigned base_kmer_step_;
 extern const uint64_t base_llt_max_;
 
+typedef unsigned uint;
+
 struct Options{
     typedef std::string PathType;
     typedef StringSet<PathType> PathsType;
@@ -50,9 +52,10 @@ struct Options{
     int print();
 }; 
 
-int loadRecords(StringSet<String<Dna5> > & seqs, 
-                StringSet<CharString> & ids, 
-                Options::PathType path);
+std::pair<uint, uint> 
+loadRecords(StringSet<String<Dna5> > & seqs, 
+            StringSet<CharString> & ids, 
+            Options::PathType path);
 int loadRecords(StringSet<String<Dna5> > & seqs, 
                 StringSet<CharString> & ids, 
                 Options::PathsType & paths);

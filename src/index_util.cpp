@@ -672,7 +672,7 @@ void HIndex::clear()
     //uint64_t seqChunkSize[4] = {0};
     for(uint64_t j = 0; j < length(seq); j++)
     {
-        std::cerr << ">>Index::Initiate             " << (float)j / length(seq) * 100<< "%           \r";
+        std::cerr << "=>Index::Initiate             " << (float)j / length(seq) * 100<< "%           \r";
         uint64_t thd_count = 0; // count number of elements in hs[] for each thread
         #pragma omp parallel reduction(+: thd_count)
         {

@@ -130,7 +130,7 @@ int BamAlignmentRecordLink::next() const
 {
     return next_id;
 }
-std::string getFileName(const std::string& s, char sep, int flag) {
+std::string getFileName(const std::string s, char sep, int flag) {
 
     if (flag == 1)
     {

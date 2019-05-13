@@ -10,6 +10,7 @@
 #include "align_interface.h"
 
 using namespace seqan; 
+using std::cerr;
 
 
 Mapper::Mapper(Options & options):
@@ -17,7 +18,6 @@ Mapper::Mapper(Options & options):
                index_dynamic(getGenomes()), 
                of(toCString(options.getOutputPath()))
 {
-    //outputPrefix = getFileName(getFileName(options.getReadPath()), '.', 0);
     r_paths = options.r_paths;
     g_paths = options.g_paths; 
     loadRecords(getGenomes(), getGenomesId(), g_paths);
@@ -63,8 +63,7 @@ Mapper::Mapper(Options & options):
 
 int Mapper::createIndex(bool efficient)
 {
-    for (auto g : getGenomes())
-    std::cout << g << "\n";
+    int i = 0;
     createIndexDynamic(getGenomes(), index_dynamic, _thread, efficient);
 //            createDIndex(genomes(), dIndex, thd_min_step, thd_max_step, _thread);
     return 0;
@@ -322,6 +321,10 @@ int64_t len = 0;
     return 0;
 }
 
+void Mapper::setOfNew ()
+{
+    of_type = OF_NEW;
+}
 void Mapper::setOfApp ()
 {
     of_type = OF_APP;
@@ -342,10 +345,8 @@ Options::PathsType & Mapper::getGPaths()
 {
     return g_paths;
 }
-void open_mapper_file(Mapper & mapper, std::string extension)
+void open_mapper_of(Mapper & mapper, std::string file_path)
 {
-    std::string file_path = mapper.getOutputPrefix();
-    file_path += extension;
     if (mapper.isOfNew())
     {
         //std::cerr << "new............\n" << file_path << "\n\n";
@@ -364,10 +365,22 @@ void close_mapper_of (Mapper & mapper)
 /**
  * will append contents to the end of the file if called multiple times
  */
-int print_mapper_results(Mapper & mapper, int f_prints = 0 /*print options control flags*/)
+int print_mapper_results(Mapper & mapper, 
+                        std::string outputPrefix,
+                        int f_prints = 0 /*print options control flags*/)
 {
     double time = sysTime();
-    open_mapper_file(mapper, ".apf");
+    if (mapper.getOutputPrefix() != outputPrefix)
+    {
+        mapper.getOutputPrefix() = outputPrefix;
+        mapper.setOfNew();
+    }
+    else
+    {
+        mapper.setOfApp();
+    }
+    std::string file1 = mapper.getOutputPrefix() + ".apf";
+    open_mapper_of (mapper, file1);
     print_cords_apf(mapper.getCords(), 
                     mapper.getGenomes(),
                     mapper.getReads(),
@@ -376,15 +389,20 @@ int print_mapper_results(Mapper & mapper, int f_prints = 0 /*print options contr
                     mapper.getOf()
                 );
     close_mapper_of(mapper);
-    //print_align_sam(mapper);
-    //print_clips_gvf(mapper);
+
+    std::string file2 = mapper.getOutputPrefix() + ".gvf";
+    open_mapper_of (mapper, file2);
+    print_clips_gvf(mapper);
+    close_mapper_of(mapper);
+
+    std::string file3 = mapper.getOutputPrefix() + ".sam";
+    open_mapper_of (mapper, file3);
+    print_align_sam(mapper);
+    close_mapper_of(mapper);
+
     mapper.setOfApp(); //set of_type to std::ios::app;
-    std::cerr << "--Write results to disk       100% Elapsed Time[s] " 
-              << sysTime() - time << "\n";
     return 0;
 }
-
-
 
 /*
  *[]::map
@@ -392,31 +410,34 @@ int print_mapper_results(Mapper & mapper, int f_prints = 0 /*print options contr
 int map(Mapper & mapper, int p1)
 {
     int thd_buffer_size = 10000; // every thd_buffer_size reads triggers print results.
-    //printStatus();
-    serr.print_message("=>Create index", 0, 1, std::cerr);
+    //serr.print_message("=>Create index", 0, 1, std::cerr);
     mapper.createIndex(false); // true: destruct genomes string to reduce memory footprint
     StringSet<FeaturesDynamic> f2;
     createFeatures(mapper.getGenomes(), f2, mapper.getFeatureType(), mapper.thread());
     std::cout << "mapf " << mapper.getFeatureType() << "\n";
-    unsigned blockSize = 10;
+    unsigned blockSize = 1000;
     StringSet<String<char> > dotstatus;
     resize(dotstatus, 3);
-    omp_set_num_threads(mapper.thread());
+    SeqFileIn rFile;
+    StringSet<std::string> file1s;
+    StringSet<std::string> file2s;
+    StringSet<std::string> file3s;
     for (auto path : mapper.getRPaths())
     {
-        SeqFileIn rFile;
         if(!open(rFile, toCString(path)))
         {
             serr.print_message("\033[1;31mError:\033[0m can't open read file ", 2, 0, std::cerr);
             serr.print_message(toCString(path), 0, 1, std::cerr);
             continue; 
         }
+        std::string outputPrefix = getFileName(path);
+        //outputPrefix = getFileName(outputPrefix, ".", 1);
         unsigned k = 1;
         while (!atEnd(rFile))
         {
             double time1 = sysTime();
             serr.print_message("=>Map::file_I/O", 0, 0, std::cerr);
-            serr.print_message(k, 0, 1, std::cerr);
+            serr.print_message(k, 0, 2, std::cerr);
             try
             {
                 readRecords(mapper.getReadsId(), mapper.getReads(), rFile, blockSize);
@@ -425,7 +446,7 @@ int map(Mapper & mapper, int p1)
             {
 
             }
-            serr.print_message("", 50, 2, std::cerr); 
+            //serr.print_message("", 50, 2, std::cerr); 
             serr.print_message("=>Map::mapping  block", 0, 0, std::cerr);
             serr.print_message(k, 0, 0, std::cerr);
             serr.print_message("Size ", 0, 0, std::cerr);
@@ -446,8 +467,8 @@ int map(Mapper & mapper, int p1)
             std::cerr <<  "--Map::file_I/O+Map block "<< k << " Size " << length(mapper.getReads()) << " Elapsed Time[s]: file_I/O " << time1 << " map "<< time2 << "\n";
             //if (buffer_size > thd_buffer_size)
             //{
-            std::cerr << ">Write results to disk        \r";
-            print_mapper_results(mapper);
+            serr.print_message("=>Write results to disk", 0, 2, std::cerr);
+            print_mapper_results(mapper, outputPrefix);
             //}
             clear (mapper.getCords());
             clear (mapper.getClips());
@@ -458,8 +479,21 @@ int map(Mapper & mapper, int p1)
             clear (mapper.getBamRecords());
             k++;
         }      
+        std::string file1 = mapper.getOutputPrefix() + ".apf";
+        std::string file2 = mapper.getOutputPrefix() + ".gvf";
+        std::string file3 = mapper.getOutputPrefix() + ".sam";
+        appendValue (file1s, file1);
+        appendValue (file2s, file2);
+        appendValue (file3s, file3);
+        close(rFile);
     }
-
+    serr.print_message("--Write results to disk 100%", 0, 1, cerr);
+    for (uint i = 0; i < length(file1s); i++)
+    {
+        serr.print_message("Result files: \033[1;31m" + file1s[i] + "\033[0m ", 2, 0, cerr);
+        serr.print_message("\033[1;31m" + file2s[i] + "\033[0m ", 0, 0, cerr);
+        serr.print_message("\033[1;31m" + file3s[i] + "\033[0m ", 16, 1, cerr); 
+    }
     //!!TODO::clear index;
     //mapper.index().clear(); 
     //std::cerr << ">Write results to disk        \r";
@@ -478,12 +512,9 @@ int main(int argc, char const ** argv)
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res == seqan::ArgumentParser::PARSE_ERROR;
     Mapper mapper(options);
+    omp_set_num_threads(mapper.thread());
     map(mapper, options.p1);
-/*
-    std::cerr << "  Result Files: \033[1;31m" << (mapper.getOutputPrefix() + ".apf")<< "\033[0m" << std::endl;
-    std::cerr << "                \033[1;31m" << (mapper.getOutputPrefix() + ".gvf") << "\033[0m" << std::endl;
-    std::cerr << "                \033[1;31m" << (mapper.getOutputPrefix() + ".sam") << "\033[0m" << std::endl;
-    */
+
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
     return 0;
 }

@@ -52,6 +52,7 @@ public:
     StringSet<String<BamAlignmentRecordLink> > & getBamRecords() {return bam_records;}
     int getFeatureType();
     void setOfApp();
+    void setOfNew();
     bool isOfNew();
     bool isOfApp();
     Options::PathsType & getRPaths();
