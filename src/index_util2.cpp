@@ -1,6 +1,6 @@
 #include <seqan/sequence.h>
 #include "shape_extend.h" 
-#include "pmpfinder.h"
+#include "cords.h"
 #include "index_util.h"
 #include "base.h"
 using namespace seqan;

@@ -38,7 +38,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
         "t", "thread", "Default -t 4",
             seqan::ArgParseArgument::INTEGER, "INT"));
     addOption(parser, seqan::ArgParseOption(
-        "idx", "index_type", "Default -idx 1",
+        "i", "index_type", "Default -idx 1",
             seqan::ArgParseArgument::INTEGER, "INT"
         ));
     addOption(parser, seqan::ArgParseOption(
@@ -46,8 +46,11 @@ parseCommandLine(Options & options, int argc, char const ** argv)
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
     addOption(parser, seqan::ArgParseOption(
-        "r", "reads", "Specify the reads file paths",
-            seqan::ArgParseArgument::STRING, "STR", true)); 
+        "g", "gap_len", "ignore gap < this value",
+            seqan::ArgParseArgument::INTEGER, "INT"
+        )); 
+
+
 
 // mapping parameters for tunning 
     addOption(parser, seqan::ArgParseOption(
@@ -94,6 +97,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     getOptionValue(options.thread, parser, "thread");
     getOptionValue(options.index_t, parser, "index_type");
     getOptionValue(options.feature_t, parser, "feature_type");
+    //getOptionValue(options.gap_len, parser, "gap_len");
     std::vector<std::string> args;
     args = getArgumentValues(parser, 0);
     if (length(args) < 2)

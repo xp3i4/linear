@@ -2,9 +2,9 @@
 #include <utility> 
 #include "base.h"
 #include "index_util.h"
-#include "pmpfinder.h"
+#include "cords.h"
 #include "gap.h"
-
+ 
 /*=============================================
 =             Interface function              =
 =============================================*/
@@ -765,11 +765,11 @@ int mapGap_(GIndex & g_index, String <Dna5> & read,  uint64_t start2, uint64_t e
 }
 
 /**
- * NOTE: The following two functions are mapping gaps by using the index.
- * Currently it's not used due to the draining of the performance, mainly the speed.
+ * NOTE: Functions mapping gaps by the index.
+ * Aborted due to reason regarding the speed.
+ * Replaced by index-free methods.
  */ 
 /*
-
 int mapGap(String <Dna5> & seq, String <Dna5> & read, Gap & gap, 
            String<uint64_t> & tile, uint64_t const thd_tileSize)
 {
@@ -1393,9 +1393,9 @@ int check_tiles_(String<uint64_t> & tiles, uint64_t g_start, uint64_t g_end)
             uint64_t tile_x = _defaultTile.getX(tiles[i]);
             uint64_t tile_y = _defaultTile.getY(tiles[i]);
             unsigned fscore = _windowDist(f1[_defaultTile.getStrand(tiles[i])],
-                                          f2[_getSA_i1(tile_x)],
+                                          f2[get_tile_id(tiles[i])],
                                           _DefaultCord.cord2Cell(tile_y), 
-                                          _DefaultCord.cord2Cell(_getSA_i2(tile_x)));
+                                          _DefaultCord.cord2Cell(get_tile_x(tiles[i])));
             //if (fscore < windowThreshold)
             if (fscore < thd_fscore)
             {
@@ -1505,10 +1505,10 @@ unsigned _get_tile_f_ (uint64_t & tile,
     uint64_t tile_x = _defaultTile.getX(tile);
     uint64_t tile_y = _defaultTile.getY(tile);
     unsigned fscore = 
-        _windowDist(f1[_defaultTile.getStrand(tile)], 
-                    f2[_getSA_i1(tile_x)],
+        _windowDist(f1[get_tile_strand(tile)], 
+                    f2[get_tile_id(tile)],
                     _DefaultCord.cord2Cell(tile_y), 
-                    _DefaultCord.cord2Cell(_getSA_i2(tile_x)));
+                    _DefaultCord.cord2Cell(get_tile_x(tile)));
     return fscore;
 }
 

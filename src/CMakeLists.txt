@@ -39,19 +39,20 @@ add_definitions (-DSEQAN_DATE="${SEQAN_DATE}")
 
 
 add_library(linear_base STATIC base.cpp)
+add_library(linear_cords STATIC cords.cpp)
 add_library(linear_index_util STATIC index_util.cpp)
+#add_library(linear_index_util2 STATIC index_util2.cpp)
 add_library(linear_args_parser STATIC args_parser.cpp)
 add_library(linear_pmpfinder STATIC pmpfinder.cpp)
-add_library(linear_index_util2 STATIC index_util2.cpp)
 add_library(linear_gap STATIC gap.cpp)
 add_library(linear_fio STATIC f_io.cpp)
 add_library(linear_align STATIC align_interface.cpp)
 
 add_executable (linear mapper.cpp) 
-target_link_libraries (linear ${SEQAN_LIBRARIES} linear_base linear_index_util linear_index_util2 linear_args_parser linear_pmpfinder linear_gap linear_fio linear_align)
+target_link_libraries (linear ${SEQAN_LIBRARIES} linear_base linear_cords linear_index_util linear_args_parser linear_pmpfinder linear_gap linear_fio linear_align)
 add_executable (test_case test_case.cpp)
-target_link_libraries (test_case ${SEQAN_LIBRARIES} linear_base linear_index_util linear_args_parser linear_pmpfinder linear_index_util2 linear_gap linear_fio linear_align)
-
+target_link_libraries (test_case ${SEQAN_LIBRARIES} linear_base linear_cords linear_index_util linear_args_parser linear_pmpfinder linear_gap linear_fio linear_align)
+ 
 # Add CXX flags found by find_package (SeqAn).
 #SET(GCC_COVERAGE_COMPILE_FLAGS "-fprofile-arcs -ftest-coverage")
 #SET(GCC_COVERAGE_LINK_FLAGS    "-lgcov")

@@ -8,14 +8,15 @@
 
 using namespace seqan;
 
+extern const float    base_alpha_;
 extern const unsigned base_shape_len_;
-extern const float base_alpha_;
 extern const unsigned base_block_size_;
 extern const unsigned base_delta_; 
 extern const unsigned base_threshold_; 
 extern const unsigned base_kmer_step_;
 extern const uint64_t base_llt_max_;
 
+typedef Iterator <String <Dna5> >::Type TIter5;
 typedef unsigned uint;
 
 struct Options{
@@ -224,7 +225,6 @@ struct CmpInt64
     CmpInt64 & operator << (int64_t); //get min of all the suffix 
     CmpInt64 & operator >> (int64_t); //get max of ...
 };
-
 
 
 #endif

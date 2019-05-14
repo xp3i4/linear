@@ -2,7 +2,6 @@
 #define SEQAN_HEADER_INDEX_UTIL_H
 #include <seqan/parallel.h>
 #include <seqan/sequence.h>
-//#include <seqan/index.h>
 #include "shape_extend.h"
 
 using namespace seqan;
@@ -175,7 +174,7 @@ public:
     void clear();
 }; 
 
-typedef HIndex LIndex;
+typedef HIndex LIndex; 
 
 extern int const typeDIx;
 extern int const typeHIx;

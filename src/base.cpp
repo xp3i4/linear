@@ -5,13 +5,14 @@ using namespace seqan;
 //===================================================================
 // variable and type def
 //===================================================================
-const unsigned base_shape_len_ = 25;
-const float base_alpha_ = 0.75;
+
+const float    base_alpha_      = 0.75;
+const unsigned base_shape_len_  = 25;
 const unsigned base_block_size_ = 100;
-const unsigned base_delta_ = 32; 
-const unsigned base_threshold_= 30; 
-const unsigned base_kmer_step_ = 1000;
-const uint64_t base_llt_max_ = ~0;
+const unsigned base_delta_      = 32; 
+const unsigned base_threshold_  = 30; 
+const unsigned base_kmer_step_  = 1000;
+const uint64_t base_llt_max_    = ~0;
 
 using std::cerr;
 
@@ -533,3 +534,4 @@ CmpInt64 & CmpInt64::operator >> (int64_t n)
     }
     return *this;
 }
+

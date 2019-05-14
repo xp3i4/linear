@@ -7,6 +7,7 @@
 #include <seqan/vcf_io.h>
 #include <iostream>
 #include <fstream>
+#include "cords.h"
 #include "pmpfinder.h"
 #include "f_io.h"
 
@@ -605,4 +606,50 @@ void printRows(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
     std::cout << "\n";
 }
 
+int print_align_sam_header_ (StringSet<CharString> & genomesId,
+                             StringSet<String<Dna5> > & genomes,
+                             std::ofstream & of
+                            )
+{
+    of << "@HD\tVN:1.6\n";
+    for (int k = 0; k < length(genomesId); k++)
+    {
+        of << "@SQ\tSN:" << genomesId[k] << "\tLN:" << length(genomes[k]) << "\n";
+    }
+    of << "@PG\tPN:" << "Linear\n";
+}
 
+int print_align_sam_record_(StringSet<String<BamAlignmentRecord > > & records, 
+                            StringSet<String<uint64_t> > & cordSet,
+                            StringSet<CharString> & readsId, 
+                            StringSet<CharString> & genomesId,
+                            std::ofstream & of
+                            )
+{
+    for (int i = 0; i < length(records); i++)
+    {
+        for (int j = 0; j < length(records[i]); j++)
+        {
+            records[i][j].qName = readsId[i];
+            CharString g_id = genomesId[records[i][j].rID];
+            writeSam(of, records[i][j], g_id);
+        }
+    }
+}
+int print_align_sam_record_(StringSet<String<BamAlignmentRecordLink> > & records, 
+                            StringSet<String<uint64_t> > & cordSet,
+                            StringSet<CharString> & readsId, 
+                            StringSet<CharString> & genomesId,
+                            std::ofstream & of
+                            )
+{
+    for (int i = 0; i < length(records); i++)
+    {
+        for (int j = 0; j < length(records[i]); j++)
+        {
+            records[i][j].qName = readsId[i];
+            CharString g_id = genomesId[records[i][j].rID];
+            int dt = writeSam(of, records[i], j, g_id);
+        }
+    }
+}

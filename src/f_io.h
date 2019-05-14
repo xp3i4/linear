@@ -2,7 +2,7 @@
 #define LINEAR_HEADER_F_IO_H
 
 #include <seqan/bam_io.h>
-#include "pmpfinder.h"
+#include "cords.h"
 using namespace seqan;
 
 void print_cords_apf(CordsSetType & cords, 
@@ -54,5 +54,23 @@ void printRows(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
                Row<Align<String<Dna5>,ArrayGaps> >::Type & row2,
                int i = -1
                );
+int print_align_sam_header_ (StringSet<CharString> & genomesId,
+                             StringSet<String<Dna5> > & genomes,
+                             std::ofstream & of
+                            );
+
+int print_align_sam_record_(StringSet<String<BamAlignmentRecord > > & records, 
+                            StringSet<String<uint64_t> > & cordSet,
+                            StringSet<CharString> & readsId, 
+                            StringSet<CharString> & genomesId,
+                            std::ofstream & of
+                            );
+
+int print_align_sam_record_(StringSet<String<BamAlignmentRecordLink> > & records, 
+                            StringSet<String<uint64_t> > & cordSet,
+                            StringSet<CharString> & readsId, 
+                            StringSet<CharString> & genomesId,
+                            std::ofstream & of
+                            );
 
 #endif
