@@ -1,6 +1,7 @@
 #ifndef LINEAR_HEADER_PMP_FINDER_H
 #define LINEAR_HEADER_PMP_FINDER_H
 #include <seqan/sequence.h>
+#include "index_util.h"
 #include "base.h"
 using namespace seqan;
 
@@ -64,4 +65,14 @@ int createFeatures(StringSet<String<Dna5> > &,
 int createFeatures(StringSet<String<Dna5> > &, 
                    StringSet<FeaturesDynamic > &, int); //serial
 
+uint64_t mnMapReadList( LIndex  & index,
+                        String<Dna5> & read,
+                        Anchors & anchors,
+                        MapParm & mapParm,
+                        String<uint64_t> & hit);
+uint64_t mnMapReadList( IndexDynamic  & index,
+                        String<Dna5> & read,
+                        Anchors & anchors,
+                        MapParm & mapParm,
+                        String<uint64_t> & hit);
 #endif
