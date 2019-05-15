@@ -2,7 +2,7 @@
 #define SEQAN_HEADER_SHAPE_PM_H
 #include <seqan/sequence.h>
 
-namespace seqan{
+using namespace seqan;
 
 typedef Dna5 ShapeType;
 typedef typename Iterator<String<Dna5> >::Type TIterS;
@@ -218,7 +218,6 @@ inline uint64_t hashNextX(LShape & me, TIterS it)
     return me.XValue; 
 }
 
-}
 
 #endif
 
