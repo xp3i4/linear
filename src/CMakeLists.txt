@@ -41,16 +41,14 @@ target_link_libraries (linear
                        linear_cords 
                        linear_base
                       ${SEQAN_LIBRARIES})
+target_include_directories(linear PUBLIC "../include")
 
 add_executable (test_case test_case.cpp)
 target_link_libraries (test_case  
-                      ${SEQAN_LIBRARIES}
                        linear_shape_extend
                        linear_base 
                        linear_args_parser
+                      ${SEQAN_LIBRARIES}
     )
-
-install (TARGETS linear RUNTIME DESTINATION "${CMAKE_BINARY_DIR}/bin")
-
-
+install (TARGETS linear RUNTIME DESTINATION bin)
 
