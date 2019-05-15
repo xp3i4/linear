@@ -1,7 +1,7 @@
 #include "base.h"
 #include "cords.h"
-#include "index_util.h"
 #include "shape_extend.h"
+#include "index_util.h"
 
 using namespace seqan; 
 

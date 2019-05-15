@@ -1,7 +1,7 @@
 //GNode: N/A[1]|xval[32]|strand[1]|coordinate[30]
 #include <utility> 
 #include "base.h"
-#include "index_util.h"
+#include "shape_extend.h"
 #include "cords.h"
 #include "gap.h"
  
@@ -2830,7 +2830,7 @@ uint64_t c_clip_(String<Dna5> & genome,
     String<Dna5> & seq2 = *p;
     int band = (gs_end - gs_str) * thd_band_ratio;
     ///clip scaffold
-
+ 
     int g_hs_end = c_stream_(seq1, g_hs, gs_str, gs_end, 0, 1, 0);
         g_hs_end = c_stream_(seq2, g_hs, gr_str, gr_end, g_hs_end, 1, 1);
     std::sort (begin(g_hs), begin(g_hs) + g_hs_end);

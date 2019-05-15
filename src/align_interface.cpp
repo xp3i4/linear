@@ -1,5 +1,5 @@
 #include <utility> 
-#include "cords.h"  
+#include "cords.h" 
 #include "pmpfinder.h"
 #include "align_interface.h"
 //TODO seqand::setclippedpositoin retrieve source postion that's not efficient

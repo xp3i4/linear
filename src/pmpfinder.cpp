@@ -1,11 +1,9 @@
 #include <iostream>
-#include <seqan/sequence.h>
-#include <seqan/stream.h>
 #include "base.h"
 #include "cords.h"
+#include "shape_extend.h"
 #include "index_util.h"
 #include "pmpfinder.h"
-#include "chain_map.h"
 
 using namespace seqan;
 using std::cout;

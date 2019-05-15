@@ -1,26 +1,10 @@
-#ifndef SEQAN_HEADER_SHAPE_PM_H
-#define SEQAN_HEADER_SHAPE_PM_H
-#include <seqan/sequence.h>
+#include "shape_extend.h"
 
 using namespace seqan;
 
 typedef Dna5 ShapeType;
-typedef typename Iterator<String<Dna5> >::Type TIterS;
 
-class LShape
-{
-public:
-    unsigned span;
-    unsigned weight;
-    uint64_t hValue;     //hash value 
-    uint64_t crhValue;    //ReverseComplement
-    uint64_t XValue;     //minimizer 
-    uint64_t YValue;     //Y(h,x)
-    uint64_t strand;
-    int leftChar;
-    int x;
-
-    LShape(unsigned span):
+LShape::LShape(unsigned span):
         span(span),
         weight(span - 8),
         hValue(0),
@@ -30,10 +14,11 @@ public:
         strand(0),
         leftChar(0),
         x(0)
-    {}
-};
+{
+    
+}
 
-inline void resize(LShape & me, unsigned new_span, unsigned new_weight)
+void resize(LShape & me, unsigned new_span, unsigned new_weight)
 {   
     me.span = new_span;
     me.weight = new_weight;
@@ -42,12 +27,12 @@ inline void resize(LShape & me, unsigned new_span, unsigned new_weight)
 static const uint64_t COMP4 = 3;
 static const int  ordC = 3;
 
-inline uint64_t getMask(unsigned bit)
+uint64_t getMask(unsigned bit)
 {
     return (1ULL << bit) - 1;
 }
 
-inline uint64_t hashInit(LShape & me, TIterS it)
+uint64_t hashInit(LShape & me, TIterS it)
 {
     SEQAN_ASSERT_GT((unsigned)me.span, 0u);
 
@@ -83,7 +68,7 @@ inline uint64_t hashInit(LShape & me, TIterS it)
  *@d=0 init for hashNext_hs
  *@d=1 init for hashPre_hs 
  */
-inline uint64_t hashInit_hs(LShape & me, TIterS it, int d)
+uint64_t hashInit_hs(LShape & me, TIterS it, int d)
 {
     me.hValue = 0;
     for (unsigned i = d; i < me.span - 1 + d; ++i)
@@ -93,7 +78,7 @@ inline uint64_t hashInit_hs(LShape & me, TIterS it, int d)
     me.hValue <<= (d << 1);
     return 0;
 }
-inline uint64_t hashNext(LShape & me, TIterS it)
+uint64_t hashNext(LShape & me, TIterS it)
 {
     SEQAN_ASSERT_GT((unsigned)me.span, 0u);
     uint64_t v1;
@@ -134,7 +119,7 @@ inline uint64_t hashNext(LShape & me, TIterS it)
  * this hashNext function is for index only collect mini hash value [minindex]
  * calculate hValue;
  */ 
-inline uint64_t hashNexth(LShape & me, TIterS it)
+uint64_t hashNexth(LShape & me, TIterS it)
 {
     SEQAN_ASSERT_GT((unsigned)me.span, 0u);
     uint64_t v2 = ordValue((ShapeType)*(it + me.span - 1 ));
@@ -150,14 +135,14 @@ inline uint64_t hashNexth(LShape & me, TIterS it)
  * only calculate hash value for single strand
  * calculate hValue;
  */ 
-inline uint64_t hashNext_hs(LShape & me, TIterS it)
+uint64_t hashNext_hs(LShape & me, TIterS it)
 {
     uint64_t v2 = ordValue((ShapeType)*(it + me.span - 1 ));
     uint64_t mask = getMask((me.span << 1) - 2);
     me.hValue = ((me.hValue & mask) << 2) + v2;
     return me.hValue; 
 }
-inline uint64_t hashPre_hs(LShape & me, TIterS it)
+uint64_t hashPre_hs(LShape & me, TIterS it)
 {
     uint64_t v2 = ordValue((ShapeType)*(it)) << ((me.span << 1)  - 2);
     uint64_t mask = getMask((me.span << 1) - 2);
@@ -168,7 +153,7 @@ inline uint64_t hashPre_hs(LShape & me, TIterS it)
  * this hashNext function is for index only collect mini hash value [minindex]
  * calculate hValue;
  */ 
-inline uint64_t hashNextV(LShape & me, TIterS it)
+uint64_t hashNextV(LShape & me, TIterS it)
 {
     SEQAN_ASSERT_GT((unsigned)me.span, 0u);
     uint64_t v2 = ordValue((ShapeType)*(it + me.span - 1 ));
@@ -185,7 +170,7 @@ inline uint64_t hashNextV(LShape & me, TIterS it)
  * this hashNext function is for index only collect mini hash value [minindex]
  * calculate XValue
  */ 
-inline uint64_t hashNextX(LShape & me, TIterS it)
+uint64_t hashNextX(LShape & me, TIterS it)
 {
     SEQAN_ASSERT_GT((unsigned)me.span, 0u);
     uint64_t v1;
@@ -218,6 +203,4 @@ inline uint64_t hashNextX(LShape & me, TIterS it)
     return me.XValue; 
 }
 
-
-#endif
 

@@ -2,13 +2,13 @@
 #include <iostream>
 #include <fstream>
 #include <ctime>
-#include "mapper.h"
 #include "args_parser.h"
 #include "cords.h"
 #include "pmpfinder.h"
 #include "chain_map.h"
 #include "gap.h"
 #include "align_interface.h"
+#include "mapper.h"
 
 using namespace seqan; 
 using std::cerr;

@@ -1,5 +1,5 @@
-#ifndef SEQAN_HEADER_PMP_FINDER_H
-#define SEQAN_HEADER_PMP_FINDER_H
+#ifndef LINEAR_HEADER_PMP_FINDER_H
+#define LINEAR_HEADER_PMP_FINDER_H
 #include <seqan/sequence.h>
 #include "base.h"
 using namespace seqan;
