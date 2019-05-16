@@ -21,7 +21,9 @@ Options::Options():
         sensitivity(1),
         thread(16),
         index_t(1),
-        feature_t(2)
+        feature_t(2),
+        gap_len(0),
+        aln_flag(0)
         {
            date = __DATE__; 
         }
@@ -32,7 +34,7 @@ std::string Options::getOutputPath() const {return oPath;};
  * strand = 0, 1, other values is not allowed
  * return -1 , 1
  */
- uint64_t _nStrand(uint64_t strand)
+uint64_t _nStrand(uint64_t strand)
 {
     return (strand << 1) - 1;
 }
@@ -41,7 +43,7 @@ std::string Options::getOutputPath() const {return oPath;};
  * do nothing if strand = 0
  * len is the length of the sequences;
  */
- uint64_t _flipCoord (uint64_t coord, uint64_t len, uint64_t strand)
+uint64_t _flipCoord (uint64_t coord, uint64_t len, uint64_t strand)
 {
     return len * strand - _nStrand(strand) * coord;
 }

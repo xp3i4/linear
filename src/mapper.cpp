@@ -12,6 +12,19 @@
 using namespace seqan; 
 using std::cerr;
 
+/**
+ * flags controlling map func;
+ */
+struct F_Map_
+{
+    void setMapGapOFF(uint & f){f &= ~2;}
+    void setMapGapON(uint & f){f |= 2;}
+    void setAlignOFF(uint & f){f &= ~4;}
+    void setAlignON(uint & f){f |= 4;}
+    uint isMapGap (uint & f){return f & 2;}
+    uint isAlign (uint & f){return f & 4;}
+}fm_handler_;
+
 Mapper::Mapper(Options & options):
                record(options),
                index_dynamic(getGenomes()), 
@@ -58,6 +71,23 @@ Mapper::Mapper(Options & options):
         feature_type = typeFeatures2_48;
     }
     of_type = OF_NEW;
+    f_map = 0;
+    if (options.gap_len == 0)
+    {
+        fm_handler_.setMapGapOFF(f_map);
+    }
+    else
+    {
+        fm_handler_.setMapGapON(f_map);
+    }
+    if (options.aln_flag == 0)
+    {
+        fm_handler_.setAlignOFF(f_map);
+    }
+    else
+    {
+        fm_handler_.setAlignON(f_map);
+    }
 }
 int Mapper::createIndex(bool efficient)
 {
@@ -186,6 +216,8 @@ int print_mapper_results(Mapper & mapper,
     return 0;
 }
 
+
+
 int map_(IndexDynamic & index,
          StringSet<FeaturesDynamic > & f2,
          StringSet<String<Dna5> > & reads,
@@ -194,7 +226,8 @@ int map_(IndexDynamic & index,
          StringSet<String<uint64_t> > & clips,
          StringSet<String<Dna5> > & seqs,
          StringSet<String<BamAlignmentRecordLink> >& bam_records,
-         unsigned & threads,
+         uint f_map,   //control flags
+         uint & threads,
          int p1
         )
 {
@@ -259,8 +292,14 @@ int map_(IndexDynamic & index,
                 mnMapReadList(index, reads[j], anchors, complexParm, crhit);
                 path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
             }   
-            //gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, p1, window_size);
-            //align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c], p1);
+            if (fm_handler_.isMapGap(f_map))
+            {
+                gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, p1, window_size);
+            }
+            if (fm_handler_.isAlign(f_map))
+            {
+                align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c], p1);
+            }
         }   
         c += 1;
     } 
@@ -282,6 +321,7 @@ int map_(IndexDynamic & index,
  */
 int map(Mapper & mapper, int p1)
 {
+    std::cout << "ddd " << fm_handler_.isAlign(mapper.getMapFlag()) << "\n";
     int thd_buffer_size = 10000; // every thd_buffer_size reads triggers print results.
     //serr.print_message("=>Create index", 0, 1, std::cerr);
     mapper.createIndex(false); // true: destruct genomes string to reduce memory footprint
@@ -334,6 +374,7 @@ int map(Mapper & mapper, int p1)
                  mapper.getClips(),
                  mapper.getGenomes(),
                  mapper.getBamRecords(),
+                 mapper.getMapFlag(),
                  mapper.thread(), 
                  p1);
             time2 = sysTime() - time2;

@@ -24,6 +24,7 @@ class Mapper {
     const int OF_NEW = 1;
     Options::PathsType r_paths;
     Options::PathsType g_paths;
+    uint f_map;     //map control flag 
 
 public:
     Mapper();
@@ -55,6 +56,7 @@ public:
     bool isOfApp();
     Options::PathsType & getRPaths();
     Options::PathsType & getGPaths();
+    uint & getMapFlag(){return f_map;}
 
 };
 

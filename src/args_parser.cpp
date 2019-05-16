@@ -46,7 +46,11 @@ parseCommandLine(Options & options, int argc, char const ** argv)
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
     addOption(parser, seqan::ArgParseOption(
-        "g", "gap_len", "ignore gap < this value",
+        "g", "gap_len", "0 to turn off gap mapping module, set > 0 to map gaps whose length > this value",
+            seqan::ArgParseArgument::INTEGER, "INT"
+        )); 
+    addOption(parser, seqan::ArgParseOption(
+        "a", "aln_flag", "0 to turn of alignment module",
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
 
@@ -97,7 +101,8 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     getOptionValue(options.thread, parser, "thread");
     getOptionValue(options.index_t, parser, "index_type");
     getOptionValue(options.feature_t, parser, "feature_type");
-    //getOptionValue(options.gap_len, parser, "gap_len");
+    getOptionValue(options.gap_len, parser, "gap_len");
+    getOptionValue(options.aln_flag, parser, "aln_flag");
     std::vector<std::string> args;
     args = getArgumentValues(parser, 0);
     if (length(args) < 2)
