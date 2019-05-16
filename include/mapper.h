@@ -14,20 +14,26 @@ class Mapper {
     StringSet<String<uint64_t> >  cordSet;
     std::ofstream of;
     unsigned _thread;
-    String<int> rlens;
+    String<size_t> rlens;
     StringSet<String<uint64_t> > clip_set;
     StringSet<String<BamAlignmentRecordLink> > bam_records;
     std::string outputPrefix;
     int feature_type;
+    int of_type;
+    const int OF_APP = 0; //set of std::ios::app
+    const int OF_NEW = 1;
+    Options::PathsType r_paths;
+    Options::PathsType g_paths;
+    uint f_map;     //map control flag 
 
 public:
     Mapper();
     Mapper(Options & options);
-    StringSet<String<Dna5> > & reads() {return record.seq1;}             
-    StringSet<String<Dna5> > & genomes() {return record.seq2;}             
+    StringSet<String<Dna5> > & getReads() {return record.seq1;}             
+    StringSet<String<Dna5> > & getGenomes() {return record.seq2;}             
     MapParm & mapParm() {return parm;}
     IndexDynamic & index() {return index_dynamic;}
-    StringSet<String<uint64_t> > & cords() {return cordSet;}            //returns cord set 
+    StringSet<String<uint64_t> > & getCords() {return cordSet;}            //returns cord set 
     
     void printCords(std::ostream & );
     void printCordsRaw();
@@ -36,16 +42,22 @@ public:
     int createIndex(bool = false);
     unsigned sens(){return parm.sensitivity;}
     unsigned & thread(){return _thread;}
-    CharString & readPath(){return record.readPath;}
-    CharString & genomePath(){return record.genomePath;}
-    StringSet<CharString> & readsId(){return record.id1;}
-    StringSet<CharString> & genomesId(){return record.id2;}
+    StringSet<CharString> & getReadsId(){return record.id1;}
+    StringSet<CharString> & getGenomesId(){return record.id2;}
     StringSet<String<uint64_t> > & getClips(){return clip_set;}
-    String<int> & readLens(){return rlens;}
+    String<size_t> & getReadsLen(){return rlens;}
     std::ofstream & getOf() {return of;}
     std::string & getOutputPrefix(){return outputPrefix;}
     StringSet<String<BamAlignmentRecordLink> > & getBamRecords() {return bam_records;}
     int getFeatureType();
+    void setOfApp();
+    void setOfNew();
+    bool isOfNew();
+    bool isOfApp();
+    Options::PathsType & getRPaths();
+    Options::PathsType & getGPaths();
+    uint & getMapFlag(){return f_map;}
+
 };
 
 #endif

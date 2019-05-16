@@ -8,19 +8,27 @@
 
 using namespace seqan;
 
+extern const float    base_alpha_;
 extern const unsigned base_shape_len_;
-extern const float base_alpha_;
 extern const unsigned base_block_size_;
 extern const unsigned base_delta_; 
 extern const unsigned base_threshold_; 
 extern const unsigned base_kmer_step_;
 extern const uint64_t base_llt_max_;
 
+typedef Iterator <String <Dna5> >::Type TIter5;
+typedef unsigned uint;
+typedef uint64_t uintll;
+
 struct Options{
-    typename    std::string rPath;
-    typename    std::string gPath;
-    typename    std::string oPath;
-    bool        Sensitive; 
+    typedef std::string PathType;
+    typedef StringSet<PathType> PathsType;
+    PathType oPath;
+    PathsType r_paths;
+    PathsType g_paths;
+    uint gap_len; //0 to turn off gap mapping module, set > 0 to map gaps whose length > this value
+    uint aln_flag;
+
     unsigned    sensitivity;
     unsigned    thread;
     int         index_t;
@@ -39,11 +47,16 @@ struct Options{
     std::string date; 
 
     Options();
-    std::string getGenomePath() const; 
-    std::string getReadPath() const;
     std::string getOutputPath() const;
-    int print();
 }; 
+
+std::pair<uint, uint> 
+loadRecords(StringSet<String<Dna5> > & seqs, 
+            StringSet<CharString> & ids, 
+            Options::PathType path);
+int loadRecords(StringSet<String<Dna5> > & seqs, 
+                StringSet<CharString> & ids, 
+                Options::PathsType & paths);
 
 struct RecordBase
 {
@@ -62,12 +75,10 @@ struct PMRecord
     PMRecord(){}
     PMRecord(Options & options);
     
-    CharString readPath;
-    CharString genomePath; 
     RecIds id1, id2;
     RecSeqs seq1, seq2; //seq1=read, seq2=ref
 
-    int loadRecord(Options & options);
+    //int loadRecord(Options & options);
 };
 
 struct AnchorBase{
@@ -161,7 +172,7 @@ struct MapParm{
     void print ();
 };
 
-int readRecords_block (StringSet<CharString> & ids, StringSet<String<Dna5> > & reads, String<int> & lens, SeqFileIn & fin, int blockSize);
+int readRecords_block (StringSet<CharString> & ids, StringSet<String<Dna5> > & reads, String<size_t> & lens, SeqFileIn & fin, int blockSize);
 void _compltStr(String<Dna5> & str, String<Dna5> & res);
 void _compltRvseStr(String<Dna5> & str, String<Dna5> & res);
 
@@ -182,7 +193,9 @@ class ostreamWapper
 {
     CharString contents; 
 public:
-    void print_message(CharString strs, int start, int end_type, std::ostream & os);
+    void print_message(std::string strs, size_t start, int end_type, std::ostream & os);
+    void print_message(double data, size_t start, int end_type, std::ostream & os);
+    void print_message(unsigned data, size_t start, int end_type, std::ostream & os);
 };
 extern ostreamWapper serr;
 /*
@@ -204,8 +217,16 @@ struct CmpInt64
     CmpInt64 & init (int64_t & rslt, int64_t init_val);
     CmpInt64 & min (int64_t & rslt, int64_t val = (~(1LL << 63)));
     CmpInt64 & max (int64_t & rslt, int64_t val = ((1LL << 63) + 1));
+<<<<<<< HEAD:src/base.h
     CmpInt64 & operator << (int64_t); //get min of the suffix 
     CmpInt64 & operator >> (int64_t); //get max of ...
 };
 
+=======
+    CmpInt64 & operator << (int64_t); //get min of all the suffix 
+    CmpInt64 & operator >> (int64_t); //get max of ...
+};
+
+
+>>>>>>> b0/112/multiple_reads_seq_input:include/base.h
 #endif

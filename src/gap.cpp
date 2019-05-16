@@ -1,12 +1,12 @@
 //GNode: N/A[1]|xval[32]|strand[1]|coordinate[30]
 #include <utility> 
 #include "base.h"
-#include "index_util.h"
-#include "pmpfinder.h"
+#include "shape_extend.h"
+#include "cords.h"
 #include "gap.h"
-
+ 
 /*=============================================
-=             Interface function             =
+=             Interface function              =
 =============================================*/
 using std::endl;
 
@@ -756,11 +756,11 @@ int mapGap_(GIndex & g_index, String <Dna5> & read,  uint64_t start2, uint64_t e
 }
 
 /**
- * NOTE: The following two functions are mapping gaps by using the index.
- * Currently it's not used due to the draining of the performance, mainly the speed.
+ * NOTE: Functions mapping gaps by the index.
+ * Aborted due to reason regarding the speed.
+ * Replaced by index-free methods.
  */ 
 /*
-
 int mapGap(String <Dna5> & seq, String <Dna5> & read, Gap & gap, 
            String<uint64_t> & tile, uint64_t const thd_tileSize)
 {
@@ -1379,9 +1379,9 @@ int check_tiles_(String<uint64_t> & tiles, uint64_t g_start, uint64_t g_end)
             uint64_t tile_x = _defaultTile.getX(tiles[i]);
             uint64_t tile_y = _defaultTile.getY(tiles[i]);
             unsigned fscore = _windowDist(f1[_defaultTile.getStrand(tiles[i])],
-                                          f2[_getSA_i1(tile_x)],
+                                          f2[get_tile_id(tiles[i])],
                                           _DefaultCord.cord2Cell(tile_y), 
-                                          _DefaultCord.cord2Cell(_getSA_i2(tile_x)));
+                                          _DefaultCord.cord2Cell(get_tile_x(tiles[i])));
             //if (fscore < windowThreshold)
             if (fscore < thd_fscore)
             {
@@ -1490,10 +1490,10 @@ unsigned _get_tile_f_ (uint64_t & tile,
     uint64_t tile_x = _defaultTile.getX(tile);
     uint64_t tile_y = _defaultTile.getY(tile);
     unsigned fscore = 
-        _windowDist(f1[_defaultTile.getStrand(tile)], 
-                    f2[_getSA_i1(tile_x)],
+        _windowDist(f1[get_tile_strand(tile)], 
+                    f2[get_tile_id(tile)],
                     _DefaultCord.cord2Cell(tile_y), 
-                    _DefaultCord.cord2Cell(_getSA_i2(tile_x)));
+                    _DefaultCord.cord2Cell(get_tile_x(tile)));
     return fscore;
 }
 
@@ -2464,8 +2464,8 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
                     int thd_merge_anchor,
                     int thd_drop,
                     int clip_direction)
-{   
-    CmpInt64 g_cmpll; 
+{    
+    CmpInt64 g_cmpll;
     int thd_init_chain_da = 10; 
     int thd_init_chain_num = 6;    
     int thd_init_scan_radius = 20;
@@ -2520,6 +2520,11 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
                                        << int64_t(hs_len2 - 1)
                                        << int64_t(length(hashs));
             g_cmpll.max(j_str, i - di) >> int64_t(j_end - dj) >> 0 ;
+            if (j_str > length(hashs) || j_end > length(hashs))
+            {
+                return 0;
+            }
+            //TODO::check boundary of j_str and j_end
             for (int64_t j = j_end; j > j_str; j--) //scan the genome
             {
                 uint64_t dhash = hash_read ^ hashs[j];
@@ -2603,6 +2608,10 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
             g_cmpll.min(j_end, i + di) << int64_t(j_str + dj) 
                                        << int64_t(hs_len2) 
                                        << length(hashs);
+            if (j_str > length(hashs) || j_end > length(hashs))
+            {
+                return 0;
+            }
             for (int64_t j = j_str; j < j_end; j++) //scan the genome
             {
                 uint64_t dhash = hash_read ^ hashs[j];
@@ -2735,7 +2744,7 @@ uint64_t c_clip_(String<Dna5> & genome,
     String<Dna5> & seq2 = *p;
     int band = (gs_end - gs_str) * thd_band_ratio;
     ///clip scaffold
-
+ 
     int g_hs_end = c_stream_(seq1, g_hs, gs_str, gs_end, 0, 1, 0);
         g_hs_end = c_stream_(seq2, g_hs, gr_str, gr_end, g_hs_end, 1, 1);
     std::sort (begin(g_hs), begin(g_hs) + g_hs_end);
@@ -2975,7 +2984,6 @@ int g_extend_clip_(String<Dna5> & seq1,
                 ++end0;
             }
         }
-        if (!empty(clips_tmp))
         if (length(clips_tmp) / 2 * 2 == length(clips_tmp))
         {
         //TODO::change the if 

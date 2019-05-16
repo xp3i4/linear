@@ -5,48 +5,38 @@ using namespace seqan;
 //===================================================================
 // variable and type def
 //===================================================================
-const unsigned base_shape_len_ = 25;
-const float base_alpha_ = 0.75;
+
+const float    base_alpha_      = 0.75;
+const unsigned base_shape_len_  = 25;
 const unsigned base_block_size_ = 100;
-const unsigned base_delta_ = 32; 
-const unsigned base_threshold_= 30; 
-const unsigned base_kmer_step_ = 1000;
-const uint64_t base_llt_max_ = ~0;
+const unsigned base_delta_      = 32; 
+const unsigned base_threshold_  = 30; 
+const unsigned base_kmer_step_  = 1000;
+const uint64_t base_llt_max_    = ~0;
+
+using std::cerr;
 
 Options::Options():
-        rPath(""),
-        gPath(""),
         oPath(""),
-        Sensitive(false),
         sensitivity(1),
         thread(16),
         index_t(1),
-        feature_t(2)
+        feature_t(2),
+        gap_len(0),
+        aln_flag(0)
         {
            date += __TIME__; 
            date += " ";
            date += __DATE__;
         }
-
-std::string Options::getGenomePath() const {return gPath;};
-std::string Options::getReadPath() const {return rPath;};
 std::string Options::getOutputPath() const {return oPath;};
-int Options::print()
-{
-    
-    std::cerr << "reads path " << rPath << std::endl
-              << "genomes Path " << gPath << std::endl
-              << "output path " << oPath << std::endl
-              << "Sensitive " << Sensitive << std::endl;
-    return 0;
-}
 
 /*
  * flip strand from 0, 1 to -1, 1;
  * strand = 0, 1, other values is not allowed
  * return -1 , 1
  */
- uint64_t _nStrand(uint64_t strand)
+uint64_t _nStrand(uint64_t strand)
 {
     return (strand << 1) - 1;
 }
@@ -55,7 +45,7 @@ int Options::print()
  * do nothing if strand = 0
  * len is the length of the sequences;
  */
- uint64_t _flipCoord (uint64_t coord, uint64_t len, uint64_t strand)
+uint64_t _flipCoord (uint64_t coord, uint64_t len, uint64_t strand)
 {
     return len * strand - _nStrand(strand) * coord;
 }
@@ -128,7 +118,7 @@ std::ifstream::pos_type _filesize(const char* filename)
     return in.tellg(); 
 }
 
-int readRecords_block (StringSet<CharString> & ids, StringSet<String<Dna5> > & reads, String<int> & lens, SeqFileIn & fin, int blockSize)
+int readRecords_block (StringSet<CharString> & ids, StringSet<String<Dna5> > & reads, String<size_t> & lens, SeqFileIn & fin, int blockSize)
 {
     int start = length(reads);
     readRecords(ids, reads, fin, blockSize);
@@ -140,22 +130,34 @@ int readRecords_block (StringSet<CharString> & ids, StringSet<String<Dna5> > & r
 }
 
 /*
- *[]::lr
+ *[]::load all records in one genome file
  */
-int PMRecord::loadRecord(Options & options)
+std::pair<uint, uint> loadRecords(StringSet<String<Dna5> > & seqs, 
+            StringSet<CharString> & ids, 
+            Options::PathType path
+            )
 {
     double time = sysTime();
-    SeqFileIn gFile(toCString(options.gPath));
-    double fileSize = _filesize (toCString(options.gPath));
+    SeqFileIn gFile;
+    std::pair<uint, uint> res;
+    if (!open(gFile, toCString(path)))
+    {
+        serr.print_message("\033[1;31mError:\033[0m can't open file ", 2, 0, std::cerr);
+        serr.print_message(toCString(path), 0, 1, std::cerr);
+        res =std::make_pair (uint(~0), uint(~0));
+        return res;
+    }
+    double fileSize = _filesize (toCString(path));
     bool flag = false;
     unsigned seqCount = 0;
     double currentFileSize = 0;
-    std::fstream fin (toCString(options.gPath), std::fstream::in);
     StringSet<String<char> > dotstatus;
     resize(dotstatus, 3);
     dotstatus[0] = ".   ";
     dotstatus[1] = "..  ";
     dotstatus[2] = "... ";
+    unsigned len_sum = 0;
+    int error = 0;
 #pragma omp parallel
 {
     #pragma omp sections
@@ -177,11 +179,11 @@ int PMRecord::loadRecord(Options & options)
                 std::cerr << "                                                            \r";
                 if (seqCount > 2)
                 {
-                    std::cerr << "->Read genomes" << dotstatus[(k - 1)/10 %3] << "            " << seqCount << "/" << std::setprecision(2) << std::fixed << showpercent << "%\r";
+                    std::cerr << "=>Read genomes" << dotstatus[(k - 1)/10 %3] << "            " << seqCount << "/" << std::setprecision(2) << std::fixed << showpercent << "%\r";
                 }
                 else
                 {
-                    std::cerr << "->Read genomes" << dotstatus[(k - 1)/10 %3] << "\r";
+                    std::cerr << "=>Read genomes" << dotstatus[(k - 1)/10 %3] << "\r";
                 }
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 k++;
@@ -195,27 +197,85 @@ int PMRecord::loadRecord(Options & options)
             {
                 clear (tmp_id);
                 clear (tmp_seq);
-                readRecord (tmp_id, tmp_seq, gFile);
+                try
+                {
+                    readRecord (tmp_id, tmp_seq, gFile);
+                }
+                catch (Exception const & e)
+                {
+                    std::string msg1 = "File: " + path + " ";
+                    serr.print_message (msg1, 2, 0, std::cerr);
+                    serr.print_message ("[", 20, 0, std::cerr);
+                    serr.print_message("\033[1;31mError:\033[0m can't read records in file]", 0, 1, std::cerr);
+                    error = 1;
+                }
                 currentFileSize += length(tmp_seq);
-                appendValue (id2, tmp_id);
-                appendValue (seq2, tmp_seq);
+                appendValue (ids, tmp_id);
+                appendValue (seqs, tmp_seq);
+                len_sum += length(tmp_seq);
                 ++seqCount;
             }
             flag = true;
         }
     }
 }
-    std::cerr << "--Read genomes                "<< length(seq2) <<"/100%                   \n";
-    std::cerr << "  File: " << options.gPath ;
-    std::cerr << "  Elapsed time [s] " << sysTime() - time << std::endl;
-    return 0;
+    if (error)
+    {
+        res = std::make_pair(uint(~0), uint(~0));
+    }
+    else
+    {
+        res = std::make_pair (len_sum, seqCount);
+    }
+    return res;
+}
+
+int loadRecords(StringSet<String<Dna5> > & seqs, 
+                StringSet<CharString> & ids, 
+                Options::PathsType & paths)
+{
+    int status = 0;
+    for (uint i = 0 ; i < length(paths); i++)
+    {
+        double time = sysTime();
+        std::pair<uint, uint> res = loadRecords(seqs, ids, paths[i]);
+        uint len_sum = res.first;
+        uint seqCount = res.second; 
+        if (len_sum == ~0 || seqCount == ~0)
+        {
+            status += 1;
+            continue;
+        }
+        if (i == 0)
+        {
+            serr.print_message ("--Read genomes      ", 0, 1, cerr);
+        }
+        std::string msg1 = "File: " + paths[i] + " ";
+        serr.print_message (msg1, 2, 0, cerr);
+
+        serr.print_message ("[", 20, 0, cerr);
+        serr.print_message (double(seqCount), 0, 0, cerr);
+        serr.print_message (" sequences; ", 0, 0, cerr);
+
+        serr.print_message (double(len_sum >> 20), 0, 0, cerr);
+        serr.print_message (" mbases; ", 0, 0, cerr);
+
+        std::string msg3 = "Elapsed time[s] ";
+        serr.print_message (msg3, 0, 0, cerr);
+        serr.print_message (sysTime() - time, 0, 0, cerr);
+        
+        serr.print_message ("\033[1;32m 100%\033[0m", 0, 0, cerr);
+
+        serr.print_message ("]", 0, 1, cerr);
+        //serr.print_message ()
+
+    }
+    return status;
 }
 
 PMRecord::PMRecord(Options & options)
 {
-    readPath = options.rPath;
-    genomePath = options.gPath;
-    loadRecord(options);
+
 }
 
  void Anchors::init(AnchorType val, unsigned range)
@@ -381,15 +441,18 @@ Dout & Dout::operator << (double n)
     return * this;
 }
 
-void ostreamWapper::print_message(CharString strs, 
-                                  int start, 
+void ostreamWapper::print_message(std::string strs, 
+                                  size_t start, 
                                   int end_type, 
                                   std::ostream & os)
 {
-    CharString spaces = "";
-    for (int i = 0; i < start - length(contents); i++)
+    std::string spaces = "";
+    if (start > length(contents))
     {
-        append (spaces, " ");
+        for (int i = 0; i < start - length(contents); i++)
+        {
+            append (spaces, " ");
+        }
     }
     append(contents, spaces);
     append(contents, strs);
@@ -403,6 +466,28 @@ void ostreamWapper::print_message(CharString strs,
         os << contents << "\r";
         contents = "";
     }
+}
+
+void ostreamWapper::print_message(double data, 
+                                  size_t start, 
+                                  int end_type, 
+                                  std::ostream & os)
+{
+    float d = int(data * 100);
+    std::ostringstream strs;
+    strs << (d / 100);
+    std::string str = strs.str();
+    print_message(str, start, end_type, os);
+}
+void ostreamWapper::print_message(unsigned data, 
+                                  size_t start, 
+                                  int end_type, 
+                                  std::ostream & os)
+{
+    std::ostringstream strs;
+    strs << (data / 100);
+    std::string str = strs.str();
+    print_message(str, start, end_type, os);
 }
 
 ostreamWapper serr;
@@ -438,4 +523,4 @@ CmpInt64 & CmpInt64::operator >> (int64_t n)
     return *this;
 }
 
-CmpInt64 g_cmpll;
+
