@@ -151,7 +151,7 @@ int print_align_sam (Mapper & mapper)
 
 int print_clips_gvf(Mapper & mapper)
 {
-    print_clips_gvf_(mapper.getClips(), mapper.getReadsId(), mapper.getGenomesId(), mapper.getOf(), mapper.getOutputPrefix());
+    print_clips_gvf_(mapper.getClips(), mapper.getReadsId(), mapper.getGenomesId(), mapper.getOf());
     return 0;
 }
 /**

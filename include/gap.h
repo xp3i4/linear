@@ -37,7 +37,6 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
 int print_clips_gvf_(StringSet<String<uint64_t> > & clips, 
               StringSet<CharString> & readsId, 
               StringSet<CharString> & genomesId,
-              std::ofstream & of, 
-              std::string outputPrefix);
+              std::ofstream & of);
 
 #endif
