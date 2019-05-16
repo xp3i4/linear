@@ -116,9 +116,18 @@ const unsigned blocklimit = 32;
     return node & _BaseNum_code;
 }
 
-
-//========================================================
-//This is the section to optimize 25-mer index for mapping
+/*=====================================================
+=            Ehanced open addressing index            =
+=======================================================
+This is the simplified version of optimized 25-mer index 
+deriverd from  the original genric index.
+This version index is specifically optimized for the use 
+of Approximate mapping. 
+Interface is not fully wrappered due to concerns regarding
+performance issue. 
+Sufficient benchmarks are required before wrapping.  
+Please do not use it for other purpose!
+*/
 //Structt Hs: String<uint64_t>
 //Types of node in Hs: 1.head node and 2.body node
 //Head: Headflag[1] = 0|sortFlag[1]|N/A[2]|Pointer[20]| xvalue[40]

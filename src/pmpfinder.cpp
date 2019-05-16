@@ -1309,7 +1309,11 @@ void printAnchors(Anchors & anchors, CharString header)
     }
 }
 
-uint64_t getAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapParm & mapParm, String<uint64_t> & hit)
+uint64_t getAnchorMatchList(Anchors & anchors, 
+                            unsigned const & readLen, 
+                            MapParm & mapParm,
+                            String<uint64_t> & hit
+                            )
 {
     if (anchors.length() <= 1)
     {

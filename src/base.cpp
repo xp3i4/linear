@@ -17,10 +17,7 @@ const uint64_t base_llt_max_    = ~0;
 using std::cerr;
 
 Options::Options():
-        rPath(""),
-        gPath(""),
         oPath(""),
-        Sensitive(false),
         sensitivity(1),
         thread(16),
         index_t(1),
@@ -28,19 +25,7 @@ Options::Options():
         {
            date = __DATE__; 
         }
-
-std::string Options::getGenomePath() const {return gPath;};
-std::string Options::getReadPath() const {return rPath;};
 std::string Options::getOutputPath() const {return oPath;};
-int Options::print()
-{
-    
-    std::cerr << "reads path " << rPath << std::endl
-              << "genomes Path " << gPath << std::endl
-              << "output path " << oPath << std::endl
-              << "Sensitive " << Sensitive << std::endl;
-    return 0;
-}
 
 /*
  * flip strand from 0, 1 to -1, 1;
@@ -286,8 +271,7 @@ int loadRecords(StringSet<String<Dna5> > & seqs,
 
 PMRecord::PMRecord(Options & options)
 {
-    readPath = options.rPath;
-    genomePath = options.gPath;
+
 }
 
  void Anchors::init(AnchorType val, unsigned range)

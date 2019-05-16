@@ -116,6 +116,7 @@ int print_align_sam (Mapper & mapper)
                             mapper.getOf()
                            ); 
     mapper.getOf().close();
+    return 0;
 }
 
 int print_clips_gvf(Mapper & mapper)
@@ -151,7 +152,6 @@ int print_mapper_results(Mapper & mapper,
                          std::string outputPrefix,
                          int f_prints = 0 /*print options control flags*/)
 {
-    double time = sysTime();
     if (mapper.getOutputPrefix() != outputPrefix)
     {
         mapper.getOutputPrefix() = outputPrefix;

@@ -18,17 +18,16 @@ extern const uint64_t base_llt_max_;
 
 typedef Iterator <String <Dna5> >::Type TIter5;
 typedef unsigned uint;
+typedef uint64_t uintll;
 
 struct Options{
     typedef std::string PathType;
     typedef StringSet<PathType> PathsType;
-    PathType rPath;
-    PathType gPath;
     PathType oPath;
     PathsType r_paths;
     PathsType g_paths;
+    unsigned  gap_len; //
 
-    bool        Sensitive; 
     unsigned    sensitivity;
     unsigned    thread;
     int         index_t;
@@ -47,10 +46,7 @@ struct Options{
     std::string date; 
 
     Options();
-    std::string getGenomePath() const; 
-    std::string getReadPath() const;
     std::string getOutputPath() const;
-    int print();
 }; 
 
 std::pair<uint, uint> 
@@ -78,8 +74,6 @@ struct PMRecord
     PMRecord(){}
     PMRecord(Options & options);
     
-    CharString readPath;
-    CharString genomePath; 
     RecIds id1, id2;
     RecSeqs seq1, seq2; //seq1=read, seq2=ref
 

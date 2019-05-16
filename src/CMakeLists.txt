@@ -16,8 +16,8 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} ${CXX11_CXX_FLAGS} 
 
 include_directories (${SEQAN_INCLUDE_DIRS})
 add_definitions (${SEQAN_DEFINITIONS})
-#set (CMAKE_BUILD_TYPE Release)
-set (CMAKE_BUILD_TYPE Debug)
+set (CMAKE_BUILD_TYPE Release)
+#set (CMAKE_BUILD_TYPE Debug)
 
 add_library(linear_base STATIC base.cpp)
 add_library(linear_cords STATIC cords.cpp)
@@ -41,7 +41,6 @@ target_link_libraries (linear
                        linear_cords 
                        linear_base
                       ${SEQAN_LIBRARIES})
-target_include_directories(linear PUBLIC "../include")
 
 add_executable (test_case test_case.cpp)
 target_link_libraries (test_case  

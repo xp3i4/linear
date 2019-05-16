@@ -41,8 +41,6 @@ public:
     int createIndex(bool = false);
     unsigned sens(){return parm.sensitivity;}
     unsigned & thread(){return _thread;}
-    CharString & readPath(){return record.readPath;}
-    CharString & genomePath(){return record.genomePath;}
     StringSet<CharString> & getReadsId(){return record.id1;}
     StringSet<CharString> & getGenomesId(){return record.id2;}
     StringSet<String<uint64_t> > & getClips(){return clip_set;}
