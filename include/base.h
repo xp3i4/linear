@@ -217,16 +217,10 @@ struct CmpInt64
     CmpInt64 & init (int64_t & rslt, int64_t init_val);
     CmpInt64 & min (int64_t & rslt, int64_t val = (~(1LL << 63)));
     CmpInt64 & max (int64_t & rslt, int64_t val = ((1LL << 63) + 1));
-<<<<<<< HEAD:src/base.h
-    CmpInt64 & operator << (int64_t); //get min of the suffix 
-    CmpInt64 & operator >> (int64_t); //get max of ...
-};
 
-=======
     CmpInt64 & operator << (int64_t); //get min of all the suffix 
     CmpInt64 & operator >> (int64_t); //get max of ...
 };
 
 
->>>>>>> b0/112/multiple_reads_seq_input:include/base.h
 #endif
