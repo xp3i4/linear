@@ -186,3 +186,4 @@ uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y)
 {
     return (val & (~_DefaultCordBase.valueMask)) + (x << _DefaultCordBase.bit) + y;
 }
+

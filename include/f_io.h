@@ -72,5 +72,14 @@ int print_align_sam_record_(StringSet<String<BamAlignmentRecordLink> > & records
                             StringSet<CharString> & genomesId,
                             std::ofstream & of
                             );
-
+int print_align_sam (StringSet<String<Dna5> > & genms,
+                     StringSet<CharString> & readsId,
+                     StringSet<CharString> & genmsId,
+                     StringSet<String<BamAlignmentRecordLink> > & bam_records,
+                     StringSet<String<uint64_t> > & cordset,
+                     std::ofstream & of
+                     );
+void print_cords_sam
+    (StringSet<String<uint64_t> > & cordset,    
+     StringSet<String<BamAlignmentRecordLink> > & bam_records);
 #endif

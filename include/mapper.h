@@ -25,6 +25,7 @@ class Mapper {
     Options::PathsType r_paths;
     Options::PathsType g_paths;
     uint f_map;     //map control flag 
+    uint f_print;   //print control flag
 
 public:
     Mapper();
@@ -57,6 +58,7 @@ public:
     Options::PathsType & getRPaths();
     Options::PathsType & getGPaths();
     uint & getMapFlag(){return f_map;}
+    uint & getPrintFlag(){return f_print;}
 
 };
 

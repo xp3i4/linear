@@ -358,10 +358,10 @@ void writeSam(std::ofstream & target,
 
 //Lightweight sam function of Seqan::write(bamAlignmentRecord)
 int writeSam(std::ofstream & target,
-              String<BamAlignmentRecordLink> const & records,
-              int & it,
-              CharString genome_id,
-              CharString genome_id_next
+             String<BamAlignmentRecordLink> const & records,
+             int & it,
+             CharString genome_id,
+             CharString genome_id_next
             )
 {
     int it_count = -1;
@@ -652,4 +652,44 @@ int print_align_sam_record_(StringSet<String<BamAlignmentRecordLink> > & records
             int dt = writeSam(of, records[i], j, g_id);
         }
     }
+}
+
+int print_align_sam (StringSet<String<Dna5> > & genms,
+                     StringSet<CharString> & readsId,
+                     StringSet<CharString> & genmsId,
+                     StringSet<String<BamAlignmentRecordLink> > & bam_records,
+                     StringSet<String<uint64_t> > & cordset,
+                     std::ofstream & of
+                     )
+{
+    print_align_sam_header_(genmsId, 
+                            genms,
+                            of);
+    print_align_sam_record_(bam_records,
+                            cordset,
+                            readsId,
+                            genmsId,
+                            of); 
+    return 0;
+}
+
+void cords2cigar(StringSet<String<uint64_t> > & cordset,     
+                 StringSet<String<BamAlignmentRecordLink> > & bam_records
+                 )
+{
+  /*
+    for (uint i = 0; i < length(cords); i++)
+    {
+
+    }
+    */
+  dout << "cords2cigar\n";
+}
+
+void print_cords_sam
+    (StringSet<String<uint64_t> > & cordset,    
+     StringSet<String<BamAlignmentRecordLink> > & bam_records)
+{
+    cords2cigar(cordset, bam_records);
+    //print
 }
