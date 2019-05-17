@@ -16,8 +16,8 @@ using std::cerr;
  */
 struct F_Print_
 {
-    void setPrintCordsSam(uint & f){f |= 2;}
-    int isPrintCordsSam(uint f){return f & 2;}
+    void setPrintSam(uint & f){f |= 2;}
+    int isPrintSam(uint f){return f & 2;}
 }fp_handler_;
 /**
  * flags controlling map func;
@@ -34,9 +34,9 @@ struct F_Map_
 
 Mapper::Mapper(Options & options):
                record(options),
-               index_dynamic(getGenomes()), 
-               of(toCString(options.getOutputPath()))
+               index_dynamic(getGenomes())
 {
+    uint64_t thd_gap_lower = 50; //minium length of gap > 50 bases.
     r_paths = options.r_paths;
     g_paths = options.g_paths; 
     loadRecords(getGenomes(), getGenomesId(), g_paths);
@@ -77,14 +77,32 @@ Mapper::Mapper(Options & options):
     }
     of_type = OF_NEW;
     f_map = 0;
+    gap_len_min = options.gap_len;
     if (options.gap_len == 0)
     {
         fm_handler_.setMapGapOFF(f_map);
     }
     else
     {
+        if (options.gap_len == 1)                  //set to default
+        {
+            gap_len_min = thd_gap_lower;       //set default 50
+        }
+        else if (options.gap_len == 2)      //just another default option
+        {
+            gap_len_min = thd_gap_lower << 1;
+        }
+        else if (options.gap_len < thd_gap_lower)
+        {
+            gap_len_min = thd_gap_lower << 1; 
+        }
+        else
+        {
+            gap_len_min = options.gap_len;
+        }
         fm_handler_.setMapGapON(f_map);
     }
+    dout << "gap_len"<< gap_len_min << options.gap_len << "\n";
     if (options.aln_flag == 0)
     {
         fm_handler_.setAlignOFF(f_map);
@@ -92,6 +110,12 @@ Mapper::Mapper(Options & options):
     else
     {
         fm_handler_.setAlignON(f_map);
+    }
+    dout << "sam_flag " << options.sam_flag << "\n";
+    f_print = 0;
+    if (options.sam_flag)
+    {
+        fp_handler_.setPrintSam(f_print);
     }
 }
 int Mapper::createIndex(bool efficient)
@@ -168,7 +192,11 @@ int print_clips_gvf(Mapper & mapper)
 int print_cords_sam(Mapper & mapper)
 {
     print_cords_sam(mapper.getCords(),
-                    mapper.getBamRecords()
+                    mapper.getBamRecords(),
+                    mapper.getGenomesId(),
+                    mapper.getReadsId(),
+                    mapper.getGenomes(),
+                    mapper.getOf()
         );
     return 0;
 }
@@ -192,47 +220,39 @@ void close_mapper_of (Mapper & mapper)
 {
     close (mapper.getOf());
 }
-/**
- * Print apf sam and gvf
- * Append to the end of the file  
+/** 
+ * Print main apf sam and gvf
  */
-int print_mapper_results(Mapper & mapper, 
-                         std::string outputPrefix,
-                         int f_prints = 0 /*print options control flags*/)
+int print_mapper_results(Mapper & mapper) 
 {
-    //init
-    if (mapper.getOutputPrefix() != outputPrefix)
-    {
-        mapper.getOutputPrefix() = outputPrefix;
-        mapper.setOfNew();
-    }
-    else
-    {
-        mapper.setOfApp();
-    }
     ///.apf
     std::string file1 = mapper.getOutputPrefix() + ".apf";
     open_mapper_of (mapper, file1);
     print_cords_apf(mapper);
     close_mapper_of(mapper);
+
     ///.gvf
     std::string file2 = mapper.getOutputPrefix() + ".gvf";
     open_mapper_of (mapper, file2);
     print_clips_gvf(mapper);
     close_mapper_of(mapper);
+
     ///.sam
     std::string file3 = mapper.getOutputPrefix() + ".sam";
     open_mapper_of (mapper, file3);
-    if (fp_handler_.isPrintCordsSam(f_prints))
+    std::cout << "printmapper " << mapper.getPrintFlag() << "\n";
+    if (fp_handler_.isPrintSam(mapper.getPrintFlag()))
     {
-        print_cords_sam (mapper);
-    }
-    else
-    {
-        print_align_sam(mapper);
+        if (fm_handler_.isAlign(mapper.getMapFlag()))
+        {
+            print_align_sam(mapper);
+        }
+        else
+        {
+            print_cords_sam (mapper);
+        }
     }
     close_mapper_of(mapper);
-
 
     mapper.setOfApp(); //set of_type to std::ios::app;
     return 0;
@@ -248,10 +268,12 @@ int map_(IndexDynamic & index,
          StringSet<String<Dna5> > & seqs,
          StringSet<String<BamAlignmentRecordLink> >& bam_records,
          uint f_map,   //control flags
-         uint & threads,
+         uint gap_len_min,
+         uint threads,
          int p1
         )
 {
+    dout << "map_1" << gap_len_min << "\n";
     float senThr = mapParm.senThr / window_size;  //map for 2 roun if cords cover len <
     float cordThr = mapParm.cordThr / window_size; //cords cover length < are aborted
     MapParm complexParm = mapParm;
@@ -314,7 +336,8 @@ int map_(IndexDynamic & index,
             }   
             if (fm_handler_.isMapGap(f_map))
             {
-                gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, p1, window_size);
+                gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, gap_len_min, window_size);
+
             }
             if (fm_handler_.isAlign(f_map))
             {
@@ -364,8 +387,11 @@ int map(Mapper & mapper, int p1)
             serr.print_message(toCString(path), 0, 1, std::cerr);
             continue; 
         }
-        std::string outputPrefix = getFileName(path);
-        //outputPrefix = getFileName(outputPrefix, ".", 1);
+        std::string outputPrefix = getFileName(path, '/', ~0);
+        outputPrefix = getFileName(outputPrefix, '.', 0);
+        dout << "outputPrefix " << outputPrefix << "\n";
+        mapper.getOutputPrefix() = outputPrefix;
+        mapper.setOfNew();
         unsigned k = 1;
         while (!atEnd(rFile))
         {
@@ -381,7 +407,7 @@ int map(Mapper & mapper, int p1)
 
             }
             //serr.print_message("", 50, 2, std::cerr); 
-            serr.print_message("=>Map::mapping  block", 0, 0, std::cerr);
+            serr.print_message("=>Map::mapping  block ", 0, 0, std::cerr);
             serr.print_message(k, 0, 0, std::cerr);
             serr.print_message("Size ", 0, 0, std::cerr);
             serr.print_message(unsigned(length(mapper.getReads())), 0, 2, std::cerr);
@@ -396,12 +422,13 @@ int map(Mapper & mapper, int p1)
                  mapper.getGenomes(),
                  mapper.getBamRecords(),
                  mapper.getMapFlag(),
+                 mapper.getGapLenMin(),
                  mapper.thread(), 
                  p1);
             time2 = sysTime() - time2;
             std::cerr <<  "--Map::file_I/O+Map block "<< k << " Size " << length(mapper.getReads()) << " Elapsed Time[s]: file_I/O " << time1 << " map "<< time2 << "\n";
             serr.print_message("=>Write results to disk", 0, 2, std::cerr);
-            print_mapper_results(mapper, outputPrefix);
+            print_mapper_results(mapper);
             clear (mapper.getCords());
             clear (mapper.getClips());
             clear (mapper.getBamRecords());

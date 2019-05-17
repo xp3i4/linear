@@ -26,6 +26,7 @@ class Mapper {
     Options::PathsType g_paths;
     uint f_map;     //map control flag 
     uint f_print;   //print control flag
+    uint64_t gap_len_min; //process gaps of length > this value
 
 public:
     Mapper();
@@ -59,6 +60,7 @@ public:
     Options::PathsType & getGPaths();
     uint & getMapFlag(){return f_map;}
     uint & getPrintFlag(){return f_print;}
+    uint getGapLenMin () {return gap_len_min;}
 
 };
 

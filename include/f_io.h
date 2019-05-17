@@ -4,6 +4,7 @@
 #include <seqan/bam_io.h>
 #include "cords.h"
 using namespace seqan;
+using std::ofstream;
 
 void print_cords_apf(CordsSetType & cords, 
                      StringSet<String<Dna5> > & genomes,
@@ -27,7 +28,7 @@ std::string & operator<< (std::string & s, int i);
 std::string & operator<< (std::string & s, char s2);
 std::string & operator<< (std::string & s, std::string s2);
 
-std::string getFileName(const std::string, char sep = '/', int flag = 1);
+std::string getFileName(const std::string, char sep = '/', uint flag = ~0);
 void align2cigar(String<CigarElement< > > &cigar,
                  Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps1,
                  Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps2
@@ -81,5 +82,9 @@ int print_align_sam (StringSet<String<Dna5> > & genms,
                      );
 void print_cords_sam
     (StringSet<String<uint64_t> > & cordset,    
-     StringSet<String<BamAlignmentRecordLink> > & bam_records);
+     StringSet<String<BamAlignmentRecordLink> > & bam_records,
+     StringSet<CharString> & genmsId, 
+     StringSet<CharString> & readsId,
+     StringSet<String<Dna5> > & genms,
+     std::ofstream & of);
 #endif
