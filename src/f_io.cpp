@@ -131,25 +131,34 @@ int BamAlignmentRecordLink::next() const
 {
     return next_id;
 }
-std::string getFileName(const std::string s, char sep, int flag) {
+std::string getFileName(const std::string s, char sep, uint count) {
 
-    if (flag == 1)
+    std::string subs = s;
+    String<int> pos;
+    int ends = s.length();
+    appendValue(pos, ends);
+    size_t j = 0;
+    //std::cerr << s << "xxx " << sep << " " << count << "\n";
+    for (unsigned i = 0; i < 5; i++)
     {
-        size_t i = s.rfind(sep, s.length());
-        if (i != std::string::npos) 
+        j = subs.rfind(sep, subs.length());
+        if (j == std::string::npos)
         {
-            return(s.substr(i+1, s.length() - i));
-        }   
+            insert(pos, 0, -1);
+            break;
+        }
+        subs = s.substr(0, ends);
+    //    std::cerr << subs << " " << 0 << " " << ends << " " << j << "\n";
+        insert(pos, 0, j);
+        ends = pos[0];
     }
-    else
+    if (count > length(pos) - 2)
     {
-        size_t i = s.rfind(sep, s.length());
-        if (i != std::string::npos) 
-        {
-            return(s.substr(0, i));
-        }   
+        count = length(pos) - 2;
     }
-    return s;
+    subs = s.substr(pos[count] + 1, pos[count + 1]);
+    //std::cerr << subs << " " << pos[count] << " " << pos[count + 1] << "\n";
+    return subs;
 }
 void align2cigar_(String<CigarElement< > > &cigar,
         Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps1,
@@ -358,10 +367,10 @@ void writeSam(std::ofstream & target,
 
 //Lightweight sam function of Seqan::write(bamAlignmentRecord)
 int writeSam(std::ofstream & target,
-              String<BamAlignmentRecordLink> const & records,
-              int & it,
-              CharString genome_id,
-              CharString genome_id_next
+             String<BamAlignmentRecordLink> const & records,
+             int & it,
+             CharString genome_id,
+             CharString genome_id_next
             )
 {
     int it_count = -1;
@@ -652,4 +661,59 @@ int print_align_sam_record_(StringSet<String<BamAlignmentRecordLink> > & records
             int dt = writeSam(of, records[i], j, g_id);
         }
     }
+}
+
+int print_align_sam (StringSet<String<Dna5> > & genms,
+                     StringSet<CharString> & readsId,
+                     StringSet<CharString> & genmsId,
+                     StringSet<String<BamAlignmentRecordLink> > & bam_records,
+                     StringSet<String<uint64_t> > & cordset,
+                     std::ofstream & of
+                     )
+{
+    print_align_sam_header_(genmsId, 
+                            genms,
+                            of);
+    print_align_sam_record_(bam_records,
+                            cordset,
+                            readsId,
+                            genmsId,
+                            of); 
+    return 0;
+}
+
+void cords2cigar(StringSet<String<uint64_t> > & cordset,     
+                 StringSet<String<BamAlignmentRecordLink> > & bam_records
+                 //int thd_window_size
+                 )
+{/*
+    for (uint i = 0; i < length(cords); i++)
+    {
+        for (int j = 0; j < length(cords[i]); j++) 
+        {
+            int dx = get_cord_x(cords[j + 1]) - get_cord_x(cords[j]);
+            int dy = get_cord_y(cords[j + 1]) - get_cord_y(cords[j]);
+            if (dx < 0)
+            {
+
+            }
+        }
+    }
+*/
+    dout << "cords2cigar\n";
+}
+
+void print_cords_sam
+    (StringSet<String<uint64_t> > & cordset,    
+     StringSet<String<BamAlignmentRecordLink> > & bam_records,
+     StringSet<CharString> & genmsId, 
+     StringSet<CharString> & readsId,
+     StringSet<String<Dna5> > & genms,
+     std::ofstream & of
+     )
+{
+    cords2cigar(cordset, bam_records);
+    print_align_sam (genms, readsId, genmsId, bam_records, cordset, of);
+    of << "Hello sam file\n";
+    //print
 }

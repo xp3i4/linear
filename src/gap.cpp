@@ -79,12 +79,12 @@ int isClipTowardsRight (int clip_direction)
 int print_clips_gvf_(StringSet<String<uint64_t> > & clips, 
                      StringSet<CharString> & readsId, 
                      StringSet<CharString> & genomesId,
-                     std::ofstream & of, 
-                     std::string outputPrefix)
+                     std::ofstream & of)
+                     //std::string outputPrefix)
 {
-    std::string file_path = outputPrefix + ".gvf";
+    //std::string file_path = outputPrefix + ".gvf";
     //std::cerr << "[]::filepath " << file_path << "\n";
-    of.open(toCString(file_path));
+    //of.open(toCString(file_path));
     of << "##gvf-version 1.10\n";
     std::string source = ".";
     std::string type = ".";
@@ -143,7 +143,6 @@ int print_clips_gvf_(StringSet<String<uint64_t> > & clips,
             of << "\n";
         }
     }
-    of.close();
     return 0;
 }
 

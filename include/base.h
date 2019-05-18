@@ -28,6 +28,7 @@ struct Options{
     PathsType g_paths;
     uint gap_len; //0 to turn off gap mapping module, set > 0 to map gaps whose length > this value
     uint aln_flag;
+    uint sam_flag;
 
     unsigned    sensitivity;
     unsigned    thread;

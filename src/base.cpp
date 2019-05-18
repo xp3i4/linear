@@ -23,7 +23,8 @@ Options::Options():
         index_t(1),
         feature_t(2),
         gap_len(0),
-        aln_flag(0)
+        aln_flag(0),
+        sam_flag(0)
         {
            date += __TIME__; 
            date += " ";
