@@ -138,7 +138,7 @@ std::string getFileName(const std::string s, char sep, uint count) {
     int ends = s.length();
     appendValue(pos, ends);
     size_t j = 0;
-    std::cerr << s << "xxx " << sep << " " << count << "\n";
+    //std::cerr << s << "xxx " << sep << " " << count << "\n";
     for (unsigned i = 0; i < 5; i++)
     {
         j = subs.rfind(sep, subs.length());
@@ -148,7 +148,7 @@ std::string getFileName(const std::string s, char sep, uint count) {
             break;
         }
         subs = s.substr(0, ends);
-        std::cerr << subs << " " << 0 << " " << ends << " " << j << "\n";
+    //    std::cerr << subs << " " << 0 << " " << ends << " " << j << "\n";
         insert(pos, 0, j);
         ends = pos[0];
     }
@@ -157,7 +157,7 @@ std::string getFileName(const std::string s, char sep, uint count) {
         count = length(pos) - 2;
     }
     subs = s.substr(pos[count] + 1, pos[count + 1]);
-    std::cerr << subs << " " << pos[count] << " " << pos[count + 1] << "\n";
+    //std::cerr << subs << " " << pos[count] << " " << pos[count + 1] << "\n";
     return subs;
 }
 void align2cigar_(String<CigarElement< > > &cigar,
@@ -684,7 +684,7 @@ int print_align_sam (StringSet<String<Dna5> > & genms,
 
 void cords2cigar(StringSet<String<uint64_t> > & cordset,     
                  StringSet<String<BamAlignmentRecordLink> > & bam_records
-                 int thd_window_size
+                 //int thd_window_size
                  )
 {/*
     for (uint i = 0; i < length(cords); i++)

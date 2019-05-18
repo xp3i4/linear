@@ -36,7 +36,8 @@ Mapper::Mapper(Options & options):
                record(options),
                index_dynamic(getGenomes())
 {
-    uint64_t thd_gap_lower = 50; //minium length of gap > 50 bases.
+    uint64_t thd_gap_default = 50; //minium length of gap > 50 bases.
+    uint64_t thd_gap_lower = 10; 
     r_paths = options.r_paths;
     g_paths = options.g_paths; 
     loadRecords(getGenomes(), getGenomesId(), g_paths);
@@ -86,15 +87,15 @@ Mapper::Mapper(Options & options):
     {
         if (options.gap_len == 1)                  //set to default
         {
-            gap_len_min = thd_gap_lower;       //set default 50
+            gap_len_min = thd_gap_default;       //set default 50
         }
         else if (options.gap_len == 2)      //just another default option
         {
-            gap_len_min = thd_gap_lower << 1;
+            gap_len_min = thd_gap_lower;
         }
-        else if (options.gap_len < thd_gap_lower)
+        else if (options.gap_len < 10)
         {
-            gap_len_min = thd_gap_lower << 1; 
+            gap_len_min = thd_gap_lower; 
         }
         else
         {
