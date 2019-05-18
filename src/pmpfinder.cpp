@@ -1322,6 +1322,10 @@ uint64_t getAnchorMatchList(Anchors & anchors,
     float thd_anchor_err = 0.1;
     uint64_t ak;
     uint64_t c_b=mapParm.shapeLen, sb=0, sc = 0;
+    if (length(anchors.set) == 1)
+    {
+        return 0;
+    }
     anchors[0] = anchors[1];
     ak=anchors[0];
     anchors.sort(anchors.begin(), anchors.end());

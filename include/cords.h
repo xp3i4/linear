@@ -75,6 +75,7 @@ struct Cord
     uint64_t shift(uint64_t const & val, int64_t x, int64_t y, unsigned const & = _DefaultCordBase.bit); //add x and y
     bool isCordsOverlap(uint64_t & val1, uint64_t & val2, int64_t thd);
     bool isBlockEnd(uint64_t &, uint64_t const & = _DefaultCordBase.flagEnd);
+    uint64_t makeBlockEndVal(uint64_t, uint64_t const & = _DefaultCordBase.flagEnd);
 };
 extern Cord _DefaultCord; 
 /**

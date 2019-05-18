@@ -492,27 +492,28 @@ int insertCigar(String<CigarElement< > > &cigar1,
     {
         p = length(cigar1);
     }
-    if (p == 0)
+    if (p == 0) //insert at head
     {
         if (cigar1[0].operation == back(cigar2).operation)
         {
+            std::cout << "insertCigar p = 0 " << length(cigar1) << " " << length(cigar2) << "\n";
             cigar1[0].count += back(cigar2).count;
             eraseBack(cigar2);
-            insert(cigar1, p, cigar2);
         }
+        insert(cigar1, p, cigar2);
         return 0;
     }
-    if (p == length(cigar1))
+    if (p == length(cigar1)) //insert at end
     {
         if (back(cigar1).operation == cigar2[0].operation)
         {
             cigar2[0].count += back(cigar1).count;
             eraseBack(cigar1);
-            append(cigar1, cigar2);
         }
+        append(cigar1, cigar2);
         return 0;
     }
-    if (cigar1[p - 1].operation == cigar2[0].operation) 
+    if (cigar1[p - 1].operation == cigar2[0].operation)  //insert in middle
     {
         cigar1[p - 1].count += cigar2[0].count;
         erase(cigar2, 0);
@@ -558,12 +559,9 @@ std::pair<int, int> countCigar(String<CigarElement<> > & cigar)
 
 void printRows(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
                Row<Align<String<Dna5>,ArrayGaps> >::Type & row2,
-               int cord_i)
+               CharString header)
 {
-    if (cord_i < 0)
-        std::cout << "printRows()+\n";
-    else 
-        std::cout << "printRows()+" << cord_i << "\n";
+    std::cout << "printRows::" << header << "\n";
     int len = std::min (clippedEndPosition(row1) - clippedBeginPosition(row1),
                         clippedEndPosition(row2) - clippedBeginPosition(row2));
     std::string line0, line00, line1, line2, line3, line4;
@@ -600,7 +598,7 @@ void printRows(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
             append (line3, " ");
         }
         appendValue(line4, row2[i]);
-        if (i % 50 == 49)
+        if (i % 50 == 49 || i == len - 1)
         {
             line1 += "  " + std::to_string(i + 1) + " " + std::to_string(css1) + " " + std::to_string(css2);
             std::cout << line1 << "\n" << line2 << "\n" << line3 << "\n" << line4 << "\n\n";
