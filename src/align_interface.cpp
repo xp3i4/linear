@@ -1532,17 +1532,12 @@ int check_align_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
  *  Align cords and output cigar string.
  *  Steps:
  *  1. Align: Each normal cord will be aligned locally 
- *       First, last cord in the block and cord at two ends of two strands will extend 
+ *       First, last cord in the block and cord at two ends of two strands will be  extended
  *       the region to be aligned to cover the breakpoints.
  *  2. Trim: only clip consecutive ins or dels at head and tail of the cord in this step) 
  *           and check quality of each normal cord
  *  3. Merge: merge current alignment to its pre alignment.
  *  4. Insert bam and insert gaps:
- *  If cord is normal it (must and only!) clip tail of its pre_align and head of itself. 
- *  If cord is the first in block, it will not clip pre tail but will start a new empty bam record;
- *  If cord is the last in block, it also needs to clip its own tail and add its self to the last bam record;
- *  If cord with its pre are two ends of strands, it will clip pre tail and its own head and start a new empty bam record;
- *  If cord with its pre are two ends of gap, it will insert gap and not clip any.
  *  5. align all gaps.
  */
 int align_cords (StringSet<String<Dna5> >& genomes,
@@ -1649,7 +1644,6 @@ int align_cords (StringSet<String<Dna5> >& genomes,
             check_flag = 1;
             std::cout << "ac_xx " << get_cord_y(cord_start) << " " << dy << " " << dx << "\n";
         }
-        /*
         if (check_cord_(cord_start, length(genomes[g_id]), length(read)) ||
             check_cord_(cord_end, length(genomes[g_id]), length(read)))
         {
@@ -1661,7 +1655,6 @@ int align_cords (StringSet<String<Dna5> >& genomes,
             }
             continue;
         }
-        */
 
         std::cout << "ac1_r " << i + 1 << " " << get_cord_y(cord_start) << " " << get_cord_x(cord_start) << " " << get_cord_x(cord_end) << " " << get_cord_y(cord_end) << "\n";
         int score_align = align_cord (rstr[ri], rstr[ri + 1], genomes[g_id], 
