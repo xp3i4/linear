@@ -1469,12 +1469,27 @@ void printGaps(String<std::pair<uint64_t, uint64_t> > & gaps)
                   << get_cord_y(gaps[i].second) << "\n"; 
     }
 }
-
-int check_cord_(uint64_t cord, unsigned lx, unsigned ly)
+//check if cord is in [0, l)
+int check_cord_1_(uint64_t cord, unsigned lx, unsigned ly)
 {
-    unsigned x = get_cord_x(cord);
-    unsigned y = get_cord_y(cord);
+    int x = get_cord_x(cord);
+    int y = get_cord_y(cord);
     return x < 0 || x >= lx || y < 0 || y >= ly;
+}
+// return 1 for same strand cord if the pre-cord is bigger
+int check_cord_2_(uint64_t cord1, uint64_t cord2)
+{
+    if (!_DefaultCord.isBlockEnd(cord1) && 
+        !get_cord_strand(cord1 ^ cord2))
+    {
+        if (get_cord_y(cord1) > get_cord_y(cord2) || 
+            get_cord_x(cord1) > get_cord_x(cord2))
+        {
+            std::cout << "ac_cerr " << cord1 << " " << get_cord_y(cord2)<< "\n";
+            return 1;
+        }
+    }
+    return 0;
 }
 
 int check_align_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
@@ -1532,21 +1547,13 @@ int check_align_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
 /*
  *  Align cords and output cigar string.
  *  Steps:
- *  1. Align: Each normal cord will be aligned locally 
- *       First, last cord in the block and cord at two ends of two strands will be  extended
- *       the region to be aligned to cover the breakpoints.
- *  2. Trim: only clip consecutive ins or dels at head and tail of the cord in this step) 
- *           and check quality of each normal cord
- *  3. Merge: merge current alignment to its pre alignment.
- *  4. Insert bam and insert gaps:
- *  5. align all gaps.
+ * 
  */
 int align_cords (StringSet<String<Dna5> >& genomes,
                  String<Dna5> & read, 
                  String<Dna5> & comrevRead,
                  String<uint64_t> & cords,
                  String<BamAlignmentRecordLink> & bam_records,
-                 int p,
                  int block_size,
                  int band
                 ) 
@@ -1584,6 +1591,8 @@ int align_cords (StringSet<String<Dna5> >& genomes,
     uint64_t bam_strand;
     int check_flag = 0;
     TRow rt1, rt2;
+    dout << "acx " << length(cords) << "\n";
+    /*
     for (int i = 1; i < length(cords); i++)
     {
         uint64_t cordy = get_cord_y(cords[i]);
@@ -1593,7 +1602,8 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         {
             return 0;
         }
-        if (!_DefaultCord.isBlockEnd(cords[i - 1]) && !get_cord_strand(cords[i - 1] ^ cords[i]))
+        if (!_DefaultCord.isBlockEnd(cords[i - 1]) && 
+            !get_cord_strand(cords[i - 1] ^ cords[i]))
         {
             if (get_cord_y(cords[i- 1]) > get_cord_y(cords[i]) || get_cord_x(cords[i - 1] > get_cord_x(cords[i])))
             {
@@ -1602,6 +1612,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
             }
         }
     }
+    */
     for (int i = 1; i < (int)length(cords); i++)
     {
         std::cout << "ac_cord " << i + 1 << "\n";
@@ -1645,8 +1656,10 @@ int align_cords (StringSet<String<Dna5> >& genomes,
             check_flag = 1;
             std::cout << "ac_xx " << get_cord_y(cord_start) << " " << dy << " " << dx << "\n";
         }
-        if (check_cord_(cord_start, length(genomes[g_id]), length(read)) ||
-            check_cord_(cord_end, length(genomes[g_id]), length(read)))
+        if (check_cord_1_(cord_start, length(genomes[g_id]), length(read)) ||
+            check_cord_1_(cord_end, length(genomes[g_id]), length(read))   ||
+            check_cord_2_(cord_start, cord_end)
+            )  
         {
             if (pre_cord_start != emptyCord)
             {

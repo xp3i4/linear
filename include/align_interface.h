@@ -55,7 +55,6 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                  String<Dna5> & comrevRead,
                  String<uint64_t> & cords,
                  String<BamAlignmentRecordLink> & bam_records,
-                 int p,
                  int block_size = window_size,
                  int band = window_size / 2
                 );

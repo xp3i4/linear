@@ -79,6 +79,7 @@ Mapper::Mapper(Options & options):
     of_type = OF_NEW;
     f_map = 0;
     gap_len_min = options.gap_len;
+    f_print = 0;
     if (options.gap_len == 0)
     {
         fm_handler_.setMapGapOFF(f_map);
@@ -111,9 +112,9 @@ Mapper::Mapper(Options & options):
     else
     {
         fm_handler_.setAlignON(f_map);
+        fp_handler_.setPrintSam(f_print);
     }
-    dout << "sam_flag " << options.sam_flag << "\n";
-    f_print = 0;
+    dout << "sam_flag " << options.sam_flag << f_print << "\n";
     if (options.sam_flag)
     {
         fp_handler_.setPrintSam(f_print);
@@ -173,6 +174,7 @@ int print_cords_apf(Mapper & mapper)
 }
 int print_align_sam (Mapper & mapper)
 {
+    dout << "psam" << length(mapper.getBamRecords()[0]) << "\n";
     print_align_sam (mapper.getGenomes(),
                      mapper.getReadsId(),
                      mapper.getGenomesId(),
@@ -244,8 +246,10 @@ int print_mapper_results(Mapper & mapper)
     std::cout << "printmapper " << mapper.getPrintFlag() << "\n";
     if (fp_handler_.isPrintSam(mapper.getPrintFlag()))
     {
+        dout << "xxx1\n";
         if (fm_handler_.isAlign(mapper.getMapFlag()))
         {
+            dout << "xxx2\n";
             print_align_sam(mapper);
         }
         else
@@ -342,7 +346,8 @@ int map_(IndexDynamic & index,
             }
             if (fm_handler_.isAlign(f_map))
             {
-                align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c], p1);
+                dout << "map_0\n";
+                align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
             }
         }   
         c += 1;
