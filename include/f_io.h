@@ -53,8 +53,9 @@ int insertCigar(String<CigarElement< > > &cigar1,
 std::pair<int, int> countCigar(String<CigarElement<> > & cigar);
 void printRows(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
                Row<Align<String<Dna5>,ArrayGaps> >::Type & row2,
-               int i = -1
+               CharString header = ""
                );
+
 int print_align_sam_header_ (StringSet<CharString> & genomesId,
                              StringSet<String<Dna5> > & genomes,
                              std::ofstream & of

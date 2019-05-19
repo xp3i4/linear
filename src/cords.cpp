@@ -131,6 +131,10 @@ bool Cord::isBlockEnd(uint64_t & val, uint64_t const & flag)
 {
     return val & flag;
 }
+uint64_t Cord::makeBlockEndVal(uint64_t val, uint64_t const & flag)
+{
+    return val | flag;
+}
 //todo::re wrapper !!!
 uint64_t get_cord_x (uint64_t val) 
 {

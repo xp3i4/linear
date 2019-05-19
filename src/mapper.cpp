@@ -318,6 +318,7 @@ int map_(IndexDynamic & index,
         if (length(reads[j]) >= mapParm.minReadLen)
         {
             red_len[thd_id] += length(reads[j]);
+            std::cout << "[]::rawmap::j " << j <<"\n";
             float cordLenThr = length(reads[j]) * cordThr;
             _compltRvseStr(reads[j], comStr);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
@@ -364,7 +365,7 @@ int map_(IndexDynamic & index,
  */
 int map(Mapper & mapper, int p1)
 {
-    std::cout << "ddd " << fm_handler_.isAlign(mapper.getMapFlag()) << "\n";
+    //std::cout << "ddd " << fm_handler_.isAlign(mapper.getMapFlag()) << "\n";
     int thd_buffer_size = 10000; // every thd_buffer_size reads triggers print results.
     //serr.print_message("=>Create index", 0, 1, std::cerr);
     omp_set_num_threads(mapper.thread());

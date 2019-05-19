@@ -1321,7 +1321,7 @@ uint64_t getAnchorMatchList(Anchors & anchors,
     float thd_anchor_err = 0.1;
     uint64_t ak;
     uint64_t c_b=mapParm.shapeLen, sb=0, sc = 0;
-    if (anchors.length() <= 1)
+    if (length(anchors.set) == 1)
     {
         return 0;
     }
