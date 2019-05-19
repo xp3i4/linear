@@ -118,6 +118,7 @@ uint64_t create_cord (uint64_t, uint64_t, uint64_t, uint64_t);
 uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y);
 void set_cord_id (uint64_t & val, uint64_t id);
 void set_cord_end (uint64_t &); 
+void set_cord_block_end(uint64_t & val);
 void print_cord(uint64_t, CharString = "");
 int64_t atomic_inc_cord_y (int64_t & cord); // atomic cord++, return the new cord
 
