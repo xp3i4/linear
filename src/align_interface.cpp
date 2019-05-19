@@ -1610,23 +1610,13 @@ int align_cords (StringSet<String<Dna5> >& genomes,
             if (get_cord_y(back(cords)) > get_cord_y(cords_r[i]) || 
                 get_cord_x(back(cords)) > get_cord_x(cords_r[i]))
             {
-                std::cout << "ac_cerr " << i << " " << get_cord_y(cords_r[i])<< "\n";
+                //std::cout << "ac_cerr " << i << " " << get_cord_y(cords_r[i])<< "\n";
                 set_cord_block_end(cords[i - 1]);
             }
         }
         appendValue (cords, cords_r[i]);
 
     }
-    //<<debug
-        for (int j = 0; j < length(cords); j++)
-        {
-            std::cout << "newcord " << j << " " << get_cord_y(cords[j]) << "\n";
-            if (_DefaultCord.isBlockEnd(cords[j]))
-            {
-                std::cout << "newcordxxxxxxxxxxxxxxxxinscigar\n";
-            }
-        }
-    //>>debug
     for (int i = 1; i < (int)length(cords); i++)
     {
         check_flag = 0;
@@ -1635,7 +1625,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         cord_str = cords[i];
         cord_end = shift_cord(cord_str, block_size, block_size);
         int ri_gap_h = 4;
-        std::cout << "ac_cord " << i + 1 << " " << get_cord_y(cord_str) << " " << get_cord_y(cords[i]) << "\n";
+        //std::cout << "ac_cord " << i + 1 << " " << get_cord_y(cord_str) << " " << get_cord_y(cords[i]) << "\n";
         if (_DefaultCord.isBlockEnd(cords[i - 1])) 
         {
             int dy = std::min(thd_max_dshift, (int)get_cord_y(cords[i]));
@@ -1688,7 +1678,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         int score_align = align_cord (rstr[ri], rstr[ri + 1], genomes[g_id], 
                                       read, comrevRead, 
                                       cord_str, cord_end, band);
-        std::cout << rstr[ri] << "|" << rstr[ri + 1] << "\n";
+        //std::cout << rstr[ri] << "|" << rstr[ri + 1] << "\n";
         //printRows(rstr[ri], rstr[ri + 1], "ac2_2");
         flag = clip_head_ (rstr[ri], rstr[ri + 1], head_end)
              | clip_tail_ (rstr[ri], rstr[ri + 1], tail_start)
