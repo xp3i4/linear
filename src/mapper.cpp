@@ -391,7 +391,7 @@ int map(Mapper & mapper, int p1)
         }
         std::string outputPrefix = getFileName(path, '/', ~0);
         outputPrefix = getFileName(outputPrefix, '.', 0);
-        dout << "outputPrefix " << outputPrefix << "\n";
+        dout << "outputPrefix " << outputPrefix << " " << path << "\n";
         mapper.getOutputPrefix() = outputPrefix;
         mapper.setOfNew();
         unsigned k = 1;
