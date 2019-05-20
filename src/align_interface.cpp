@@ -1413,7 +1413,7 @@ int align_gap (GapRecordHolder & gap,
                                         clips_src2[i].second);
             seg_end_cord = set_cord_xy (end_cord, 
                                         clips_src1[i + 1].first, 
-                                        clips_src2[i + 1].second);
+                                        clips_src2[i + 1].first);
             cmpRevCord (seg_str_cord, seg_end_cord, 
                         seg_str_cord, seg_end_cord, length(read));
             seg_str_cord = shift_cord(seg_str_cord, -thd_alg_extnd, -thd_alg_extnd);
@@ -1429,7 +1429,7 @@ int align_gap (GapRecordHolder & gap,
             {
                 int bam_start = seg_clips_src1[j].first;
                 int bam_strand = get_cord_strand(seg_str_cord);
-                setClippedPositions(row1, row2, seg_clips[i].first, seg_clips[i].second);
+                setClippedPositions(row1, row2, seg_clips[j].first, seg_clips[j].second);
                 insertNewBamRecord(bam_records, row1, row2, g_id, bam_start, bam_strand); 
                 std::cout << "ac4 " << bam_start << " " << seg_clips_src1[j].first << "\n";
             }
