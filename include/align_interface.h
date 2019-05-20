@@ -49,14 +49,14 @@ struct GapParm
     GapParm ();
 };
 extern GapParm _gap_parm;
-
+extern unsigned _default_block_size_;
 int align_cords (StringSet<String<Dna5> >& genomes,
                  String<Dna5> & read, 
                  String<Dna5> & comrevRead,
                  String<uint64_t> & cords,
                  String<BamAlignmentRecordLink> & bam_records,
-                 int block_size = window_size,
-                 int band = window_size / 2
+                 int block_size = _default_block_size_,
+                 int band = _default_block_size_ / 2
                 );
 
 #endif

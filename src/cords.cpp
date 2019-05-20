@@ -176,6 +176,10 @@ int64_t atomic_inc_cord_y (int64_t & cord)
     int64_t tmp = atomicInc(cord);
     return tmp;
 }
+void set_cord_block_end(uint64_t & val)
+{
+    val |= _DefaultCordBase.flagEnd;
+}
 
 void cmpRevCord(uint64_t val1, 
                 uint64_t val2,
