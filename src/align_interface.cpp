@@ -846,17 +846,19 @@ int clip_tail_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
 
 /**
  * Merge any size of two blocks which starts from cord1 and cord2.
- * @parm rows are supposed to contain the alignment of the two blocks.
- * @parm rows are compared and merged from the corresponding clippedBeginPosition() to clippedEndPosition() 
+ * @rowij are supposed to contain the alignment of the two blocks.
+ * @rowij rows are compared and merged stating from clippedBeginPosition() 
+ * to clippedEndPosition() of each
  */
 int merge_align__(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
-				 Row<Align<String<Dna5>,ArrayGaps> >::Type & row12,
-				 Row<Align<String<Dna5>,ArrayGaps> >::Type & row21,
-				 Row<Align<String<Dna5>,ArrayGaps> >::Type & row22,
-				 uint64_t & cord1,  
-				 uint64_t & cord2,
-                 std::pair<int, int> & clips
-				)
+				  Row<Align<String<Dna5>,ArrayGaps> >::Type & row12,
+				  Row<Align<String<Dna5>,ArrayGaps> >::Type & row21,
+				  Row<Align<String<Dna5>,ArrayGaps> >::Type & row22,
+				  uint64_t & cord1,  
+				  uint64_t & cord2,
+                  std::pair<int, int> & clips
+                  //CigarElement<> & cigar_joint  
+				  )
 {
     int r_flag = 0;
     if (cord1 == emptyCord)
@@ -979,6 +981,8 @@ int merge_align__(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
 	    {
 			int64_t x2 = align2[j] >> bit & mask;
 			int64_t y2 = align2[j] & mask;
+            int64_t dx = x2 - x1;
+            int64_t dy = y2 - y1;
             if (!flag)
             {
                 if (std::abs(x1_next - x2) < thd_merge_x) 
@@ -987,14 +991,33 @@ int merge_align__(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
                     flag = 1;
                 }
             }
-			if (std::abs(x1 - x2) < thd_merge_x && std::abs(y1 - y2) < thd_merge_y)
+            //if (std::abs(x1 - x2) < thd_merge_x && std::abs(y1 - y2) < thd_merge_y)
+            if (dx == 0 || dy == 0)
 			{
                 int clip1 = (align1[i] >> bit2 & mask);
                 int clip2 = (align2[j] >> bit2 & mask);
-                clips.first = clip1; clips.second = clip2;
+                char op;
+                int  op_count = 0;
+                if (dx == 0 && dy == 0)
+                {
+                    //NONE
+                }
+                else if (dx == 0 && dy == 1)
+                {
+                    op_count = 1;
+                    op = 'I';
+                }
+                else if (dx == 1 && dy == 0)
+                {
+                    op_count = 1;
+                    op = 'D';
+                }
+                clips.first = clip1; 
+                clips.second = clip2;
+                std::cout << "ma__" << x1 << " " << x2 << " " << y1 << " " << y2 << " " << clip1 << " " << clip2 << "\n";
 				return 0;
 			}
-			else if (x2 - x1 > thd_merge_x|| y2 - y1 > thd_merge_x)
+			else if (x2 - x1 >= 2 || y2 - y1 >= 2)
 			{
 				break;
 			}
@@ -1022,6 +1045,8 @@ int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
         setClippedBeginPosition(row22, clip2);
         setClippedEndPosition(row11, clip1);
         setClippedEndPosition(row12, clip1);
+        printRows(row11, row12, "row11");
+        printRows(row21, row22, "row12");
     }
     return flag;
 }
