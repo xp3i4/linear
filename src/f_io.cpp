@@ -169,7 +169,6 @@ void align2cigar_(String<CigarElement< > > &cigar,
     typedef Row<Align<String<Dna5>,ArrayGaps> >::Type TRow;
     typename Iterator<TRow>::Type it1 = begin(gaps1);
     typename Iterator<TRow>::Type it2 = begin(gaps2);
-    std::cout << "align2cigar_ " << clippedEndPosition(gaps1) - clippedBeginPosition(gaps1) << "  " << clippedEndPosition(gaps2) - clippedBeginPosition(gaps2) << "\n";
     char op = '?', lastOp = ' ';
     char last_op;
     unsigned numOps = 0;
@@ -238,7 +237,6 @@ void align2cigar_(String<CigarElement< > > &cigar,
         lastOp = 'N';
     if (numOps > 0)
         appendValue(cigar, CigarElement<>(op, numOps));
-    std::cout << "align2cigar_end " << length(cigar) << "\n";
 }
 void align2cigar(String<CigarElement< > > &cigar,
                  Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps1,

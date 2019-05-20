@@ -174,7 +174,6 @@ int print_cords_apf(Mapper & mapper)
 }
 int print_align_sam (Mapper & mapper)
 {
-    dout << "psam" << length(mapper.getBamRecords()[0]) << "\n";
     print_align_sam (mapper.getGenomes(),
                      mapper.getReadsId(),
                      mapper.getGenomesId(),
@@ -243,13 +242,10 @@ int print_mapper_results(Mapper & mapper)
     ///.sam
     std::string file3 = mapper.getOutputPrefix() + ".sam";
     open_mapper_of (mapper, file3);
-    std::cout << "printmapper " << mapper.getPrintFlag() << "\n";
     if (fp_handler_.isPrintSam(mapper.getPrintFlag()))
     {
-        dout << "xxx1\n";
         if (fm_handler_.isAlign(mapper.getMapFlag()))
         {
-            dout << "xxx2\n";
             print_align_sam(mapper);
         }
         else
