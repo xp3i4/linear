@@ -424,7 +424,7 @@ int writeSam(std::ofstream & target,
             else 
                 it = records[it].next();
         }
-        std::cout << "[]::print_sam " << end << "\n";
+        //std::cout << "[]::print_sam " << end << "\n";
     }
     writeValue(target, '\t');
 

@@ -1332,6 +1332,7 @@ int align_gap (GapRecordHolder & gap,
     int thd_alg_extnd = 20;
     uint64_t str_cord = gap.getCords().first;
     uint64_t end_cord = gap.getCords().second;
+    /*
     std::cout << "alg1 " 
               << get_cord_x(str_cord) << " " 
               << get_cord_x(end_cord) << " " 
@@ -1339,6 +1340,7 @@ int align_gap (GapRecordHolder & gap,
               << get_cord_y(end_cord) << " " 
               << get_cord_strand(str_cord) << " " 
               << get_cord_strand(end_cord) << "\n";
+              */
     if (get_cord_strand(str_cord ^ end_cord))
     {
         return 1;
@@ -1388,7 +1390,7 @@ int align_gap (GapRecordHolder & gap,
                                         clips_src2[i].second);
             seg_end_cord = set_cord_xy (end_cord, 
                                         clips_src1[i + 1].first, 
-                                        clips_src2[i + 1].second);
+                                        clips_src2[i + 1].first);
             cmpRevCord (seg_str_cord, seg_end_cord, 
                         seg_str_cord, seg_end_cord, length(read));
             seg_str_cord = shift_cord(seg_str_cord, -thd_alg_extnd, -thd_alg_extnd);
@@ -1399,7 +1401,6 @@ int align_gap (GapRecordHolder & gap,
                         read, comrevRead, seg_str_cord, seg_end_cord, seg_band);
             clip_rows_segs (row1, row2, seg_clips, seg_clips_src1, seg_clips_src2,
                             seg_str_cord,gap_parm);
-            std::cout << "ij " << i << " " << length(seg_clips) << "\n";
             for (int j = 0; j < length(seg_clips); j++)
             {
                 int bam_start = seg_clips_src1[j].first;
@@ -1718,7 +1719,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                            length(bam_records) - 1,
                            thd_merge_gap))
                 {
-                    std::cout << "ac11 " << i + 1 << " " << get_cord_y(gap_str_cord) << " " << get_cord_y(pre_cord_str) << " " << endPosition(rstr[ri_pre + 1]) << "\n";
+                    //std::cout << "ac11 " << i + 1 << " " << get_cord_y(gap_str_cord) << " " << get_cord_y(pre_cord_str) << " " << endPosition(rstr[ri_pre + 1]) << "\n";
                     insertNewBamRecord(bam_records, g_id, bam_start, bam_strand); 
                 }      
             }
