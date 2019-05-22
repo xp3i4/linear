@@ -262,6 +262,101 @@ int print_mapper_results(Mapper & mapper)
     mapper.setOfApp(); //set of_type to std::ios::app;
     return 0;
 }
+/*----------  check test  ----------*/
+void check_cigar(StringSet<String<Dna5> > & genomes,
+                 String<Dna5> & read, 
+                 String<Dna5> & comrevRead,
+                 String<uint64_t> & cords, //raw cords
+                 String<BamAlignmentRecordLink> & bam_records)
+{
+    uint64_t str1, str2;
+    String<Dna5> infix1;
+    String<Dna5> infix2;
+    int count_mat = 0;
+    int count_mis = 0;
+    int len = length(read) - 1;
+    for (int i = 0; i < length(bam_records); i++)
+    //for (int i = 0; i < 1; i++)
+    {
+        count_mat = count_mis = 0;
+        str1 = bam_records[i].beginPos;
+        infix1 = infix(genomes[0], str1, length(genomes[0]));
+        if (bam_records[i].cigar[0].operation == 'S') 
+        {
+            str2 = bam_records[i].cigar[0].count;
+        }
+        else
+        {
+            str2 = 0;
+        }
+        if (bam_records[i].flag & 16) // - strand
+        {
+            int end = str2 + len < length(read) - 1 ? str2 + len : length(read);
+            infix2 = infix(comrevRead, str2, end);
+        }
+        else
+        {
+            int end = str2 + len < length(read) - 1 ? str2 + len : length(read);
+            infix2 = infix(read, str2, str2 + len);
+        } 
+        int j = 0;
+        int it1 = 0;
+        int it2 = 0;
+        std::cout << "nm0 " << infix1 << "\n";
+        std::cout << "nm1 " << infix2 << "\n";
+        int base = 1;
+        for (int j = 0; j < length(bam_records[i].cigar); j++)
+        {
+            char op = bam_records[i].cigar[j].operation;
+            int cnt = bam_records[i].cigar[j].count;
+            if (it1 + cnt >= length(infix1) || 
+                it2 + cnt >= length(infix2))
+            {
+                break;
+            }
+            if (op == 'D')
+            {
+                for (int k = 0; k < cnt; k++)
+                std::cout << "chxx " << it1 + k << " " << infix1[it1 + k] << " | " << " " << cnt << " " << op << "\n"; 
+                it1 += cnt;
+            }
+            else if (op == 'I')
+            {
+                for (int k = 0; k < cnt; k++)
+                std::cout << "chxx " << it1 + k << " | " << infix2[it2 + k] << " " << cnt << " " << op  << "\n"; 
+                it2 += cnt;
+            }
+            else if (op == 'X')
+            {
+                for (int k = 0; k < cnt; k++)
+                std::cout << "chxx " << it1 + k << " " << infix1[it1 + k] << " " << infix2[it2 + k] << " " << cnt << " " << op  << "\n"; 
+                it1 += cnt;
+                it2 += cnt;
+            }
+            else if (op == '=')
+            {
+                for (int k = 0; k < cnt; k++)
+                {
+                    std::cout << "chxx " << it1 << " " << infix1[it1] << " " << infix2[it2] << " " << cnt << " " << op << "\n"; 
+                    if (infix1[it1] != infix2[it2]) 
+                    {
+                        std::cout << "nmx " << i << " " << it1 << " " << it2 << "\n";
+                        ++count_mis;
+                    }
+                    else
+                    {
+                        std::cout << "nm2 " << i << " " << infix1[it1] << " " << infix2[it2] << "\n";
+                        ++count_mat;
+                    }
+                    it1++;
+                    it2++;
+                }
+            }
+        }
+        std::cout << "cb1 " << i << " " << count_mat << " " << count_mis << "\n";
+    }
+}
+
 /*----------  Map main funcion  ----------*/
 
 int map_(IndexDynamic & index,
@@ -348,6 +443,9 @@ int map_(IndexDynamic & index,
             {
                 dout << "map_0\n";
                 align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
+                //<<debug
+                check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
+                //>>debug
             }
         }   
         c += 1;
