@@ -1689,8 +1689,8 @@ int align_cords (StringSet<String<Dna5> >& genomes,
             }
         }
         appendValue (cords, cords_r[i]);
-
     }
+    set_cord_block_end(back(cords));
     //<<debug
     for (int i = 0; i < length(cords); i++)
     {
