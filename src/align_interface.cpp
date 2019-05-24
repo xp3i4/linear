@@ -1332,7 +1332,7 @@ int clip_rows_segs (Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
 }
 
 /*
- * Clip head or tail by calling the clip_gaps_segs. (though not efficient) 
+ * Clip head or tail by calling the clip_rows_segs
  * @direction -1 head, 1 tail
  */
 int clip_segs(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
@@ -1905,20 +1905,45 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                                    g_id, bam_start_x, bam_start_y, bam_strand);  
             }
         }
-        //dout << "ac44" << i << get_cord_x(cords[i]) << get_cord_x(gap_str_cord) << get_cord_x(pre_cord_str) << get_cord_x(cord_str) << flag_pre << flag << "\n";
+        //addition process for the last cord of block 
         if (_DefaultCord.isBlockEnd(cord_str))
         {
             if (!flag)
             {
+                printRows(rstr[ri], rstr[ri + 1], "pr2");
+                //todo::clipping last 30 bases.
+                clip_segs(rstr[ri], rstr[ri + 1], 
+                          cord_str, _gap_parm, 1); 
+                printRows(rstr[ri], rstr[ri + 1], "pr3");
                 insertBamRecordCigar(back(bam_records), rstr[ri], rstr[ri + 1]);                 
             }
             else if (flag & 1)
             {
-
+                //For similicity just clip and insert new bam
+                //but todo::better to add gaps.
+                clip_segs(rstr[ri], rstr[ri + 1], 
+                          cord_str, _gap_parm, 0); 
+                bam_start_x = get_cord_x(cord_str) +
+                              beginPosition(rstr[ri]);
+                bam_start_y = get_cord_y(cord_str) +
+                              beginPosition(rstr[ri + 1]);
+                insertNewBamRecord(bam_records, 
+                                   rstr[ri], 
+                                   rstr[ri + 1],
+                                   g_id, bam_start_x, bam_start_y, bam_strand);
             }
             else if (flag & 2)
             {
-                
+                clip_segs(rstr[ri], rstr[ri + 1], 
+                          cord_str, _gap_parm, 0); 
+                bam_start_x = get_cord_x(cord_str) +
+                              beginPosition(rstr[ri]);
+                bam_start_y = get_cord_y(cord_str) +
+                              beginPosition(rstr[ri + 1]);
+                insertNewBamRecord(bam_records, 
+                                   rstr[ri], 
+                                   rstr[ri + 1],
+                                   g_id, bam_start_x, bam_start_y, bam_strand);               
             }
         }
         flag_pre = flag;
