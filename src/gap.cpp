@@ -1100,10 +1100,24 @@ int check_tiles_(String<uint64_t> & tiles, uint64_t g_start, uint64_t g_end)
     uint64_t val = 0;
     for (uint64_t k = start; k < end; k++)
     {
+        //<<debug
+        if (k > length(seq) - 1)
+        {
+            dout << "gmk1" << k << length(seq) << "\n";
+            break;
+        }
+        //>>debug
         val = hashNextV(shape, begin(seq) + k);
         if (++count == step)  //collecting every step bases
         {
             //TODO: k - getT(shape)
+            //<<debug
+            if (g_hs_start + i + 1 > length(g_hs))
+            {
+                dout << "gmk1" << g_hs_start << start << end << "\n";
+                break;
+            }
+            //>>debug
             g_hs_setGhs_(g_hs[g_hs_start + i++], val, type, shape.strand, k);
             count = 0;
         }
@@ -1853,6 +1867,7 @@ struct MapAnchorParm
     }
     std::cout << "gmh " << get_cord_strand(cord_str) << " " << get_cord_y(cord_str) << "\n";
     g_hs_end = g_mapHs_kmer_(seq1, g_hs, gs_str, gs_end, g_hs_end, 10, 0);
+    dout << "gmh1 " << g_hs_end <<gs_str << gs_end << gr_str << gr_end << "\n";
     g_hs_end = g_mapHs_kmer_(seq2, g_hs, gr_str, gr_end, g_hs_end, 1, 1);
 
 
@@ -3170,7 +3185,7 @@ int g_extend_clip_(String<Dna5> & seq1,
     if (get_cord_x(cord2 - cord1) > thd_cord_remap && 
         get_cord_y(cord2 - cord1) > thd_cord_remap)
     {
-        dout << "mg1 " << get_cord_y(cord1) << get_cord_y(cord2) << "\n";
+        dout << "mg1 " << get_cord_x(cord2) << get_cord_y(cord1) << get_cord_y(cord2) << "\n";
         g_mapHs_(seqs[genomeId], read, comstr,
                  g_hs, g_anchor, tiles, f1, f2,
                  cord1, cord2,
