@@ -511,8 +511,8 @@ int map(Mapper & mapper, int p1)
             serr.print_message(toCString(path), 0, 1, std::cerr);
             continue; 
         }
-        std::string outputPrefix = getFileName(path, '/', ~0);
-        outputPrefix = getFileName(outputPrefix, '.', 0);
+        std::string outputPrefix = getFileName(path, "/", ~0);
+        outputPrefix = getFileName(outputPrefix, ".", 0);
         dout << "outputPrefix " << outputPrefix << "\n";
         mapper.getOutputPrefix() = outputPrefix;
         mapper.setOfNew();
@@ -531,9 +531,11 @@ int map(Mapper & mapper, int p1)
 
             }
             //serr.print_message("", 50, 2, std::cerr); 
-            serr.print_message("=>Map::mapping  block ", 0, 0, std::cerr);
+            serr.print_message("=>Map::mapping ", 0, 0, std::cerr);
+            serr.print_message(path, 0, 0, std::cerr);
+            serr.print_message (" block ", 0, 0, std::cerr);
             serr.print_message(k, 0, 0, std::cerr);
-            serr.print_message("Size ", 0, 0, std::cerr);
+            serr.print_message(" Size ", 0, 0, std::cerr);
             serr.print_message(unsigned(length(mapper.getReads())), 0, 2, std::cerr);
             time1 = sysTime() - time1;
             double time2 = sysTime();
@@ -550,7 +552,7 @@ int map(Mapper & mapper, int p1)
                  mapper.thread(), 
                  p1);
             time2 = sysTime() - time2;
-            std::cerr <<  "--Map::file_I/O+Map block "<< k << " Size " << length(mapper.getReads()) << " Elapsed Time[s]: file_I/O " << time1 << " map "<< time2 << "\n";
+            std::cerr <<  "--Map::file " << path << " block "<< k << " Size " << length(mapper.getReads()) << " Elapsed Time[s]: file_I/O " << time1 << " map "<< time2 << "\n";
             serr.print_message("=>Write results to disk", 0, 2, std::cerr);
             print_mapper_results(mapper);
             clear (mapper.getCords());

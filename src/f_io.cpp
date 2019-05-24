@@ -131,34 +131,22 @@ int BamAlignmentRecordLink::next() const
 {
     return next_id;
 }
-std::string getFileName(const std::string s, char sep, uint count) {
-
-    std::string subs = s;
-    String<int> pos;
-    int ends = s.length();
-    appendValue(pos, ends);
-    size_t j = 0;
-    //std::cerr << s << "xxx " << sep << " " << count << "\n";
-    for (unsigned i = 0; i < 5; i++)
-    {
-        j = subs.rfind(sep, subs.length());
-        if (j == std::string::npos)
+std::string getFileName(std::string s, std::string delimiter, uint count) 
+{
+    size_t pos = 0;
+    std::string token;
+    uint i = 1;
+    while ((pos = s.find(delimiter)) != std::string::npos) {
+        token = s.substr(0, pos);
+        s.erase(0, pos + delimiter.length());
+        if (i > count)
         {
-            insert(pos, 0, -1);
-            break;
+            token;
+            return token;
         }
-        subs = s.substr(0, ends);
-    //    std::cerr << subs << " " << 0 << " " << ends << " " << j << "\n";
-        insert(pos, 0, j);
-        ends = pos[0];
+        i++;
     }
-    if (count > length(pos) - 2)
-    {
-        count = length(pos) - 2;
-    }
-    subs = s.substr(pos[count] + 1, pos[count + 1]);
-    //std::cerr << subs << " " << pos[count] << " " << pos[count + 1] << "\n";
-    return subs;
+    return s;
 }
 void align2cigar_(String<CigarElement< > > &cigar,
         Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps1,
