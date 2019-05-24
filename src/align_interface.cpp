@@ -1602,9 +1602,9 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                  !get_cord_strand(back(cords) ^ cords_r[i]))
         {
             int64_t cordx1 = get_cord_x(back(cords));
-            int64_t cordx2 = get_cord_x(back(cords_r[i]));
+            int64_t cordx2 = get_cord_x(cords_r[i]);
             int64_t cordy1 = get_cord_y(back(cords));
-            int64_t cordy2 = get_cord_y(back(cords_r[i]));
+            int64_t cordy2 = get_cord_y(cords_r[i]);
             if (cordx1 > cordx2 || cordy1 > cordy2) 
             {
                 int64_t danchor =  std::abs(cordx1 - cordy1) -
@@ -1612,7 +1612,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                 if (std::abs(danchor) > 
                     thd_err_rate * std::abs(cordx1 - cordx2)) 
                 {
-                    set_cord_block_end(cords[i - 1]);
+                    set_cord_block_end(back(cords));
                     //cord_0 = (100,100)
                     //cord_1 = (0, 50)
                     //diff anchor set cord_1 to new block 
@@ -1868,7 +1868,6 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         std::swap (ri, ri_pre); //swap the current and pre row id in the aligner.
 
     }
-
     //printGaps(gaps.c_pairs);
     Score<int> score_scheme;
     /*
