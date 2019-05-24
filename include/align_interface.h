@@ -58,5 +58,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                  int block_size = _default_block_size_,
                  int band = _default_block_size_ / 2
                 );
+void printCigar(String<CigarElement< > > &cigar);
+
 
 #endif

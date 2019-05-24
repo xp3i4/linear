@@ -18,6 +18,16 @@ read length < 1MBases
   $ CMake .
   $ make linear 
 ```
+## Usage
+
+```bash
+  $ linear read.fa genome.fa
+``` 
+Basic usage: Please use .fa, .fastq .fa.gz or .fastq.gz for input. 
+```bash
+  $ linear read_* x genome_*
+``` 
+When using the reqular expression to map mutltiple reads and genomes [cartesian product], please use the x argument to seperate the read part and genome part.
 
 ## Built with
 

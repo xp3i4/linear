@@ -490,7 +490,7 @@ int insertCigar(String<CigarElement< > > &cigar1,
     {
         p = length(cigar1);
     }
-    if (p == 0) //insert at head
+    if (p == 0) //insert at front 
     {
         if (cigar1[0].operation == back(cigar2).operation)
         {
