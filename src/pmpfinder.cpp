@@ -1194,6 +1194,9 @@ unsigned getDIndexMatchAll (DIndex & index,
                             uint64_t cordy = k;
                             appendValue(set, ((_DefaultHs.getHsBodyS(index.ysa[pos]) - cordy) << 20) | cordy);
                         }
+                        //<<debug
+                        dout << "gi1" << get_cord_y(back(set)) << get_cord_x(back(set)) + get_cord_y(back(set)) << get_cord_strand(back(set)) << "\n";
+                        //>>debug
                         pre = index.ysa[pos];
                     }
                     if (++pos > length(index.ysa) - 1)
@@ -1326,16 +1329,17 @@ uint64_t getAnchorMatchList(Anchors & anchors,
     {
         return 0;
     }
-    anchors[0] = anchors[1];
-    ak=anchors[0];
     anchors.sort(anchors.begin(), anchors.end());
+//  anchors[0] = anchors[1];
+    ak=anchors[0];
     //_printHit(anchors.set, "sa");
     uint64_t mask = (1ULL << 20) - 1;
     String<int64_t> list;
     //printf("[debug]::getAnchorMatchList %d\n", anchors.length());
     for (unsigned k = 1; k < anchors.length(); k++)
     {
-        if (get_cord_x(anchors[k] - ak) > thd_anchor_err * readLen)
+        dout << "gaml11" << get_cord_x (anchors[k]) << get_cord_x(ak) << get_cord_y(anchors[k]) << get_cord_strand(anchors[k]) << "\n";
+        if (get_cord_x(anchors[k]) - get_cord_x(ak) > thd_anchor_err * readLen)
         {
             if (c_b > mapParm.anchorLenThr * readLen)
             {
@@ -1356,18 +1360,14 @@ uint64_t getAnchorMatchList(Anchors & anchors,
         }
     }
     std::cout << "gaml1 " << anchors.length() << "\n";
-    /*
     //<<debug
         for (int ii = 0; ii < anchors.length(); ii++)
         {
-            uint64_t mask1 = (1ULL << 20) - 1;
-            uint64_t mask2 = (1ULL << 40) - 1;
             uint64_t tmp_cord = _DefaultCord.hit2Cord(anchors[ii]);
 
             std::cout << "gaml1 " << ii << " " << get_cord_y(tmp_cord) << " " << get_cord_x(anchors[ii]) << " " << get_cord_x(tmp_cord) << "\n";
         }
     //>>debug
-    */
     if (!empty(list))
     {
         std::sort (begin(list), end(list), std::greater<uint64_t>());
@@ -1381,8 +1381,10 @@ uint64_t getAnchorMatchList(Anchors & anchors,
               for (unsigned n = sb; n < sc; n++)
               {
                   appendValue(hit, anchors[n]);
+                  dout << "gaml2" << get_cord_y(back(hit)) << get_cord_x(back(hit)) << "\n";
               }   
               _DefaultHit.setBlockEnd(back(hit));
+              dout << "gaml2\n";
           }
           else
               break;
@@ -1410,9 +1412,9 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
     }
     uint64_t ak;
     uint64_t c_b=mapParm.shapeLen, sb=0, sc = 0;
-    anchors[0] = anchors[1];
-    ak=anchors[0];
     anchors.sort(anchors.begin(), anchors.end());
+    //anchors[0] = anchors[1];
+    ak=anchors[0];
     t1 = sysTime() - t1;
     double t2 = sysTime();
     //_printHit(anchors.set, "sa");
@@ -1501,7 +1503,7 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
 }
 
  uint64_t mnMapReadList( LIndex  & index,
-                           String<Dna5> & read,
+                            String<Dna5> & read,
                           Anchors & anchors,
                           MapParm & mapParm,
                           String<uint64_t> & hit)
