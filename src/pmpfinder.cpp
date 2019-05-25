@@ -1325,14 +1325,15 @@ uint64_t getAnchorMatchList(Anchors & anchors,
     {
         return 0;
     }
-    anchors[0] = anchors[1];
-    ak=anchors[0];
     anchors.sort(anchors.begin(), anchors.end());
+//  anchors[0] = anchors[1];
+    ak=anchors[0];
+    //_printHit(anchors.set, "sa");
     uint64_t mask = (1ULL << 20) - 1;
     String<int64_t> list;
     for (unsigned k = 1; k < anchors.length(); k++)
     {
-        if (get_cord_x(anchors[k] - ak) > thd_anchor_err * readLen)
+        if (get_cord_x(anchors[k]) - get_cord_x(ak) > thd_anchor_err * readLen)
         {
             if (c_b > mapParm.anchorLenThr * readLen)
             {
@@ -1394,9 +1395,9 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
     }
     uint64_t ak;
     uint64_t c_b=mapParm.shapeLen, sb=0, sc = 0;
-    anchors[0] = anchors[1];
-    ak=anchors[0];
     anchors.sort(anchors.begin(), anchors.end());
+    //anchors[0] = anchors[1];
+    ak=anchors[0];
     t1 = sysTime() - t1;
     double t2 = sysTime();
     uint64_t mask = (1ULL << 20) - 1;
@@ -1478,7 +1479,7 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
 }
 
  uint64_t mnMapReadList( LIndex  & index,
-                           String<Dna5> & read,
+                            String<Dna5> & read,
                           Anchors & anchors,
                           MapParm & mapParm,
                           String<uint64_t> & hit)

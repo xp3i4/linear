@@ -389,7 +389,6 @@ int map_(IndexDynamic & index,
          int p1
         )
 {
-    dout << "map_1" << gap_len_min << "\n";
     float senThr = mapParm.senThr / window_size;  //map for 2 roun if cords cover len <
     float cordThr = mapParm.cordThr / window_size; //cords cover length < are aborted
     MapParm complexParm = mapParm;
@@ -457,7 +456,6 @@ int map_(IndexDynamic & index,
             }
             if (fm_handler_.isAlign(f_map))
             {
-                dout << "map_0\n";
                 align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
                 //<<debug
                 //check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);

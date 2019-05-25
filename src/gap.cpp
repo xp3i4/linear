@@ -1094,6 +1094,7 @@ int check_tiles_(String<uint64_t> & tiles, uint64_t g_start, uint64_t g_end)
         if (++count == step)  //collecting every step bases
         {
             //TODO: k - getT(shape)
+            //<<debug
             g_hs_setGhs_(g_hs[g_hs_start + i++], val, type, shape.strand, k);
             count = 0;
         }
@@ -1804,22 +1805,8 @@ struct MapAnchorParm
         gr_end = rvcp_const - gr_end;
         std::swap (gr_end, gr_str);
     }
-    //<<debug
-    if (length(g_hs) < g_hs_end + gs_end - gs_str || length(g_hs) < g_hs_end + gs_end - gs_str)
-    {
-        return 0;
-    }
-    //>>debug
     g_hs_end = g_mapHs_kmer_(seq1, g_hs, gs_str, gs_end, g_hs_end, 10, 0);
-    //<<debug
-    if (length(g_hs) < g_hs_end + gr_end - gr_str || length(g_hs) < g_hs_end + gr_end - gr_str )
-    {
-        return 0;
-    }
-    //>>debug
     g_hs_end = g_mapHs_kmer_(seq2, g_hs, gr_str, gr_end, g_hs_end, 1, 1);
-
-
 
     std::sort (begin(g_hs), begin(g_hs) + g_hs_end);
 
