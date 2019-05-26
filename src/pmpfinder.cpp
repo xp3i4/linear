@@ -837,11 +837,11 @@ bool extendWindow(FeaturesDynamic & f1,
     0:get_cord_y(cords[length(cords) - 2]) + window_delta;
     unsigned len = length(cords) - 1;
     uint64_t new_cord;
-    //std::cout << "ew1 " << pre_cord_y << " " << get_cord_y(back(cords)) << "\n";
+    std::cout << "ew1 " << pre_cord_y << " " << get_cord_y(back(cords)) << "\n";
     while (pre_cord_y < get_cord_y(back(cords)))
     {
         new_cord = previousWindow(f1, f2, back(cords), score);
-//        std::cout << "ew2 " << get_cord_y (new_cord) << " " << score << "\n";
+        std::cout << "ew2 " << get_cord_y (new_cord) << " " << score << "\n";
         if (new_cord && get_cord_y(new_cord) > pre_cord_y)
         {
             appendValue(cords, new_cord);
@@ -857,7 +857,7 @@ bool extendWindow(FeaturesDynamic & f1,
     }
     while (true)
     {
-        //std::cout << "ew2 " << get_cord_y (new_cord) << " " << score << "\n";
+        std::cout << "ew22 " << get_cord_y (new_cord) << " " << score << "\n";
         new_cord = nextWindow(f1, f2, back(cords), score);
         if (new_cord)
         {
@@ -901,11 +901,10 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
  */
  bool endCord(String<uint64_t> & cord,
               unsigned & preCordStart,
-              float const & cordThr,
-              float & score)
+              float const & thd_min_block_len)
 {
     _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);   
-    if (length(cord) - preCordStart > cordThr)// > std::max(score/25, cordThr))
+    if (length(cord) - preCordStart > thd_min_block_len)// > std::max(score/25, cordThr))
     {
         _DefaultHit.setBlockEnd(back(cord));
     }
@@ -913,7 +912,6 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
     {
         erase(cord, preCordStart, length(cord));
     }
-    (void)score;
     return true;
 }
 
@@ -926,8 +924,7 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
                StringSet<FeaturesDynamic> & f2,
                unsigned & preCordStart,
                String<uint64_t> & cord,
-               float const & cordThr,
-               float & score
+               float const & thd_min_block_len
                )
 {
 //TODO: add maxlen of anchor to the first node in cord;
@@ -946,7 +943,6 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
                                         f2[genomeId], 
                                         _DefaultCord.cord2Cell(get_cord_y(new_cord)),
                                         _DefaultCord.cord2Cell(get_cord_x(new_cord)));
-            //dout << "nc2 " << strand << genomeId << get_cord_y(new_cord) << dist << "\n";
             if (f1[strand].isFs1_32()) 
             {
                 distThd = _apx_parm1_32.windowThreshold;
@@ -959,12 +955,8 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
             {
                 appendValue(cord, new_cord);
                 ++it;
-
-//            dout << "nc11 " << get_cord_y(back(cord)) << dist << "\n";
                 return true;
             }
- //           else
-//            dout << "nc12 " << get_cord_y(back(cord)) << dist << "\n";
         }
         ++it;
     }
@@ -972,36 +964,32 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
     
     if(it < hitEnd)
     {
-        if (length(cord) - preCordStart < std::max(score/25,  cordThr) )//|| std::abs(b1 - b2) < 10)
+        if (length(cord) - preCordStart < thd_min_block_len)
         {
             erase(cord, preCordStart, length(cord));
-            //std::cerr << "[]::nextCord erase cord\n";
         }
         else
         {
             _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);
-    //printf("[debug]::nextcord new block %f %d %f\n", (float)score/(length(cord) - preCordStart), length(cord) - preCordStart, cordThr);
         }
         preCordStart = length(cord);
         appendValue(cord, _DefaultCord.hit2Cord_dstr(*(it)));
-        score = 0;
         ++it;
         return true;
     }
     else
     {
-        score = 0;
         return false;
     }
 }
 
- bool path_dst(typename Iterator<String<uint64_t> >::Type hitBegin, 
-               typename Iterator<String<uint64_t> >::Type hitEnd, 
-               StringSet<FeaturesDynamic> & f1,
-               StringSet<FeaturesDynamic> & f2, 
-               String<uint64_t> & cords,
-               float const & cordLenThr
-               )
+bool path_dst(typename Iterator<String<uint64_t> >::Type hitBegin, 
+              typename Iterator<String<uint64_t> >::Type hitEnd, 
+              StringSet<FeaturesDynamic> & f1,
+              StringSet<FeaturesDynamic> & f2, 
+              String<uint64_t> & cords,
+              float const & thd_min_block_len
+              )
 {
     typename Iterator<String<uint64_t> >::Type it = hitBegin;
     unsigned preBlockPtr;
@@ -1013,8 +1001,8 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
             uint64_t genomeId = get_cord_id(back(cords));
             extendWindow(f1[strand], f2[genomeId], cords, score, strand);
         }
-        while (nextCord(it, hitEnd, f1, f2, preBlockPtr, cords, cordLenThr, score));
-        return endCord(cords, preBlockPtr, cordLenThr, score);   
+        while (nextCord(it, hitEnd, f1, f2, preBlockPtr, cords, thd_min_block_len));
+        return endCord(cords, preBlockPtr, thd_min_block_len);   
     }
     //std::cout << "[]::path_dist::cord " 
     return false;
@@ -1028,7 +1016,7 @@ void Hit::setBlockStart(uint64_t & val, uint64_t const & flag)
     val |= flag;
 }
 
- void Hit::setBlockBody(uint64_t & val, uint64_t const & flag)
+void Hit::setBlockBody(uint64_t & val, uint64_t const & flag)
 {
     val &= (~flag);
 }
@@ -1131,10 +1119,11 @@ unsigned getDIndexMatchAll (DIndex & index,
                         //val - cody out of bounds.
                         val |= _DefaultHitBase.flag2;
                     }
-                    //std::cout << "gimad " << get_cord_strand(val) << " " << get_cord_x(val) << " " << cordy << " " << get_cord_x(val) - cordy << "\n";
+                    std::cout << "gimadx " << get_cord_strand(val) << " " << get_cord_x(val) << " " << cordy << " " << get_cord_x(val) - cordy << "\n";
                     //NOTE: make sure data structure of anchor is same to cord
                     if (get_cord_x(val) > cordy)
                     {
+                        //todo::may out of boundary
                         val = shift_cord (val, -cordy, cordy - get_cord_y(val));
                         appendValue(set, val);
                     }
@@ -1333,7 +1322,8 @@ uint64_t getAnchorMatchList(Anchors & anchors,
     String<int64_t> list;
     for (unsigned k = 1; k < anchors.length(); k++)
     {
-        if (get_cord_x(anchors[k]) - get_cord_x(ak) > thd_anchor_err * readLen)
+        if (get_cord_x(anchors[k]) - get_cord_x(ak) > thd_anchor_err * readLen ||
+            k == anchors.length() - 1)
         {
             if (c_b > mapParm.anchorLenThr * readLen)
             {
@@ -1382,10 +1372,7 @@ uint64_t getAnchorMatchList(Anchors & anchors,
 
 uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapParm & mapParm, String<uint64_t> & hit)
 {
-    if (anchors.length() < 2)
-    {
-        return 0;
-    }
+
     double t1 = sysTime();
     float thd_anchor_err = 0.2;
     int thd_sig = 10;
@@ -1405,8 +1392,8 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
     for (unsigned k = 1; k < anchors.length(); k++)
     {
         int64_t d_anchor = std::abs(int64_t(get_cord_y(anchors[k]) - get_cord_y(ak)));
-        if (get_cord_x(anchors[k] - ak) > 
-            thd_anchor_err * d_anchor)
+        if (get_cord_x(anchors[k]) -get_cord_x(ak) > thd_anchor_err * d_anchor ||
+            k == anchors.length() - 1)
         {
             if (c_b > mapParm.anchorLenThr * readLen)
             {

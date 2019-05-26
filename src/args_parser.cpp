@@ -4,6 +4,8 @@ std::string CARTESIAN = "x";
 seqan::ArgumentParser::ParseResult
 parseCommandLine(Options & options, int argc, char const ** argv)
 {
+    char const * str_g = "-g";
+
     // Setup ArgumentParser.
     seqan::ArgumentParser parser("Linear");
     // Set short description, version, and date.
@@ -64,7 +66,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
         "s", "sam_flag", "0 to turn off output .sam for approximate mapping. Otherwise the results of approximate mapping will be covert to the .sam",
         seqan::ArgParseArgument::INTEGER, "INT"
         ));
-
+//    addDefaultValue(parser, "gap_len", "1");
 
 // Advanced parms for mapping
     addOption(parser, seqan::ArgParseOption(
@@ -105,7 +107,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     getOptionValue(options.gap_len, parser, "gap_len");
     getOptionValue(options.aln_flag, parser, "aln_flag");
     getOptionValue(options.sam_flag, parser, "sam_flag");
-    //std::cerr << "xxxxx " << options.sam_flag << "\n";
+    //std::cerr << "xxxxx " << options.gap_len << isSet(parser, "gap_len") << "\n";
     std::vector<std::string> args;
     args = getArgumentValues(parser, 0);
     if (length(args) < 2)
@@ -124,6 +126,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
         Options::PathsType * pp = & options.r_paths;
         for (size_t i = 0; i < length(args); i++)
         {
+            //dout << "args[i]" << args[i] << "\n";
             if (args[i] == CARTESIAN)
             {
                 pp = & options.g_paths;
