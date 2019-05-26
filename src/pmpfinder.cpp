@@ -905,7 +905,7 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
               float const & thd_min_block_len)
 {
     _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);   
-    dout << "erase" << length(cord) << preCordStart << cordThr << "\n";
+    dout << "erase" << length(cord) << preCordStart << thd_min_block_len << "\n";
     if (length(cord) - preCordStart > thd_min_block_len)// > std::max(score/25, cordThr))
     {
         _DefaultHit.setBlockEnd(back(cord));
@@ -927,7 +927,7 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
                StringSet<FeaturesDynamic> & f2,
                unsigned & preCordStart,
                String<uint64_t> & cord,
-               float const & thd_min_block_len,
+               float const & thd_min_block_len
                )
 {
 //TODO: add maxlen of anchor to the first node in cord;
