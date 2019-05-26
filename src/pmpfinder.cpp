@@ -837,11 +837,9 @@ bool extendWindow(FeaturesDynamic & f1,
     0:get_cord_y(cords[length(cords) - 2]) + window_delta;
     unsigned len = length(cords) - 1;
     uint64_t new_cord;
-    std::cout << "ew1 " << pre_cord_y << " " << get_cord_y(back(cords)) << "\n";
     while (pre_cord_y < get_cord_y(back(cords)))
     {
         new_cord = previousWindow(f1, f2, back(cords), score);
-        std::cout << "ew2 " << get_cord_y (new_cord) << " " << score << "\n";
         if (new_cord && get_cord_y(new_cord) > pre_cord_y)
         {
             appendValue(cords, new_cord);
@@ -857,7 +855,6 @@ bool extendWindow(FeaturesDynamic & f1,
     }
     while (true)
     {
-        std::cout << "ew22 " << get_cord_y (new_cord) << " " << score << "\n";
         new_cord = nextWindow(f1, f2, back(cords), score);
         if (new_cord)
         {
@@ -1119,7 +1116,6 @@ unsigned getDIndexMatchAll (DIndex & index,
                         //val - cody out of bounds.
                         val |= _DefaultHitBase.flag2;
                     }
-                    std::cout << "gimadx " << get_cord_strand(val) << " " << get_cord_x(val) << " " << cordy << " " << get_cord_x(val) - cordy << "\n";
                     //NOTE: make sure data structure of anchor is same to cord
                     if (get_cord_x(val) > cordy)
                     {
