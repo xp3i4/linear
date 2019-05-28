@@ -1,12 +1,6 @@
-//#include <seqan/seq_io.h>
-//#include <seqan/stream.h>
-//#include <seqan/index.h>
-//#include <seqan/store.h>
-//#include <seqan/basic.h>
-//#include <seqan/arg_parse.h>
-//#include <seqan/vcf_io.h>
 #include <iostream>
 #include <fstream>
+#include <seqan/basic.h>
 #include "cords.h"
 #include "pmpfinder.h"
 #include "f_io.h"
@@ -122,6 +116,24 @@ BamAlignmentRecordLink::BamAlignmentRecordLink()
 void BamAlignmentRecordLink::addNext(int id)
 {
     next_id = id;
+}
+void addNextBamLink(String<BamAlignmentRecordLink> & bam_records,
+                    int id, int next_id)
+{
+    bam_records[id].addNext(next_id);
+
+    String<CigarElement<> > & cigar = bam_records[next_id].cigar;
+    if (!empty(cigar))
+    {
+        if (cigar[0].operation == 'S' || cigar[0].operation == 'H')
+        {
+            std::cout << "movesH" << cigar[0].count << " "<< cigar[0].operation << " " << cigar[1].count << " "<< cigar[1].operation <<"\n";
+            //eraseFront(cigar);
+            erase(cigar,0);
+            std::cout << "movesH1 " << cigar[0].count << " "<< cigar[0].operation << "\n";
+        }    
+    }
+    //todo::merge 1=|2= to 3=
 }
 int BamAlignmentRecordLink::isEnd() const 
 {
@@ -508,7 +520,7 @@ int insertCigar(String<CigarElement< > > &cigar1,
     }
     if (cigar1[p].operation == back(cigar2).operation) 
     {
-        cigar1[p - 1].count += back(cigar2).count;
+        cigar1[p].count += back(cigar2).count;
         eraseBack(cigar2);
     }
     insert(cigar1, p, cigar2);

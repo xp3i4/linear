@@ -263,7 +263,7 @@ int print_mapper_results(Mapper & mapper)
     return 0;
 }
 //debug util to check sam cigar base to base
-void check_cigar(StringSet<String<Dna5> > & genomes,
+int check_cigar(StringSet<String<Dna5> > & genomes,
                  String<Dna5> & read, 
                  String<Dna5> & comrevRead,
                  String<uint64_t> & cords, //raw cords
@@ -291,10 +291,12 @@ void check_cigar(StringSet<String<Dna5> > & genomes,
             if (bam_records[i].cigar[0].operation == 'S') 
             {
                 str2 = bam_records[i].cigar[0].count;
+                j = 1;
             }
             else
             {
                 str2 = 0;
+                j = 0;
             }
             if (bam_records[i].flag & 16) // - strand
             {
@@ -308,7 +310,6 @@ void check_cigar(StringSet<String<Dna5> > & genomes,
             } 
             //std::cout << "nm0 " << infix1 << "\n";
             //std::cout << "nm1 " << infix2 << "\n";
-            j = 1;
             it1 = 0;
             it2 = 0;
             base = 1;
@@ -330,7 +331,7 @@ void check_cigar(StringSet<String<Dna5> > & genomes,
             if (op == 'D')
             {
                 for (int k = 0; k < cnt; k++)
-                std::cout << "chxx " << it1 + k << " " << infix1[it1 + k] << " | " << " " << cnt << " " << op << "\n"; 
+                std::cout << "chxx " << it1 + k << " " << infix1[it1 + k] << " | " << cnt << " " << op << "\n"; 
                 it1 += cnt;
             }
             else if (op == 'I')
@@ -366,11 +367,12 @@ void check_cigar(StringSet<String<Dna5> > & genomes,
         }
         if (bam_records[i].isEnd())
         {
-            dout << "cb1 " << i << str1 << it1 << it2 << length(infix1) << length(infix2) << count_mat << " " << count_mis << " " << "\n";
+            std::cerr << "cb1 " << i << " " << str1 << " " << it1 << " " << it2 << length(infix1) << length(infix2) << count_mat << " " << count_mis << " " << "\n";
             f_new = 1;
         }
         else 
         {
+            std::cout << "chxxb0" << i << " " << str1 + i << " " << bam_records[i + 1].beginPos << "\n";
             i = bam_records[i].next() - 1;
             f_new = 0;
         }
@@ -437,7 +439,7 @@ int map_(IndexDynamic & index,
         if (length(reads[j]) >= mapParm.minReadLen)
         {
             red_len[thd_id] += length(reads[j]);
-            std::cout << "[]::rawmap::j " << j <<"\n";
+            std::cerr << "[]::rawmap::j " << j <<"\n";
             float cordLenThr = length(reads[j]) * cordThr;
             _compltRvseStr(reads[j], comStr);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
@@ -464,7 +466,7 @@ int map_(IndexDynamic & index,
                 dout << "map_0\n";
                 align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
                 //<<debug
-                //check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
+                check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
                 //>>debug
             }
         }   
