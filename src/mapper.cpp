@@ -282,6 +282,10 @@ int check_cigar(StringSet<String<Dna5> > & genomes,
     int base = 1;
     for (int i = 0; i < length(bam_records); i++)
     {
+        if (length(bam_records[i].cigar) == 0)
+        {
+            continue;
+        }
         if (f_new)
         {
             count_mat = count_mis = 0;
@@ -367,12 +371,19 @@ int check_cigar(StringSet<String<Dna5> > & genomes,
         }
         if (bam_records[i].isEnd())
         {
-            std::cerr << "cb1 " << i << " " << str1 << " " << it1 << " " << it2 << length(infix1) << length(infix2) << count_mat << " " << count_mis << " " << "\n";
+            if (count_mis != 0)
+            {
+                dout << "cb1 " << i << " " << str1 << " " << it1 << " " << it2 << length(infix1) << length(infix2) << count_mat << " " << count_mis << " " << "\n";
+            }
+            else
+            {
+                dout << "cb12 " << i << " " << str1 << " " << it1 << " " << it2 << length(infix1) << length(infix2) << count_mat << " " << count_mis << " " << "\n";
+            }
             f_new = 1;
         }
         else 
         {
-            std::cout << "chxxb0" << i << " " << str1 + i << " " << bam_records[i + 1].beginPos << "\n";
+            //std::cout << "chxxb0" << i << " " << str1 + i << " " << bam_records[i + 1].beginPos << "\n";
             i = bam_records[i].next() - 1;
             f_new = 0;
         }

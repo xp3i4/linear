@@ -1818,7 +1818,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                                       read, comrevRead, 
                                       cord_str, cord_end, band);
         //std::cout << rstr[ri] << "|" << rstr[ri + 1] << "\n";
-        dout << get_cord_x(pre_cord_str) << get_cord_x(pre_cord_end) << "\n";
+        dout << get_cord_x(pre_cord_str) << get_cord_x(pre_cord_end) << " ";
         printRows(rstr[ri_pre], rstr[ri_pre + 1], "ac2_2pre");
         printRows(rstr[ri], rstr[ri + 1], "ac2_2");
 

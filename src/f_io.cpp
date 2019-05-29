@@ -127,10 +127,8 @@ void addNextBamLink(String<BamAlignmentRecordLink> & bam_records,
     {
         if (cigar[0].operation == 'S' || cigar[0].operation == 'H')
         {
-            std::cout << "movesH" << cigar[0].count << " "<< cigar[0].operation << " " << cigar[1].count << " "<< cigar[1].operation <<"\n";
             //eraseFront(cigar);
             erase(cigar,0);
-            std::cout << "movesH1 " << cigar[0].count << " "<< cigar[0].operation << "\n";
         }    
     }
     //todo::merge 1=|2= to 3=
@@ -656,6 +654,11 @@ int print_align_sam_record_(StringSet<String<BamAlignmentRecordLink> > & records
         {
             records[i][j].qName = readsId[i];
             CharString g_id = genomesId[records[i][j].rID];
+            if (length(records[i][j].cigar) == 0 ||
+                ((length(records[i][j].cigar) == 1) && (records[i][j].cigar[0].operation == 'S' || records[i][j].cigar[0].operation == 'H')))
+            {
+                continue;
+            }
             int dt = writeSam(of, records[i], j, g_id);
         }
     }
