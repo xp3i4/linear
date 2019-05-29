@@ -1100,24 +1100,11 @@ int check_tiles_(String<uint64_t> & tiles, uint64_t g_start, uint64_t g_end)
     uint64_t val = 0;
     for (uint64_t k = start; k < end; k++)
     {
-        //<<debug
-        if (k > length(seq) - 1)
-        {
-            dout << "gmk1" << k << length(seq) << "\n";
-            break;
-        }
-        //>>debug
         val = hashNextV(shape, begin(seq) + k);
         if (++count == step)  //collecting every step bases
         {
             //TODO: k - getT(shape)
             //<<debug
-            if (g_hs_start + i + 1 > length(g_hs))
-            {
-                dout << "gmk1" << g_hs_start << start << end << "\n";
-                break;
-            }
-            //>>debug
             g_hs_setGhs_(g_hs[g_hs_start + i++], val, type, shape.strand, k);
             count = 0;
         }
