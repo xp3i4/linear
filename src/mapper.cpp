@@ -280,7 +280,6 @@ int check_cigar(StringSet<String<Dna5> > & genomes,
     for (int i = 0; i < length(bam_records); i++)
     {
         std::cout << "chxxxb1 " << i<< " " << bam_records[i].isEnd() << " ";
-        printCigar (bam_records[i].cigar, " ");
         if (bam_records[i].isEnd())
         {
             f_b_end = 1;

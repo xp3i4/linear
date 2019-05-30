@@ -1728,7 +1728,6 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                                           beginPosition(rstr[ri_pre]),
                                           beginPosition(rstr[ri_pre + 1]));
             }
-            dout << "corddrop" << i + 1 << get_cord_y(cord_str) << "\n";
             continue;
         }
 
