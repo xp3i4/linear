@@ -1728,6 +1728,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                                           beginPosition(rstr[ri_pre]),
                                           beginPosition(rstr[ri_pre + 1]));
             }
+            dout << "corddrop" << i + 1 << get_cord_y(cord_str) << "\n";
             continue;
         }
 
@@ -1883,11 +1884,9 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         {
             if (!flag)
             {
-                //printRows(rstr[ri], rstr[ri + 1], "pr2");
                 //todo::clipping last 30 bases.
                 clip_segs(rstr[ri], rstr[ri + 1], 
                           cord_str, _gap_parm, 1); 
-                //printRows(rstr[ri], rstr[ri + 1], "pr3");
                 insertBamRecordCigar(back(bam_records), rstr[ri], rstr[ri + 1]);                 
             }
             else if (flag & 1)
@@ -1900,6 +1899,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                               beginPosition(rstr[ri]);
                 bam_start_y = get_cord_y(cord_str) +
                               beginPosition(rstr[ri + 1]);
+                bam_strand = get_cord_strand (cord_str);
                 insertNewBamRecord(bam_records, 
                                    rstr[ri], 
                                    rstr[ri + 1],
@@ -1913,6 +1913,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                               beginPosition(rstr[ri]);
                 bam_start_y = get_cord_y(cord_str) +
                               beginPosition(rstr[ri + 1]);
+                bam_strand = get_cord_strand(cord_str);
                 insertNewBamRecord(bam_records, 
                                    rstr[ri], 
                                    rstr[ri + 1],
