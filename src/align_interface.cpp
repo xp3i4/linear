@@ -1382,7 +1382,6 @@ int clip_rows_segs (Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
                     delta
                    );
 }
-
 /*
  * Clip head or tail by calling the clip_rows_segs
  * @direction -1 head, 1 tail
@@ -1451,6 +1450,7 @@ int align_gap (GapRecordHolder & gap,
     uint64_t end_cord = gap.getCords().second;
     std::cout << "agx1 " << get_cord_x(str_cord) << " " << get_cord_x(end_cord) << " " 
               << get_cord_y(str_cord) << " " << get_cord_y(end_cord) << "\n";
+    return 1;
     if (get_cord_strand(str_cord ^ end_cord))
     {
         return 1;
@@ -1715,9 +1715,10 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         uint64_t cordy = get_cord_y(new_cord);
         uint64_t cordx = get_cord_x(new_cord);
         int g__id = get_cord_id(new_cord);
+        int f_drop = 0;
         if (cordy > length(read) - 1 || cordx > length(genomes[g__id]) - 1)
         {
-            continue;
+            f_drop = 1;
         }
         else if (!_DefaultCord.isBlockEnd(back(cords)) && 
                  !get_cord_strand(back(cords) ^ cords_r[i]))
@@ -1742,16 +1743,26 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                 }
                 else
                 {
-                    continue; 
+                    if (_DefaultCord.isBlockEnd(new_cord))
+                    {
+                        set_cord_block_end(back(cords));
+                    }
+                    f_drop = 1;
                     //cord_0 = (100,100)
                     //cord_1 = (0, 0) 
                     //cord_1 wil be aborted
                 }
             }
         }
-        appendValue (cords, cords_r[i]);
+        if (!f_drop )
+        {
+            appendValue (cords, cords_r[i]);
+        }
+        if (_DefaultCord.isBlockEnd(cords_r[i]))
+        {
+            set_cord_block_end(back(cords));
+        }
     }
-    set_cord_block_end(back(cords));
     //<<debug
     for (int i = 0; i < length(cords); i++)
     {
@@ -1778,7 +1789,6 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         strand = get_cord_strand(cords[i]);
         cord_str = cords[i];
         cord_end = shift_cord(cord_str, block_size, block_size);
-        int ri_gap_h = 4;
         //std::cout << "ac_cord " << i + 1 << " " << get_cord_y(cord_str) << " " << get_cord_y(cords[i]) << "\n";
         if (_DefaultCord.isBlockEnd(cords[i - 1])) 
         {
@@ -1789,7 +1799,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
             int dy = std::min(thd_max_dshift, (int)get_cord_y(cords[i]));
             int dx = dy;
             cord_str = shift_cord (cords[i], -dx, -dy);
-            pre_cord_str = emptyCord; //merge_align_ will return 0 
+            //pre_cord_str = emptyCord; //merge_align_ will return 0 
             check_flag = -1;
             std::cout << "ac2 " << get_cord_y(cord_str) << " " << get_cord_y(cord_end) << " " << dy << " " << dx << " " << get_cord_y(cords[i]) << "\n";
         }
@@ -1852,7 +1862,6 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         //TODO!!check_align for first or last cord are differnet from middle cords
         if (flag)
         {
-            dout << "flag1 " << i + 1 << flag_pre << flag << _DefaultCord.isBlockEnd(cord_str) << get_cord_x(cord_str) << get_cord_y(pre_cord_str) + beginPosition(rstr[ri_pre + 1]) << "\n";
             /*
             if (pre_cord_str != emptyCord)
             {
@@ -1861,6 +1870,8 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                                           beginPosition(rstr[ri_pre + 1]));
             }
             */
+
+            dout << "flag1 " << i + 1 << flag_pre << flag << _DefaultCord.isBlockEnd(cord_str) << get_cord_x(cord_str) << get_cord_y(pre_cord_str) + beginPosition(rstr[ri_pre + 1]) << "\n";
             continue; //alignment quality check, drop poorly aligned 
         }
         if (_DefaultCord.isBlockEnd(pre_cord_str))
@@ -2090,115 +2101,4 @@ int align_cords (StringSet<String<Dna5> >& genomes,
     align_gaps(bam_records, gaps, genomes, read, comrevRead, score_scheme, _gap_parm); 
     //printCigarSrcLen(bam_records, "pscr_gaps1 ");
     return 0;
-}
-
-/**
- * Clip breakpoint \in [w, l - w),w = 30, within the lxl window
- * Direction: if  > 0  -----------mmmmmmmmm,  if < 0 mmmmmmmmmmm--------; 
- * where 'm' represents well aligned part
- */
-int clip_window_(Align<String<Dna5>,ArrayGaps> & aligner, 
-				 int g_start,
-				 int g_end,
-			     uint64_t & clip_ref, 
-				 uint64_t & clip_read, 
-				 int direction
-				)
-{
-	typedef Align<String<Dna5>, ArrayGaps> TAlign;
-	typedef Row<TAlign>::Type TRow; 
-
-	double t = sysTime();
-	TRow & row1 = row(aligner, 0);
-    TRow & row2 = row(aligner, 1);
-    int window = 30;  // w = window
-    int x = 0;
-    String<int> buffer;
-//WARNING & TODO::toViewPosition is extreamly time inefficient
-    for (int i = toViewPosition(row1, g_start); i < toViewPosition(row1, g_start + window); i++)
-    {
-        x = getScore_ (row1[i], row2[i], 1, x);
-    }
-    int delta = 3;
-    for (int k = delta + g_start; k < g_end - window  + 1; k += delta)
-    {
-        for (int i = toViewPosition(row1, k - delta); i < toViewPosition(row1, k); i++)
-        {
-            x = getScore_ (row1[i], row2[i], -1, x);
-        }
-        for (int i = toViewPosition(row1, k + window - 1 - delta); i < toViewPosition(row1, k + window - 1); i++)
-        {
-            x = getScore_ (row1[i], row2[i], 1, x);
-        }
-        appendValue(buffer, x);
-    }
-    t = sysTime() - t;
-    double t2 = sysTime();
-    int max = 0;
-    int max_sp_ref = 0; // max source position
-    int max_sp_read = 0;
-    direction = direction / std::abs(direction);
-    for (int k = window / delta ; k < (int)length(buffer); k++)
-    {
-        int d_ = (buffer[k] - buffer[k - window / delta]) * direction;
-        if (max < d_)
-        {
-            max = d_;
-            max_sp_ref = k * delta;
-            max_sp_read = toSourcePosition(row2, toViewPosition(row1, max_sp_ref));
-        }
-    }
-    clip_ref = (max < 20)?-1:max_sp_ref;
-    clip_read = (max < 20)?-1:max_sp_read;
-    return 0;
-}
-/**
- * Clip break point of the alignment of genome and read within the lxl window 
- * direction: clip direction  > 0  -----------mmmmmmmmm,  < 0 mmmmmmmmmmm--------; 
- * where 'm' is match
- */
- uint64_t clip_window (String<Dna5> & genome,
-	                         String<Dna5> & read,
-	                         String<Dna5> & comrevRead,
-	                         uint64_t genomeId,
-	                         uint64_t genomeStart,
-	                         uint64_t genomeEnd,
-	                         uint64_t readStart,
-	                         uint64_t readEnd,
-	                         uint64_t strand,
-	                         uint64_t band,
-	                         int direction,
-	                         int score_flag = 1
-	                        )
-{ 
-    typedef Row<Align<String<Dna5>,ArrayGaps> >::Type TRow;
-    Align<String<Dna5>,ArrayGaps> aligner;
-    resize(rows(aligner), 2); 
-    TRow row1 = row(aligner, 0);
-    TRow row2 = row(aligner, 1);
-    for (int i = genomeStart; i < genomeEnd; i++)
-    {
-        std::cout << *(begin(genome) + i);
-    }
-    int score = align_block  (row1,
-                              row2,
-                              genome, 
-                              read, 
-                              comrevRead,
-                              strand, 
-                              genomeStart, 
-                              genomeEnd,
-                              readStart,
-                              readEnd,
-                              band
-                            );
-    int g_range = (int) genomeEnd - genomeStart;
-    if (score < thd_align_score / (int) _default_block_size_ * g_range && score_flag)
-    {
-        return -1;
-    }
-    uint64_t clip_ref = 0, clip_read = 0;
-  	clip_window_ (aligner, 0, g_range, clip_ref, clip_read, direction);
-    uint64_t returnCord = create_cord(genomeId, genomeStart + clip_ref, readStart + clip_read, strand);
-    return returnCord;
 }
