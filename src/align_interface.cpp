@@ -1632,6 +1632,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
     appendValue(cords, cords_r[0]);
 
     //step 1: trim and filter normal cords
+    t1 = sysTime ();
     for (int i = 1; i < length(cords_r); i++)
     {
         uint64_t new_cord = cords_r[i];
@@ -1673,6 +1674,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
         }
         appendValue (cords, cords_r[i]);
     }
+    t2 = sysTime();
     set_cord_block_end(back(cords));
     int f_gap_merge = 0;
     for (int i = 1; i < (int)length(cords); i++)
@@ -1942,6 +1944,8 @@ int align_cords (StringSet<String<Dna5> >& genomes,
     int thd_accept_density = 16;
     */
     align_gaps(bam_records, gaps, genomes, read, comrevRead, score_scheme, _gap_parm); 
+    t3 = sysTime();
+    dout << (t2 - t1) / (t3 - t2) << "\n";
     //printCigarSrcLen(bam_records, "pscr_gaps1 ");
     return 0;
 }

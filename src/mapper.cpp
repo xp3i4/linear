@@ -451,7 +451,7 @@ int map_(IndexDynamic & index,
         {
             red_len[thd_id] += length(reads[j]);
             std::cout << "[]::rawmap::j " << j <<"\n";
-            std::cerr << "[]::rawmap::j " << j <<"\n";
+            //std::cerr << "[]::rawmap::j " << j <<"\n";
             float cordLenThr = length(reads[j]) * cordThr;
             _compltRvseStr(reads[j], comStr);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
@@ -477,7 +477,7 @@ int map_(IndexDynamic & index,
             {
                 align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
                 //<<debug
-                check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
+                //check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
                 //>>debug
             }
         }   
