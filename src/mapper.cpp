@@ -280,92 +280,101 @@ int check_cigar(StringSet<String<Dna5> > & genomes,
     int it1 = 0;
     int it2 = 0;
     int base = 1;
+    int f_b_end = 1;
     for (int i = 0; i < length(bam_records); i++)
     {
-        if (length(bam_records[i].cigar) == 0)
+        std::cout << "chxxxb1 " << i<< " " << bam_records[i].isEnd() << " ";
+        printCigar (bam_records[i].cigar, " ");
+        if (bam_records[i].isEnd())
         {
-            continue;
+            f_b_end = 1;
         }
-        if (f_new)
+        if (length(bam_records[i].cigar) == 0 ||
+          ((length(bam_records[i].cigar) == 1) && 
+                (bam_records[i].cigar[0].operation == 'S' || 
+                bam_records[i].cigar[0].operation == 'H')))
         {
-            count_mat = count_mis = 0;
-            str1 = bam_records[i].beginPos;
-            infix1 = infix(genomes[0], str1, length(genomes[0]));
-            std::cout << "chxxb" << str1 << genomes[0][12684]<< "\n";
-            if (bam_records[i].cigar[0].operation == 'S') 
+            if (f_new)
             {
-                str2 = bam_records[i].cigar[0].count;
-                j = 1;
+                count_mat = count_mis = 0;
+                str1 = bam_records[i].beginPos;
+                infix1 = infix(genomes[0], str1, length(genomes[0]));
+                std::cout << "chxxb1" << str1<< "\n";
+                if (bam_records[i].cigar[0].operation == 'S') 
+                {
+                    str2 = bam_records[i].cigar[0].count;
+                    j = 1;
+                }
+                else
+                {
+                    str2 = 0;
+                    j = 0;
+                }
+                if (bam_records[i].flag & 16) // - strand
+                {
+                    infix2 = infix(comrevRead, str2, length(read) - 1);
+                }
+                else
+                {
+                    infix2 = infix(read, str2, length(read) - 1);
+                } 
+                //std::cout << "nm0 " << infix1 << "\n";
+                //std::cout << "nm1 " << infix2 << "\n";
+                it1 = 0;
+                it2 = 0;
+                base = 1;
             }
             else
             {
-                str2 = 0;
                 j = 0;
             }
-            if (bam_records[i].flag & 16) // - strand
+            for (; j < length(bam_records[i].cigar); j++)
             {
-                infix2 = infix(comrevRead, str2, length(read) - 1);
-            }
-            else
-            {
-                infix2 = infix(read, str2, length(read) - 1);
-            } 
-            //std::cout << "nm0 " << infix1 << "\n";
-            //std::cout << "nm1 " << infix2 << "\n";
-            it1 = 0;
-            it2 = 0;
-            base = 1;
-        }
-        else
-        {
-            j = 0;
-        }
-        for (; j < length(bam_records[i].cigar); j++)
-        {
-            char op = bam_records[i].cigar[j].operation;
-            int cnt = bam_records[i].cigar[j].count;
-            if ((it1 + cnt >= length(infix1) && (op != 'I'))|| 
-                (it2 + cnt >= length(infix2) && (op != 'D')))
-            {
-                dout << "bk1" << i << j << it1 << it2 << cnt << length(infix2) << "\n";
-                break;
-            }
-            if (op == 'D')
-            {
-                for (int k = 0; k < cnt; k++)
-                std::cout << "chxx " << it1 + k << " " << infix1[it1 + k] << " | " << cnt << " " << op << "\n"; 
-                it1 += cnt;
-            }
-            else if (op == 'I')
-            {
-                for (int k = 0; k < cnt; k++)
-                std::cout << "chxx " << it1 + k << " | " << infix2[it2 + k] << " " << cnt << " " << op  << "\n"; 
-                it2 += cnt;
-            }
-            else if (op == 'X')
-            {
-                for (int k = 0; k < cnt; k++)
-                std::cout << "chxx " << it1 + k << " " << infix1[it1 + k] << " " << infix2[it2 + k] << " " << cnt << " " << op  << "\n"; 
-                it1 += cnt;
-                it2 += cnt;
-            }
-            else if (op == '=')
-            {
-                for (int k = 0; k < cnt; k++)
+                char op = bam_records[i].cigar[j].operation;
+                int cnt = bam_records[i].cigar[j].count;
+                if ((it1 + cnt >= length(infix1) && (op != 'I'))|| 
+                    (it2 + cnt >= length(infix2) && (op != 'D')))
                 {
-                    std::cout << "chxx " << it1 << " " << infix1[it1] << " " << infix2[it2] << " " << cnt << " " << op << " "; 
-                    if (infix1[it1] != infix2[it2]) 
+                    dout << "bk1" << i << j << it1 << it2 << cnt << length(infix2) << "\n";
+                    break;
+                }
+                if (op == 'D')
+                {
+                    for (int k = 0; k < cnt; k++)
+                    std::cout << "chxx " << it1 + k << " " << infix1[it1 + k] << " | " << cnt << " " << op << "\n"; 
+                    it1 += cnt;
+                }
+                else if (op == 'I')
+                {
+                    for (int k = 0; k < cnt; k++)
+                    std::cout << "chxx " << it1 + k << " | " << infix2[it2 + k] << " " << cnt << " " << op  << "\n"; 
+                    it2 += cnt;
+                }
+                else if (op == 'X')
+                {
+                    for (int k = 0; k < cnt; k++)
+                    std::cout << "chxx " << it1 + k << " " << infix1[it1 + k] << " " << infix2[it2 + k] << " " << cnt << " " << op  << "\n"; 
+                    it1 += cnt;
+                    it2 += cnt;
+                }
+                else if (op == '=')
+                {
+                    for (int k = 0; k < cnt; k++)
                     {
-                        ++count_mis;
-                        std::cout << "xxxxxxxxxxxxxxxxxxxxxx\n";
+                        std::cout << "chxx " << it1 << " " << infix1[it1] << " " << infix2[it2] << " " << cnt << " " << op << " "; 
+                        if (infix1[it1] != infix2[it2]) 
+                        {
+                            ++count_mis;
+                            std::cout << "xxxxxxxxxxxxxxxxxxxxxx\n";
+                        }
+                        else
+                        {
+                            ++count_mat;
+                            std::cout << "\n";
+                        }
+                        it1++;
+                        it2++;
                     }
-                    else
-                    {
-                        ++count_mat;
-                        std::cout << "\n";
-                    }
-                    it1++;
-                    it2++;
                 }
             }
         }
@@ -383,7 +392,7 @@ int check_cigar(StringSet<String<Dna5> > & genomes,
         }
         else 
         {
-            std::cout << "chxxb0" << i << " " << str1 << " " << str2 << " " << bam_records[i + 1].beginPos << "\n";
+            std::cout << "chxxb0 " << i << " " << str1 << " " << str2 << " " << bam_records[i + 1].beginPos << "\n";
             i = bam_records[i].next() - 1;
             f_new = 0;
         }

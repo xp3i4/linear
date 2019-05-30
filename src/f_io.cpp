@@ -420,9 +420,15 @@ int writeSam(std::ofstream & target,
             }
             it_count++;
             if (records[it].isEnd())
+            {
+                dout << "writesam_1" << it << "\n";
                 break;
+            }
             else 
+            {
+                dout << "writesam_0" << it << "\n";
                 it = records[it].next();
+            }
         }
         std::cout << "[]::print_sam " << end << "\n";
     }
