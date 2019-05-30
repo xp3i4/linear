@@ -1450,7 +1450,6 @@ int align_gap (GapRecordHolder & gap,
     uint64_t end_cord = gap.getCords().second;
     std::cout << "agx1 " << get_cord_x(str_cord) << " " << get_cord_x(end_cord) << " " 
               << get_cord_y(str_cord) << " " << get_cord_y(end_cord) << "\n";
-    return 1;
     if (get_cord_strand(str_cord ^ end_cord))
     {
         return 1;
