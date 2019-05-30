@@ -88,4 +88,6 @@ void print_cords_sam
      StringSet<CharString> & readsId,
      StringSet<String<Dna5> > & genms,
      std::ofstream & of);
+void addNextBamLink(String<BamAlignmentRecordLink> & bam_records,
+                    int id, int next_id);
 #endif

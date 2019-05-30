@@ -1,12 +1,6 @@
-//#include <seqan/seq_io.h>
-//#include <seqan/stream.h>
-//#include <seqan/index.h>
-//#include <seqan/store.h>
-//#include <seqan/basic.h>
-//#include <seqan/arg_parse.h>
-//#include <seqan/vcf_io.h>
 #include <iostream>
 #include <fstream>
+#include <seqan/basic.h>
 #include "cords.h"
 #include "pmpfinder.h"
 #include "f_io.h"
@@ -123,6 +117,22 @@ void BamAlignmentRecordLink::addNext(int id)
 {
     next_id = id;
 }
+void addNextBamLink(String<BamAlignmentRecordLink> & bam_records,
+                    int id, int next_id)
+{
+    bam_records[id].addNext(next_id);
+
+    String<CigarElement<> > & cigar = bam_records[next_id].cigar;
+    if (!empty(cigar))
+    {
+        if (cigar[0].operation == 'S' || cigar[0].operation == 'H')
+        {
+            //eraseFront(cigar);
+            erase(cigar,0);
+        }    
+    }
+    //todo::merge 1=|2= to 3=
+}
 int BamAlignmentRecordLink::isEnd() const 
 {
     return next_id < 0;
@@ -194,8 +204,8 @@ void align2cigar_(String<CigarElement< > > &cigar,
         }
         if (lastOp != op)
         {
-            if (lastOp == 'D' && numOps >= (unsigned)splicedGapThresh)
-                lastOp = 'N';
+            //if (lastOp == 'D' && numOps >= (unsigned)splicedGapThresh)
+            //    lastOp = 'N';
             if (numOps > 0)
             {
                 if (!flag)
@@ -221,8 +231,8 @@ void align2cigar_(String<CigarElement< > > &cigar,
         ++numOps;
     }
     SEQAN_ASSERT_EQ(atEnd(it1), atEnd(it2));
-    if (lastOp == 'D' && numOps >= splicedGapThresh)
-        lastOp = 'N';
+    //if (lastOp == 'D' && numOps >= splicedGapThresh)
+    //    lastOp = 'N';
     if (numOps > 0)
         appendValue(cigar, CigarElement<>(op, numOps));
 }
@@ -261,8 +271,8 @@ int clip_cigar (String<CigarElement<> > & cigar)
                 return 1;        //'M' is not allowed in the function
             case 'S': 
                 break;
-            case 'N':
-                break;
+            //case 'N':
+            //    break;
             case 'P':
                 break;
             default:
@@ -506,7 +516,7 @@ int insertCigar(String<CigarElement< > > &cigar1,
     }
     if (cigar1[p].operation == back(cigar2).operation) 
     {
-        cigar1[p - 1].count += back(cigar2).count;
+        cigar1[p].count += back(cigar2).count;
         eraseBack(cigar2);
     }
     insert(cigar1, p, cigar2);
@@ -642,6 +652,11 @@ int print_align_sam_record_(StringSet<String<BamAlignmentRecordLink> > & records
         {
             records[i][j].qName = readsId[i];
             CharString g_id = genomesId[records[i][j].rID];
+            if (length(records[i][j].cigar) == 0 ||
+                ((length(records[i][j].cigar) == 1) && (records[i][j].cigar[0].operation == 'S' || records[i][j].cigar[0].operation == 'H')))
+            {
+                continue;
+            }
             int dt = writeSam(of, records[i], j, g_id);
         }
     }
