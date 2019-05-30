@@ -205,8 +205,8 @@ void align2cigar_(String<CigarElement< > > &cigar,
         }
         if (lastOp != op)
         {
-            if (lastOp == 'D' && numOps >= (unsigned)splicedGapThresh)
-                lastOp = 'N';
+            //if (lastOp == 'D' && numOps >= (unsigned)splicedGapThresh)
+            //    lastOp = 'N';
             if (numOps > 0)
             {
                 if (!flag)
@@ -232,8 +232,8 @@ void align2cigar_(String<CigarElement< > > &cigar,
         ++numOps;
     }
     SEQAN_ASSERT_EQ(atEnd(it1), atEnd(it2));
-    if (lastOp == 'D' && numOps >= splicedGapThresh)
-        lastOp = 'N';
+    //if (lastOp == 'D' && numOps >= splicedGapThresh)
+    //    lastOp = 'N';
     if (numOps > 0)
         appendValue(cigar, CigarElement<>(op, numOps));
     std::cout << "align2cigar_end " << length(cigar) << "\n";
@@ -273,8 +273,8 @@ int clip_cigar (String<CigarElement<> > & cigar)
                 return 1;        //'M' is not allowed in the function
             case 'S': 
                 break;
-            case 'N':
-                break;
+            //case 'N':
+            //    break;
             case 'P':
                 break;
             default:
