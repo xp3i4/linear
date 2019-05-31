@@ -1904,10 +1904,6 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                 insertBamRecordCigar(back(bam_records), 
                             rstr[ri_pre], rstr[ri_pre + 1]);                
                 f_gap_merge = 0;
-                //<<debug
-                std::pair<int,int> tmp = countCigar(back(bam_records).cigar);
-                dout << "acc1" << i + 1 << get_cord_y(cords[i]) << back(bam_records).beginPos + tmp.first << "\n";
-                //>>debug
             }
             else if (flag & 1)
             {
@@ -1940,9 +1936,6 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                                   length(bam_records) - 1,
                                   thd_merge_gap, f_gap_merge))
                     {
-                        //<<debug
-                        std::pair<int,int> tmp = countCigar(back(bam_records).cigar);
-                        //>>debug
                         std::cout << "ac11 " << i + 1 << " "<< cblock << " " << get_cord_y(gap_str_cord) << " " << get_cord_y(pre_cord_str) << " " << back(bam_records).beginPos + tmp.first << "\n";
                         insertNewBamRecord(bam_records, g_id, bam_start_x, bam_start_y, bam_strand); 
                     }      
@@ -1979,12 +1972,6 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                     }               
                     f_gap_merge = 1;
                 }
-                //<<debug
-                else
-                {
-                    std::cerr << "\nacs_o12 " << get_cord_y(cords[i]) << " " << get_cord_x(cords[i]) << " " << get_cord_y(gap_str_cord) << " " << get_cord_y(gap_end_cord) << "\n\n";
-                }
-                //>>debug
             }
         }
         else if (flag_pre & 2) //diff strands
