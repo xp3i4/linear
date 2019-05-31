@@ -1,5 +1,5 @@
 #include <utility> 
-#include "base.h"
+//#include "base.h"
 #include "cords.h" 
 #include "align_interface.h"
 //TODO seqand::setclippedpositoin retrieve source postion that's not efficient
@@ -117,7 +117,6 @@ void printAlignment(Align<String<Dna5>, ArrayGaps> & aligner)
 }
 void printCigar(String<CigarElement< > > &cigar, std::string header)
 {
-    dout << header;
     for (int i = 0; i < length(cigar); i++)
     {
         std::cout << cigar[i].count <<cigar[i].operation;
@@ -1510,6 +1509,10 @@ void printGaps(String<std::pair<uint64_t, uint64_t> > & gaps)
                   << get_cord_y(gaps[i].second) << "\n"; 
     }
 }
+
+/*----------  main funtions of alignment  ----------*/
+
+
 int check_cord_1_(uint64_t cord, unsigned lx, unsigned ly)
 {
     return get_cord_x(cord) >= lx || get_cord_y(cord) >= ly;
@@ -1528,7 +1531,6 @@ int check_cord_2_(uint64_t cord1, uint64_t cord2)
     }
     return 0;
 }
-
 int check_align_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
                  Row<Align<String<Dna5>, ArrayGaps> >::Type & row2,
                  int score_align,
@@ -1576,62 +1578,18 @@ int check_align_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     }
     return 0;
 }
-
-/*
- *  Align cords and output cigar string.
- *  Steps:
- * 
+/**
+ * To filter out and customize cords to be aligned 
  */
-int align_cords (StringSet<String<Dna5> >& genomes,
+void trim_cords_(StringSet<String<Dna5> >& genomes,
                  String<Dna5> & read, 
                  String<Dna5> & comrevRead,
-                 String<uint64_t> & cords_r, //raw cords
-                 String<BamAlignmentRecordLink> & bam_records,
-                 int block_size,
-                 int band
-                ) 
+                 String<uint64_t> & cords_r,
+                 String<uint64_t> & cords,
+                 float thd_err_rate,
+                 int thd_min_abort_anchor
+                 )
 {
-    GapRecords gaps;
-    BamAlignmentRecordLink emptyBamRecord;
-    String<TRow> rstr;
-    String<uint64_t> cords_buffer;
-    int head_end = block_size >> 2, tail_start = block_size - (block_size >> 2);
-    int ri = 0, ri_pre = 2; //cliped segment and row id
-    int g_id = -1, strand = 0, flag = 0, flag_pre = 0;
-    int thd_merge_gap = block_size / 3; // two adjacent gaps will be merged to one if < it
-    int flag2 = 1;
-    int d_overlap_x;
-    int d_overlap_y;
-    int thd_max_dshift = block_size * 3; //For head and tail cords of a new segs, their size will be increased based on the window_size, so that there can be enough overlap region to be clippped.
-    int thd_min_window = 50;
-    int thd_min_score = 40;
-    float thd_ddx = (float)band / block_size / 8; //TODO::8 needs tunning
-    float thd_err_rate = 0.25;
-    int thd_min_abort_anchor = 20;
-    clear (bam_records);
-    resize(cords_buffer, 2);
-    resize(rstr, 6);
-    double t1, t2 = 0, t3 = sysTime();
-    if (length(cords_r) < 2) // cords is empty
-    {
-        return 0;
-    }
-    uint64_t cord_str;
-    uint64_t cord_end;
-    uint64_t pre_cord_str;
-    uint64_t pre_cord_end;
-    uint64_t gap_str_cord;
-    uint64_t gap_end_cord;
-    uint64_t bam_start_x;
-    uint64_t bam_start_y;
-    uint64_t bam_strand;
-    int check_flag = 0;
-    TRow rt1, rt2;
-    String<uint64_t> cords;
-    appendValue(cords, cords_r[0]);
-
-    //step 1: trim and filter normal cords
-    t1 = sysTime ();
     for (int i = 1; i < length(cords_r); i++)
     {
         uint64_t new_cord = cords_r[i];
@@ -1676,7 +1634,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                 }
             }
         }
-        if (!f_drop )
+        if (!f_drop)
         {
             appendValue (cords, cords_r[i]);
         }
@@ -1685,14 +1643,54 @@ int align_cords (StringSet<String<Dna5> >& genomes,
             set_cord_block_end(back(cords));
         }
     }
-    t2 = sysTime();
-    set_cord_block_end(back(cords));
+    set_cord_block_end(back(cords));    
+}
+/**
+ * Main function to align cords and generate bam records.
+ */
+int align_cords (StringSet<String<Dna5> >& genomes,
+                 String<Dna5> & read, 
+                 String<Dna5> & comrevRead,
+                 String<uint64_t> & cords_r, //raw cords
+                 String<BamAlignmentRecordLink> & bam_records,
+                 int block_size,
+                 int band 
+                ) 
+{
+    if (length(cords_r) < 2) // empty cords
+    {
+        return 0;
+    }
+    GapRecords gaps;
+    String<TRow> rstr;
+    int thd_merge_gap = block_size / 3; //adjacent gaps will be merge if < 
+    int thd_max_dshift = block_size * 3; //New regions to be aligned will be extended at two ends to keep overlappad region to be clippped.
+    int thd_min_window = 50;
+    int thd_min_score = 40;
+    float thd_err_rate = 0.25;
+    int thd_min_abort_anchor = 20;
+    int head_end = block_size >> 2, tail_start = block_size - (block_size >> 2);
+    int ri = 0, ri_pre = 2; 
+    int flag = 0, flag_pre = 0;
     int f_gap_merge = 0;
+    clear (bam_records);
+    resize(rstr, 4);
+
+    uint64_t cord_str;
+    uint64_t cord_end;
+    uint64_t pre_cord_str;
+    uint64_t pre_cord_end;
+    uint64_t gap_str_cord;
+    uint64_t gap_end_cord;
+    String<uint64_t> cords;
+    appendValue(cords, cords_r[0]);
+    trim_cords_(genomes, read, comrevRead, cords_r, cords, 
+                thd_err_rate, thd_min_abort_anchor);
     for (int i = 1; i < (int)length(cords); i++)
     {
-        check_flag = 0;
-        g_id = get_cord_id(cords[i]);
-        strand = get_cord_strand(cords[i]);
+        int check_flag = 0;
+        int g_id = get_cord_id(cords[i]);
+        uint64_t strand = get_cord_strand(cords[i]);
         cord_str = cords[i];
         cord_end = shift_cord(cord_str, block_size, block_size);
         if (_DefaultCord.isBlockEnd(cords[i - 1])) 
@@ -1773,9 +1771,9 @@ int align_cords (StringSet<String<Dna5> >& genomes,
             flag = merge_align_(rstr[ri_pre], rstr[ri_pre + 1], 
                     rstr[ri], rstr[ri + 1], pre_cord_str, cord_str );
         }
-        bam_start_x = get_cord_x(pre_cord_str) + beginPosition(rstr[ri_pre]);
-        bam_start_y = get_cord_y(pre_cord_str) + beginPosition(rstr[ri_pre + 1]);
-        bam_strand = get_cord_strand(pre_cord_str); 
+        uint64_t bam_start_x = get_cord_x(pre_cord_str) + beginPosition(rstr[ri_pre]);
+        uint64_t bam_start_y = get_cord_y(pre_cord_str) + beginPosition(rstr[ri_pre + 1]);
+        uint64_t bam_strand = get_cord_strand(pre_cord_str); 
         if (!flag_pre)
         {
             if (!flag)
@@ -1954,8 +1952,6 @@ int align_cords (StringSet<String<Dna5> >& genomes,
     int thd_accept_density = 16;
     */
     align_gaps(bam_records, gaps, genomes, read, comrevRead, score_scheme, _gap_parm); 
-    t3 = sysTime();
-    dout << (t2 - t1) / (t3 - t2) << "\n";
     //printCigarSrcLen(bam_records, "pscr_gaps1 ");
     return 0;
 }

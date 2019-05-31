@@ -447,6 +447,7 @@ int map_(IndexDynamic & index,
     #pragma omp for
     for (unsigned j = 0; j < length(reads); j++)
     {
+        double t1 = sysTime ();
         if (length(reads[j]) >= mapParm.minReadLen)
         {
             red_len[thd_id] += length(reads[j]);
@@ -477,10 +478,11 @@ int map_(IndexDynamic & index,
             {
                 align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
                 //<<debug
-                //check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
+                check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
                 //>>debug
             }
         }   
+        dout << "sysTime" << j << sysTime() - t1 << "\n";
         c += 1;
     } 
     #pragma omp for ordered

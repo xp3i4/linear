@@ -8,8 +8,8 @@ using seqan::StringSet;
 using seqan::CharString;
 using namespace seqan;
 /*
- * Cord(C): coordinates in the alignment matrix;
- * :=|N/A[2]|strand[1]|cordEnd[1] gC [40] |rC [20bits]
+ * Cord(C): coordinate of base;
+ * :=|N/A[2]|strand[1]|cordEnd[1]|gC [40] |rC [20]
  * cell[4] the minimum length the window is allowed to slide in the alignment matrix.
  * genomeCord(gC or xC):= position in the genome >> cell_bit << cell_bit. the last ll_bit bits maybe set to 0
  * gC(genome coordinate):= SA node := Seq_id[10] | base_x i2[30]  
