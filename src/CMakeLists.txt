@@ -28,9 +28,11 @@ add_library(linear_pmpfinder STATIC pmpfinder.cpp)
 add_library(linear_gap STATIC gap.cpp)
 add_library(linear_fio STATIC f_io.cpp)
 add_library(linear_align_interface STATIC align_interface.cpp)
+add_library(linear_test_units STATIC test_units.cpp)
 
 add_executable (linear mapper.cpp) 
 target_link_libraries (linear 
+                       linear_test_units
                        linear_align_interface
                        linear_args_parser 
                        linear_pmpfinder 

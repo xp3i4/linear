@@ -8,6 +8,7 @@
 #include "gap.h"
 #include "align_interface.h"
 #include "mapper.h"
+#include "test_units.h"
 
 using namespace seqan; 
 using std::cerr;
@@ -258,138 +259,6 @@ int print_mapper_results(Mapper & mapper)
     mapper.setOfApp(); //set of_type to std::ios::app;
     return 0;
 }
-//debug util to check sam cigar base to base
-int check_cigar(StringSet<String<Dna5> > & genomes,
-                 String<Dna5> & read, 
-                 String<Dna5> & comrevRead,
-                 String<uint64_t> & cords, //raw cords
-                 String<BamAlignmentRecordLink> & bam_records)
-{
-    uint64_t str1, str2;
-    String<Dna5> infix1;
-    String<Dna5> infix2;
-    int count_mat = 0;
-    int count_mis = 0;
-    int len = length(read) - 1;
-    int f_new = 1;
-    int j = 0;
-    int it1 = 0;
-    int it2 = 0;
-    int base = 1;
-    int f_b_end = 1;
-    for (int i = 0; i < length(bam_records); i++)
-    {
-        std::cout << "chxxxb1 " << i<< " " << bam_records[i].isEnd() << " ";
-        if (!(length(bam_records[i].cigar) == 0 ||
-          ((length(bam_records[i].cigar) == 1) && 
-                (bam_records[i].cigar[0].operation == 'S' || 
-                bam_records[i].cigar[0].operation == 'H'))))
-        {
-            if (f_new)
-            {
-                count_mat = count_mis = 0;
-                str1 = bam_records[i].beginPos;
-                infix1 = infix(genomes[0], str1, length(genomes[0]));
-                std::cout << "chxxb1" << str1<< "\n";
-                if (bam_records[i].cigar[0].operation == 'S') 
-                {
-                    str2 = bam_records[i].cigar[0].count;
-                    j = 1;
-                }
-                else
-                {
-                    str2 = 0;
-                    j = 0;
-                }
-                if (bam_records[i].flag & 16) // - strand
-                {
-                    infix2 = infix(comrevRead, str2, length(read) - 1);
-                }
-                else
-                {
-                    infix2 = infix(read, str2, length(read) - 1);
-                } 
-                //std::cout << "nm0 " << infix1 << "\n";
-                //std::cout << "nm1 " << infix2 << "\n";
-                it1 = 0;
-                it2 = 0;
-                base = 1;
-            }
-            else
-            {
-                j = 0;
-            }
-            for (; j < length(bam_records[i].cigar); j++)
-            {
-                char op = bam_records[i].cigar[j].operation;
-                int cnt = bam_records[i].cigar[j].count;
-                if ((it1 + cnt >= length(infix1) && (op != 'I'))|| 
-                    (it2 + cnt >= length(infix2) && (op != 'D')))
-                {
-                    dout << "bk1" << i << j << it1 << it2 << cnt << length(infix2) << "\n";
-                    break;
-                }
-                if (op == 'D')
-                {
-                    for (int k = 0; k < cnt; k++)
-                    std::cout << "chxx " << it1 + k << " " << infix1[it1 + k] << " | " << cnt << " " << op << "\n"; 
-                    it1 += cnt;
-                }
-                else if (op == 'I')
-                {
-                    for (int k = 0; k < cnt; k++)
-                    std::cout << "chxx " << it1 + k << " | " << infix2[it2 + k] << " " << cnt << " " << op  << "\n"; 
-                    it2 += cnt;
-                }
-                else if (op == 'X')
-                {
-                    for (int k = 0; k < cnt; k++)
-                    std::cout << "chxx " << it1 + k << " " << infix1[it1 + k] << " " << infix2[it2 + k] << " " << cnt << " " << op  << "\n"; 
-                    it1 += cnt;
-                    it2 += cnt;
-                }
-                else if (op == '=')
-                {
-                    for (int k = 0; k < cnt; k++)
-                    {
-                        std::cout << "chxx " << it1 << " " << infix1[it1] << " " << infix2[it2] << " " << cnt << " " << op << " "; 
-                        if (infix1[it1] != infix2[it2]) 
-                        {
-                            ++count_mis;
-                            std::cout << "xxxxxxxxxxxxxxxxxxxxxx\n";
-                        }
-                        else
-                        {
-                            ++count_mat;
-                            std::cout << "\n";
-                        }
-                        it1++;
-                        it2++;
-                    }
-                }
-            }
-        }
-        if (bam_records[i].isEnd())
-        {
-            if (count_mis != 0)
-            {
-                dout << "cb1 " << i << " " << str1 << str2 << " " << it1 << " " << it2 << length(infix1) << length(infix2) << count_mat << " " << count_mis << " " << "\n";
-                std::cerr << "cb1\n";
-            }
-            else
-            {
-                dout << "cb3 " << i << " " << str1 << " " << str2 << it1 << " " << it2 << length(infix1) << length(infix2) << count_mat << " " << count_mis << " " << "\n";
-            }
-            f_new = 1;
-        }
-        else 
-        {
-            std::cout << "chxxb0 " << i << " " << str1 << " " << str2 << " " << bam_records[i + 1].beginPos << "\n";
-            i = bam_records[i].next() - 1;
-            f_new = 0;
-        }
-    }
-}
 
 /*----------  Map main funcion  ----------*/
 
@@ -459,19 +328,19 @@ int map_(IndexDynamic & index,
             createFeatures(begin(comStr), end(comStr), f1[1]);
             anchors.init(1);
             clear(crhit);
-            mnMapReadList(index, reads[j], anchors, mapParm, crhit);
-            path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
+            apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, cordsTmp[c], cordLenThr);
             if (_DefaultCord.getMaxLen(cordsTmp[c]) < length(reads[j]) * senThr)
             {
                 clear(cordsTmp[c]);
                 anchors.init(1);
                 clear(crhit);
-                mnMapReadList(index, reads[j], anchors, complexParm, crhit);
-                path_dst(begin(crhit), end(crhit), f1, f2, cordsTmp[c], cordLenThr);
+                apxMap (index, reads[j], anchors, complexParm, crhit, f1, f2, cordsTmp[c], cordLenThr);
             }   
+            //for (int i = 0; i < length())
+            //setCordsSeg(cordsTmps[c]);
             if (fm_handler_.isMapGap(f_map))
             {
-                gap_len[thd_id] += mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, gap_len_min, window_size);
+                mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, gap_len_min, window_size);
 
             }
             if (fm_handler_.isAlign(f_map))

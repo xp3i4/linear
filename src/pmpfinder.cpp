@@ -1461,11 +1461,11 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
     return getAnchorMatchFirst(anchors, length(read), mapParm, hit);
 }
 
- uint64_t mnMapReadList( LIndex  & index,
-                            String<Dna5> & read,
-                          Anchors & anchors,
-                          MapParm & mapParm,
-                          String<uint64_t> & hit)
+ uint64_t mnMapReadList(LIndex  & index,
+                        String<Dna5> & read,
+                        Anchors & anchors,
+                        MapParm & mapParm,
+                        String<uint64_t> & hit)
 {
     getIndexMatchAll(index, read, anchors.set, mapParm);    
     //printf("done getinxmatchall\n");
@@ -1495,6 +1495,30 @@ uint64_t mnMapReadList( IndexDynamic & index,
         getDAnchorMatchList(anchors, length(read), mapParm, hit);
     }
     return 0;
+}
+
+uint64_t apxMap (IndexDynamic & index,
+                 String<Dna5> & read,
+                 Anchors & anchors,
+                 MapParm & mapParm,
+                 String<uint64_t> & hit, 
+                 StringSet<FeaturesDynamic> & f1,
+                 StringSet<FeaturesDynamic> & f2,
+                 String<uint64_t> & cords, 
+                 float cordLenThr)
+{
+    mnMapReadList(index, read, anchors, mapParm, hit);
+    path_dst(begin(hit), end(hit), f1, f2, cords, cordLenThr);
+    int seg = 0;
+    for (int i = 0; i < length(cords); i++)
+    {
+        set_cord_recd(cords[i], seg);
+        set_cord_main(cords[i]);
+        if (_DefaultCord.isBlockEnd(cords[i]))
+        {
+            seg = 1 - seg;
+        }
+    }
 }
 
 /*===================================================

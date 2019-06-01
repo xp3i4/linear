@@ -1028,6 +1028,17 @@ int check_tiles_(String<uint64_t> & tiles, uint64_t g_start, uint64_t g_end)
     }
     return 0;
 }
+/**
+ * Shortcut to set main and recd flag for tiles
+ */
+void set_tiles_flags_(String<uint64_t> & tiles, uint64_t sgn)
+{
+    for (int i = 0; i < length(tiles); i++)
+    {
+        set_cord_gap(tiles[i]);
+        set_cord_recd(tiles[i] , sgn);
+    }
+}
 /*
  * collecting minimizer
  *
@@ -3143,6 +3154,8 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                          thd_cord_remap);
                 if (length(tiles) > 0)
                 {
+                    uint64_t recd = get_cord_recd(cords[i]);//set cord flag
+                    set_tiles_flags_ (tiles, recd);
                     insert(cords, i, tiles);
                     i += length(tiles);
                     clear(tiles);
@@ -3180,6 +3193,8 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                     thd_cord_remap);
             if (!empty(tiles))
             {
+                uint64_t recd = get_cord_recd(cords[i]);//set cord flag
+                set_tiles_flags_ (tiles, recd);
                 insert(cords, i, tiles);
                 i += length(tiles);
                 clear(tiles);
@@ -3208,6 +3223,8 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                          thd_cord_remap);
                 if (!empty(tiles))
                 {
+                    uint64_t recd = get_cord_recd(cords[i]);//set cord flag
+                    set_tiles_flags_ (tiles, recd);
                     insert(cords, i + 1, tiles);
                     _DefaultHit.unsetBlockEnd(cords[i]);
                     i += length(tiles);
@@ -3221,16 +3238,5 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
     }
     return gap_len;
 }
-/* 
-int mapGaps(StringSet<String<Dna5> > & seqs, StringSet<String<Dna5> > & reads, 
-            StringSet<String<uint64_t> > & cords, unsigned const thd_cord_gap, unsigned const thd_tileSize)
-{
-    for (unsigned k = 0; k < length(reads); k++)
-    {
-        mapGaps(seqs, reads[k], cords[k], thd_cord_gap, thd_tileSize);
-    }
-    return 0;
-}
-*/
 /*=====  End of Index free Map and clip  ======*/
 

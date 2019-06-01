@@ -65,14 +65,23 @@ int createFeatures(StringSet<String<Dna5> > &,
 int createFeatures(StringSet<String<Dna5> > &, 
                    StringSet<FeaturesDynamic > &, int); //serial
 
-uint64_t mnMapReadList( LIndex  & index,
-                        String<Dna5> & read,
-                        Anchors & anchors,
-                        MapParm & mapParm,
-                        String<uint64_t> & hit);
-uint64_t mnMapReadList( IndexDynamic  & index,
-                        String<Dna5> & read,
-                        Anchors & anchors,
-                        MapParm & mapParm,
-                        String<uint64_t> & hit);
+uint64_t mnMapReadList(LIndex  & index,
+                       String<Dna5> & read,
+                       Anchors & anchors,
+                       MapParm & mapParm,
+                       String<uint64_t> & hit);
+uint64_t mnMapReadList(IndexDynamic & index,
+                       String<Dna5> & read,
+                       Anchors & anchors,
+                       MapParm & mapParm,
+                       String<uint64_t> & hit);
+uint64_t apxMap (IndexDynamic & index,
+                 String<Dna5> & read,
+                 Anchors & anchors,
+                 MapParm & mapParm,
+                 String<uint64_t> & hit, 
+                 StringSet<FeaturesDynamic> & f1,
+                 StringSet<FeaturesDynamic> & f2,
+                 String<uint64_t> & cords, 
+                 float cordLenThr);
 #endif

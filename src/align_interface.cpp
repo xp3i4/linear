@@ -1590,6 +1590,7 @@ void trim_cords_(StringSet<String<Dna5> >& genomes,
                  int thd_min_abort_anchor
                  )
 {
+    int c = 0;
     for (int i = 1; i < length(cords_r); i++)
     {
         uint64_t new_cord = cords_r[i];
@@ -1617,6 +1618,7 @@ void trim_cords_(StringSet<String<Dna5> >& genomes,
                     std::abs(danchor) > thd_min_abort_anchor) 
                 {
                     set_cord_block_end(back(cords));
+                    c++;
                     //cord_0 = (100,100)
                     //cord_1 = (0, 50)
                     //diff anchor set cord_1 to new block 
@@ -1626,6 +1628,7 @@ void trim_cords_(StringSet<String<Dna5> >& genomes,
                     if (_DefaultCord.isBlockEnd(new_cord))
                     {
                         set_cord_block_end(back(cords));
+                        c++;
                     }
                     f_drop = 1;
                     //cord_0 = (100,100)
@@ -1641,9 +1644,10 @@ void trim_cords_(StringSet<String<Dna5> >& genomes,
         if (_DefaultCord.isBlockEnd(cords_r[i]))
         {
             set_cord_block_end(back(cords));
+            c++;
         }
     }
-    set_cord_block_end(back(cords));    
+    //set_cord_block_end(back(cords));    
 }
 /**
  * Main function to align cords and generate bam records.
@@ -1771,8 +1775,10 @@ int align_cords (StringSet<String<Dna5> >& genomes,
             flag = merge_align_(rstr[ri_pre], rstr[ri_pre + 1], 
                     rstr[ri], rstr[ri + 1], pre_cord_str, cord_str );
         }
-        uint64_t bam_start_x = get_cord_x(pre_cord_str) + beginPosition(rstr[ri_pre]);
-        uint64_t bam_start_y = get_cord_y(pre_cord_str) + beginPosition(rstr[ri_pre + 1]);
+        uint64_t bam_start_x = get_cord_x(pre_cord_str) + 
+                               beginPosition(rstr[ri_pre]);
+        uint64_t bam_start_y = get_cord_y(pre_cord_str) + 
+                               beginPosition(rstr[ri_pre + 1]);
         uint64_t bam_strand = get_cord_strand(pre_cord_str); 
         if (!flag_pre)
         {
@@ -1818,7 +1824,6 @@ int align_cords (StringSet<String<Dna5> >& genomes,
             }
             else if (flag & 1)
             {
-                //dout << "ac33 " << get_cord_x(cords[i]) << "\n";
                //NONE 
             }
             else if (flag & 2)

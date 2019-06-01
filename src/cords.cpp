@@ -17,7 +17,9 @@ CordBase::CordBase():
         cell_size(16),
         headFlag((1ULL<<63)),
         valueMask_dstr(valueMask | flag_strand),
-        bit_id (30)
+        bit_id (30),
+        f_main(1ULL << 63),
+        f_recd(1ULL << 62)
 {}
 CordBase _DefaultCordBase;   
 Cord _DefaultCord;
@@ -193,5 +195,35 @@ void cmpRevCord(uint64_t val1,
 uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y)
 {
     return (val & (~_DefaultCordBase.valueMask)) + (x << _DefaultCordBase.bit) + y;
+}
+
+void set_cord_main (uint64_t & cord)
+{
+    cord |= _DefaultCordBase.f_main;
+}
+void set_cord_gap (uint64_t & cord)
+{
+    cord &= ~_DefaultCordBase.f_main;
+}
+
+uint64_t is_cord_main(uint64_t cord)
+{
+    return cord & _DefaultCordBase.f_main;
+}
+
+void set_cord_recd(uint64_t & cord, uint64_t sgn)
+{
+    if (sgn != 0)
+    {
+        cord |= _DefaultCordBase.f_recd;
+    }
+    else
+    {
+        cord &= ~_DefaultCordBase.f_recd;
+    }
+}
+uint64_t get_cord_recd (uint64_t cord)
+{
+    return cord & _DefaultCordBase.f_recd;
 }
 
