@@ -1647,7 +1647,12 @@ void trim_cords_(StringSet<String<Dna5> >& genomes,
             c++;
         }
     }
-    //set_cord_block_end(back(cords));    
+    //<<debug
+    for (int i = 0; i < length(cords); i++)
+    {
+        std::cout << i << "dx " << get_cord_y(cords[i]) << " " << (cords[i] >> 62 & 1) << " " << (cords[i] >> 63 & 1) << "\n";    
+    }
+    //>>debug
 }
 /**
  * Main function to align cords and generate bam records.
