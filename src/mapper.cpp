@@ -347,7 +347,7 @@ int map_(IndexDynamic & index,
             {
                 align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
                 //<<debug
-                check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
+                //check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
                 //>>debug
             }
         }   

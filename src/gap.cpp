@@ -3155,6 +3155,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                 if (length(tiles) > 0)
                 {
                     uint64_t recd = get_cord_recd(cords[i]);//set cord flag
+                    //dout << "recd" << get_cord_y(tiles[0]) << get_cord_x(tiles[0]) << recd << "\n";
                     set_tiles_flags_ (tiles, recd);
                     insert(cords, i, tiles);
                     i += length(tiles);

@@ -1590,69 +1590,83 @@ void trim_cords_(StringSet<String<Dna5> >& genomes,
                  int thd_min_abort_anchor
                  )
 {
-    int c = 0;
-    for (int i = 1; i < length(cords_r); i++)
+    int thd_drop_gap = 20; //drop all gap tiles of record if num of gap blocks > 
+    uint64_t recd;
+    int recd_str, recd_end; 
+    for (int i = 1; i < length(cords_r); i = recd_end)
     {
-        uint64_t new_cord = cords_r[i];
-        uint64_t cordy = get_cord_y(new_cord);
-        uint64_t cordx = get_cord_x(new_cord);
-        int g__id = get_cord_id(new_cord);
-        int f_drop = 0;
-        if (cordy > length(read) - 1 || cordx > length(genomes[g__id]) - 1)
+        recd = get_cord_recd (cords_r[i]);
+        recd_str = i;
+        recd_end = i + 1; 
+        int n_bk = 0; //count blocks within recd
+        for (; recd_end < length(cords_r); recd_end++)
         {
-            f_drop = 1;
-        }
-        else if (!_DefaultCord.isBlockEnd(back(cords)) && 
-                 !get_cord_strand(back(cords) ^ cords_r[i]))
-        {
-            int64_t cordx1 = get_cord_x(back(cords));
-            int64_t cordx2 = get_cord_x(cords_r[i]);
-            int64_t cordy1 = get_cord_y(back(cords));
-            int64_t cordy2 = get_cord_y(cords_r[i]);
-            if (cordx1 > cordx2 || cordy1 > cordy2) 
+            if (_DefaultCord.isBlockEnd(cords_r[recd_end]))
             {
-                int64_t danchor =  std::abs(cordx1 - cordy1) -
-                                   std::abs(cordx2 - cordy2);
-                if (std::abs(danchor) > 
-                    thd_err_rate * std::abs(cordx1 - cordx2) &&
-                    std::abs(danchor) > thd_min_abort_anchor) 
-                {
-                    set_cord_block_end(back(cords));
-                    c++;
-                    //cord_0 = (100,100)
-                    //cord_1 = (0, 50)
-                    //diff anchor set cord_1 to new block 
-                }
-                else
-                {
-                    if (_DefaultCord.isBlockEnd(new_cord))
-                    {
-                        set_cord_block_end(back(cords));
-                        c++;
-                    }
-                    f_drop = 1;
-                    //cord_0 = (100,100)
-                    //cord_1 = (0, 0) 
-                    //cord_1 wil be aborted
-                }
+                ++n_bk;
+            }
+            //std::cout << "tm1 " << get_cord_recd(cords_r[recd_end]) << " " << recd << "\n";
+            if (get_cord_recd(cords_r[recd_end]) != recd)
+            {
+                break;
             }
         }
-        if (!f_drop)
+        //std::cout << "trim_cords_0 " << recd_str << " " << recd_end << " " << n_bk << "\n";
+        int f_dg = (n_bk > thd_drop_gap) ? 1 : 0;
+        for (int j = recd_str; j < recd_end; j++)
         {
-            appendValue (cords, cords_r[i]);
-        }
-        if (_DefaultCord.isBlockEnd(cords_r[i]))
-        {
-            set_cord_block_end(back(cords));
-            c++;
+            uint64_t new_cord = cords_r[j];
+            uint64_t cordy = get_cord_y(new_cord);
+            uint64_t cordx = get_cord_x(new_cord);
+            int g__id = get_cord_id(new_cord);
+            int f_drop = 0;
+            if (cordy > length(read) - 1 || cordx > length(genomes[g__id]) - 1)
+            {
+                f_drop = 1;
+            }
+            else if (!_DefaultCord.isBlockEnd(back(cords)) && 
+                     !get_cord_strand(back(cords) ^ cords_r[j]))
+            {
+                int64_t cordx1 = get_cord_x(back(cords));
+                int64_t cordx2 = get_cord_x(cords_r[j]);
+                int64_t cordy1 = get_cord_y(back(cords));
+                int64_t cordy2 = get_cord_y(cords_r[j]);
+                if (cordx1 > cordx2 || cordy1 > cordy2) 
+                {
+                    int64_t danchor =  std::abs(cordx1 - cordy1) -
+                                       std::abs(cordx2 - cordy2);
+                    if (std::abs(danchor) > 
+                        thd_err_rate * std::abs(cordx1 - cordx2) &&
+                        std::abs(danchor) > thd_min_abort_anchor) 
+                    {
+                        set_cord_block_end(back(cords));
+                        //cord_0 = (100,100)
+                        //cord_1 = (0, 50)
+                        //diff anchor set cord_1 to new block 
+                    }
+                    else
+                    {
+                        if (_DefaultCord.isBlockEnd(new_cord))
+                        {
+                            set_cord_block_end(back(cords));
+                        }
+                        f_drop = 1;
+                        //cord_0 = (100,100)
+                        //cord_1 = (0, 0) 
+                        //cord_1 wil be aborted
+                    }
+                }
+            }
+            if (!f_drop && (is_cord_main(cords_r[j]) || !f_dg))
+            {
+                appendValue (cords, cords_r[j]);
+            }
+            if (_DefaultCord.isBlockEnd(cords_r[j]))
+            {
+                set_cord_block_end(back(cords));
+            }
         }
     }
-    //<<debug
-    for (int i = 0; i < length(cords); i++)
-    {
-        std::cout << i << "dx " << get_cord_y(cords[i]) << " " << (cords[i] >> 62 & 1) << " " << (cords[i] >> 63 & 1) << "\n";    
-    }
-    //>>debug
 }
 /**
  * Main function to align cords and generate bam records.
