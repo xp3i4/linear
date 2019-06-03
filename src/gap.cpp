@@ -1712,7 +1712,8 @@ struct MapAnchorParm
     }
 /**
  * step 3. extend patch
- * extend window if there are gaps between tiles until the horizontal coordinates x1 - x2 < window_size or the gap can't be extend any more
+ * extend window if there are gaps between tiles until the 
+   coordinates x1 - x2 < window_size or the gap can't be extend any more
  * ATTENTION: relation between y1 and y2 currently are not considered.
  */
     int thd_overlap_size = 170;
