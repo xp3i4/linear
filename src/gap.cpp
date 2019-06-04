@@ -649,7 +649,13 @@ void g_print_tiles_(String<uint64_t> & tiles, CharString str = "print_tiles")
 {
     for (unsigned i = 0; i < length(tiles); i++)
     {
-        dout << str << " "<< i << " " << tiles[i] << get_cord_strand(tiles[i]) << " " << get_cord_y(tiles[i]) << " " <<  get_cord_id(tiles[i]) << " " << get_cord_x(tiles[i]) << "\n";
+        std::cout << str << " " 
+                  << i << " " 
+                  << tiles[i] << " " 
+                  << get_cord_strand(tiles[i]) << " " 
+                  << get_cord_y(tiles[i]) << " " 
+                  <<  get_cord_id(tiles[i]) << " " 
+                  << get_cord_x(tiles[i]) << "\n";
         if (is_tile_end(tiles[i]))
         {
             std::cout << str << "\n\n";
@@ -1640,14 +1646,18 @@ struct MapAnchorParm
                                             g_hs_anchor_get_strand(anchor[prek]));
                         uint64_t new_tile;
                         unsigned score = _get_tile_f_tri_(tmp_tile, new_tile, f1, f2, thd_fscore, thd_tileSize);
-                        if (kcount >= thd_pattern_in_window  && 
+                        if (kcount >= thd_pattern_in_window && 
                             score < thd_fscore)
                         {
                             if (empty(tiles) || is_tile_end(back(tiles)))
                             {
                                 set_tile_start(new_tile);
+                                appendValue (tiles, new_tile);
                             }
-                            appendValue (tiles, new_tile);
+                            else
+                            {
+                                appendValue (tiles, new_tile);
+                            }
                         }
                         prex = g_hs_anchor_getX(anchor[j - 1]);
                         prey = g_hs_anchor_getY(anchor[j - 1]);
@@ -1759,6 +1769,24 @@ struct MapAnchorParm
         if (i > 1 && !is_tile_end (tiles[i - 1]) && !is_tile_start(tiles[i]))
         {
             i += extendPatch(f1, f2, tiles, i, tiles[i - 1], tiles[i], revscomp_const, thd_overlap_size, thd_gap_size);   
+        }
+    }
+    int ct_tile_block = 0;
+    for (int i = 0; i < length(tiles); i++)
+    {
+        if (is_tile_end(tiles[i]))
+        {
+            ++ct_tile_block;
+        }
+    }
+    if (ct_tile_block > 1)
+    {
+        for (int i = 0; i < length(tiles); i++)
+        {
+            if (is_tile_end(tiles[i]))
+            {
+                set_cord_end(tiles[i]);
+            }
         }
     }
     return 0;
@@ -2861,8 +2889,8 @@ int g_extend_clip_(String<Dna5> & seq1,
     int sv_exists = 0;
     for (int i = 1; i < length(tiles); i++)
     {
-        int64_t distance_x = tile_distance_x(tiles[i - 1], tiles[i]);
-        int64_t distance_y = tile_distance_y(tiles[i - 1], tiles[i]); 
+        int64_t dx = tile_distance_x(tiles[i - 1], tiles[i]);
+        int64_t dy = tile_distance_y(tiles[i - 1], tiles[i]); 
         ///check sv type
         if (_defaultTile.getStrand(tiles[i] ^ tiles[i - 1])) //inv
         {
@@ -2876,20 +2904,20 @@ int g_extend_clip_(String<Dna5> & seq1,
             }
             sv_exists = 1;
         }
-        else if (distance_x - distance_y > tile_size)   //del
+        else if (dx - dy > tile_size)   //del
         {
             sv_flags[i - 1] |= g_sv_ins + g_sv_r + g_sv_shrink;
             sv_flags[i] |= g_sv_ins + g_sv_l + g_sv_shrink;
             sv_exists = 1;
         }
-        else if (distance_y - distance_x > tile_size)  //ins 
+        else if (dy - dx > tile_size)  //ins 
         {
             sv_flags[i - 1] |= g_sv_del + g_sv_r + g_sv_shrink;
             sv_flags[i] |= g_sv_del + g_sv_l + g_sv_shrink;
             sv_exists = 1;
         }
-        else if (distance_y > thd_cord_gap && distance_x > thd_cord_gap &&
-                 distance_x > 0 && distance_y > 0) //gap, inv
+        else if (dy > thd_cord_gap && dx > thd_cord_gap &&
+                 dx > 0 && dy > 0) //gap, inv
         {
             sv_flags[i - 1] += g_sv_gap + g_sv_r + g_sv_shrink;
             sv_flags[i] += g_sv_gap + g_sv_l + g_sv_shrink;
@@ -3064,24 +3092,7 @@ int g_extend_clip_(String<Dna5> & seq1,
                  thd_tileSize,
                  direction
                );
-        int ct_tile_block = 0;
-        for (int i = 0; i < length(tiles); i++)
-        {
-            if (is_tile_end(tiles[i]))
-            {
-                ++ct_tile_block;
-            }
-        }
-        if (ct_tile_block > 1)
-        {
-            for (int i = 0; i < length(tiles); i++)
-            {
-                if (is_tile_end(tiles[i]))
-                {
-                    set_cord_end(tiles[i]);
-                }
-            }
-        }
+
         g_extend_clip_(seqs[genomeId], read, comstr, tiles, clips, g_hs, g_anchor, cord1, cord2, direction, thd_cord_gap);
     }
     /*

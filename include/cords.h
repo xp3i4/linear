@@ -137,4 +137,5 @@ void set_cord_gap (uint64_t & cord);
 uint64_t is_cord_main(uint64_t cord);
 void set_cord_recd(uint64_t & cord, uint64_t sgn);
 uint64_t get_cord_recd (uint64_t cord);
+uint64_t is_cord_end(uint64_t);
 #endif

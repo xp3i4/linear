@@ -227,3 +227,7 @@ uint64_t get_cord_recd (uint64_t cord)
     return cord & _DefaultCordBase.f_recd;
 }
 
+uint64_t is_cord_end (uint64_t cord)
+{
+    return _DefaultCord.isCordEnd(cord);
+}
