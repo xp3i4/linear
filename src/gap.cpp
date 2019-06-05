@@ -651,10 +651,9 @@ void g_print_tiles_(String<uint64_t> & tiles, CharString str = "print_tiles")
     {
         std::cout << str << " " 
                   << i << " " 
-                  << tiles[i] << " " 
                   << get_cord_strand(tiles[i]) << " " 
                   << get_cord_y(tiles[i]) << " " 
-                  <<  get_cord_id(tiles[i]) << " " 
+                  << get_cord_id(tiles[i]) << " " 
                   << get_cord_x(tiles[i]) << "\n";
         if (is_tile_end(tiles[i]))
         {
@@ -1779,16 +1778,36 @@ struct MapAnchorParm
             ++ct_tile_block;
         }
     }
-    if (ct_tile_block > 1)
+    uint64_t x_str = get_tile_x(gap_str);
+    uint64_t y_str = get_tile_y(gap_str);
+    uint64_t x_end = get_tile_x(gap_end);
+    uint64_t y_end = get_tile_y(gap_end); 
+    int di = 0;
+    for (int i = 0; i < length(tiles); i++)
     {
-        for (int i = 0; i < length(tiles); i++)
+        uint64_t x_t = get_tile_x(tiles[i]);
+        uint64_t y_t = get_tile_strand(tiles[i] ^ gap_str) ? 
+                       revscomp_const - get_tile_y(tiles[i]) : 
+                       get_tile_y(tiles[i]);
+        dout << "tilesr" << x_t << y_t << x_str << x_end << y_str << y_end << "\n";
+        if (x_t < x_str || x_t > x_end || y_t < y_str || y_t > y_end)
         {
-            if (is_tile_end(tiles[i]))
+            di++; //remove tiles[i]
+        }
+        else if (di)
+        {
+            tiles[i - di] = tiles[i];
+            if (is_tile_end(tiles[i - di]) && ct_tile_block > 1)
             {
-                set_cord_end(tiles[i]);
+                set_cord_end(tiles[i - di]);
             }
         }
     }
+    if (di)
+    {
+        resize (tiles, length(tiles) - di);
+    }
+    g_print_tiles_(tiles, "alltiles");
     return 0;
 }
 /**
@@ -2867,6 +2886,8 @@ int g_extend_clip_(String<Dna5> & seq1,
                    int thd_cord_gap
                   )
 {
+    g_print_tiles_(tiles);
+    dout << "tiles2" << get_cord_y(cord_str) << get_cord_y(cord_end) << "\n";
     CmpInt64 g_cmpll;
     if (get_cord_strand(cord_str ^ cord_end))
     {
@@ -3186,16 +3207,15 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                   dcordy < thd_max_extend
                 )        
         {
-            g_cmpll.min(shift_x, block_size / 2) 
-                    << int64_t(length(seqs[sid]) - 1 - get_cord_x(cords[i - 1]));
-            g_cmpll.min(shift_y, block_size / 2)
-                    << int64_t(length(read) - 1 - get_cord_y(cords[i - 1]));
+            g_cmpll.min(shift_x, block_size) 
+                    << int64_t(length(seqs[sid]) - 1 - get_cord_x(cords[i]));
+            g_cmpll.min(shift_y, block_size)
+                    << int64_t(length(read) - 1 - get_cord_y(cords[i]));
             uint64_t cord2 = shift_cord(cords[i], shift_x, shift_y);
-            g_cmpll.min(shift_x, shift_x) << get_cord_x(cords[i] - cords[i - 1]); //ins
-            g_cmpll.min(shift_y, shift_y) << get_cord_y(cords[i] - cords[i - 1]); //del
+            //g_cmpll.min(shift_x, shift_x) << get_cord_x(cords[i] - cords[i - 1]); //ins
+            //g_cmpll.min(shift_y, shift_y) << get_cord_y(cords[i] - cords[i - 1]); //del
             //uint64_t cord1 = shift_cord(cords[i - 1], shift_x, shift_y);
             uint64_t cord1 = cords[i - 1]; 
-            cord2 = cords[i];
             mapGap_(seqs, read, comstr, 
                     cord1, cord2, 
                     g_hs, g_anchor, f1, f2, 
