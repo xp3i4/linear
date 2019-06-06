@@ -1123,12 +1123,12 @@ void set_tiles_flags_(String<uint64_t> & tiles, uint64_t sgn)
  * Stream part of 'g_hs' and convert the elements into anchors
  */
  int g_mapHs_setAnchors_ (String<uint64_t> & g_hs, 
-                            String<uint64_t> & g_anchor,
-                            int p1, 
-                            int p2, 
-                            int k, 
-                            uint64_t revscomp_const,
-                            int g_anchor_end) 
+                          String<uint64_t> & g_anchor,
+                          int p1, 
+                          int p2, 
+                          int k, 
+                          uint64_t revscomp_const,
+                          int g_anchor_end) 
 {
     unsigned n = 0;
     for (int i = p1; i < p2; i++) 
@@ -1735,6 +1735,7 @@ struct MapAnchorParm
     int thd_gap_size = 180;
     uint64_t cord_str = gap_str;
     uint64_t cord_end = shift_cord(gap_end, -thd_tileSize, -thd_tileSize);
+    //uint64_t cord_end = gap_end;
     if (main_strand)
     {
         cmpRevCord(cord_str, cord_end, cord_str, cord_end, revscomp_const);
@@ -1787,18 +1788,19 @@ struct MapAnchorParm
     }
     int64_t x_str = get_tile_x(gap_str);
     int64_t y_str = get_tile_y(gap_str);
-    int64_t x_end = std::max(int64_t(get_tile_x(gap_end) - thd_tileSize), x_str);
-    int64_t y_end = std::max(int64_t(get_tile_x(gap_end) - thd_tileSize), y_str);
+    int64_t x_end = get_cord_x(gap_end);
+    int64_t y_end = get_cord_y(gap_end);
     int di = 0;
     for (int i = 0; i < length(tiles); i++)
     {
         uint64_t x_t = get_tile_x(tiles[i]);
-        uint64_t y_t = get_tile_strand(tiles[i] ^ gap_str) ? 
-                       revscomp_const - get_tile_y(tiles[i]) : 
+        uint64_t y_t = get_tile_strand(tiles[i] ^ gap_str) ?
+                       revscomp_const - 1 - get_tile_y(tiles[i]) - thd_tileSize :
                        get_tile_y(tiles[i]);
-        if (x_t < x_str || x_t > x_end || y_t < y_str || y_t > y_end)
+        if (x_t < x_str || x_t + thd_tileSize > x_end || 
+            y_t < y_str || y_t + thd_tileSize > y_end)
         {
-            di++; //remove tiles[i]
+            di ++;
         }
         else if (di)
         {
@@ -1850,8 +1852,8 @@ struct MapAnchorParm
               String<uint64_t> & g_hs_tile,    //results
               StringSet<FeaturesDynamic > & f1,  
               StringSet<FeaturesDynamic >& f2,
-              uint64_t cord_str,
-              uint64_t cord_end, 
+              uint64_t gap_str,
+              uint64_t gap_end, 
               int thd_tileSize,   //WARNING 192 not allowed to change.
               int direction = g_align_closed
              )
@@ -1859,12 +1861,12 @@ struct MapAnchorParm
     int g_hs_end = 0;
     int g_hs_anchor_end = 0;
     uint64_t rvcp_const = length(seq2) - 1;
-    uint64_t gs_str = get_cord_x(cord_str);
-    uint64_t gs_end = get_cord_x(cord_end);
-    uint64_t gr_str = get_cord_y(cord_str);
-    uint64_t gr_end = get_cord_y(cord_end);
+    uint64_t gs_str = get_cord_x(gap_str);
+    uint64_t gs_end = get_cord_x(gap_end);
+    uint64_t gr_str = get_cord_y(gap_str);
+    uint64_t gr_end = get_cord_y(gap_end);
 
-    if (get_cord_strand(cord_str))
+    if (get_cord_strand(gap_str))
     {
         gr_str = rvcp_const - gr_str;
         gr_end = rvcp_const - gr_end;
@@ -1892,7 +1894,7 @@ struct MapAnchorParm
         }
     }
     g_mapHs_anchor_sv_(g_hs_anchor, g_hs_tile, f1, f2, 
-                       cord_str, cord_end,
+                       gap_str, gap_end,
                        g_hs_anchor_end, 
                        thd_tileSize,
                        rvcp_const,
@@ -2886,22 +2888,22 @@ int g_extend_clip_(String<Dna5> & seq1,
                    String<uint64_t> & clips,
                    String<uint64_t> & g_hs,
                    String<uint64_t> & g_hs_anchor,
-                   uint64_t cord_str,
-                   uint64_t cord_end, 
+                   uint64_t gap_str,
+                   uint64_t gap_end, 
                    int direction,
                    int thd_cord_gap
                   )
 {
     g_print_tiles_(tiles);
-    dout << "tiles2" << get_cord_y(cord_str) << get_cord_y(cord_end) << "\n";
+    dout << "tiles2" << get_cord_y(gap_str) << get_cord_y(gap_end) << "\n";
     CmpInt64 g_cmpll;
-    if (get_cord_strand(cord_str ^ cord_end))
+    if (get_cord_strand(gap_str ^ gap_end))
     {
         return 0;
     }
-    uint64_t head_tile = cord_str;
-    uint64_t tail_tile = cord_end; 
-    uint64_t main_strand = get_cord_strand(cord_str);
+    uint64_t head_tile = gap_str;
+    uint64_t tail_tile = shift_tile(gap_end, -192, -192); 
+    uint64_t main_strand = get_cord_strand(gap_str);
     int64_t tile_size = window_size;
     int64_t thd_max_gap_size = tile_size;
     float thd_band_ratio = 0.5;
