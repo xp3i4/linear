@@ -203,8 +203,8 @@ struct GNode
 }_defaultGNode;
 
 /*
- *NOTE! the following parameters highly correlated.
- *Do not change them independently 
+ * NOTE! the following parameters are correlated.
+ * Do not change them independently 
  */
 int const g_shape_len = 8;
 int const g_thd_anchor = 6;
@@ -1587,7 +1587,13 @@ struct MapAnchorParm
     std::sort (begin(anchor), begin(anchor) + anchor_end);
     anchor[anchor_end] = ~0;
     int pre_tile_end = 0;
-
+    //<<debug
+    for (int i = 0; i < 300; i++)
+    {
+        uint64_t c2 = shift_cord (gap_str, i * 10 -150, i * 10 -150);
+        dout << "gap_str" << _get_tile_f_(c2, f1, f2) << get_cord_y(gap_str) << get_cord_y(c2) << get_cord_x(c2) << "\n";
+    }
+    //<<debug|
     for (int k = 0; k < anchor_end + 1; k++)
     {
         //TODO: handle thd_min_segment, anchor 
@@ -1728,7 +1734,7 @@ struct MapAnchorParm
     int thd_overlap_size = 170;
     int thd_gap_size = 180;
     uint64_t cord_str = gap_str;
-    uint64_t cord_end = gap_end;
+    uint64_t cord_end = shift_cord(gap_end, -thd_tileSize, -thd_tileSize);
     if (main_strand)
     {
         cmpRevCord(cord_str, cord_end, cord_str, cord_end, revscomp_const);
@@ -1770,6 +1776,7 @@ struct MapAnchorParm
             i += extendPatch(f1, f2, tiles, i, tiles[i - 1], tiles[i], revscomp_const, thd_overlap_size, thd_gap_size);   
         }
     }
+    //convert tile sgn (tile end) to cord sgn (block end) and remove illegal tiles.
     int ct_tile_block = 0;
     for (int i = 0; i < length(tiles); i++)
     {
@@ -1778,10 +1785,10 @@ struct MapAnchorParm
             ++ct_tile_block;
         }
     }
-    uint64_t x_str = get_tile_x(gap_str);
-    uint64_t y_str = get_tile_y(gap_str);
-    uint64_t x_end = get_tile_x(gap_end);
-    uint64_t y_end = get_tile_y(gap_end); 
+    int64_t x_str = get_tile_x(gap_str);
+    int64_t y_str = get_tile_y(gap_str);
+    int64_t x_end = std::max(int64_t(get_tile_x(gap_end) - thd_tileSize), x_str);
+    int64_t y_end = std::max(int64_t(get_tile_x(gap_end) - thd_tileSize), y_str);
     int di = 0;
     for (int i = 0; i < length(tiles); i++)
     {
@@ -1789,7 +1796,6 @@ struct MapAnchorParm
         uint64_t y_t = get_tile_strand(tiles[i] ^ gap_str) ? 
                        revscomp_const - get_tile_y(tiles[i]) : 
                        get_tile_y(tiles[i]);
-        dout << "tilesr" << x_t << y_t << x_str << x_end << y_str << y_end << "\n";
         if (x_t < x_str || x_t > x_end || y_t < y_str || y_t > y_end)
         {
             di++; //remove tiles[i]
@@ -1807,7 +1813,7 @@ struct MapAnchorParm
     {
         resize (tiles, length(tiles) - di);
     }
-    g_print_tiles_(tiles, "alltiles");
+    //g_print_tiles_(tiles, "alltiles");
     return 0;
 }
 /**
@@ -3062,6 +3068,17 @@ int g_extend_clip_(String<Dna5> & seq1,
     /// remove the inserted head and tail tiles;
 }
 
+/*
+ * shortcut to check if 2 cords have different anchors 
+ */
+bool is_diff_anchor (uint64_t cord1, uint64_t cord2, float thd_da_zero)
+{
+    int64_t dy = get_cord_y(cord2) - get_cord_y(cord1);
+    int64_t dx = get_cord_x(cord2) - get_cord_x(cord1);
+    int64_t da = dy - dx;
+    int64_t dmax = std::max(std::abs(dx), std::abs(dy));
+    return std::abs(da) < int64_t(thd_da_zero * dmax);
+}
 
 /**
  * 1.Map gaps between given cords [cord1, cord2] as follows
@@ -3095,6 +3112,7 @@ int g_extend_clip_(String<Dna5> & seq1,
               int thd_cord_remap
              )
 {
+    int64_t thd_da_zero = 0.25;
     clear(tiles);
     if (_DefaultCord.getCordStrand(cord1 ^ cord2))
     {
@@ -3104,17 +3122,25 @@ int g_extend_clip_(String<Dna5> & seq1,
 /// WARNING: the main strand is defined as the strand of the cord1
 /// ATTENTION: gr_start and gr_end are flipped !!! if the main strand is complement reversed
     uint64_t genomeId = get_cord_id(cord1);
+    int64_t da = get_cord_x(cord2 - cord1) - get_cord_y(cord2 - cord1); 
     if (get_cord_x(cord2 - cord1) > thd_cord_remap && 
         get_cord_y(cord2 - cord1) > thd_cord_remap)
     {
-        g_mapHs_(seqs[genomeId], read, comstr,
-                 g_hs, g_anchor, tiles, f1, f2,
-                 cord1, cord2,
-                 thd_tileSize,
-                 direction
-               );
+        if (is_diff_anchor (cord1, cord2, thd_da_zero))
+        {  
+           
+        }
+        else
+        {
+            g_mapHs_(seqs[genomeId], read, comstr,
+                     g_hs, g_anchor, tiles, f1, f2,
+                     cord1, cord2,
+                     thd_tileSize,
+                     direction
+                   );
 
-        g_extend_clip_(seqs[genomeId], read, comstr, tiles, clips, g_hs, g_anchor, cord1, cord2, direction, thd_cord_gap);
+            g_extend_clip_(seqs[genomeId], read, comstr, tiles, clips, g_hs, g_anchor, cord1, cord2, direction, thd_cord_gap);
+        }
     }
     /*
     else 

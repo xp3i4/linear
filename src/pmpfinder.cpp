@@ -367,6 +367,7 @@ int64_t _windowDist48_4(Iterator<String<int96> >::Type it1,  //feature string it
            _scriptDist63_31(*(it1 + 1), *(it2 + 1)) +
            _scriptDist63_31(*(it1 + 2), *(it2 + 2)) + 
            _scriptDist63_31(*(it1 + 3), *(it2 + 3));
+
     
 }
 /**
@@ -950,6 +951,7 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
             }
             if(dist < distThd)
             {
+                dout << "new_cord" << get_cord_y (new_cord) << "\n";
                 appendValue(cord, new_cord);
                 ++it;
                 return true;
@@ -1585,7 +1587,6 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
                  int gap_size
                 )
 {
-    unsigned window_threshold = 30;
     float score = 0;
     if (isOverlap(cord1, cord2, revscomp_const, overlap_size))
     {
