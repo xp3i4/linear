@@ -2891,7 +2891,8 @@ int g_extend_clip_(String<Dna5> & seq1,
                    uint64_t gap_str,
                    uint64_t gap_end, 
                    int direction,
-                   int thd_cord_gap
+                   int thd_cord_gap,
+                   int thd_tileSize
                   )
 {
     g_print_tiles_(tiles);
@@ -2902,7 +2903,7 @@ int g_extend_clip_(String<Dna5> & seq1,
         return 0;
     }
     uint64_t head_tile = gap_str;
-    uint64_t tail_tile = shift_tile(gap_end, -192, -192); 
+    uint64_t tail_tile = shift_tile(gap_end, -thd_tileSize, -thd_tileSize); 
     uint64_t main_strand = get_cord_strand(gap_str);
     int64_t tile_size = window_size;
     int64_t thd_max_gap_size = tile_size;
@@ -3141,7 +3142,7 @@ bool is_diff_anchor (uint64_t cord1, uint64_t cord2, float thd_da_zero)
                      direction
                    );
 
-            g_extend_clip_(seqs[genomeId], read, comstr, tiles, clips, g_hs, g_anchor, cord1, cord2, direction, thd_cord_gap);
+            g_extend_clip_(seqs[genomeId], read, comstr, tiles, clips, g_hs, g_anchor, cord1, cord2, direction, thd_cord_gap, thd_tileSize);
         }
     }
     /*
