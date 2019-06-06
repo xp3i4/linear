@@ -1568,6 +1568,7 @@ struct MapAnchorParm
                           int direction
                           )
 {
+    dout << "sv2" << get_cord_y(gap_str) << get_cord_strand(gap_str) << get_cord_y(gap_end) << get_cord_strand(gap_end) << "\n";
     CmpInt64 g_cmpll;
     int block_size = window_size;
     int64_t thd_min_segment = 100;
@@ -1736,10 +1737,6 @@ struct MapAnchorParm
     uint64_t cord_str = gap_str;
     uint64_t cord_end = shift_cord(gap_end, -thd_tileSize, -thd_tileSize);
     //uint64_t cord_end = gap_end;
-    if (main_strand)
-    {
-        cmpRevCord(cord_str, cord_end, cord_str, cord_end, revscomp_const);
-    }
     if (empty(tiles))
     {
         extendPatch(f1, f2, tiles, 0, cord_str, cord_end, revscomp_const, thd_overlap_size, thd_gap_size);
@@ -1752,6 +1749,7 @@ struct MapAnchorParm
     } 
     for (int i = 0; i < length(tiles); i++)
     {
+        dout << "str_" << get_cord_y(cord_str) << i << get_cord_y(tiles[i]) << is_tile_start (tiles[i]) << is_tile_end(tiles[i]) << "\n";
         if (is_tile_start(tiles[i]))
         {
             int new_num = extendPatch(f1, f2, tiles, i, cord_str, tiles[i], revscomp_const, thd_overlap_size, thd_gap_size);
@@ -1772,8 +1770,9 @@ struct MapAnchorParm
                 set_tile_end(tiles[i]);
             }
         }
-        if (i > 1 && !is_tile_end (tiles[i - 1]) && !is_tile_start(tiles[i]))
+        if (i >= 1 && !is_tile_end (tiles[i - 1]) && !is_tile_start(tiles[i]))
         {
+            dout << "tile11" << get_cord_y(tiles[i - 1]) << get_cord_y(tiles[i]) << "\n";
             i += extendPatch(f1, f2, tiles, i, tiles[i - 1], tiles[i], revscomp_const, thd_overlap_size, thd_gap_size);   
         }
     }
