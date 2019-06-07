@@ -654,7 +654,8 @@ void g_print_tiles_(String<uint64_t> & tiles, CharString str = "print_tiles")
                   << get_cord_strand(tiles[i]) << " " 
                   << get_cord_y(tiles[i]) << " " 
                   << get_cord_id(tiles[i]) << " " 
-                  << get_cord_x(tiles[i]) << "\n";
+                  << get_cord_x(tiles[i]) << " "
+                  << get_cord_x(tiles[i]) - get_cord_y (tiles[i]) << "\n";
         if (is_tile_end(tiles[i]))
         {
             std::cout << str << "\n\n";
@@ -1607,11 +1608,13 @@ struct MapAnchorParm
     anchor[anchor_end] = ~0;
     int pre_tile_end = 0;
     //<<debug
+    /*
     for (int i = 0; i < 300; i++)
     {
         uint64_t c2 = shift_cord (gap_str, i * 10 -150, i * 10 -150);
         dout << "gap_str" << _get_tile_f_(c2, f1, f2) << get_cord_y(gap_str) << get_cord_y(c2) << get_cord_x(c2) << "\n";
     }
+    */
     //<<debug|
     for (int k = 0; k < anchor_end + 1; k++)
     {
@@ -1744,6 +1747,7 @@ struct MapAnchorParm
             set_tile_end(back(tiles));
         }
     }
+    g_print_tiles_(tiles, "t1");
 /**
  * step 3. extend patch
  * extend window if there are gaps between tiles until the 
@@ -1791,13 +1795,15 @@ struct MapAnchorParm
             i += extendPatch(f1, f2, tiles, i, tiles[i - 1], tiles[i], revscomp_const, thd_overlap_size, thd_gap_size);   
         }
     }
+
+    g_print_tiles_(tiles, "t2");
     //convert tile sgn (tile end) to cord sgn (block end) and remove illegal tiles.
-    int ct_tile_block = 0;
+    int num_block = 0;
     for (int i = 0; i < length(tiles); i++)
     {
         if (is_tile_end(tiles[i]))
         {
-            ++ct_tile_block;
+            ++num_block;
         }
     }
     int64_t x_str = get_tile_x(gap_str);
@@ -1805,6 +1811,7 @@ struct MapAnchorParm
     int64_t x_end = get_cord_x(gap_end);
     int64_t y_end = get_cord_y(gap_end);
     int di = 0;
+    int elem_block = 0;
     for (int i = 0; i < length(tiles); i++)
     {
         uint64_t x_t = get_tile_x(tiles[i]);
@@ -1812,24 +1819,29 @@ struct MapAnchorParm
                        revscomp_const - 1 - get_tile_y(tiles[i]) - thd_tileSize :
                        get_tile_y(tiles[i]);
         if (x_t < x_str || x_t + thd_tileSize > x_end || 
-            y_t < y_str || y_t + thd_tileSize > y_end)
+            y_t < y_str || y_t + thd_tileSize > y_end) //out of bound
         {
-            di ++;
+        dout << "tileend1" << get_tile_y(tiles[i]) << is_tile_end(tiles[i]) << i << di << "\n";
+            di++; 
         }
-        else if (di)
+        else 
         {
+        dout << "tileend2" << get_tile_y(tiles[i]) << is_tile_end(tiles[i]) << i << di << "\n";
             tiles[i - di] = tiles[i];
-            if (is_tile_end(tiles[i - di]) && ct_tile_block > 1)
-            {
-                set_cord_end(tiles[i - di]);
-            }
+            elem_block++; 
+
+        }
+        if (is_tile_end(tiles[i]) && num_block > 1 && elem_block)
+        {
+            set_cord_end(tiles[i - di]);
+            elem_block = 0;
         }
     }
     if (di)
     {
         resize (tiles, length(tiles) - di);
     }
-    //g_print_tiles_(tiles, "alltiles");
+    g_print_tiles_(tiles, "alltiles");
     return 0;
 }
 /**

@@ -949,6 +949,7 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
             {
                 distThd = _apx_parm2_48.windowThreshold;
             }
+            dout << "new_cord" << get_cord_y (new_cord) << dist << distThd<< "\n";
             if(dist < distThd)
             {
                 dout << "new_cord" << get_cord_y (new_cord) << "\n";
@@ -1320,6 +1321,7 @@ uint64_t getAnchorMatchList(Anchors & anchors,
     String<int64_t> list;
     for (unsigned k = 1; k < anchors.length(); k++)
     {
+        dout << "anchors" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
         if (get_cord_x(anchors[k]) - get_cord_x(ak) > thd_anchor_err * readLen ||
             k == anchors.length() - 1)
         {
@@ -1370,7 +1372,10 @@ uint64_t getAnchorMatchList(Anchors & anchors,
 
 uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapParm & mapParm, String<uint64_t> & hit)
 {
-
+    float thd_err_rate = 0.2;
+    float thd_anchor_accept_dens = 0.001; //todo::tune err, kmer step related
+    float thd_anchor_accept_lens_rate = 0.01;
+    int thd_anchor_accept_lens = thd_anchor_accept_lens_rate * readLen;
     double t1 = sysTime();
     float thd_anchor_err = 0.2;
     int thd_sig = 10;
@@ -1378,38 +1383,55 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
     {
         return 0;
     }
-    uint64_t ak;
+    uint64_t ak1, ak2, ak3; //1/4, 2/4, 3/4
     uint64_t c_b=mapParm.shapeLen, sb=0, sc = 0;
     anchors.sort(anchors.begin(), anchors.end());
     //anchors[0] = anchors[1];
-    ak=anchors[0];
+    ak2=anchors[0];
     t1 = sysTime() - t1;
     double t2 = sysTime();
     uint64_t mask = (1ULL << 20) - 1;
     String<int64_t> list;
+    uint64_t min_y = ~0ULL, max_y = 0;
     for (unsigned k = 1; k < anchors.length(); k++)
     {
-        int64_t d_anchor = std::abs(int64_t(get_cord_y(anchors[k]) - get_cord_y(ak)));
-        if (get_cord_x(anchors[k]) -get_cord_x(ak) > thd_anchor_err * d_anchor ||
-            k == anchors.length() - 1)
+        int64_t anc_y = get_cord_y(anchors[k]);
+        int64_t dy1 = std::abs(int64_t(anc_y - get_cord_y(ak1)));
+        int64_t dy2 = std::abs(int64_t(anc_y - get_cord_y(ak2)));
+        int64_t dy3 = std::abs(int64_t(anc_y - get_cord_y(ak3)));
+        if ((get_cord_x(anchors[k] - ak1) < thd_anchor_err * dy1 ||
+             get_cord_x(anchors[k] - ak2) < thd_anchor_err * dy2 ||
+             get_cord_x(anchors[k] - ak3) < thd_anchor_err * dy3) &&
+             k != anchors.length() - 1
+            )
         {
-            if (c_b > mapParm.anchorLenThr * readLen)
+        dout << "anchors" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
+            if(anchors.deltaPos2(k, k - 1) >  mapParm.shapeLen)
+                c_b += mapParm.shapeLen;
+            else
+                c_b += anchors.deltaPos2(k, k - 1); 
+            ak1 = anchors[sb + ((k - sb) >> 2)];
+            ak2 = anchors[(sb + k) >> 1]; //update the ak to the median 
+            ak3 = anchors[k - ((k - sb) >> 2)];
+            min_y = std::min(min_y, get_cord_y(anchors[k]));
+            max_y = std::max(max_y, get_cord_y(anchors[k]));
+        }
+        else
+        {
+        dout << "anchorsxxxxxx" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << dy2 << get_cord_x(ak2) << "\n";
+            if (c_b > thd_anchor_accept_lens && 
+                (k - sb) >= (max_y - min_y) * thd_anchor_accept_dens)
             {
                 anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
                 appendValue(list, (c_b << 40) + (sb << 20) + k);
             }
             sb = k;
-            ak = anchors[k];
+            ak2 = anchors[k];
             c_b = mapParm.shapeLen;
+            min_y = get_cord_y(anchors[k]);
+            max_y = get_cord_y(anchors[k]);
         }
-        else 
-        {
-            if(anchors.deltaPos2(k, k - 1) >  mapParm.shapeLen)
-                c_b += mapParm.shapeLen;
-            else
-                c_b += anchors.deltaPos2(k, k - 1); 
-            ak = anchors[(sb + k) >> 1]; //update the ak to the median 
-        }
+
     }
 
     if (!empty(list))
@@ -1422,9 +1444,11 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
             {
                 sb = ((list[k] >> 20) & mask);
                 sc = list[k] & mask;
+                dout <<"hitxxxxxx\n";
                 for (unsigned n = sb; n < sc; n++)
                 {
                     appendValue(hit, anchors[n]);
+                    dout << "hit" << get_cord_y(back(hit)) << get_cord_x(back(hit)) << "\n";
                 }   
                 _DefaultHit.setBlockEnd(back(hit));
             }
