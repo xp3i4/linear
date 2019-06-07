@@ -30,8 +30,9 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             String<uint64_t> & clips,
             StringSet<FeaturesDynamic> & f1,
             StringSet<FeaturesDynamic>& f2,
-            int const thd_gap, 
-            int const thd_tileSize
+            int thd_gap, 
+            int thd_tileSize,
+            float thd_err_rate
            );
 
 int print_clips_gvf_(StringSet<String<uint64_t> > & clips, 

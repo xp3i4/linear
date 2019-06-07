@@ -285,6 +285,7 @@ int map_(IndexDynamic & index,
     String<uint64_t> red_len;
     resize (gap_len, threads, 0);
     resize (red_len, threads, 0);
+    float thd_err_rate = 0.2;
 #pragma omp parallel
 {
     unsigned size2 = length(reads) / threads;
@@ -317,40 +318,37 @@ int map_(IndexDynamic & index,
     for (unsigned j = 0; j < length(reads); j++)
     {
         double t1 = sysTime ();
-        if (length(reads[j]) >= mapParm.minReadLen)
+        red_len[thd_id] += length(reads[j]);
+        std::cout << "[]::rawmap::j " << j <<"\n";
+        //std::cerr << "[]::rawmap::j " << j <<"\n";
+        float cordLenThr = length(reads[j]) * cordThr;
+        _compltRvseStr(reads[j], comStr);
+        createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
+        createFeatures(begin(comStr), end(comStr), f1[1]);
+        anchors.init(1);
+        clear(crhit);
+        apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, cordsTmp[c], cordLenThr);
+        if (_DefaultCord.getMaxLen(cordsTmp[c]) < length(reads[j]) * senThr)
         {
-            red_len[thd_id] += length(reads[j]);
-            std::cout << "[]::rawmap::j " << j <<"\n";
-            //std::cerr << "[]::rawmap::j " << j <<"\n";
-            float cordLenThr = length(reads[j]) * cordThr;
-            _compltRvseStr(reads[j], comStr);
-            createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
-            createFeatures(begin(comStr), end(comStr), f1[1]);
+            clear(cordsTmp[c]);
             anchors.init(1);
             clear(crhit);
-            apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, cordsTmp[c], cordLenThr);
-            if (_DefaultCord.getMaxLen(cordsTmp[c]) < length(reads[j]) * senThr)
-            {
-                clear(cordsTmp[c]);
-                anchors.init(1);
-                clear(crhit);
-                apxMap (index, reads[j], anchors, complexParm, crhit, f1, f2, cordsTmp[c], cordLenThr);
-            }   
-            //for (int i = 0; i < length())
-            //setCordsSeg(cordsTmps[c]);
-            if (fm_handler_.isMapGap(f_map))
-            {
-                mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, gap_len_min, window_size);
-
-            }
-            if (fm_handler_.isAlign(f_map))
-            {
-                align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
-                //<<debug
-                //check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
-                //>>debug
-            }
+            apxMap (index, reads[j], anchors, complexParm, crhit, f1, f2, cordsTmp[c], cordLenThr);
         }   
+        //for (int i = 0; i < length())
+        //setCordsSeg(cordsTmps[c]);
+        if (fm_handler_.isMapGap(f_map))
+        {
+            mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, gap_len_min, window_size, thd_err_rate);
+
+        }
+        if (fm_handler_.isAlign(f_map))
+        {
+            align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
+            //<<debug
+            //check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
+            //>>debug
+        }
         dout << "sysTime" << j << sysTime() - t1 << "\n";
         c += 1;
     } 

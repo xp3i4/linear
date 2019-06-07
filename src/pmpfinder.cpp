@@ -1587,7 +1587,6 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
                  int gap_size
                 )
 {
-    dout << "cord11" << get_cord_y(cord1) << get_cord_strand (cord1) << get_cord_y(cord2) << "\n";
     float score = 0;
     if (isOverlap(cord1, cord2, revscomp_const, overlap_size))
     {
@@ -1615,7 +1614,6 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
         if (cord)
         {
             appendValue (tmp, cord);
-            dout << "cord113" << get_cord_y(cord) << get_cord_x(cord) << "\n";
         }
         else
         {
@@ -1639,7 +1637,6 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
         {
             //TODO do another round previousWindow if cord = 0.
             appendValue (tmp, cord);
-            dout << "cord12" << get_cord_y(cord) << get_cord_x(cord) << "\n";
         }
         else
         {
