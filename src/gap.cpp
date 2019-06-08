@@ -975,7 +975,7 @@ bool is_diff_anchor (uint64_t cord1, uint64_t cord2, int64_t thd_dxy_min, float 
     int64_t dx = get_cord_x(cord2) - get_cord_x(cord1);
     int64_t da = dy - dx;
     int64_t dmax = std::max(std::abs(dx), std::abs(dy));
-    dout << "is_diff_anchor" << da << thd_da_zero << dmax;
+    //dout << "is_diff_anchor" << da << thd_da_zero << dmax;
     return std::abs(da) > int64_t(std::max(thd_dxy_min, dmax) * thd_da_zero);
 }
 
@@ -1585,7 +1585,7 @@ struct MapAnchorParm
                           int direction
                           )
 {
-    dout << "svv2" << get_cord_y(gap_str) << get_cord_strand(gap_str) << get_cord_y(gap_end) << get_cord_strand(gap_end) << "\n";
+    //dout << "svv2" << get_cord_y(gap_str) << get_cord_strand(gap_str) << get_cord_y(gap_end) << get_cord_strand(gap_end) << "\n";
     CmpInt64 g_cmpll;
     int block_size = window_size;
     int64_t thd_min_segment = 100;
@@ -1747,7 +1747,7 @@ struct MapAnchorParm
             set_tile_end(back(tiles));
         }
     }
-    g_print_tiles_(tiles, "t1");
+    //g_print_tiles_(tiles, "t1");
 /**
  * step 3. extend patch
  * extend window if there are gaps between tiles until the 
@@ -1796,7 +1796,7 @@ struct MapAnchorParm
         }
     }
 
-    g_print_tiles_(tiles, "t2");
+    //g_print_tiles_(tiles, "t2");
     //convert tile sgn (tile end) to cord sgn (block end) and remove illegal tiles.
     int num_block = 0;
     for (int i = 0; i < length(tiles); i++)
@@ -1821,12 +1821,12 @@ struct MapAnchorParm
         if (x_t < x_str || x_t + thd_tileSize > x_end || 
             y_t < y_str || y_t + thd_tileSize > y_end) //out of bound
         {
-        dout << "tileend1" << get_tile_y(tiles[i]) << is_tile_end(tiles[i]) << i << di << "\n";
+        //dout << "tileend1" << get_tile_y(tiles[i]) << is_tile_end(tiles[i]) << i << di << "\n";
             di++; 
         }
         else 
         {
-        dout << "tileend2" << get_tile_y(tiles[i]) << is_tile_end(tiles[i]) << i << di << "\n";
+        //dout << "tileend2" << get_tile_y(tiles[i]) << is_tile_end(tiles[i]) << i << di << "\n";
             tiles[i - di] = tiles[i];
             elem_block++; 
 
@@ -1841,7 +1841,7 @@ struct MapAnchorParm
     {
         resize (tiles, length(tiles) - di);
     }
-    g_print_tiles_(tiles, "alltiles");
+    //g_print_tiles_(tiles, "alltiles");
     return 0;
 }
 /**
@@ -2757,7 +2757,7 @@ uint64_t c_clip_(String<Dna5> & genome,
             int clip_direction = 1
         )
 {
-    dout << "clip" << get_cord_y(clip_str) << get_cord_y(clip_end) << clip_direction << "\n";
+    //dout << "clip" << get_cord_y(clip_str) << get_cord_y(clip_end) << clip_direction << "\n";
     CmpInt64 g_cmpll;
     uint64_t gs_str = get_tile_x(clip_str);
     uint64_t gr_str = get_tile_y(clip_str);
@@ -2802,7 +2802,7 @@ uint64_t c_clip_(String<Dna5> & genome,
     int64_t dx = (g_anchor_val >> 32);
     int64_t dy = (g_anchor_val & ((1ULL << 32) - 1));
     uint64_t clip = create_cord(genomeId, gs_str + dx, gr_str + dy, gr_strand);
-    dout << "clip2" << get_cord_x(clip) << get_tile_y(clip) << "\n";
+    //dout << "clip2" << get_cord_x(clip) << get_tile_y(clip) << "\n";
 //step2. clip_extend gap pattern further.
     int extend_window = 100;
     int thd_ovlp_shift = 10;
@@ -2869,9 +2869,9 @@ int g_extend_clip_(String<Dna5> & seq1,
                    float thd_err_rate
                   )
 {
-    g_print_tiles_(tiles);
-    dout << "tiles2" << get_cord_y(gap_str) << get_cord_y(gap_end) << "\n";
-    g_print_tiles_(tiles, "ge2");
+    //g_print_tiles_(tiles);
+    //dout << "tiles2" << get_cord_y(gap_str) << get_cord_y(gap_end) << "\n";
+    //g_print_tiles_(tiles, "ge2");
     CmpInt64 g_cmpll;
     if (get_cord_strand(gap_str ^ gap_end))
     {
@@ -2898,7 +2898,7 @@ int g_extend_clip_(String<Dna5> & seq1,
     {
         int64_t dx = tile_distance_x(tiles[i - 1], tiles[i]);
         int64_t dy = tile_distance_y(tiles[i - 1], tiles[i]); 
-        dout << "ge4" << dx << dy << "\n";
+        //dout << "ge4" << dx << dy << "\n";
         ///check sv type
         if (_defaultTile.getStrand(tiles[i] ^ tiles[i - 1])) //inv
         {
@@ -3084,6 +3084,7 @@ int g_extend_clip_(String<Dna5> & seq1,
               float thd_err_rate
              )
 {
+    dout << "mg_" << get_cord_y(cord1) << get_cord_y(cord2) << "\n";
     int64_t thd_da_zero = 0.25;
     clear(tiles);
     if (_DefaultCord.getCordStrand(cord1 ^ cord2))

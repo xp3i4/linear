@@ -277,7 +277,8 @@ int map_(IndexDynamic & index,
         )
 {
     float senThr = mapParm.senThr / window_size;  //map for 2 roun if cords cover len <
-    float cordThr = mapParm.cordThr / window_size; //cords cover length < are aborted
+    float cordThr = 0.3 / window_size; //cords cover length < are aborted
+    //todo::tune the cordThr try to merge cords of blocks 
     MapParm complexParm = mapParm;
     complexParm.alpha = complexParm.alpha2;
     complexParm.listN = complexParm.listN2;

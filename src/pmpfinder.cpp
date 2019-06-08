@@ -1321,7 +1321,7 @@ uint64_t getAnchorMatchList(Anchors & anchors,
     String<int64_t> list;
     for (unsigned k = 1; k < anchors.length(); k++)
     {
-        dout << "anchors" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
+        //dout << "anchors" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
         if (get_cord_x(anchors[k]) - get_cord_x(ak) > thd_anchor_err * readLen ||
             k == anchors.length() - 1)
         {
@@ -1356,6 +1356,7 @@ uint64_t getAnchorMatchList(Anchors & anchors,
               for (unsigned n = sb; n < sc; n++)
               {
                   appendValue(hit, anchors[n]);
+                  //dout << "hit" << get_cord_y(back(hit)) << "\n";
               }   
               _DefaultHit.setBlockEnd(back(hit));
           }
@@ -1444,11 +1445,11 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
             {
                 sb = ((list[k] >> 20) & mask);
                 sc = list[k] & mask;
-                dout <<"hitxxxxxx\n";
+                //dout <<"hitxxxxxx\n";
                 for (unsigned n = sb; n < sc; n++)
                 {
                     appendValue(hit, anchors[n]);
-                    dout << "hit" << get_cord_y(back(hit)) << get_cord_x(back(hit)) << "\n";
+                //    dout << "hit" << get_cord_y(back(hit)) << get_cord_x(back(hit)) << "\n";
                 }   
                 _DefaultHit.setBlockEnd(back(hit));
             }
