@@ -362,19 +362,26 @@ int64_t _windowDist48_4(Iterator<String<int96> >::Type it1,  //feature string it
     printInt96(*(it2 + 1), "4842");
     printInt96(*(it2 + 2), "4842");
     printInt96(*(it2 + 3), "4842");
+    dout << "\n";
+    for (int i = 0; i < 12; i++)
+    {
+        printInt96(*(it1 + i), "int1");
+        printInt96(*(it2 + i), "int2");
+        dout << "\n";
+    }
     */
     return _scriptDist63_31(*it1, *it2) + 
-           _scriptDist63_31(*(it1 + 1), *(it2 + 1)) +
-           _scriptDist63_31(*(it1 + 2), *(it2 + 2)) + 
-           _scriptDist63_31(*(it1 + 3), *(it2 + 3));
+           _scriptDist63_31(*(it1 + 3), *(it2 + 3)) +
+           _scriptDist63_31(*(it1 + 6), *(it2 + 6)) + 
+           _scriptDist63_31(*(it1 + 9), *(it2 + 9));
 
     
 }
 /**
  * 1.units[n] = (i << 8 + k) maps n to bits of int96 (ith int, kth bit);
- * 2.NOTE::In gcc, x << y == x << (y|31) due to optimization concerning.
- *   In other words if y > 31, it does nothing. 
- *   Beacause of that the infiN is set to 31 for TT, N* and *N 
+ * 2.NOTE::In gcc, x << y == x << (y|31) due to optimization.
+ *   Namely if y > 31, do nothing. 
+ *   Hence the infiN is set to 31 for TT, N* and *N 
  *   They are add to the 31bits and cut off the 30bits by & infi_mask30
  */
 short infiN = 31; //for base '*N' 'N*' and 'TT' 
@@ -794,7 +801,7 @@ uint64_t nextWindow2_48(String<int96> & f1, //read
             new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         }
     }
-    //dout << "nw2 " << get_cord_y(new_cord) << get_cord_x(new_cord) << min << "\n";
+
     score += min;
     return new_cord;
 }
@@ -949,10 +956,8 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
             {
                 distThd = _apx_parm2_48.windowThreshold;
             }
-            dout << "new_cord" << get_cord_y (new_cord) << dist << distThd<< "\n";
             if(dist < distThd)
             {
-                dout << "new_cord" << get_cord_y (new_cord) << "\n";
                 appendValue(cord, new_cord);
                 ++it;
                 return true;
@@ -994,6 +999,7 @@ bool path_dst(typename Iterator<String<uint64_t> >::Type hitBegin,
     typename Iterator<String<uint64_t> >::Type it = hitBegin;
     unsigned preBlockPtr;
     float score = 0;
+    //dout << "win" << _windowDist(begin(f1[0].fs2_48), begin(f2[0].fs2_48)) << "\n";
     if(initCord(it, hitEnd, preBlockPtr, cords))
     {
         do{
@@ -1356,7 +1362,6 @@ uint64_t getAnchorMatchList(Anchors & anchors,
               for (unsigned n = sb; n < sc; n++)
               {
                   appendValue(hit, anchors[n]);
-                  //dout << "hit" << get_cord_y(back(hit)) << "\n";
               }   
               _DefaultHit.setBlockEnd(back(hit));
           }
