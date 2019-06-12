@@ -2992,17 +2992,15 @@ int g_extend_clip__(String<Dna5> & seq1,
                 dout << "del" << get_tile_y(tiles[i - 1]) << get_tile_y(tiles[i]) << get_tile_y(clip_str) << get_tile_y(clip_end) << "\n";
             }
         }
-        /*
         else if (is_diff_anchor (tiles[i - 1], tiles[i], 1, thd_dxy_min, thd_da_zero))  //ins 
         {
-            sv_flags[i - 1] |= g_sv_del + g_sv_r + g_sv_shrink;
-            sv_flags[i] |= g_sv_del + g_sv_l + g_sv_shrink;
-            sv_exists = 1;
+            uint64_t clip_str = clip_tile(seq1, seq2, comstr, g_hs, g_hs_anchor, tiles[i - 1], g_sv_r, thd_tile_size);
+            uint64_t clip_end = clip_tile(seq1, seq2, comstr, g_hs, g_hs_anchor, tiles[i], g_sv_l, thd_tile_size);
+            insertClipStr(clips, clip_str);
+            insertClipEnd(clips, clip_end);
+            dout << "del" << get_tile_y(tiles[i - 1]) << get_tile_y(tiles[i]) << get_tile_y(clip_str) << get_tile_y(clip_end) << "\n";
         }
-        //else if (dy > thd_cord_gap && dx > thd_cord_gap &&
-        //         dx > 0 && dy > 0) //gap, inv
-        */
-       else if (dy > thd_cord_gap && dx > thd_cord_gap)
+        else if (dy > thd_cord_gap && dx > thd_cord_gap) //gap, inv
         {
             //sv_flags[i - 1] += g_sv_gap + g_sv_r + g_sv_shrink;
             //sv_flags[i] += g_sv_gap + g_sv_l + g_sv_shrink;
