@@ -1,6 +1,7 @@
 #include "base.h"
 #include "cords.h"
 #include "f_io.h"
+//
 //Check bamrecord cigar on base level
 int check_cigar(StringSet<String<Dna5> > & genomes,
                  String<Dna5> & read, 
@@ -154,3 +155,9 @@ int check_cigar(StringSet<String<Dna5> > & genomes,
     */
     dout << "c_s" << float(covs_s) / length(read) << "\n";
 }
+/*
+int test_clip_anchors()
+{
+
+}
+*/

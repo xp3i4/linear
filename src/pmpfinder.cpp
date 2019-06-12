@@ -1327,10 +1327,10 @@ uint64_t getAnchorMatchList(Anchors & anchors,
     String<int64_t> list;
     for (unsigned k = 1; k < anchors.length(); k++)
     {
-        //dout << "anchors" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
         if (get_cord_x(anchors[k]) - get_cord_x(ak) > thd_anchor_err * readLen ||
             k == anchors.length() - 1)
         {
+        dout << "anchors1xxxxxxxxxx" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
             if (c_b > mapParm.anchorLenThr * readLen)
             {
                 anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
@@ -1342,6 +1342,82 @@ uint64_t getAnchorMatchList(Anchors & anchors,
         }
         else 
         {
+        dout << "anchors2" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
+            //cb += std::min(anchors.deltaPos2(k, k - 1), mapParm.shapeLen);
+            if(anchors.deltaPos2(k, k - 1) >  mapParm.shapeLen)
+                c_b += mapParm.shapeLen;
+            else
+                c_b += anchors.deltaPos2(k, k - 1); 
+        }
+    }
+    if (!empty(list))
+    {
+        std::sort (begin(list), end(list), std::greater<uint64_t>());
+        int tmp = length(list) > mapParm.listN ? mapParm.listN : length(list);
+        for (int k = 0; k < tmp; k++)
+        {
+          if (((list[0] / 10) < list[k])  && list[k])
+          {
+              sb = ((list[k] >> 20) & mask);
+              sc = list[k] & mask;
+              for (unsigned n = sb; n < sc; n++)
+              {
+                  appendValue(hit, anchors[n]);
+              }   
+              _DefaultHit.setBlockEnd(back(hit));
+          }
+          else
+              break;
+        }
+        return (list[0] >> 40);   
+    }
+    else
+    {
+       return 0;
+    }
+}
+
+uint64_t getAnchorMatchList2(Anchors & anchors, 
+                            unsigned const & readLen, 
+                            MapParm & mapParm,
+                            String<uint64_t> & hit
+                            )
+{
+    if (anchors.length() <= 1)
+    {
+        return 0;
+    }
+    float thd_anchor_err = 0.1;
+    uint64_t ak;
+    uint64_t c_b=mapParm.shapeLen, sb=0, sc = 0;
+    if (length(anchors.set) == 1)
+    {
+        return 0;
+    }
+    anchors.sort(anchors.begin(), anchors.end());
+//  anchors[0] = anchors[1];
+    ak=anchors[0];
+    //_printHit(anchors.set, "sa");
+    uint64_t mask = (1ULL << 20) - 1;
+    String<int64_t> list;
+    for (unsigned k = 1; k < anchors.length(); k++)
+    {
+        if (get_cord_x(anchors[k]) - get_cord_x(ak) > thd_anchor_err * readLen ||
+            k == anchors.length() - 1)
+        {
+        dout << "anchors1xxxxxxxxxx" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
+            if (c_b > mapParm.anchorLenThr * readLen)
+            {
+                anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
+                appendValue(list, (c_b << 40) + (sb << 20) + k);
+            }
+            sb = k;
+            ak = anchors[k];
+            c_b = mapParm.shapeLen;
+        }
+        else 
+        {
+        dout << "anchors2" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
             //cb += std::min(anchors.deltaPos2(k, k - 1), mapParm.shapeLen);
             if(anchors.deltaPos2(k, k - 1) >  mapParm.shapeLen)
                 c_b += mapParm.shapeLen;
@@ -1389,7 +1465,7 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
     {
         return 0;
     }
-    uint64_t ak1, ak2, ak3; //1/4, 2/4, 3/4
+    uint64_t ak2 = anchors[0], ak3 = anchors[0]; //2/4, 3/4
     uint64_t c_b=mapParm.shapeLen, sb=0, sc = 0;
     anchors.sort(anchors.begin(), anchors.end());
     //anchors[0] = anchors[1];
@@ -1402,10 +1478,9 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
     for (unsigned k = 1; k < anchors.length(); k++)
     {
         int64_t anc_y = get_cord_y(anchors[k]);
-        int64_t dy1 = std::abs(int64_t(anc_y - get_cord_y(ak1)));
         int64_t dy2 = std::abs(int64_t(anc_y - get_cord_y(ak2)));
         int64_t dy3 = std::abs(int64_t(anc_y - get_cord_y(ak3)));
-        if ((get_cord_x(anchors[k] - ak1) < thd_anchor_err * dy1 ||
+        if ((
              get_cord_x(anchors[k] - ak2) < thd_anchor_err * dy2 ||
              get_cord_x(anchors[k] - ak3) < thd_anchor_err * dy3) &&
              k != anchors.length() - 1
@@ -1416,7 +1491,6 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
                 c_b += mapParm.shapeLen;
             else
                 c_b += anchors.deltaPos2(k, k - 1); 
-            ak1 = anchors[sb + ((k - sb) >> 2)];
             ak2 = anchors[(sb + k) >> 1]; //update the ak to the median 
             ak3 = anchors[k - ((k - sb) >> 2)];
             min_y = std::min(min_y, get_cord_y(anchors[k]));
@@ -1433,6 +1507,7 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
             }
             sb = k;
             ak2 = anchors[k];
+            ak3 = anchors[k];
             c_b = mapParm.shapeLen;
             min_y = get_cord_y(anchors[k]);
             max_y = get_cord_y(anchors[k]);
@@ -1512,18 +1587,12 @@ uint64_t mnMapReadList( IndexDynamic & index,
 {
     if (index.isHIndex())
     {
-        double t1 = sysTime();
         getIndexMatchAll(index.hindex, read, anchors.set, mapParm);    
-        t1 = sysTime() - t1;
-        double t2 = sysTime();
-        getAnchorMatchList(anchors, length(read), mapParm, hit);
+        getDAnchorMatchList(anchors, length(read), mapParm, hit);
     }   
     else if (index.isDIndex())
     {
-        double t1 = sysTime();
         getDIndexMatchAll(index.dindex, read, anchors.set, mapParm);    
-        t1 = sysTime() - t1;
-        double t2 = sysTime();
         getDAnchorMatchList(anchors, length(read), mapParm, hit);
     }
     return 0;

@@ -483,7 +483,6 @@ int main(int argc, char const ** argv)
 
     Mapper mapper(options);
     map(mapper, options.p1);
-
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
     return 0;
 }
