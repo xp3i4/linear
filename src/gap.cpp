@@ -1616,7 +1616,7 @@ struct MapAnchorParm
     {
         //TODO: handle thd_min_segment, anchor 
         int64_t d = std::abs((int64_t)g_hs_anchor_getY(anchor[k]) - (int64_t)g_hs_anchor_getY(anchor[prek]));
-        dout << "ac2" << get_cord_y(anchor[k]) << get_cord_x(anchor[k]) << "\n";
+        dout << "ac2" << get_cord_y(anchor[k]) << get_cord_x(anchor[k]) << g_hs_anchor_get_strand(anchor[k]) << "\n";
         if (g_hs_anchor_getAnchor(anchor[k]) - g_hs_anchor_getAnchor(anchor[prek]) > 
             thd_err_rate * std::max(thd_min_segment, d))
         {
@@ -1860,11 +1860,10 @@ struct MapAnchorParm
 }
 
 /**
- * Map gaps specified by the @cord_str and @cord_end and create the chain of tiles 
- * to cover the gap as long as possible.
- * @cord_str will be extended towards the right side, @cord_end will 
- * be extended towards the left side.
- * Cords between them will be extended towards both sides.
+ * Map gaps specified by the @cord_str and @cord_end and create the chain of tiles to cover the gap as long as possible.
+ * @cord_str extended towards the right side, 
+ * @cord_end extended towards the left side.
+ * Cords between will be extended towards both sides.
  * @f1 and @f2 are frequency vector for approximate mapping
  */
  int g_mapHs_(String<Dna5> & seq1, //genome
@@ -1925,6 +1924,7 @@ struct MapAnchorParm
                        direction
                       );
 }
+
 
 int64_t g_anchor_dx_(uint64_t val1, uint64_t val2)
 {
@@ -2004,21 +2004,22 @@ short ctzb_4_(uint64_t a)
 }
 
 /**
- * Stream a block of 'g_hs' within [p1,p2)x[p2,k), and convert the combination of elements to anchors with the following restrictions
- * |candidates_anchor - 'anchor' | < band
+ * Stream the block of 'g_hs' within [p1,p2)x[p2,k), and convert the    
+   production of cords to anchors with the restrictions of
+   |candidates_anchor - 'anchor' | < band
  */
  int c_create_anchor_block_ (String<uint64_t> & g_hs, 
-                                   String<uint64_t> & g_anchor,
-                                   int p1, 
-                                   int p2, 
-                                   int k, 
-                                   int g_anchor_end,
-                                   int thd_band_level,  //dx >> band_level 
-                                   int thd_band_lower,  //band lower bound
-                                   int64_t anchor_x,
-                                   int64_t anchor_y,
-                                   int64_t x_lower = 0, //lower bound 
-                                   int64_t x_upper = 0) 
+                             String<uint64_t> & g_anchor,
+                             int p1, 
+                             int p2, 
+                             int k, 
+                             int g_anchor_end,
+                             int thd_band_level,  //dx >> band_level 
+                             int thd_band_lower,  //band lower bound
+                             int64_t anchor_x,
+                             int64_t anchor_y,
+                             int64_t x_lower = 0, //lower bound 
+                             int64_t x_upper = 0) 
 {
     int64_t dx_lower, dx_upper;
     if (x_lower == 0 && x_upper == 0)
@@ -2908,6 +2909,21 @@ uint64_t clip_tile (String<Dna5> & seq1,
     return clip;
 }
 /**
+ * Patch for duplication (only) where additional mapping outside [gap_str, gap_end] is necessary.
+ */
+int g_extend_anchor_(uint64_t cords,
+                     float band_ratio,
+                     int direction)
+{
+    g_mapHs_(seqs[genomeId], read, comstr,
+             g_hs, g_anchor, tiles, f1, f2,
+             cord1, cord2,
+             thd_tileSize,
+             direction
+           );
+    return 0;
+}
+/**
  * cord_str and cord_end required to have same strand.
  * TODO::process multiple tile_start and tile_end. Currently it handles tiles having one block.
  */
@@ -3002,9 +3018,6 @@ int g_extend_clip__(String<Dna5> & seq1,
         }
         else if (dy > thd_cord_gap && dx > thd_cord_gap) //gap, inv
         {
-            //sv_flags[i - 1] += g_sv_gap + g_sv_r + g_sv_shrink;
-            //sv_flags[i] += g_sv_gap + g_sv_l + g_sv_shrink;
-            //sv_exists = 1;
             uint64_t clip_str = clip_tile(seq1, seq2, comstr, g_hs, g_hs_anchor, tiles[i - 1], g_sv_r, thd_tile_size);
             uint64_t clip_end = clip_tile(seq1, seq2, comstr, g_hs, g_hs_anchor, tiles[i], g_sv_l, thd_tile_size);
             insertClipStr(clips, clip_str);
@@ -3253,9 +3266,6 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             g_cmpll.min(shift_y, block_size)
                     << int64_t(length(read) - 1 - get_cord_y(cords[i]));
             uint64_t gap_end = shift_cord(cords[i], shift_x, shift_y);
-            //g_cmpll.min(shift_x, shift_x) << get_cord_x(cords[i] - cords[i - 1]); //ins
-            //g_cmpll.min(shift_y, shift_y) << get_cord_y(cords[i] - cords[i - 1]); //del
-            //uint64_t cord1 = shift_cord(cords[i - 1], shift_x, shift_y);
             uint64_t gap_str = cords[i - 1]; 
             mapGap_(seqs, read, comstr, 
                     gap_str, gap_end, 
