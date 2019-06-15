@@ -1882,6 +1882,7 @@ struct MapAnchorParm
 {
     int g_hs_end = 0;
     int g_hs_anchor_end = 0;
+    
     uint64_t rvcp_const = length(seq2) - 1;
     uint64_t gs_str = get_cord_x(gap_str);
     uint64_t gs_end = get_cord_x(gap_end);
@@ -2909,11 +2910,15 @@ uint64_t clip_tile (String<Dna5> & seq1,
     return clip;
 }
 /**
- * Patch for duplication (only) where additional mapping outside [gap_str, gap_end] is necessary.
+ * Patch for duplication (only) where additional mapping in (,gap_str] or [gap_end,) is necessary.
  */
-int g_extend_anchor_(uint64_t cords,
-                     float band_ratio,
-                     int direction)
+int try_dup(String<Dna5> & seq
+            String<Dna5> & read
+            String<Dna5> & comstr
+            uint64_t tile1,
+            uint64_t tile2,
+            float band_ratio,
+            int direction)
 {
     g_mapHs_(seqs[genomeId], read, comstr,
              g_hs, g_anchor, tiles, f1, f2,
@@ -2957,8 +2962,6 @@ int g_extend_clip__(String<Dna5> & seq1,
     int64_t thd_dxy_min = 80; //skip ins del < this value todo tune later
     insert (tiles, 0, head_tile);
     appendValue (tiles, tail_tile);
-    String<int> sv_flags;
-    String<int> f_clips;
     resize (sv_flags, length(tiles));
     for (int i = 0; i < length(sv_flags); i++)
     {
@@ -2971,17 +2974,14 @@ int g_extend_clip__(String<Dna5> & seq1,
     {
         int64_t dx = tile_distance_x(tiles[i - 1], tiles[i]);
         int64_t dy = tile_distance_y(tiles[i - 1], tiles[i]); 
-        //dout << "ge4" << dx << dy << "\n";
         if (_defaultTile.getStrand(tiles[i] ^ tiles[i - 1])) //inv
         {
             if (get_tile_strand(tiles[i]) ^ main_strand)
             {
-                //sv_flags[i] |= g_sv_inv + g_sv_l + g_sv_extend;
                 clip_inv_str = clip_tile (seq1, seq2, comstr, g_hs, g_hs_anchor, tiles[i], g_sv_l, thd_tile_size);
             }
             else
             {
-                //sv_flags[i - 1] |= g_sv_inv + g_sv_r + g_sv_extend;
                 clip_inv_end = clip_tile (seq1, seq2, comstr, g_hs, g_hs_anchor, tiles[i - 1], g_sv_r, thd_tile_size);
                 insertClipStr (clips, clip_inv_str);
                 insertClipEnd (clips, clip_inv_end);
@@ -3001,6 +3001,8 @@ int g_extend_clip__(String<Dna5> & seq1,
             }
             else
             {
+                try_dup ();
+                try_dup ();
                 uint64_t clip_str = clip_tile(seq1, seq2, comstr, g_hs, g_hs_anchor, tiles[i - 1], g_sv_r, thd_tile_size);
                 uint64_t clip_end = clip_tile(seq1, seq2, comstr, g_hs, g_hs_anchor, tiles[i], g_sv_l, thd_tile_size);
                 insertClipStr(clips, clip_str);
