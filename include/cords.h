@@ -79,8 +79,6 @@ struct Cord
             typename CordBase::Flag const & end = _DefaultCordBase.flag_end);
     uint64_t getCordStrand(uint64_t const & cord,
             unsigned const & strand = _DefaultCordBase.flag_bit) const;
-    uint64_t isCordEnd(uint64_t const & cord,
-                typename CordBase::Flag const & end = _DefaultCordBase.flag_end) const;
     void setMaxLen(String<uint64_t> &, uint64_t const &, uint64_t const & = _DefaultCordBase.mask);
     uint64_t getMaxLen(String<uint64_t> const &, uint64_t const & = _DefaultCordBase.mask);
     uint64_t shift(uint64_t const & val, int64_t x, int64_t y, unsigned const & = _DefaultCordBase.bit); //add x and y
@@ -137,5 +135,5 @@ void set_cord_gap (uint64_t & cord);
 uint64_t is_cord_main(uint64_t cord);
 void set_cord_recd(uint64_t & cord, uint64_t sgn);
 uint64_t get_cord_recd (uint64_t cord);
-uint64_t is_cord_end(uint64_t);
+uint64_t is_cord_block_end(uint64_t);
 #endif

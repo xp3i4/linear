@@ -1486,7 +1486,7 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
              k != anchors.length() - 1
             )
         {
-        dout << "anchors" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
+        //dout << "anchors" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
             if(anchors.deltaPos2(k, k - 1) >  mapParm.shapeLen)
                 c_b += mapParm.shapeLen;
             else
@@ -1498,7 +1498,7 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
         }
         else
         {
-        dout << "anchorsxxxxxx" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << dy2 << get_cord_x(ak2) << "\n";
+        //dout << "anchorsxxxxxx" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << dy2 << get_cord_x(ak2) << "\n";
             if (c_b > thd_anchor_accept_lens && 
                 (k - sb) >= (max_y - min_y) * thd_anchor_accept_dens)
             {
@@ -1598,6 +1598,76 @@ uint64_t mnMapReadList( IndexDynamic & index,
     return 0;
 }
 
+/**
+ * sort cords and combine two blocks to one block if they are not overlapped 
+ */
+int re_sort_cords (String<uint64_t> & cords, uint64_t thd_combine_blocks)
+{
+    if (length(cords) < 2)
+    {
+        return 0;
+    }
+    typedef std::pair<unsigned, unsigned> UPair;
+    String<UPair> str_ends; //pointers to first and last cord in block
+    unsigned p_str;
+    for (unsigned i = 1; i < length(cords); i++)
+    {
+        if (is_cord_block_end(cords[i - 1]))
+        {
+            if (i != 1)
+            {
+                appendValue(str_ends, UPair(p_str, i));
+            }
+            p_str = i;
+        }
+    }
+    appendValue (str_ends, UPair(p_str, length(cords)));
+    if (length(str_ends) < 2)
+    {
+        return 0;
+    }
+    std::sort (begin(str_ends), end(str_ends), [cords](UPair & i, UPair & j){
+        return get_cord_y(cords[i.first]) < get_cord_y(cords[j.first]);
+    });
+    String<uint64_t> tmp_cords;
+    resize (tmp_cords, length(cords));
+    unsigned k = 1;
+    tmp_cords[0] = cords[0];
+    for (unsigned i = 0; i < length(str_ends); i++)
+    {
+        if (i > 0) //skip combine in the first block
+        {
+            int64_t dy = get_cord_y(cords[str_ends[i].first]) - 
+                         get_cord_y(tmp_cords[k - 1]);
+            int64_t dx = get_cord_x(cords[str_ends[i].first]) - 
+                         get_cord_x(tmp_cords[k - 1]);            
+            dout << "remove" << dy << dx << thd_combine_blocks << "\n";
+            if (dy > 0 && dy < thd_combine_blocks &&
+                dx > 0 && dx < thd_combine_blocks &&
+                get_cord_strand(cords[str_ends[i].first] ^
+                cords[str_ends[i - 1].second]))
+            {
+                _DefaultHit.unsetBlockEnd(tmp_cords[k - 1]);
+            }
+        }
+        for (unsigned j = str_ends[i].first; j < str_ends[i].second; j++)
+        {
+
+            tmp_cords[k] = cords[j];
+            k++;
+        }
+    }
+    //cords = tmp_cords;
+    for (unsigned i = 0; i < length(cords); i++)
+    {
+        cords[i] = tmp_cords[i];
+    }
+    for (auto x : str_ends)
+    {
+        dout << "resort" << x.first << x.second << "\n";
+    }
+}
+
 uint64_t apxMap (IndexDynamic & index,
                  String<Dna5> & read,
                  Anchors & anchors,
@@ -1608,8 +1678,11 @@ uint64_t apxMap (IndexDynamic & index,
                  String<uint64_t> & cords, 
                  float cordLenThr)
 {
+    //todo::wrapper the thds
+    uint64_t thd_combine_blocks = 10000; //two blocks of cords will be combined to one if 1.they can be combined 2. they are close enough (< this)
     mnMapReadList(index, read, anchors, mapParm, hit);
     path_dst(begin(hit), end(hit), f1, f2, cords, cordLenThr);
+    re_sort_cords (cords, thd_combine_blocks);
     int seg = 0;
     for (int i = 0; i < length(cords); i++)
     {

@@ -3051,7 +3051,7 @@ int g_extend_clip__(String<Dna5> & seq1,
         {
             String<uint64_t> dup_tiles;
             try_dup (seq1, seq2, comstr, f1, f2, g_hs, g_hs_anchor, 
-                         dup_tiles, tiles[i - 1], tiles[i], thd_err_rate,  thd_tile_size);
+                     dup_tiles, tiles[i - 1], tiles[i], thd_err_rate, thd_tile_size);
             uint64_t clip_str = clip_tile(seq1, seq2, comstr, g_hs, g_hs_anchor, tiles[i - 1], g_sv_r, thd_tile_size);
             uint64_t clip_end = clip_tile(seq1, seq2, comstr, g_hs, g_hs_anchor, tiles[i], g_sv_l, thd_tile_size);
             insertClipStr(clips, clip_str);
@@ -3122,7 +3122,7 @@ int g_extend_clip_(String<Dna5> & seq1,
         for (int i = 0; i < length(tiles); i++) 
         {
             appendValue(tmp_tiles, tiles[i]);
-            if (is_cord_end(tiles[i]) || i == length(tiles) - 1)
+            if (is_cord_block_end(tiles[i]) || i == length(tiles) - 1)
             {
                 g_print_tiles_(tmp_tiles, "gexc");
                 g_extend_clip__(seq1, seq2, comstr, 
@@ -3142,32 +3142,6 @@ int g_extend_clip_(String<Dna5> & seq1,
             }
         }
     }
-}
-
-/**
- * sort cords and combine two blocks to one block if they are not overlapped 
- */
-void re_sort_cords (String<uint64_t> & cords)
-{
-    if (length(cords) < 2)
-    {
-        return 1;
-    }
-    typedef std::pair<uint64_t, uint64_t> UPair;
-    String<UPair> str_ends;
-    uint64_t str;
-    for (uint64_t i = 1; i < length(cords); i++)
-    {
-        if (is_cord_end(cords[i - 1]))
-        {
-            if (i != 1)
-            {
-                appendValue(str_ends, UPair(str, cords[i - 1]))
-            }
-            str = cords[i];
-        }
-    }
-    appendValue (str_ends, UPair(str, back(cords)));
 }
 
 /**
@@ -3288,6 +3262,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
     int thd_cord_remap = 100;
     int thd_cord_gap = thd_gap + block_size;
     ///NOTE cords[0] is the head cord, so starts from 1
+
     for (unsigned i = 1; i < length(cords); i++)
     {
         unsigned sid = get_cord_id(cords[i]);

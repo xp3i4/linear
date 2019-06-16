@@ -95,12 +95,6 @@ typename CordBase::Flag Cord::getCordStrand(uint64_t const & cord,
     return (cord >> strand) & 1ULL;
 }
 
-typename CordBase::Flag Cord::isCordEnd(uint64_t const & cord,
-                typename CordBase::Flag const & end) const
-{
-    return cord & end;
-}
-
 void Cord::setMaxLen(String<uint64_t> & cord, uint64_t const & len, uint64_t const & mask)
 {
     if (len > (cord[0] & mask))
@@ -227,7 +221,7 @@ uint64_t get_cord_recd (uint64_t cord)
     return cord & _DefaultCordBase.f_recd;
 }
 
-uint64_t is_cord_end (uint64_t cord)
+uint64_t is_cord_block_end (uint64_t cord)
 {
-    return _DefaultCord.isCordEnd(cord);
+    return _DefaultCord.isBlockEnd(cord);
 }
