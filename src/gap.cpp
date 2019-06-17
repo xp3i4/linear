@@ -1866,7 +1866,7 @@ struct MapAnchorParm
  * Cords between will be extended towards both sides.
  * @f1 and @f2 are frequency vector for approximate mapping
  */
- int g_mapHs_(String<Dna5> & seq1, //genome
+ int map_interval_(String<Dna5> & seq1, //genome
               String<Dna5> & seq2, //read
               String<Dna5> & comstr,
               String<uint64_t> & g_hs,
@@ -1926,6 +1926,104 @@ struct MapAnchorParm
                       );
 }
 
+/**
+ * Patch for duplication (only) where additional mapping in (,gap_str] or [gap_end,) is necessary.
+ */
+int try_dup(String<Dna5> & seq,
+            String<Dna5> & read,
+            String<Dna5> & comstr,
+            StringSet<FeaturesDynamic > & f1,
+            StringSet<FeaturesDynamic > & f2,
+            String<uint64_t> & g_hs,
+            String<uint64_t> & g_anchor,
+            String<uint64_t> & tiles, //result
+            uint64_t gap_str,
+            uint64_t gap_end,
+            float thd_err_rate,
+            uint64_t thd_tile_size)
+            //float band_ratio,
+            //int direction)
+{
+    int64_t dy;
+    uint64_t tile1 = gap_str;
+    uint64_t tile2 = shift_tile(gap_end, -thd_tile_size, -thd_tile_size);
+    if (get_tile_strand(tile1 ^ tile2))
+    {
+        dy = length(read) - 1 - get_tile_y(tile2) - get_tile_y(tile1);
+    }
+    else
+    {
+        dy = get_tile_y(tile2) - get_tile_y(tile1);
+    }
+    if (dy < 0)
+    {
+        return 1;
+    }
+    int64_t shift_y = dy; 
+    int64_t shift_x = dy * (1 + thd_err_rate);
+    //extend from tile1 towards right
+    uint64_t try_str = shift_tile(tile1, thd_tile_size / 2, thd_tile_size / 2);
+    uint64_t try_end = shift_tile(try_str, shift_x, shift_y);
+    int direction = 1;
+    dout << "td1" << get_tile_y(try_str) << get_tile_y(try_end) << get_tile_x(try_str) << get_tile_x(try_end) << "\n";
+    map_interval_(seq, read, comstr,
+             g_hs, g_anchor, tiles, f1, f2,
+             try_str, try_end,
+             thd_tile_size,
+             direction
+           );
+    g_print_tiles_(tiles, "td1");
+    //extend from tile2 towards left
+    try_end = shift_tile(tile2, thd_tile_size / 2, thd_tile_size / 2);
+    try_str = shift_tile(try_end, -shift_x, -shift_y);
+    direction = -1;
+    dout << "td2" << get_tile_y(try_str) << get_tile_y(try_end) << get_tile_x(try_str) << get_tile_x(try_end) << "\n";
+    map_interval_(seq, read, comstr,
+             g_hs, g_anchor, tiles, f1, f2,
+             try_str, try_end,
+             thd_tile_size,
+             direction
+           );
+    g_print_tiles_(tiles, "td2");
+    return 0;
+}
+
+int g_mapHs_(String<Dna5> & seq1, //genome
+             String<Dna5> & seq2, //read
+             String<Dna5> & comstr,
+             String<uint64_t> & g_hs,
+             String<uint64_t> & g_hs_anchor,
+             String<uint64_t> & tiles,    //results
+             StringSet<FeaturesDynamic > & f1,  
+             StringSet<FeaturesDynamic > & f2,
+             uint64_t gap_str,
+             uint64_t gap_end, 
+             float thd_err_rate,
+             int thd_tile_size,   //WARNING 192 not allowed to change.
+             int64_t thd_dxy_min,
+             int direction //= g_align_closed
+             )
+{
+    float thd_da_zero = thd_err_rate; 
+    map_interval_(seq1, seq2, comstr, g_hs, g_hs_anchor, tiles, f1, f2, gap_str, gap_end, thd_tile_size, direction);
+    for (int i = 0; i < length(tiles); i++)
+    {
+
+//            dout << "mins" << thd_dxy_min << thd_da_zero << "\n";
+            dout << "mins" << get_cord_y(tiles[i-1]) << get_cord_y(tiles[i]) << "\n";
+        if (is_diff_anchor (tiles[i - 1], tiles[i], 1, thd_dxy_min, thd_da_zero))  //try dup for every ins 
+        {
+            String<uint64_t> dup_tiles;
+            uint64_t try_str = tiles[i - 1];
+            uint64_t try_end = shift_tile(tiles[i], thd_tile_size, thd_tile_size);
+            try_dup (seq1, seq2, comstr, f1, f2, g_hs, g_hs_anchor, 
+                     dup_tiles, tiles[i - 1], tiles[i], thd_err_rate, thd_tile_size);
+            dout << "mins\n";
+        }
+    }
+}
+
+/*----------  Section of clip function  ----------*/
 
 int64_t g_anchor_dx_(uint64_t val1, uint64_t val2)
 {
@@ -2759,15 +2857,15 @@ int c_clip_extend_(uint64_t & clip,
 }
 
 uint64_t c_clip_(String<Dna5> & genome,  
-            String<Dna5> & read,
-            String<Dna5> & comstr,    //complement revers of read
-            uint64_t clip_str,
-            uint64_t clip_end,
-            String<uint64_t> & g_hs,
-            String<uint64_t> & g_anchor,
-            float thd_band_ratio,
-            int clip_direction = 1
-        )
+                 String<Dna5> & read,
+                 String<Dna5> & comstr,    //complement revers of read
+                 uint64_t clip_str,
+                 uint64_t clip_end,
+                 String<uint64_t> & g_hs,
+                 String<uint64_t> & g_anchor,
+                 float thd_band_ratio,
+                 int clip_direction = 1
+                )
 {
     //dout << "clip" << get_cord_y(clip_str) << get_cord_y(clip_end) << clip_direction << "\n";
     CmpInt64 g_cmpll;
@@ -2909,70 +3007,12 @@ uint64_t clip_tile (String<Dna5> & seq1,
     remove_tile_sgn(clip);
     return clip;
 }
-/**
- * Patch for duplication (only) where additional mapping in (,gap_str] or [gap_end,) is necessary.
- */
-int try_dup(String<Dna5> & seq,
-            String<Dna5> & read,
-            String<Dna5> & comstr,
-            StringSet<FeaturesDynamic > & f1,
-            StringSet<FeaturesDynamic > & f2,
-            String<uint64_t> & g_hs,
-            String<uint64_t> & g_anchor,
-            String<uint64_t> & tiles, //result
-            uint64_t tile1,
-            uint64_t tile2,
-            float thd_err_rate,
-            uint64_t thd_tile_size)
-            //float band_ratio,
-            //int direction)
-{
-    int64_t dy;
-    if (get_tile_strand(tile1 ^ tile2))
-    {
-        dy = length(read) - 1 - get_tile_y(tile2) - get_tile_y(tile1);
-    }
-    else
-    {
-        dy = get_tile_y(tile2) - get_tile_y(tile1);
-    }
-    if (dy < 0)
-    {
-        return 1;
-    }
-    int64_t shift_y = dy; 
-    int64_t shift_x = dy * (1 + thd_err_rate);
-    //extend from tile1 towards right
-    uint64_t try_str = shift_tile(tile1, thd_tile_size / 2, thd_tile_size / 2);
-    uint64_t try_end = shift_tile(try_str, shift_x, shift_y);
-    int direction = 1;
-    dout << "td1" << get_tile_y(try_str) << get_tile_y(try_end) << get_tile_x(try_str) << get_tile_x(try_end) << "\n";
-    g_mapHs_(seq, read, comstr,
-             g_hs, g_anchor, tiles, f1, f2,
-             try_str, try_end,
-             thd_tile_size,
-             direction
-           );
-    g_print_tiles_(tiles, "td1");
-    //extend from tile2 towards left
-    try_end = shift_tile(tile2, thd_tile_size / 2, thd_tile_size / 2);
-    try_str = shift_tile(try_end, -shift_x, -shift_y);
-    direction = -1;
-    dout << "td2" << get_tile_y(try_str) << get_tile_y(try_end) << get_tile_x(try_str) << get_tile_x(try_end) << "\n";
-    g_mapHs_(seq, read, comstr,
-             g_hs, g_anchor, tiles, f1, f2,
-             try_str, try_end,
-             thd_tile_size,
-             direction
-           );
-    g_print_tiles_(tiles, "td2");
-    return 0;
-}
+
 /**
  * cord_str and cord_end required to have same strand.
  * TODO::process multiple tile_start and tile_end. Currently it handles tiles having one block.
  */
-int g_extend_clip__(String<Dna5> & seq1,
+int clip_gap__(String<Dna5> & seq1,
                    String<Dna5> & seq2,
                    String<Dna5> & comstr, //complement reverse of the read (seq2)
                    StringSet<FeaturesDynamic > & f1,
@@ -3049,9 +3089,7 @@ int g_extend_clip__(String<Dna5> & seq1,
         }
         else if (is_diff_anchor (tiles[i - 1], tiles[i], 1, thd_dxy_min, thd_da_zero))  //ins 
         {
-            String<uint64_t> dup_tiles;
-            try_dup (seq1, seq2, comstr, f1, f2, g_hs, g_hs_anchor, 
-                     dup_tiles, tiles[i - 1], tiles[i], thd_err_rate, thd_tile_size);
+
             uint64_t clip_str = clip_tile(seq1, seq2, comstr, g_hs, g_hs_anchor, tiles[i - 1], g_sv_r, thd_tile_size);
             uint64_t clip_end = clip_tile(seq1, seq2, comstr, g_hs, g_hs_anchor, tiles[i], g_sv_l, thd_tile_size);
             insertClipStr(clips, clip_str);
@@ -3082,7 +3120,7 @@ int g_extend_clip__(String<Dna5> & seq1,
     return 0;
     /// remove the inserted head and tail tiles;
 }
-int g_extend_clip_(String<Dna5> & seq1,
+int clip_gap_(String<Dna5> & seq1,
                    String<Dna5> & seq2,
                    String<Dna5> & comstr, //complement reverse of the read (seq2)
                    StringSet<FeaturesDynamic > & f1,
@@ -3102,7 +3140,7 @@ int g_extend_clip_(String<Dna5> & seq1,
     String<uint64_t> tmp_tiles;
     if (empty(tiles))
     {
-        g_extend_clip__(seq1, seq2, 
+        clip_gap__(seq1, seq2, 
                         comstr, 
                         f1,
                         f2,
@@ -3125,7 +3163,7 @@ int g_extend_clip_(String<Dna5> & seq1,
             if (is_cord_block_end(tiles[i]) || i == length(tiles) - 1)
             {
                 g_print_tiles_(tmp_tiles, "gexc");
-                g_extend_clip__(seq1, seq2, comstr, 
+                clip_gap__(seq1, seq2, comstr, 
                                 f1,
                                 f2,
                                 tmp_tiles, 
@@ -3162,8 +3200,8 @@ int g_extend_clip_(String<Dna5> & seq1,
  int mapGap_ (StringSet<String<Dna5> > & seqs,
               String<Dna5> & read,
               String<Dna5> & comstr,
-              uint64_t cord1, 
-              uint64_t cord2, 
+              uint64_t gap_str, 
+              uint64_t gap_end, 
               String<uint64_t> & g_hs,
               String<uint64_t> & g_anchor,
               StringSet<FeaturesDynamic > & f1,
@@ -3172,34 +3210,69 @@ int g_extend_clip_(String<Dna5> & seq1,
               String<uint64_t> & clips,     //results 
               int direction,
               int const thd_cord_gap, 
-              int const thd_tileSize,
+              int const thd_tile_size,
               int thd_cord_remap, 
               float thd_err_rate
              )
 {
-    dout << "mg_" << get_cord_y(cord1) << get_cord_y(cord2) << "\n";
-    int64_t thd_da_zero = 0.25;
+    float thd_da_zero = thd_err_rate; 
+    int64_t thd_dxy_min = 80;
+    dout << "mg_" << get_cord_y(gap_str) << get_cord_y(gap_end) << "\n";
     clear(tiles);
-    if (_DefaultCord.getCordStrand(cord1 ^ cord2))
+    if (get_cord_strand(gap_str ^ gap_end))
+    {
+        //todo::also needs map
+        return -1;
+    }
+    uint64_t strand = _DefaultCord.getCordStrand (gap_str);
+    uint64_t genomeId = get_cord_id(gap_str);
+    int64_t x1 = get_cord_x(gap_str);
+    int64_t x2 = get_cord_x(gap_end);
+    int64_t y1 = get_cord_y(gap_str);
+    int64_t y2 = get_cord_y(gap_end);
+    int64_t da = x2 - x1 - y2 + y1;
+
+    if (x1 > x2 && y1 > y2)
     {
         return -1;
     }
-    uint64_t strand = _DefaultCord.getCordStrand (cord1);
-/// WARNING: the main strand is defined as the strand of the cord1
-/// ATTENTION: gr_start and gr_end are flipped !!! if the main strand is complement reversed
-    uint64_t genomeId = get_cord_id(cord1);
-    int64_t da = get_cord_x(cord2 - cord1) - get_cord_y(cord2 - cord1); 
-    if (get_cord_x(cord2 - cord1) > thd_cord_remap && 
-        get_cord_y(cord2 - cord1) > thd_cord_remap)
+    else if (x1 > x2)
+    {
+        try_dup(seqs[genomeId], read, comstr, f1, f2, g_hs, g_anchor, tiles,
+                gap_str, gap_end, thd_err_rate, thd_tile_size);
+        clip_gap_(seqs[genomeId], 
+                       read, 
+                       comstr, 
+                       f1,
+                       f2,
+                       tiles, 
+                       clips, 
+                       g_hs, 
+                       g_anchor, 
+                       gap_str, 
+                       gap_end, 
+                       direction, 
+                       thd_cord_gap, 
+                       thd_tile_size,
+                       thd_err_rate);
+    }
+    else if (y1 > y2)
+    {
+        //WARN::this case is ignored at the present.
+        return -1;
+    }
+    else if (x2 - x1 > thd_cord_remap && 
+             y2 - y1 > thd_cord_remap)
     {
             g_mapHs_(seqs[genomeId], read, comstr,
                      g_hs, g_anchor, tiles, f1, f2,
-                     cord1, cord2,
-                     thd_tileSize,
+                     gap_str, gap_end,
+                     thd_da_zero,
+                     thd_tile_size,
+                     thd_dxy_min,
                      direction
                    );
-
-            g_extend_clip_(seqs[genomeId], 
+            clip_gap_(seqs[genomeId], 
                            read, 
                            comstr, 
                            f1,
@@ -3208,27 +3281,78 @@ int g_extend_clip_(String<Dna5> & seq1,
                            clips, 
                            g_hs, 
                            g_anchor, 
-                           cord1, 
-                           cord2, 
+                           gap_str, 
+                           gap_end, 
                            direction, 
                            thd_cord_gap, 
-                           thd_tileSize,
+                           thd_tile_size,
                            thd_err_rate);
     }
-    /*
-    else 
-    {
-        appendValue(tiles, cord1);
-        appendValue(tiles, cord2);
-        g_extend_clip_(seqs[genomeId], read, comstr, tiles, clips, g_hs, g_anchor, gs_start, gs_end, gr_start, gr_end, strand, genomeId, direction, thd_cord_gap);
-    }
-    */
-    return length(tiles);
+    return 0;
 }
-
+//Just return if two blocks can be chained according to last and first cords.
+//@cord1, @cord2 are the last and first cord of each block
+//return 1 if 2 blocks can be linked as a whole; else 0
+int isBlocksLinkable(uint64_t cord1, 
+                     uint64_t cord2, 
+                     uint64_t cmprevconst,
+                     int64_t thd_max_chain_distance)
+{if (!is_cord_block_end(cord1)) 
+    {
+        dout << "chn1" << get_cord_y(cord1) << get_cord_y(cord2) << thd_max_chain_distance << "\n";
+        return 0;
+    }
+    if (get_cord_strand (cord1 ^ cord2))
+    {
+        //todo::check the logic of the reverse strand in this part
+        int64_t x1 = get_cord_x(cord1);
+        int64_t x2 = get_cord_y(cord2);
+        int64_t y1 = get_cord_y(cord1);
+        int64_t y2 = cmprevconst - get_cord_y(cord2);
+        dout << "chn2" << get_cord_y(cord1) << get_cord_y(cord2) << thd_max_chain_distance << "\n";
+        if (y1 < y2 && y1 + thd_max_chain_distance > y2 &&
+            std::abs(x2 - x1) < thd_max_chain_distance) //cases for ins or dup
+        {
+            return 1;
+        }
+        else if (y1 < y2 && y1 + thd_max_chain_distance > y2 &&
+                 x1 < x2 && x1 + thd_max_chain_distance > x2) //regular gap
+        {
+            return 1; 
+        }
+        else
+        {
+            return 0;
+        }
+        return 0;
+    }
+    else
+    {
+        int64_t x1 = get_cord_x(cord1);
+        int64_t x2 = get_cord_x(cord2);
+        int64_t y1 = get_cord_y(cord1);
+        int64_t y2 = get_cord_y(cord2);
+        dout << "chn3" << y1 << y2 << thd_max_chain_distance << "\n";
+        if (y1 < y2 && y1 + thd_max_chain_distance > y2 &&
+            std::abs(x2 - x1) < thd_max_chain_distance) //cases for ins or dup
+        {
+            return 1;
+        }
+        else if (y1 < y2 && y1 + thd_max_chain_distance > y2 &&
+                 x1 < x2 && x1 + thd_max_chain_distance > x2) //regular gap
+        {
+            return 1; 
+        }
+        else
+        {
+            return 0;
+        }
+    }
+}
 /**
  * Re-map gaps in cords.
- * Gaps at the beginning or end are also remapped.
+ * Gaps at the front or end of the cords are also remapped.
+ * !!NOTE::Each block in the cords are required to be sorted according to the y value of the first cord, such that isBlocksLinkable can work appropriately.
  */
 int mapGaps(StringSet<String<Dna5> > & seqs, 
             String<Dna5> & read, 
@@ -3252,17 +3376,15 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
     String <uint64_t> tiles;
     int64_t shift_x;
     int64_t shift_y;
-    uint64_t genomeId;
-    uint64_t gap_len = 0;
     uint64_t thd_max_extend = 10000;
     uint64_t thd_max_extend_x = thd_max_extend;
     uint64_t thd_max_extend_y = thd_max_extend; //>large gaps are supposed to be handled during the apx part.
-    int64_t thd_extend_xy = 3; //extend at front and end of seqs
+    int64_t thd_extend_xy = 3; //extend at first or last cord of seqs
+    int64_t thd_max_chain_distance = thd_max_extend;
     int block_size = window_size;
     int thd_cord_remap = 100;
     int thd_cord_gap = thd_gap + block_size;
-    ///NOTE cords[0] is the head cord, so starts from 1
-
+    //NOTE cords[0] is the head, regular cords starts from 1
     for (unsigned i = 1; i < length(cords); i++)
     {
         unsigned sid = get_cord_id(cords[i]);
@@ -3272,46 +3394,60 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
         uint64_t cordy2 = get_cord_x(cords[i]);
         int64_t dcordx = cordx2 - cordx1;
         int64_t dcordy = cordy2 - cordy1;
-        if (_DefaultCord.isBlockEnd(cords[i - 1]))  ///left clip first cord
+        if (_DefaultCord.isBlockEnd(cords[i - 1]))  //clip first cord
         {
             uint64_t gap_end = shift_cord(cords[i], block_size, block_size);
+            uint64_t gap_str;
+            int direction;
             if (get_cord_y(gap_end) > thd_cord_gap) 
             {            
-                shift_x = std::min(thd_max_extend, get_cord_x(gap_end));
-                shift_y = std::min(thd_max_extend, get_cord_y(gap_end));
-                shift_x = std::min(shift_x, shift_y * thd_extend_xy);
-                uint64_t infi_cord = shift_cord(gap_end, -shift_x, -shift_y);   
-                uint64_t gap_str = infi_cord;
+                if (i == 1 || !isBlocksLinkable(cords[i - 1], cords[i], length(read) - 1, thd_max_chain_distance))
+                {
+                    shift_x = std::min(thd_max_extend, get_cord_x(gap_end));
+                    shift_y = std::min(thd_max_extend, get_cord_y(gap_end));
+                    shift_x = std::min(shift_x, shift_y * thd_extend_xy);
+                    uint64_t infi_cord = shift_cord(gap_end, -shift_x, -shift_y); 
+                    direction = g_align_left;
+                    gap_str = infi_cord;
+                }
+                else
+                {
+                    dout << "chain" << get_cord_y(cords[i - 1]) << get_cord_y(cords[i]) << "\n";
+                    g_cmpll.min(shift_x, block_size) 
+                        << int64_t(length(seqs[sid]) - 1 - get_cord_x(cords[i]));
+                    g_cmpll.min(shift_y, block_size)
+                        << int64_t(length(read) - 1 - get_cord_y(cords[i]));   
+                    gap_end = shift_cord(cords[i], shift_x, shift_y);
+                    gap_str = cords[i - 1];
+                    direction = g_align_closed;
+                }
                 mapGap_ (seqs, read, comstr, 
                          gap_str, gap_end, 
                          g_hs, g_anchor, f1, f2,  
                          tiles, clips, 
-                         g_align_left, 
+                         direction,
                          thd_cord_gap, 
                          thd_tileSize,
                          thd_cord_remap,
                          thd_err_rate);
-                if (length(tiles) > 0)
+                if (!empty(tiles))
                 {
                     uint64_t recd = get_cord_recd(cords[i]);//set cord flag
-                    //dout << "recd" << get_cord_y(tiles[0]) << get_cord_x(tiles[0]) << recd << "\n";
                     set_tiles_flags_ (tiles, recd);
                     insert(cords, i, tiles);
                     i += length(tiles);
                     clear(tiles);
                 }
-                gap_len += get_cord_y(gap_end);
             }
-            continue;
         }
-        ///clip closed interval for middle cords
+        ///clip closed interval for 2,3th...cords
         else if ((cordx2 - cordx1 > thd_cord_gap  ||
                   cordy2 - cordy1 > thd_cord_gap) && 
                   cordx1 < cordx2 &&
                   cordy1 < cordy2 &&
                   dcordx < thd_max_extend && 
                   dcordy < thd_max_extend
-                )        
+            )        
         {
             g_cmpll.min(shift_x, block_size) 
                     << int64_t(length(seqs[sid]) - 1 - get_cord_x(cords[i]));
@@ -3336,47 +3472,53 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                 i += length(tiles);
                 clear(tiles);
             }   
-            gap_len += std::max(get_cord_x(gap_end - gap_str), 
-                                get_cord_y(gap_end - gap_str));
         }
         if (_DefaultHit.isBlockEnd(cords[i]))  ///right clip end cord
         {
             uint64_t gap_str = cords[i];
             if (length(read) - 1 - get_cord_y(gap_str) > thd_cord_gap)
             {
-                shift_x = std::min(thd_max_extend_x, 
-                                  length(seqs[sid]) - get_cord_x(gap_str));
-                shift_y = std::min(thd_max_extend_y, 
-                                   length(read) - get_cord_y(gap_str) - 1);
-                shift_x = std::min(shift_x, shift_y * thd_extend_xy);
-                dout << "shift_x" << shift_x << "\n";
-                uint64_t infi_cord = _DefaultCord.shift(gap_str, shift_x, shift_y);
-                uint64_t gap_end = infi_cord;
-                mapGap_ (seqs, read, comstr, 
-                         gap_str, gap_end, 
-                         g_hs, g_anchor, f1, f2,  
-                         tiles, clips, 
-                         g_align_right,
-                         thd_cord_gap, 
-                         thd_tileSize, 
-                         thd_cord_remap,
-                         thd_err_rate);
-                if (!empty(tiles))
+                if (i == length(cords) - 1 || 
+                    !isBlocksLinkable(cords[i], cords[i + 1], length(read) - 1, thd_max_chain_distance))
                 {
-                    uint64_t recd = get_cord_recd(cords[i]);//set cord flag
-                    set_tiles_flags_ (tiles, recd);
-                    insert(cords, i + 1, tiles);
-                    _DefaultHit.unsetBlockEnd(cords[i]);
-                    i += length(tiles);
-                    _DefaultHit.setBlockEnd(cords[i]);
-                    clear(tiles);
-                }   
-                gap_len += length(read) - get_cord_y(gap_str) - window_size;
+                    shift_x = std::min(thd_max_extend_x, 
+                                      length(seqs[sid]) - get_cord_x(gap_str));
+                    shift_y = std::min(thd_max_extend_y, 
+                                       length(read) - get_cord_y(gap_str) - 1);
+                    shift_x = std::min(shift_x, shift_y * thd_extend_xy);
+                    dout << "shift_x" << shift_x << "\n";
+                    uint64_t infi_cord = _DefaultCord.shift(gap_str, shift_x, shift_y);
+                    uint64_t gap_end = infi_cord;
+                    mapGap_ (seqs, read, comstr, 
+                             gap_str, gap_end, 
+                             g_hs, g_anchor, f1, f2,  
+                             tiles, clips, 
+                             g_align_right,
+                             thd_cord_gap, 
+                             thd_tileSize, 
+                             thd_cord_remap,
+                             thd_err_rate);
+                    if (!empty(tiles))
+                    {
+                        uint64_t recd = get_cord_recd(cords[i]);//set cord flag
+                        set_tiles_flags_ (tiles, recd);
+                        insert(cords, i + 1, tiles);
+                        _DefaultHit.unsetBlockEnd(cords[i]);
+                        i += length(tiles);
+                        _DefaultHit.setBlockEnd(cords[i]);
+                        clear(tiles);
+                    }   
+                }
+                else
+                {
+                    //None
+                    //handled in the next cord i + 1
+                }
             }
         }
         
     }
-    return gap_len;
+    return 0;
 }
 /*=====  End of Index free Map and clip  ======*/
 
