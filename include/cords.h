@@ -121,19 +121,22 @@ uint64_t get_cord_x (uint64_t);
 uint64_t get_cord_y (uint64_t); 
 uint64_t get_cord_strand (uint64_t);
 uint64_t get_cord_id (uint64_t);
+uint64_t get_cord_recd (uint64_t cord);
+uint64_t get_cord_xy (uint64_t val);
 uint64_t shift_cord(uint64_t const &, int64_t, int64_t);
 uint64_t create_id_x (uint64_t, uint64_t);
 uint64_t create_cord (uint64_t, uint64_t, uint64_t, uint64_t);
-uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y);
+uint64_t new_xy_cord(uint64_t, uint64_t, uint64_t);
+void set_cord_xy (uint64_t & val, uint64_t x, uint64_t y);
 void set_cord_id (uint64_t & val, uint64_t id);
 void set_cord_end (uint64_t &); 
 void set_cord_block_end(uint64_t & val);
 void print_cord(uint64_t, CharString = "");
-int64_t atomic_inc_cord_y (int64_t & cord); // atomic cord++, return the new cord
 void set_cord_main (uint64_t & cord);
 void set_cord_gap (uint64_t & cord);
-uint64_t is_cord_main(uint64_t cord);
 void set_cord_recd(uint64_t & cord, uint64_t sgn);
-uint64_t get_cord_recd (uint64_t cord);
+uint64_t is_cord_main(uint64_t cord);
+int64_t atomic_inc_cord_y (int64_t & cord); // atomic cord++, return the new cord
 uint64_t is_cord_block_end(uint64_t);
+
 #endif

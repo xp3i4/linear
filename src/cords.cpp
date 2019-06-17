@@ -186,11 +186,19 @@ void cmpRevCord(uint64_t val1,
     cr_val1 = (val1 - get_cord_y(val1) + read_len - get_cord_y(val2) - 1) ^ _DefaultCordBase.flag_strand;
     cr_val2 = (val2 - get_cord_y(val1) + read_len - get_cord_y(val2) - 1) ^ _DefaultCordBase.flag_strand;
 }
-uint64_t set_cord_xy (uint64_t val, uint64_t x, uint64_t y)
+uint64_t new_xy_cord (uint64_t val, uint64_t x, uint64_t y)
 {
     return (val & (~_DefaultCordBase.valueMask)) + (x << _DefaultCordBase.bit) + y;
 }
-
+void set_cord_xy (uint64_t & val, uint64_t x, uint64_t y)
+{
+    val &= val & (~_DefaultCordBase.valueMask);
+    val += (x << _DefaultCordBase.bit) + y;
+}
+uint64_t get_cord_xy (uint64_t val)
+{
+    return (val & _DefaultCordBase.valueMask);
+}
 void set_cord_main (uint64_t & cord)
 {
     cord |= _DefaultCordBase.f_main;

@@ -853,9 +853,9 @@ int const g_sv_extend = 512; // |<--  -->| clip the gap to normal (gap extend)
 int const g_clip_semi_l = 1024; //left
 int const g_clip_semi_r = 2048;
 
-int const g_align_left = -1;
-int const g_align_closed = 0;
-int const g_align_right = 1;
+int const g_map_left = -1;
+int const g_map_closed = 0;
+int const g_map_rght = 1;
 uint64_t g_hs_anchor_getCord (uint64_t anchor)
 {
     return anchor & g_hs_anchor_mask1;
@@ -1877,7 +1877,7 @@ struct MapAnchorParm
               uint64_t gap_str,
               uint64_t gap_end, 
               int thd_tileSize,   //WARNING 192 not allowed to change.
-              int direction = g_align_closed
+              int direction = g_map_closed
              )
 {
     int g_hs_end = 0;
@@ -2001,7 +2001,7 @@ int g_mapHs_(String<Dna5> & seq1, //genome
              float thd_err_rate,
              int thd_tile_size,   //WARNING 192 not allowed to change.
              int64_t thd_dxy_min,
-             int direction //= g_align_closed
+             int direction //= g_map_closed
              )
 {
     float thd_da_zero = thd_err_rate; 
@@ -3007,27 +3007,35 @@ uint64_t clip_tile (String<Dna5> & seq1,
     remove_tile_sgn(clip);
     return clip;
 }
+/*
+ * shortcut toinsert new tile 
+void extend_new_tile (String<uint64_t> & tiles, int pos, uint64_t tile)
+{
+    if (tile )
+    get_tile_xy(tile)
+}
+ */
 
 /**
- * cord_str and cord_end required to have same strand.
- * TODO::process multiple tile_start and tile_end. Currently it handles tiles having one block.
+ * !!NOTE::@gap_str & @gap_end are required to have same strand.
+ * clip all tiles include @gap_str & @gap_end in one block 
  */
-int clip_gap__(String<Dna5> & seq1,
-                   String<Dna5> & seq2,
-                   String<Dna5> & comstr, //complement reverse of the read (seq2)
-                   StringSet<FeaturesDynamic > & f1,
-                   StringSet<FeaturesDynamic > & f2,
-                   String<uint64_t> & tiles,
-                   String<uint64_t> & clips,
-                   String<uint64_t> & g_hs,
-                   String<uint64_t> & g_hs_anchor,
-                   uint64_t gap_str,
-                   uint64_t gap_end, 
-                   int direction,
-                   int thd_cord_gap,
-                   int thd_tile_size,
-                   float thd_err_rate
-                  )
+int clip_gap_block_(String<Dna5> & seq1,
+                    String<Dna5> & seq2,
+                    String<Dna5> & comstr, //complement reverse of the read (seq2)
+                    StringSet<FeaturesDynamic > & f1,
+                    StringSet<FeaturesDynamic > & f2,
+                    String<uint64_t> & tiles,
+                    String<uint64_t> & clips,
+                    String<uint64_t> & g_hs,
+                    String<uint64_t> & g_hs_anchor,
+                    uint64_t gap_str,
+                    uint64_t gap_end, 
+                    int direction,
+                    int thd_cord_gap,
+                    int thd_tile_size,
+                    float thd_err_rate
+                   )
 {
     //g_print_tiles_(tiles);
     dout << "tiles2" << get_cord_y(gap_str) << get_cord_y(gap_end) << "\n";
@@ -3058,10 +3066,13 @@ int clip_gap__(String<Dna5> & seq1,
             if (get_tile_strand(tiles[i]) ^ main_strand)
             {
                 clip_inv_str = clip_tile (seq1, seq2, comstr, g_hs, g_hs_anchor, tiles[i], g_sv_l, thd_tile_size);
+                //uint64_t new_tile = clip_inv_str;
+                //extend_new_tile(tiles, i, new_tile);
             }
             else
             {
                 clip_inv_end = clip_tile (seq1, seq2, comstr, g_hs, g_hs_anchor, tiles[i - 1], g_sv_r, thd_tile_size);
+                //uint64_t new_tile = shift_tile (tiles[i - 1], thd_tile_size, thd_tile_size);
                 insertClipStr (clips, clip_inv_str);
                 insertClipEnd (clips, clip_inv_end);
             }
@@ -3070,11 +3081,11 @@ int clip_gap__(String<Dna5> & seq1,
         if (is_diff_anchor (tiles[i - 1], tiles[i], -1, thd_dxy_min, thd_da_zero) && 
             !get_cord_strand(tiles[i - 1] ^ tiles[i]))   //del
         {
-            if (direction == g_align_right && i == length(tiles) - 1)
+            if (direction == g_map_rght && i == length(tiles) - 1)
             {
             //    clip_tile(tiles[i - 1], g_sv_r);
             }
-            else if (direction == g_align_left && i - 1 == 0)
+            else if (direction == g_map_left && i - 1 == 0)
             {
            //     clip_tile(tiles[i], g_sv_l);
             }
@@ -3082,6 +3093,8 @@ int clip_gap__(String<Dna5> & seq1,
             {
                 uint64_t clip_str = clip_tile(seq1, seq2, comstr, g_hs, g_hs_anchor, tiles[i - 1], g_sv_r, thd_tile_size);
                 uint64_t clip_end = clip_tile(seq1, seq2, comstr, g_hs, g_hs_anchor, tiles[i], g_sv_l, thd_tile_size);
+                //tiles[i - 1] = shift_tile (clip_str, -thd_tile_size, -thd_tile_size);
+                //tiles[i] = clip_end;
                 insertClipStr(clips, clip_str);
                 insertClipEnd(clips, clip_end);
                 dout << "del" << get_tile_y(tiles[i - 1]) << get_tile_y(tiles[i]) << get_tile_y(clip_str) << get_tile_y(clip_end) << "\n";
@@ -3105,20 +3118,7 @@ int clip_gap__(String<Dna5> & seq1,
              dout << "gap" << get_tile_y(tiles[i - 1]) << get_tile_y(tiles[i]) << get_tile_y(clip_str) << get_tile_y(clip_end) << "\n";
         }
     }
-    if (length(tiles) > 2)
-    {
-        for (int i = 0; i < length(tiles) - 2; i++)
-        {
-            tiles[i] = tiles[i + 1];
-        }   
-        resize (tiles, length(tiles) - 2);
-    }
-    else
-    {
-        clear(tiles);
-    }
     return 0;
-    /// remove the inserted head and tail tiles;
 }
 int clip_gap_(String<Dna5> & seq1,
                    String<Dna5> & seq2,
@@ -3140,7 +3140,7 @@ int clip_gap_(String<Dna5> & seq1,
     String<uint64_t> tmp_tiles;
     if (empty(tiles))
     {
-        clip_gap__(seq1, seq2, 
+        clip_gap_block_(seq1, seq2, 
                         comstr, 
                         f1,
                         f2,
@@ -3163,7 +3163,7 @@ int clip_gap_(String<Dna5> & seq1,
             if (is_cord_block_end(tiles[i]) || i == length(tiles) - 1)
             {
                 g_print_tiles_(tmp_tiles, "gexc");
-                clip_gap__(seq1, seq2, comstr, 
+                clip_gap_block_(seq1, seq2, comstr, 
                                 f1,
                                 f2,
                                 tmp_tiles, 
@@ -3350,6 +3350,77 @@ int isBlocksLinkable(uint64_t cord1,
     }
 }
 /**
+ * shortcut func to insert @tiles at @cords[@pos] or @cords[@pos + 1] according to the @direction
+ * if direction = g_map_left then insert(cords, @pos), back(@cords) aborted
+ * if direction = g_map_closed then insert(cords, @pos)
+ * if direction = g_map_rght then insert(cords, @pos + 1), @cords[0] aborted;
+ * @tiles is suppossed to have at least 2 tiles;
+ * @tile[0] and back(@tiles) are the clipped cords of gap_str, gap_end
+ * They will replace the two joint cords  between which tiles in the @tiles  except for the tiles[0] and back(tiles) are inserted 
+ * 
+ */
+int insert_tiles2Cords(String<uint64_t> & cords, 
+                       unsigned & pos,
+                       String<uint64_t> & tiles,
+                       int direction)
+{
+    if (length(tiles) < 2)
+    {
+        return 1;
+    }
+    if (direction == g_map_rght) //insert at last 
+    {
+        if (is_cord_block_end(cords[pos]))
+        {
+            _DefaultHit.unsetBlockEnd(cords[pos]);
+            _DefaultHit.setBlockEnd(tiles[length(tiles) - 1]);
+        }
+        uint64_t recd = get_cord_recd(cords[pos]); //set cord flag
+        set_tiles_flags_ (tiles, recd);
+        set_cord_xy (cords[pos], get_cord_x(tiles[0]), get_cord_y(tiles[0]));
+        for (int i = 0; i < length(tiles) - 2; i++) //remove head&end tiles 
+        {
+            tiles[i] = tiles[i + 1];
+        }
+        resize(tiles, length(tiles) - 2);
+        insert(cords, pos + 1, tiles);
+        pos += length(tiles);
+        clear(tiles);
+    }
+    else if (direction == g_map_left)
+    {
+        uint64_t recd = get_cord_recd(cords[pos]);//set cord flag
+        set_tiles_flags_ (tiles, recd);
+        set_cord_xy(cords[pos], get_cord_x(back(tiles)), get_cord_y(back(tiles)));
+        for (int i = 0; i < length(tiles) - 2; i++)
+        {
+            tiles[i] = tiles[i + 1];
+        }
+        resize (tiles, length(tiles) - 2);
+        insert(cords, pos, tiles);
+        pos += length(tiles);
+        clear(tiles);
+    }
+    else if (direction == g_map_closed)
+    {
+        uint64_t recd = get_cord_recd(cords[pos]);//set cord flag
+        set_tiles_flags_ (tiles, recd);
+        set_cord_xy(cords[pos - 1], get_cord_x(tiles[0]), get_cord_y(tiles[0]));
+        set_cord_xy(cords[pos], get_cord_x(back(tiles)), get_cord_y(back(tiles)));
+        for (int i = 0; i < length(tiles) - 2; i++)
+        {
+            tiles[i] = tiles[i + 1];
+        }
+        resize (tiles, length(tiles) - 2);
+        insert(cords, pos, tiles);
+        pos += length(tiles);
+        clear(tiles);
+    }
+
+    return 0;
+}
+
+/**
  * Re-map gaps in cords.
  * Gaps at the front or end of the cords are also remapped.
  * !!NOTE::Each block in the cords are required to be sorted according to the y value of the first cord, such that isBlocksLinkable can work appropriately.
@@ -3394,11 +3465,11 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
         uint64_t cordy2 = get_cord_x(cords[i]);
         int64_t dcordx = cordx2 - cordx1;
         int64_t dcordy = cordy2 - cordy1;
+        int direction;
         if (_DefaultCord.isBlockEnd(cords[i - 1]))  //clip first cord
         {
             uint64_t gap_end = shift_cord(cords[i], block_size, block_size);
             uint64_t gap_str;
-            int direction;
             if (get_cord_y(gap_end) > thd_cord_gap) 
             {            
                 if (i == 1 || !isBlocksLinkable(cords[i - 1], cords[i], length(read) - 1, thd_max_chain_distance))
@@ -3407,7 +3478,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                     shift_y = std::min(thd_max_extend, get_cord_y(gap_end));
                     shift_x = std::min(shift_x, shift_y * thd_extend_xy);
                     uint64_t infi_cord = shift_cord(gap_end, -shift_x, -shift_y); 
-                    direction = g_align_left;
+                    direction = g_map_left;
                     gap_str = infi_cord;
                 }
                 else
@@ -3419,7 +3490,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                         << int64_t(length(read) - 1 - get_cord_y(cords[i]));   
                     gap_end = shift_cord(cords[i], shift_x, shift_y);
                     gap_str = cords[i - 1];
-                    direction = g_align_closed;
+                    direction = g_map_closed;
                 }
                 mapGap_ (seqs, read, comstr, 
                          gap_str, gap_end, 
@@ -3430,6 +3501,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                          thd_tileSize,
                          thd_cord_remap,
                          thd_err_rate);
+                /*
                 if (!empty(tiles))
                 {
                     uint64_t recd = get_cord_recd(cords[i]);//set cord flag
@@ -3438,6 +3510,8 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                     i += length(tiles);
                     clear(tiles);
                 }
+                */
+                insert_tiles2Cords(cords, i, tiles, direction);
             }
         }
         ///clip closed interval for 2,3th...cords
@@ -3455,15 +3529,17 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                     << int64_t(length(read) - 1 - get_cord_y(cords[i]));
             uint64_t gap_end = shift_cord(cords[i], shift_x, shift_y);
             uint64_t gap_str = cords[i - 1]; 
+            direction = g_map_closed;
             mapGap_(seqs, read, comstr, 
                     gap_str, gap_end, 
                     g_hs, g_anchor, f1, f2, 
                     tiles, clips, 
-                    g_align_closed,
+                    direction,
                     thd_cord_gap, 
                     thd_tileSize,
                     thd_cord_remap,
                     thd_err_rate);
+            /*
             if (!empty(tiles))
             {
                 uint64_t recd = get_cord_recd(cords[i]);//set cord flag
@@ -3472,6 +3548,8 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                 i += length(tiles);
                 clear(tiles);
             }   
+            */
+            insert_tiles2Cords(cords, i, tiles, direction);
         }
         if (_DefaultHit.isBlockEnd(cords[i]))  ///right clip end cord
         {
@@ -3493,11 +3571,12 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                              gap_str, gap_end, 
                              g_hs, g_anchor, f1, f2,  
                              tiles, clips, 
-                             g_align_right,
+                             direction,
                              thd_cord_gap, 
                              thd_tileSize, 
                              thd_cord_remap,
                              thd_err_rate);
+                    /*
                     if (!empty(tiles))
                     {
                         uint64_t recd = get_cord_recd(cords[i]);//set cord flag
@@ -3508,6 +3587,8 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                         _DefaultHit.setBlockEnd(cords[i]);
                         clear(tiles);
                     }   
+                    */
+                    insert_tiles2Cords(cords, i, tiles, direction);
                 }
                 else
                 {

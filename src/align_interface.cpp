@@ -1445,10 +1445,10 @@ int align_gap (GapRecordHolder & gap,
         //realign and clip interval between each clip[i].second and clip[i + 1].second
         for (int i = 0; i < length(clips) - 1; i++) 
         {
-            seg_str_cord = set_cord_xy (str_cord, 
+            seg_str_cord = new_xy_cord (str_cord, 
                                         clips_src1[i].second, 
                                         clips_src2[i].second);
-            seg_end_cord = set_cord_xy (end_cord, 
+            seg_end_cord = new_xy_cord (end_cord, 
                                         clips_src1[i + 1].first, 
                                         clips_src2[i + 1].first);
             cmpRevCord (seg_str_cord, seg_end_cord, 
