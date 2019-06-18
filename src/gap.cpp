@@ -1744,10 +1744,12 @@ int g_mapHs_(String<Dna5> & seq1, //genome
 {
     float thd_da_zero = thd_err_rate; 
     map_interval_(seq1, seq2, comstr, g_hs, g_hs_anchor, tiles, f1, f2, gap_str, gap_end, thd_tile_size, direction);
-    dout << "x1" << get_cord_y(gap_str) << "\n";
-    g_print_tiles_(tiles, "x1");
-    for (int i = 0; i < length(tiles); i++)
+    //dout << "x1" << get_cord_y(gap_str) << "\n";
+    //g_print_tiles_(tiles, "x1");
+    /*
+    for (int i = 1; i < length(tiles); i++)
     {
+        //todo::where is the code for blockend ?
         if (is_diff_anchor(tiles[i - 1], tiles[i], 1, thd_dxy_min, thd_da_zero))  //try dup for each ins 
         {
             String<uint64_t> dup_tiles;
@@ -1762,6 +1764,7 @@ int g_mapHs_(String<Dna5> & seq1, //genome
             dout << "mins\n";
         }
     }
+    */
 }
 
 /*----------  Section of clip function  ----------*/
