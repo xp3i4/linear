@@ -3109,9 +3109,9 @@ int try_blocks_sv_ (String<uint64_t> & cords, String<uint64_t> & clips)
     uint64_t strand = _DefaultCord.getCordStrand (gap_str);
     uint64_t genomeId = get_cord_id(gap_str);
     int64_t x1 = get_cord_x(gap_str);
-    int64_t x2 = get_cord_x(gap_end) - thd_tile_size;
+    int64_t x2 = get_cord_x(gap_end);
     int64_t y1 = get_cord_y(gap_str);
-    int64_t y2 = get_cord_y(gap_end) - thd_tile_size;
+    int64_t y2 = get_cord_y(gap_end);
     int64_t da = x2 - x1 - y2 + y1;
     dout << "mg_" << x1 << x2 << y1 << y2 << "\n";
     if (x1 > x2 && y1 > y2)
@@ -3148,6 +3148,7 @@ int try_blocks_sv_ (String<uint64_t> & cords, String<uint64_t> & clips)
     else if (x2 - x1 > thd_cord_remap && 
              y2 - y1 > thd_cord_remap)
     {
+        dout << "mg_2" << x1 << x2 << y1 << y2 << "\n";
         g_mapHs_(seqs[genomeId], read, comstr,
                  g_hs, g_anchor, tiles, f1, f2,
                  gap_str, gap_end,
@@ -3216,12 +3217,13 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
     {
         unsigned sid = get_cord_id(cords[i]);
         uint64_t x1 = get_cord_x(cords[i - 1]);
-        uint64_t y1 = get_cord_x(cords[i - 1]);
+        uint64_t y1 = get_cord_y(cords[i - 1]);
         uint64_t x2 = get_cord_x(cords[i]);
-        uint64_t y2 = get_cord_x(cords[i]);
+        uint64_t y2 = get_cord_y(cords[i]);
         int64_t dx = x2 - x1;
         int64_t dy = y2 - y1;
         int direction;
+        dout << "mgx" << x1 << x2 << y1 << y2 << thd_cord_gap << "\n";
         if (_DefaultCord.isBlockEnd(cords[i - 1]))  //clip first cord
         {
             uint64_t gap_end = shift_cord(cords[i], block_size, block_size);
