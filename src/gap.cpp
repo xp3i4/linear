@@ -2731,6 +2731,7 @@ uint64_t clip_tile (String<Dna5> & seq1,
         thd_band_ratio = 0.5;
         clip = c_clip_ (seq1, seq2, comstr, clip_str, clip_end, g_hs, g_hs_anchor, thd_band_ratio, clip_direction); 
         //remove_tile_sgn(clip1);
+        dout << "ctile" << get_tile_y(clip_str) << get_tile_y(clip_end) << "\n";
     }
     else if (sv_flag & g_sv_l)
     {
@@ -2928,6 +2929,9 @@ int clip_gap_(String<Dna5> & seq1,
 //Just return if two blocks can be chained according to last and first cords.
 //@cord1, @cord2 are the last and first cord of each block
 //return 1 if 2 blocks can be linked as a whole; else 0
+int b_ins_link = 1;
+int b_gap_link = 2; 
+int b_inv_link = 4;
 int isBlocksLinkable(uint64_t cord1, 
                      uint64_t cord2, 
                      uint64_t cmprevconst,
@@ -2949,12 +2953,12 @@ int isBlocksLinkable(uint64_t cord1,
         if (y1 < y2 && y1 + thd_max_chain_distance > y2 &&
             std::abs(x2 - x1) < thd_max_chain_distance) //cases for ins or dup
         {
-            return 1;
+            return b_ins_link | b_inv_link;
         }
         else if (y1 < y2 && y1 + thd_max_chain_distance > y2 &&
                  x1 < x2 && x1 + thd_max_chain_distance > x2) //regular gap
         {
-            return 1; 
+            return b_gap_link; 
         }
         else
         {
@@ -2972,12 +2976,12 @@ int isBlocksLinkable(uint64_t cord1,
         if (y1 < y2 && y1 + thd_max_chain_distance > y2 &&
             std::abs(x2 - x1) < thd_max_chain_distance) //cases for ins or dup
         {
-            return 1;
+            return b_ins_link;
         }
         else if (y1 < y2 && y1 + thd_max_chain_distance > y2 &&
                  x1 < x2 && x1 + thd_max_chain_distance > x2) //regular gap
         {
-            return 1; 
+            return b_inv_link; 
         }
         else
         {
@@ -2987,7 +2991,54 @@ int isBlocksLinkable(uint64_t cord1,
 }
 
 /**
- * shortcut func to insert @tiles at @cords[@pos] or @cords[@pos + 1] according to the @direction
+ * identify svs which is across different blocks
+ */
+int try_blocks_sv_ (String<uint64_t> & cords, 
+                    String<uint64_t> & clips,
+                    uint64_t cmprevconst,
+                    int64_t thd_max_chain_distance,
+                    int64_t thd_tile_size)
+{
+    if (length(cords) < 2)
+    {
+        return 0;
+    }
+    for (int i = 1; i < length(cords); i++)
+    {
+        if (i != 1 && is_cord_block_end(cords[i - 1])) 
+        {
+            int link_type = isBlocksLinkable(cords[i - 1], cords[i], cmprevconst, thd_max_chain_distance);
+                //insert
+            if (link_type & b_inv_link)
+            {
+
+            }
+            if (link_type & b_ins_link)
+            {
+                if (get_cord_x(cords[i - 1]) > get_cord_x(cords[i])) //dup
+                {
+                    insertClipStr(clips, cords[i]);
+                    insertClipEnd(clips, shift_cord(cords[i - 1], thd_tile_size, thd_tile_size));
+                    dout << "isb" << get_cord_y(cords[i - 1]) << get_cord_y(cords[i]) << "\n";
+                }
+                else //ins
+                {
+                    insertClipStr(clips, shift_tile(cords[i - 1], thd_tile_size, thd_tile_size));
+                    insertClipEnd(clips, cords[i]);
+                }
+            }
+            else if (link_type & b_gap_link)
+            {
+
+            }
+
+        }
+    }
+    return 0;
+}
+
+/**
+ * shortcut to insert @tiles at @cords[@pos] or @cords[@pos + 1] according to the @direction
  * if direction = g_map_left then insert(cords, @pos), back(@cords) aborted
  * if direction = g_map_closed then insert(cords, @pos)
  * if direction = g_map_rght then insert(cords, @pos + 1), @cords[0] aborted;
@@ -3057,26 +3108,6 @@ int insert_tiles2Cords(String<uint64_t> & cords,
     return 0;
 }
 
-/**
- * identify svs which is across different blocks
- */
-int try_blocks_sv_ (String<uint64_t> & cords, String<uint64_t> & clips)
-{
-    if (length(cords) < 2)
-    {
-        return 0;
-    }
-    for (int i = 1; i < length(cords); i++)
-    {
-        /*if (i != 1 && is_cord_block_end(cords[i - 1])) 
-        {
-            //if (isBlocksLinkable(cords[i - 1], cords[i]))
-        }
-        */
-    }
-    return 0;
-}
-
 /*----------------------  Gap main func ----------------------*/
 /*
  */
@@ -3114,11 +3145,11 @@ int try_blocks_sv_ (String<uint64_t> & cords, String<uint64_t> & clips)
     int64_t y2 = get_cord_y(gap_end);
     int64_t da = x2 - x1 - y2 + y1;
     dout << "mg_" << x1 << x2 << y1 << y2 << "\n";
-    if (x1 > x2 && y1 > y2)
+    if (x1 > x2 - thd_tile_size && y1 > y2 - thd_tile_size)
     {
         return -1;
     }
-    else if (x1 > x2)
+    else if (x1 > x2 - thd_tile_size)
     {
         dout << "dupx\n";
         try_dup(seqs[genomeId], read, comstr, f1, f2, g_hs, g_anchor, tiles,
@@ -3140,7 +3171,7 @@ int try_blocks_sv_ (String<uint64_t> & cords, String<uint64_t> & clips)
                        thd_tile_size,
                        thd_err_rate);
     }
-    else if (y1 > y2)
+    else if (y1 > y2 - thd_tile_size)
     {
         //WARN::this case is ignored at the present.
         return -1;
@@ -3172,8 +3203,12 @@ int try_blocks_sv_ (String<uint64_t> & cords, String<uint64_t> & clips)
                        thd_cord_gap, 
                        thd_tile_size,
                        thd_err_rate);
+        return 0;
     }
-    return 0;
+    else
+    {
+        return - 1;
+    }
 }
 
 /**
@@ -3261,28 +3296,9 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                          thd_cord_remap,
                          thd_err_rate,
                          thd_dxy_min);
-                /*
-                if (!empty(tiles))
-                {
-                    uint64_t recd = get_cord_recd(cords[i]);//set cord flag
-                    set_tiles_flags_ (tiles, recd);
-                    insert(cords, i, tiles);
-                    i += length(tiles);
-                    clear(tiles);
-                }
-                */
                 insert_tiles2Cords(cords, i, tiles, direction);
             }
         }
-        ///clip closed interval for 2,3th...cords
-        /*
-        else if ((x2 - x1 > thd_cord_gap  ||
-                  y2 - y1 > thd_cord_gap) && 
-                  x1 < x2 &&
-                  y1 < y2 &&
-                  dx < thd_max_extend && 
-                  dy < thd_max_extend
-            )*/
         else if (!(x2 - x1 < thd_cord_gap && 
                    y2 - y1 < thd_cord_gap &&
                    x2 > x1 && y2 > y1))
@@ -3304,16 +3320,6 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                     thd_cord_remap,
                     thd_err_rate,
                     thd_dxy_min);
-            /*
-            if (!empty(tiles))
-            {
-                uint64_t recd = get_cord_recd(cords[i]);//set cord flag
-                set_tiles_flags_ (tiles, recd);
-                insert(cords, i, tiles);
-                i += length(tiles);
-                clear(tiles);
-            }   
-            */
             insert_tiles2Cords(cords, i, tiles, direction);
         }
         if (_DefaultHit.isBlockEnd(cords[i]))  ///right clip end cord
@@ -3342,18 +3348,6 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                              thd_cord_remap,
                              thd_err_rate,
                              thd_dxy_min);
-                    /*
-                    if (!empty(tiles))
-                    {
-                        uint64_t recd = get_cord_recd(cords[i]);//set cord flag
-                        set_tiles_flags_ (tiles, recd);
-                        insert(cords, i + 1, tiles);
-                        _DefaultHit.unsetBlockEnd(cords[i]);
-                        i += length(tiles);
-                        _DefaultHit.setBlockEnd(cords[i]);
-                        clear(tiles);
-                    }   
-                    */
                     insert_tiles2Cords(cords, i, tiles, direction);
                 }
                 else
@@ -3364,7 +3358,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             }
         }
     }
-    try_blocks_sv_(cords, clips);
+    //try_blocks_sv_(cords, clips, length(read) - 1, thd_max_chain_distance, thd_tile_size);
     return 0;
 }
 
