@@ -1556,12 +1556,10 @@ struct MapAnchorParm
         if (x_t < x_str || x_t + thd_tileSize > x_end || 
             y_t < y_str || y_t + thd_tileSize > y_end) //out of bound
         {
-        //dout << "tileend1" << get_tile_y(tiles[i]) << is_tile_end(tiles[i]) << i << di << "\n";
             di++; 
         }
         else 
         {
-        //dout << "tileend2" << get_tile_y(tiles[i]) << is_tile_end(tiles[i]) << i << di << "\n";
             tiles[i - di] = tiles[i];
             elem_block++; 
 
@@ -3039,13 +3037,12 @@ int try_blocks_sv_ (String<uint64_t> & cords,
 
 /**
  * shortcut to insert @tiles at @cords[@pos] or @cords[@pos + 1] according to the @direction
- * if direction = g_map_left then insert(cords, @pos), back(@cords) aborted
+ * if direction = g_map_left: erase back(@tiles) and insert(cords, @pos), 
  * if direction = g_map_closed then insert(cords, @pos)
- * if direction = g_map_rght then insert(cords, @pos + 1), @cords[0] aborted;
- * @tiles is suppossed to have at least 2 tiles;
+ * if direction = g_map_rght: erase @tiles[0] and insert(cords, @pos + 1);
+ * @tiles is required to have at least 2 tiles;
  * @tile[0] and back(@tiles) are the clipped cords of gap_str, gap_end
- * They will replace the two joint cords  between which tiles in the @tiles  except for the tiles[0] and back(tiles) are inserted 
- * 
+ * They will replace the two joint cords between which @tiles are inserted 
  */
 int insert_tiles2Cords(String<uint64_t> & cords, 
                        unsigned & pos,
@@ -3065,41 +3062,50 @@ int insert_tiles2Cords(String<uint64_t> & cords,
         }
         uint64_t recd = get_cord_recd(cords[pos]); //set cord flag
         set_tiles_flags_ (tiles, recd);
-        set_cord_xy (cords[pos], get_cord_x(tiles[0]), get_cord_y(tiles[0]));
-        for (int i = 0; i < length(tiles) - 2; i++) //remove head&end tiles 
+        //set_cord_xy (cords[pos], get_cord_x(tiles[0]), get_cord_y(tiles[0]));
+        /*
+        for (int i = 0; i < length(tiles) - 1; i++) //remove head&end tiles 
         {
             tiles[i] = tiles[i + 1];
         }
         resize(tiles, length(tiles) - 2);
+        */
         insert(cords, pos + 1, tiles);
         pos += length(tiles);
         clear(tiles);
     }
     else if (direction == g_map_left)
     {
+        g_print_tiles_(tiles, "inst2");
         uint64_t recd = get_cord_recd(cords[pos]);//set cord flag
         set_tiles_flags_ (tiles, recd);
-        set_cord_xy(cords[pos], get_cord_x(back(tiles)), get_cord_y(back(tiles)));
+        //set_cord_xy(cords[pos], get_cord_x(back(tiles)), get_cord_y(back(tiles)));
+        /*
         for (int i = 0; i < length(tiles) - 2; i++)
         {
             tiles[i] = tiles[i + 1];
         }
         resize (tiles, length(tiles) - 2);
+        */
+        uint64_t tmp = cords[pos];
         insert(cords, pos, tiles);
         pos += length(tiles);
+        dout << "inst2" << pos << cords[pos] - tmp << get_cord_y(tmp) << "\n";
         clear(tiles);
     }
     else if (direction == g_map_closed)
     {
         uint64_t recd = get_cord_recd(cords[pos]);//set cord flag
         set_tiles_flags_ (tiles, recd);
-        set_cord_xy(cords[pos - 1], get_cord_x(tiles[0]), get_cord_y(tiles[0]));
-        set_cord_xy(cords[pos], get_cord_x(back(tiles)), get_cord_y(back(tiles)));
+        //set_cord_xy(cords[pos - 1], get_cord_x(tiles[0]), get_cord_y(tiles[0]));
+        //set_cord_xy(cords[pos], get_cord_x(back(tiles)), get_cord_y(back(tiles)));
+        /*
         for (int i = 0; i < length(tiles) - 2; i++)
         {
             tiles[i] = tiles[i + 1];
         }
         resize (tiles, length(tiles) - 2);
+        */
         insert(cords, pos, tiles);
         pos += length(tiles);
         clear(tiles);
