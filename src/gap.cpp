@@ -569,17 +569,21 @@ inline uint64_t create_tile (uint64_t id, uint64_t cordx, uint64_t cordy, uint64
 /**
  * debug utils
  */
+void g_print_tile (uint64_t tile, CharString str)
+{
+    std::cout << str << " " 
+              << get_cord_strand(tile) << " " 
+              << get_cord_y(tile) << " " 
+              << get_cord_id(tile) << " " 
+              << get_cord_x(tile) << " "
+              << get_cord_x(tile) - get_cord_y (tile) << "\n";    
+}
 void g_print_tiles_(String<uint64_t> & tiles, CharString str = "print_tiles")
 {
     for (unsigned i = 0; i < length(tiles); i++)
     {
-        std::cout << str << " " 
-                  << i << " " 
-                  << get_cord_strand(tiles[i]) << " " 
-                  << get_cord_y(tiles[i]) << " " 
-                  << get_cord_id(tiles[i]) << " " 
-                  << get_cord_x(tiles[i]) << " "
-                  << get_cord_x(tiles[i]) - get_cord_y (tiles[i]) << "\n";
+        std::cout << i << " ";
+        g_print_tile (tiles[i], str);
         if (is_tile_end(tiles[i]) || i == length(tiles) - 1)
         {
             std::cout << str << "\n\n";
@@ -1482,7 +1486,7 @@ struct MapAnchorParm
             set_tile_end(back(tiles));
         }
     }
-    //g_print_tiles_(tiles, "t1");
+    g_print_tiles_(tiles, "sv2t1");
 /**
  * step 3. extend patch
  * extend window if there are gaps between tiles until the 
@@ -1531,7 +1535,7 @@ struct MapAnchorParm
         }
     }
 
-    //g_print_tiles_(tiles, "t2");
+    g_print_tiles_(tiles, "sv2t2");
     //convert tile sgn (tile end) to cord sgn (block end) and remove illegal tiles.
     int num_block = 0;
     for (int i = 0; i < length(tiles); i++)
@@ -1574,7 +1578,7 @@ struct MapAnchorParm
     {
         resize (tiles, length(tiles) - di);
     }
-    //g_print_tiles_(tiles, "alltiles");
+    g_print_tiles_(tiles, "alltiles");
     return 0;
 }
 /**
@@ -1744,6 +1748,28 @@ int g_mapHs_(String<Dna5> & seq1, //genome
     map_interval_(seq1, seq2, comstr, g_hs, g_hs_anchor, tiles, f1, f2, gap_str, gap_end, thd_tile_size, direction);
     //dout << "x1" << get_cord_y(gap_str) << "\n";
     //g_print_tiles_(tiles, "x1");
+    /*
+    if (direction == g_map_left)
+    {
+        if (is_diff_anchor(back(tiles), gap_end, 1, thd_dxy_min, thd_da_zero))
+        {
+            dout << "trymdup" << get_tile_y(back(tiles)) << "\n";
+            String<uint64_t> dup_tiles;
+            uint64_t try_str = back(tiles);
+            uint64_t try_end = shift_tile(gap_end, thd_tile_size, thd_tile_size);
+            try_dup (seq1, seq2, comstr, f1, f2, g_hs, g_hs_anchor, 
+                     dup_tiles, try_str, try_end, thd_err_rate, thd_tile_size);
+            g_print_tile(try_str, "dup_tile");
+            g_print_tile(try_end, "dup_tile");
+            g_print_tiles_(dup_tiles, "dup_tiles");
+
+            if (!empty(dup_tiles))
+            {
+                //append (tiles, dup_tiles);
+            }
+        }
+    }
+    */
     /*
     for (int i = 1; i < length(tiles); i++)
     {
@@ -3070,13 +3096,14 @@ int insert_tiles2Cords(String<uint64_t> & cords,
         }
         resize(tiles, length(tiles) - 2);
         */
+        g_print_tiles_(tiles, "ins2");
         insert(cords, pos + 1, tiles);
         pos += length(tiles);
         clear(tiles);
     }
     else if (direction == g_map_left)
     {
-        g_print_tiles_(tiles, "inst2");
+        g_print_tiles_(tiles, "instx2");
         uint64_t recd = get_cord_recd(cords[pos]);//set cord flag
         set_tiles_flags_ (tiles, recd);
         //set_cord_xy(cords[pos], get_cord_x(back(tiles)), get_cord_y(back(tiles)));
@@ -3344,6 +3371,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                     dout << "shift_x" << shift_x << "\n";
                     uint64_t infi_cord = _DefaultCord.shift(gap_str, shift_x, shift_y);
                     uint64_t gap_end = infi_cord;
+                    direction = g_map_rght;
                     mapGap_ (seqs, read, comstr, 
                              gap_str, gap_end, 
                              g_hs, g_anchor, f1, f2,  
