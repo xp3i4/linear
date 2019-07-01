@@ -909,14 +909,15 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
               float const & thd_min_block_len)
 {
     _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);   
-    if (length(cord) - preCordStart > thd_min_block_len)// > std::max(score/25, cordThr))
-    {
+    //if (length(cord) - preCordStart > thd_min_block_len)// > std::max(score/25, cordThr))
+    //{
         _DefaultHit.setBlockEnd(back(cord));
-    }
-    else
-    {
-        erase(cord, preCordStart, length(cord));
-    }
+    //}
+    //else
+    //{
+        //dout << "erase" << thd_min_block_len << length(cord) - preCordStart << "\n";
+        //erase(cord, preCordStart, length(cord));
+    //}
     return true;
 }
 
@@ -969,14 +970,14 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
     
     if(it < hitEnd)
     {
-        if (length(cord) - preCordStart < thd_min_block_len)
-        {
-            erase(cord, preCordStart, length(cord));
-        }
-        else
-        {
+        //if (length(cord) - preCordStart < thd_min_block_len)
+        //{
+            //erase(cord, preCordStart, length(cord));
+        //}
+        //else
+        //{
             _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);
-        }
+        //}
         preCordStart = length(cord);
         appendValue(cord, _DefaultCord.hit2Cord_dstr(*(it)));
         ++it;
@@ -1330,7 +1331,7 @@ uint64_t getAnchorMatchList(Anchors & anchors,
         if (get_cord_x(anchors[k]) - get_cord_x(ak) > thd_anchor_err * readLen ||
             k == anchors.length() - 1)
         {
-        dout << "anchors1xxxxxxxxxx" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
+        //dout << "anchors1xxxxxxxxxx" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
             if (c_b > mapParm.anchorLenThr * readLen)
             {
                 anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
@@ -1342,7 +1343,7 @@ uint64_t getAnchorMatchList(Anchors & anchors,
         }
         else 
         {
-        dout << "anchors2" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
+        //dout << "anchors2" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
             //cb += std::min(anchors.deltaPos2(k, k - 1), mapParm.shapeLen);
             if(anchors.deltaPos2(k, k - 1) >  mapParm.shapeLen)
                 c_b += mapParm.shapeLen;
@@ -1405,7 +1406,7 @@ uint64_t getAnchorMatchList2(Anchors & anchors,
         if (get_cord_x(anchors[k]) - get_cord_x(ak) > thd_anchor_err * readLen ||
             k == anchors.length() - 1)
         {
-        dout << "anchors1xxxxxxxxxx" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
+        //dout << "anchors1xxxxxxxxxx" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
             if (c_b > mapParm.anchorLenThr * readLen)
             {
                 anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
@@ -1417,7 +1418,7 @@ uint64_t getAnchorMatchList2(Anchors & anchors,
         }
         else 
         {
-        dout << "anchors2" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
+        //dout << "anchors2" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
             //cb += std::min(anchors.deltaPos2(k, k - 1), mapParm.shapeLen);
             if(anchors.deltaPos2(k, k - 1) >  mapParm.shapeLen)
                 c_b += mapParm.shapeLen;
@@ -1529,7 +1530,7 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
                 for (unsigned n = sb; n < sc; n++)
                 {
                     appendValue(hit, anchors[n]);
-                //    dout << "hit" << get_cord_y(back(hit)) << get_cord_x(back(hit)) << "\n";
+                    //dout << "hit" << get_cord_y(back(hit)) << get_cord_x(back(hit)) << "\n";
                 }   
                 _DefaultHit.setBlockEnd(back(hit));
             }
@@ -1641,7 +1642,7 @@ int re_sort_cords (String<uint64_t> & cords, uint64_t thd_combine_blocks)
                          get_cord_y(tmp_cords[k - 1]);
             int64_t dx = get_cord_x(cords[str_ends[i].first]) - 
                          get_cord_x(tmp_cords[k - 1]);            
-            dout << "remove" << dy << dx << thd_combine_blocks << "\n";
+            //dout << "remove" << dy << dx << thd_combine_blocks << "\n";
             if (dy > 0 && dy < thd_combine_blocks &&
                 dx > 0 && dx < thd_combine_blocks &&
                 get_cord_strand(cords[str_ends[i].first] ^
@@ -1661,10 +1662,6 @@ int re_sort_cords (String<uint64_t> & cords, uint64_t thd_combine_blocks)
     for (unsigned i = 0; i < length(cords); i++)
     {
         cords[i] = tmp_cords[i];
-    }
-    for (auto x : str_ends)
-    {
-        dout << "resort" << x.first << x.second << "\n";
     }
 }
 
