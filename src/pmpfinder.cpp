@@ -1600,25 +1600,38 @@ uint64_t mnMapReadList( IndexDynamic & index,
 }
 
 /**
- * sort cords and combine two blocks to one block if they are not overlapped 
+ * sort cords and combine two blocks if they are not overlapped 
+ * NOTE::cords in the same block are required to have the same strand
  */
-int re_sort_cords (String<uint64_t> & cords, uint64_t thd_combine_blocks)
+int chain_blocks (String<uint64_t> & cords, 
+                  uint64_t readLen, 
+                  uint64_t thd_large_gap,
+                  uint64_t thd_chain_blocks)
 {
+     //small gaps processed in the gap module
+    uint64_t cmprevconst = readLen - 1;
+    if (thd_large_gap > thd_chain_blocks)
+    {
+        return 0;
+    }
     if (length(cords) < 2)
     {
         return 0;
     }
     typedef std::pair<unsigned, unsigned> UPair;
     String<UPair> str_ends; //pointers to first and last cord in block
-    unsigned p_str;
-    for (unsigned i = 1; i < length(cords); i++)
+    unsigned p_str = 1;
+    for (unsigned i = 2; i < length(cords); i++)
     {
         if (is_cord_block_end(cords[i - 1]))
         {
-            if (i != 1)
-            {
-                appendValue(str_ends, UPair(p_str, i));
-            }
+            appendValue(str_ends, UPair(p_str, i));
+            p_str = i;
+        }
+        else if (get_cord_y(cords[i] - cords[i - 1]) > thd_large_gap && 
+                 get_cord_x(cords[i] - cords[i - 1]) > thd_large_gap)
+        {
+            appendValue(str_ends, UPair(p_str, i));
             p_str = i;
         }
     }
@@ -1628,7 +1641,7 @@ int re_sort_cords (String<uint64_t> & cords, uint64_t thd_combine_blocks)
         return 0;
     }
     std::sort (begin(str_ends), end(str_ends), [cords](UPair & i, UPair & j){
-        return get_cord_y(cords[i.first]) < get_cord_y(cords[j.first]);
+        return get_cord_x(cords[i.first]) < get_cord_x(cords[j.first]);
     });
     String<uint64_t> tmp_cords;
     resize (tmp_cords, length(cords));
@@ -1642,11 +1655,14 @@ int re_sort_cords (String<uint64_t> & cords, uint64_t thd_combine_blocks)
                          get_cord_y(tmp_cords[k - 1]);
             int64_t dx = get_cord_x(cords[str_ends[i].first]) - 
                          get_cord_x(tmp_cords[k - 1]);            
-            //dout << "remove" << dy << dx << thd_combine_blocks << "\n";
-            if (dy > 0 && dy < thd_combine_blocks &&
-                dx > 0 && dx < thd_combine_blocks &&
-                get_cord_strand(cords[str_ends[i].first] ^
-                cords[str_ends[i - 1].second]))
+            if (get_cord_strand (cords[str_ends[i].first] ^ tmp_cords[k - 1]))
+            {
+                dy = cmprevconst - get_cord_y(tmp_cords[k - 1]) - get_cord_y(cords[str_ends[i].first]);
+            }
+            
+            dout << "remove" << dy << dx << thd_chain_blocks << "\n";
+            if (dy > 0 && dy < thd_chain_blocks &&
+                dx > 0 && dx < thd_chain_blocks)
             {
                 _DefaultHit.unsetBlockEnd(tmp_cords[k - 1]);
             }
@@ -1676,10 +1692,11 @@ uint64_t apxMap (IndexDynamic & index,
                  float cordLenThr)
 {
     //todo::wrapper the thds
-    uint64_t thd_combine_blocks = 10000; //two blocks of cords will be combined to one if 1.they can be combined 2. they are close enough (< this)
+    uint64_t thd_large_gap = 1000; // make sure thd_large_gap <= thd_combine_blocks
+    uint64_t thd_chain_blocks = 10000; //two blocks of cords will be combined to one if 1.they can be combined 2. they are close enough (< this)
     mnMapReadList(index, read, anchors, mapParm, hit);
     path_dst(begin(hit), end(hit), f1, f2, cords, cordLenThr);
-    re_sort_cords (cords, thd_combine_blocks);
+    chain_blocks (cords, length(read), thd_large_gap, thd_chain_blocks);
     int seg = 0;
     for (int i = 0; i < length(cords); i++)
     {
