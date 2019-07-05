@@ -14,7 +14,7 @@ using namespace seqan;
 using std::cerr;
 /**
  * flags controlling print func;
- */
+ */ 
 struct F_Print_
 {
     void setPrintSam(uint & f){f |= 2;}
