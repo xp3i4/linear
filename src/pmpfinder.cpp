@@ -1657,10 +1657,10 @@ int chain_blocks (String<uint64_t> & cords,
                          get_cord_x(tmp_cords[k - 1]);            
             if (get_cord_strand (cords[str_ends[i].first] ^ tmp_cords[k - 1]))
             {
-                dy = cmprevconst - get_cord_y(tmp_cords[k - 1]) - get_cord_y(cords[str_ends[i].first]);
+                dy = get_cord_y(tmp_cords[k - 1]) + get_cord_y(cords[str_ends[i].first]) - cmprevconst;
             }
             
-            dout << "remove" << dy << dx << thd_chain_blocks << "\n";
+            dout << "remove" << cmprevconst <<  get_cord_y(cords[str_ends[i].first]) << get_cord_y(tmp_cords[k - 1]) << dy << dx << thd_chain_blocks << "\n";
             if (dy > 0 && dy < thd_chain_blocks &&
                 dx > 0 && dx < thd_chain_blocks)
             {
