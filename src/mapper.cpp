@@ -266,7 +266,8 @@ int map_(IndexDynamic & index,
          StringSet<FeaturesDynamic > & f2,
          StringSet<String<Dna5> > & reads,
          MapParm & mapParm,
-         StringSet<String<uint64_t> > & cords,
+         StringSet<String<uint64_t> > & cords_str,
+         StringSet<String<uint64_t> > & cords_end,
          StringSet<String<uint64_t> > & clips,
          StringSet<String<Dna5> > & seqs,
          StringSet<String<BamAlignmentRecordLink> >& bam_records,
@@ -358,8 +359,14 @@ int map_(IndexDynamic & index,
         #pragma omp ordered
         {
             append(cords, cordsTmp);
-            append(clips, clipsTmp);
-            append(bam_records, bam_records_tmp);
+            if (fm_handler_.isMapGap(f_map))
+            {
+                append(clips, clipsTmp);
+            }
+            if (fm_handler_.isAlign(f_map))
+            {
+                append(bam_records, bam_records_tmp);
+            }
         }
     
 }
