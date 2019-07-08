@@ -7,11 +7,13 @@
 #include "mapparm.h"
 
 
-class Mapper {
+class Mapper 
+{
     PMRecord    record;
     MapParm     parm;
     IndexDynamic index_dynamic;
     StringSet<String<uint64_t> >  cordSet;
+    StringSet<String<uint64_t> >  cordSet2;
     std::ofstream of;
     unsigned _thread;
     String<size_t> rlens;
@@ -35,7 +37,8 @@ public:
     StringSet<String<Dna5> > & getGenomes() {return record.seq2;}             
     MapParm & mapParm() {return parm;}
     IndexDynamic & index() {return index_dynamic;}
-    StringSet<String<uint64_t> > & getCords() {return cordSet;}            //returns cord set 
+    StringSet<String<uint64_t> > & getCords() {return cordSet;}             
+    StringSet<String<uint64_t> > & getCords2() {return cordSet2;}            
     
     void printCords(std::ostream & );
     void printCordsRaw();

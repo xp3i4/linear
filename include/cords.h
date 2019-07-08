@@ -132,6 +132,7 @@ void set_cord_id (uint64_t & val, uint64_t id);
 void set_cord_end (uint64_t &); 
 void set_cord_block_end(uint64_t & val);
 void print_cord(uint64_t, CharString = "");
+void print_cords(String<uint64_t> &, CharString = "");
 void set_cord_main (uint64_t & cord);
 void set_cord_gap (uint64_t & cord);
 void set_cord_recd(uint64_t & cord, uint64_t sgn);

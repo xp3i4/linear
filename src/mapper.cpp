@@ -295,7 +295,8 @@ int map_(IndexDynamic & index,
     String<Dna5> comStr;
     Anchors anchors;
     String<uint64_t> crhit;
-    StringSet<String<uint64_t> >  cordsTmp;
+    StringSet<String<uint64_t> > cordsTmp;  //cords_str
+    StringSet<String<uint64_t> > cordsTmp2; //cords_end
     StringSet<FeaturesDynamic> f1;
     StringSet<String<uint64_t> > clipsTmp;
     StringSet<String<BamAlignmentRecordLink> > bam_records_tmp;
@@ -305,6 +306,7 @@ int map_(IndexDynamic & index,
         ChunkSize = size2 + 1;
     }
     resize(cordsTmp, ChunkSize);
+    resize(cordsTmp2, ChunkSize);
     resize(clipsTmp, ChunkSize);
     resize(bam_records_tmp, ChunkSize);
     resize(f1, 2);
@@ -322,7 +324,6 @@ int map_(IndexDynamic & index,
         double t1 = sysTime ();
         red_len[thd_id] += length(reads[j]);
         std::cout << "[]::rawmap::j " << j <<"\n";
-        //std::cerr << "[]::rawmap::j " << j <<"\n";
         float cordLenThr = length(reads[j]) * cordThr;
         _compltRvseStr(reads[j], comStr);
         createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
@@ -337,11 +338,9 @@ int map_(IndexDynamic & index,
             clear(crhit);
             apxMap (index, reads[j], anchors, complexParm, crhit, f1, f2, cordsTmp[c], cordLenThr);
         }   
-        //for (int i = 0; i < length())
-        //setCordsSeg(cordsTmps[c]);
         if (fm_handler_.isMapGap(f_map))
         {
-            mapGaps(seqs, reads[j], comStr, cordsTmp[c], g_hs, g_anchor, clipsTmp[c], f1, f2, gap_len_min, window_size, thd_err_rate);
+            mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], g_hs, g_anchor, clipsTmp[c], f1, f2, gap_len_min, window_size, thd_err_rate);
 
         }
         if (fm_handler_.isAlign(f_map))
@@ -358,7 +357,8 @@ int map_(IndexDynamic & index,
     for (unsigned j = 0; j < threads; j++)
         #pragma omp ordered
         {
-            append(cords, cordsTmp);
+            append(cords_str, cordsTmp);
+            append(cords_end, cordsTmp2);
             if (fm_handler_.isMapGap(f_map))
             {
                 append(clips, clipsTmp);
@@ -387,8 +387,6 @@ int map(Mapper & mapper, int p1)
     createFeatures(mapper.getGenomes(), f2, mapper.getFeatureType(), mapper.thread());
     std::cout << "mapf " << mapper.getFeatureType() << "\n";
     unsigned blockSize = 50000;
-    StringSet<String<char> > dotstatus;
-    resize(dotstatus, 3);
     SeqFileIn rFile;
     StringSet<std::string> file1s;
     StringSet<std::string> file2s;
@@ -433,7 +431,8 @@ int map(Mapper & mapper, int p1)
                  f2, 
                  mapper.getReads(), 
                  mapper.mapParm(), 
-                 mapper.getCords(), 
+                 mapper.getCords(),  //cords_str 
+                 mapper.getCords2(), //cords_end
                  mapper.getClips(),
                  mapper.getGenomes(),
                  mapper.getBamRecords(),
@@ -446,6 +445,7 @@ int map(Mapper & mapper, int p1)
             serr.print_message("=>Write results to disk", 0, 2, std::cerr);
             print_mapper_results(mapper);
             clear (mapper.getCords());
+            clear (mapper.getCords2());
             clear (mapper.getClips());
             clear (mapper.getBamRecords());
             clear (mapper.getReads());

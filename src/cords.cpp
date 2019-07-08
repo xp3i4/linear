@@ -163,6 +163,7 @@ void print_cord(uint64_t cord, CharString header)
               << get_cord_x(cord) << " "
               << get_cord_y(cord) << "\n";
 }
+
 uint64_t create_cord (uint64_t id, uint64_t cordx, uint64_t cordy, uint64_t strand)
 {
     return _DefaultCord.createCord(create_id_x (id, cordx), cordy, strand);
@@ -232,4 +233,21 @@ uint64_t get_cord_recd (uint64_t cord)
 uint64_t is_cord_block_end (uint64_t cord)
 {
     return _DefaultCord.isBlockEnd(cord);
+}
+
+void print_cords(String<uint64_t> & cords, CharString header)
+{
+    std::cout << header << "_cords_header \n";
+    for (int i = 1; i < length(cords); i++)
+    {
+        std::cout << header << " " 
+                  << get_cord_y (cords[i]) << " "  
+                  << get_cord_x(cords[i]) << " "
+                  << get_cord_strand(cords[i])
+                  << is_cord_block_end(cords[i]) << "\n";
+        if (is_cord_block_end(cords[i]))
+        {
+            std::cout << header << " end\n\n";
+        }
+    }
 }
