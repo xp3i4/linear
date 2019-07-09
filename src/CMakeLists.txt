@@ -26,6 +26,7 @@ add_library(linear_index_util STATIC index_util.cpp)
 add_library(linear_args_parser STATIC args_parser.cpp)
 add_library(linear_pmpfinder STATIC pmpfinder.cpp)
 add_library(linear_gap STATIC gap.cpp)
+add_library(linear_align_util STATIC align_util.cpp)
 add_library(linear_fio STATIC f_io.cpp)
 add_library(linear_align_interface STATIC align_interface.cpp)
 add_library(linear_test_units STATIC test_units.cpp)
@@ -38,6 +39,7 @@ target_link_libraries (linear
                        linear_pmpfinder 
                        linear_gap 
                        linear_fio 
+                       linear_align_util
                        linear_index_util 
                        linear_shape_extend
                        linear_cords 

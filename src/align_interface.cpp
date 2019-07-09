@@ -1,6 +1,8 @@
 #include <utility> 
 //#include "base.h"
 #include "cords.h" 
+#include "align_util.h"
+//#include "f_io.h"
 #include "align_interface.h"
 //TODO seqand::setclippedpositoin retrieve source postion that's not efficient
 //TODO make holder to rows, so set clip postion can be iteratored.
@@ -180,9 +182,6 @@ float s_score_density_thd = 2; //if < the value alignment of cords will be dropp
 float s_score_window_thd = 0.75;
 int thd_align_score = 350 /*depends on score_scheme*/;
 
-uint16_t bam_flag_rvcmp = 16;
-uint16_t bam_flag_rvcmp_nxt = 32;
-uint16_t bam_flag_suppl = 2048;
 uint64_t CORD_NULL = _DefaultCord.makeBlockEndVal(~0);
 uint64_t emptyCord = CORD_NULL - 1;
 
@@ -490,168 +489,6 @@ int detach_copy_row(TRow & row1, TRow & row2)
     detach(row1);
 }
 
-/*
- * insert cigar to the original cigar 
- */
-int insertBamRecordCigar (BamAlignmentRecord & bam_record,
-                    Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
-                    Row<Align<String<Dna5>, ArrayGaps> >::Type & row2, 
-                    int pos = -1
-                   )
-{
-    if (pos < 0)
-    {
-        align2cigar(bam_record.cigar, row1, row2);
-    }
-    else
-    {
-        if (pos > length(bam_record.cigar ) - 1)
-        {
-            return 1;
-        }
-        String<CigarElement< > > tmp;
-        align2cigar(tmp, row1, row2);
-        insertCigar(bam_record.cigar, pos, tmp);
-    }
-    return 0;
-}
-/**
- * @g_beignPos, @r_beginPos
- * 1-based leftmost exact start coordinates 
- */
-int insertNewBamRecord (String<BamAlignmentRecordLink> & bam_records,
-                        int g_id, 
-                        int g_beginPos,
-                        int r_beginPos,
-                        int strand,
-                        int insert_pos = -1,
-                        int f_soft = 1 /*hard and soft clip flag*/
-                        )
-{
-    BamAlignmentRecordLink bam_record;
-    if (g_id >= 0)
-    {
-        bam_record.rID = g_id;
-    }
-    if (g_beginPos >= 0)
-    {
-        bam_record.beginPos = g_beginPos; 
-    }
-    if (strand)
-    {
-        bam_record.flag |= bam_flag_rvcmp | bam_flag_suppl;
-    }
-    if (r_beginPos != 0)
-    {
-        char op = 'S';
-        if (!f_soft)
-        {
-            op = 'H';
-        }
-        appendValue(bam_record.cigar, CigarElement<>(op, r_beginPos));
-    }
-    if (insert_pos < 0)
-    {
-        appendValue(bam_records, bam_record);
-    }
-    else 
-    {
-        insert(bam_records, insert_pos, bam_record);
-    }
-    return 0;
-}
-int insertNewBamRecord (String<BamAlignmentRecordLink> & bam_records,
-                        Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
-                        Row<Align<String<Dna5>, ArrayGaps> >::Type & row2, 
-                        int g_id,
-                        int g_beginPos,
-                        int r_beginPos,
-                        int strand,
-                        int insert_pos = -1,
-                        int f_soft = 1 
-                        )
-{
-    BamAlignmentRecordLink bam_record;
-    insertNewBamRecord(bam_records, g_id, g_beginPos, r_beginPos, strand, insert_pos, f_soft);
-    int i = insert_pos;
-    if (insert_pos < 0)
-    {
-        i = length(bam_records) - 1;
-    }
-    insertBamRecordCigar(bam_records[i], row1, row2);
-    return 0;
-}
-/*
- * Cigar of row1 and row2 are inserted to the cigar from the bam_record
- * beginPos are always updated by g_beginPos 
- * soft/Hard clip cigar are updated only if insert at the front(pos == 0)
- */
-int  insertBamRecord (BamAlignmentRecord & bam_record,
-                      Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
-                      Row<Align<String<Dna5>, ArrayGaps> >::Type & row2, 
-                      int g_id,
-                      int g_beginPos,
-                      int r_beginPos,
-                      int pos = -1,
-                      int f_soft = 1
-                      )
-{
-    String<CigarElement<> > & cigar = bam_record.cigar;
-    char op = 'S';
-    if (!f_soft)
-    {
-        op = 'H';
-    }
-
-    if (empty (bam_record.cigar))
-    {
-        insertBamRecordCigar(bam_record, row1, row2, 0);
-        if (r_beginPos != 0)
-        {
-            insertValue (cigar, 0, CigarElement<>(op, r_beginPos));
-        }
-    }
-    else
-    {
-        if (pos == 0 && (cigar[0].operation == 'S' || cigar[0].operation == 'H'))
-        {
-            insertBamRecordCigar(bam_record, row1, row2, 1);
-            cigar[0].count = r_beginPos;
-            cigar[0].operation = op;
-        }
-        else
-        {
-            insertBamRecordCigar(bam_record, row1, row2, pos);
-            if (cigar[0].operation == 'S' || cigar[0].operation == 'H')
-            {
-                cigar[0].count = r_beginPos;
-                cigar[0].operation = op;
-            }
-            else
-            {
-                insertValue (cigar, 0, CigarElement<>(op, r_beginPos));
-            }
-        }
-    }
-    if (g_id >= 0)
-    {
-        bam_record.rID = g_id;
-    }
-    else
-    {
-        return 1;
-    }
-    if (g_beginPos >= 0)
-    {
-        bam_record.beginPos = g_beginPos; 
-    }
-    else
-    {
-        return 1;
-    }
-    (void)r_beginPos;
-    return 0;
-}
 
 
 int align_block (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,

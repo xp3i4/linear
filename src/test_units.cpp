@@ -1,5 +1,6 @@
 #include "base.h"
 #include "cords.h"
+#include "align_util.h"
 #include "f_io.h"
 //
 //Check bamrecord cigar on base level

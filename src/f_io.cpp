@@ -3,6 +3,7 @@
 #include <seqan/basic.h>
 #include "cords.h"
 #include "pmpfinder.h"
+#include "align_util.h"
 #include "f_io.h"
 
 using namespace seqan;
@@ -107,40 +108,6 @@ void print_cords_apf(CordsSetType & cords,
 /*=================================================
 =                print SAM records                =
 ===================================================*/
-
-BamAlignmentRecordLink::BamAlignmentRecordLink()
-{
-    next_id = -1;
-    BamAlignmentRecord();
-}
-void BamAlignmentRecordLink::addNext(int id)
-{
-    next_id = id;
-}
-void addNextBamLink(String<BamAlignmentRecordLink> & bam_records,
-                    int id, int next_id)
-{
-    bam_records[id].addNext(next_id);
-
-    String<CigarElement<> > & cigar = bam_records[next_id].cigar;
-    if (!empty(cigar))
-    {
-        if (cigar[0].operation == 'S' || cigar[0].operation == 'H')
-        {
-            //eraseFront(cigar);
-            erase(cigar,0);
-        }    
-    }
-    //todo::merge 1=|2= to 3=
-}
-int BamAlignmentRecordLink::isEnd() const 
-{
-    return next_id < 0;
-}
-int BamAlignmentRecordLink::next() const 
-{
-    return next_id;
-}
 std::string getFileName(std::string s, std::string delimiter, uint count) 
 {
     size_t pos = 0;
@@ -158,130 +125,7 @@ std::string getFileName(std::string s, std::string delimiter, uint count)
     }
     return s;
 }
-void align2cigar_(String<CigarElement< > > &cigar,
-        Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps1,
-        Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps2,
-        unsigned splicedGapThresh
-        )
-{
-    typedef Row<Align<String<Dna5>,ArrayGaps> >::Type TRow;
-    typename Iterator<TRow>::Type it1 = begin(gaps1);
-    typename Iterator<TRow>::Type it2 = begin(gaps2);
-    char op = '?', lastOp = ' ';
-    char last_op;
-    unsigned numOps = 0;
-    unsigned last_count;
-    if (!empty(cigar))
-    {
-        last_op = back(cigar).operation;
-        last_count = back(cigar).count;
-    }
-    int flag = 0;
-    for (; !atEnd(it1) && !atEnd(it2); goNext(it1), goNext(it2))
-    {
-        if (isGap(it1))
-        {
-            if (isGap(it2))
-                op = 'P';
-            else if (isClipped(it2))
-                op = '?';
-            else
-                op = 'I';
-        }
-        else if (isClipped(it1))
-        {
-            op = '?';
-        }
-        else
-        {
-            if (isGap(it2))
-                op = 'D';
-            else if (isClipped(it2))
-                op = 'S';
-            else
-                op = (*it1 == *it2)? '=': 'X';
-//                op = 'M';
-        }
-        if (lastOp != op)
-        {
-            //if (lastOp == 'D' && numOps >= (unsigned)splicedGapThresh)
-            //    lastOp = 'N';
-            if (numOps > 0)
-            {
-                if (!flag)
-                {
-                    if (last_op == lastOp)
-                    {
-                        back(cigar).count += numOps;
-                    } 
-                    else
-                    {
-                        appendValue(cigar, CigarElement<>(lastOp, numOps));
-                    }
-                    flag = 1;
-                }
-                else
-                {
-                    appendValue(cigar, CigarElement<>(lastOp, numOps));
-                } 
-            }
-            numOps = 0;
-            lastOp = op;
-        }
-        ++numOps;
-    }
-    SEQAN_ASSERT_EQ(atEnd(it1), atEnd(it2));
-    //if (lastOp == 'D' && numOps >= splicedGapThresh)
-    //    lastOp = 'N';
-    if (numOps > 0)
-        appendValue(cigar, CigarElement<>(op, numOps));
-}
-void align2cigar(String<CigarElement< > > &cigar,
-                 Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps1,
-                 Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps2
-                )
-{
-    align2cigar_(cigar, gaps1, gaps2, 1000);
-}
 
-int clip_cigar (String<CigarElement<> > & cigar)
-{
-    int x = 0, y = 0;
-    int score = 0; 
-    for (int i = 0; i < length(cigar); i++)
-    {
-
-        switch(cigar[i].operation)
-        {
-            case 'D':
-                x += cigar[i].count;
-                break;
-            case 'I':
-                y += cigar[i].count;
-                break;
-            case '=':
-                x += cigar[i].count;
-                y += cigar[i].count;
-                break;
-            case 'X':
-                x += cigar[i].count;
-                y += cigar[i].count;  
-                break;
-            case 'M':
-                return 1;        //'M' is not allowed in the function
-            case 'S': 
-                break;
-            //case 'N':
-            //    break;
-            case 'P':
-                break;
-            default:
-                return 2;
-        }
-        std::cout << "[]::clip_cigar "  << " " << x << " " << y << " " << cigar[i].count << cigar[i].operation << "\n";
-    }
-    return 0;
-}
 
 //Lightweight sam function of Seqan::write(bamAlignmentRecord)
 void writeSam(std::ofstream & target,
@@ -473,59 +317,7 @@ int writeSam(std::ofstream & target,
     return it_count;
 }
 
-int insertCigar(String<CigarElement< > > &cigar1, 
-                int pos,
-                String<CigarElement< > > &cigar2
-         )
-{
-    int p = pos;
-    if (empty(cigar1))
-    {
-        cigar1 = cigar2;
-        return 0;
-    }
-    if (pos < 0)
-    {
-        return 1;
-    }
-    else if (pos > length(cigar1))  
-    {
-        p = length(cigar1);
-    }
-    if (p == 0) //insert at front 
-    {
-        if (cigar1[0].operation == back(cigar2).operation)
-        {
-            std::cout << "insertCigar p = 0 " << length(cigar1) << " " << length(cigar2) << "\n";
-            cigar1[0].count += back(cigar2).count;
-            eraseBack(cigar2);
-        }
-        insert(cigar1, p, cigar2);
-        return 0;
-    }
-    if (p == length(cigar1)) //insert at end
-    {
-        if (back(cigar1).operation == cigar2[0].operation)
-        {
-            cigar2[0].count += back(cigar1).count;
-            eraseBack(cigar1);
-        }
-        append(cigar1, cigar2);
-        return 0;
-    }
-    if (cigar1[p - 1].operation == cigar2[0].operation)  //insert in middle
-    {
-        cigar1[p - 1].count += cigar2[0].count;
-        erase(cigar2, 0);
-    }
-    if (cigar1[p].operation == back(cigar2).operation) 
-    {
-        cigar1[p].count += back(cigar2).count;
-        eraseBack(cigar2);
-    }
-    insert(cigar1, p, cigar2);
-    return 0;
-}
+
 
 std::pair<int, int> countCigar(String<CigarElement<> > & cigar)
 {
@@ -694,12 +486,12 @@ void print_cords_sam
      std::ofstream & of
      )
 {
-    cords2cigar(cordset, bam_records);
+    //cords2cigar(cordset, bam_records);
     print_align_sam (genms, readsId, genmsId, bam_records, cordset, of);
     of << "Hello sam file\n";
     //print
 }
-
+/*
 uint64_t cord2cigar (uint64_t cord1_str, 
                      uint64_t cord1_end,
                      uint64_t cord2_str, 
@@ -729,9 +521,9 @@ uint64_t cord2cigar (uint64_t cord1_str,
     return next_cigar_str;
 }
 
-void cords2cigar(String<uint64_t> & cords_str, 
-                 String<uint64_t> & cords_end,
-                 String<CigarElement< > > & cigar)
+void cords2BamLink(String<uint64_t> & cords_str, 
+                   String<uint64_t> & cords_end,
+                   String<BamAlignmentRecordLink> & bam_link_records)
 {
     uint64_t cigar_str;
     for (int i = 1; i < length(cords_str); i++)
@@ -754,4 +546,4 @@ void cords2cigar(String<uint64_t> & cords_str,
         
     }
 }
-
+*/
