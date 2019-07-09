@@ -685,27 +685,6 @@ int print_align_sam (StringSet<String<Dna5> > & genms,
     return 0;
 }
 
-void cords2cigar(StringSet<String<uint64_t> > & cordset,     
-                 StringSet<String<BamAlignmentRecordLink> > & bam_records
-                 //int thd_window_size
-                 )
-{/*
-    for (uint i = 0; i < length(cords); i++)
-    {
-        for (int j = 0; j < length(cords[i]); j++) 
-        {
-            int dx = get_cord_x(cords[j + 1]) - get_cord_x(cords[j]);
-            int dy = get_cord_y(cords[j + 1]) - get_cord_y(cords[j]);
-            if (dx < 0)
-            {
-
-            }
-        }
-    }
-*/
-    dout << "cords2cigar\n";
-}
-
 void print_cords_sam
     (StringSet<String<uint64_t> > & cordset,    
      StringSet<String<BamAlignmentRecordLink> > & bam_records,
@@ -720,3 +699,59 @@ void print_cords_sam
     of << "Hello sam file\n";
     //print
 }
+
+uint64_t cord2cigar (uint64_t cord1_str, 
+                     uint64_t cord1_end,
+                     uint64_t cord2_str, 
+                     uint64_t cord2_end,
+                     uint64_t cigar_str)
+{
+    uint64_t x1 = get_cord_x(cord_str[i]);
+    uint64_t x2 = get_cord_x(cord_end[i]);
+    uint64_t y1 = get_cord_y(cord_str[i]);
+    uint64_t y2 = get_cord_y(cord_end[i]);
+    if (x1 <= x2 && y1 > y2)
+    {
+
+    }
+    else if (x <= x2 && y1 <= y2)
+    {
+        df
+    }
+    else if (x > x2 && y1 > y2)
+    {
+
+    }
+    else if (x > x2 && y1 <= y2)
+    {
+
+    }
+    return next_cigar_str;
+}
+
+void cords2cigar(String<uint64_t> & cords_str, 
+                 String<uint64_t> & cords_end,
+                 String<CigarElement< > > & cigar)
+{
+    uint64_t cigar_str;
+    for (int i = 1; i < length(cords_str); i++)
+    {
+        if (is_cord_block_end (cords[i - 1]) ||  
+            get_cord_y(cords_str[i - 1]) > get_cord_y(cords_str[i]) || 
+            get_cord_x(cords_str[i - 1]) > get_cord_x(cords_str[i]) ||
+            get_cord_y(cords_end[i - 1]) > get_cord_y(cords_end[i]) || 
+            get_cord_x(cords_end[i - 1]) > get_cord_x(cords_end[i])) //initiate
+        {
+
+        }
+        else
+        {
+            unsigned opn;
+            char ops; 
+            cigar_str = cord2cigar(cords_str[i - 1], cords_end[i - 1], 
+                                   cords_str[i], cords_end[i], cigar_str);
+        }
+        
+    }
+}
+

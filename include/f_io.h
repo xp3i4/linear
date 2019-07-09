@@ -90,4 +90,6 @@ void print_cords_sam
      std::ofstream & of);
 void addNextBamLink(String<BamAlignmentRecordLink> & bam_records,
                     int id, int next_id);
+void cords2cigar(String<uint64_t> & cords, String<CigarElement< > > &cigar);
+
 #endif
