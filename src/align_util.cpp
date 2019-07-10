@@ -163,11 +163,12 @@ int clip_cigar (String<CigarElement<> > & cigar)
     }
     return 0;
 }
-
+/*
+ * Insert @cigr2 to @cigar1 at @pos 
+ */
 int insertCigar(String<CigarElement< > > &cigar1, 
                 int pos,
-                String<CigarElement< > > &cigar2
-         )
+                String<CigarElement< > > &cigar2)
 {
     int p = pos;
     if (empty(cigar1))

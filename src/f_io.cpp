@@ -7,6 +7,7 @@
 #include "f_io.h"
 
 using namespace seqan;
+using std::cout;
 /*============================================================
 =               print Approximate mapping records            =
 ============================================================*/
@@ -317,8 +318,6 @@ int writeSam(std::ofstream & target,
     return it_count;
 }
 
-
-
 std::pair<int, int> countCigar(String<CigarElement<> > & cigar)
 {
     int len1 = 0, len2 = 0;
@@ -419,7 +418,6 @@ int print_align_sam_header_ (StringSet<CharString> & genomesId,
 }
 
 int print_align_sam_record_(StringSet<String<BamAlignmentRecord > > & records, 
-                            StringSet<String<uint64_t> > & cordSet,
                             StringSet<CharString> & readsId, 
                             StringSet<CharString> & genomesId,
                             std::ofstream & of
@@ -436,7 +434,6 @@ int print_align_sam_record_(StringSet<String<BamAlignmentRecord > > & records,
     }
 }
 int print_align_sam_record_(StringSet<String<BamAlignmentRecordLink> > & records, 
-                            StringSet<String<uint64_t> > & cordSet,
                             StringSet<CharString> & readsId, 
                             StringSet<CharString> & genomesId,
                             std::ofstream & of
@@ -462,7 +459,6 @@ int print_align_sam (StringSet<String<Dna5> > & genms,
                      StringSet<CharString> & readsId,
                      StringSet<CharString> & genmsId,
                      StringSet<String<BamAlignmentRecordLink> > & bam_records,
-                     StringSet<String<uint64_t> > & cordset,
                      std::ofstream & of
                      )
 {
@@ -470,80 +466,224 @@ int print_align_sam (StringSet<String<Dna5> > & genms,
                             genms,
                             of);
     print_align_sam_record_(bam_records,
-                            cordset,
                             readsId,
                             genmsId,
                             of); 
     return 0;
 }
 
-void print_cords_sam
-    (StringSet<String<uint64_t> > & cordset,    
-     StringSet<String<BamAlignmentRecordLink> > & bam_records,
-     StringSet<CharString> & genmsId, 
-     StringSet<CharString> & readsId,
-     StringSet<String<Dna5> > & genms,
-     std::ofstream & of
-     )
+/*----------  Convert Cords to Bam  ----------*/
+
+/*
+ *shortcut to append cigar
+ */
+void appendCigar(String<CigarElement< > > & cigars, char ops, int opn)
 {
-    //cords2cigar(cordset, bam_records);
-    print_align_sam (genms, readsId, genmsId, bam_records, cordset, of);
-    of << "Hello sam file\n";
-    //print
+    appendValue(cigars, CigarElement<>(ops, opn));
+}
+void appendCigar(String<CigarElement< > > & cigars, CigarElement<> cigar)
+{
+    appendCigar(cigars, cigar.operation, cigar.count);
 }
 /*
-uint64_t cord2cigar (uint64_t cord1_str, 
-                     uint64_t cord1_end,
-                     uint64_t cord2_str, 
-                     uint64_t cord2_end,
-                     uint64_t cigar_str)
+ * If need to create new bam record given the @cords
+ */
+int ifCreateNew_(uint64_t cord1_str, uint64_t cord1_end, uint64_t cord2_str, uint64_t cord2_end)
 {
-    uint64_t x1 = get_cord_x(cord_str[i]);
-    uint64_t x2 = get_cord_x(cord_end[i]);
-    uint64_t y1 = get_cord_y(cord_str[i]);
-    uint64_t y2 = get_cord_y(cord_end[i]);
-    if (x1 <= x2 && y1 > y2)
+    uint64_t x11 = get_cord_x(cord1_str);
+    uint64_t y11 = get_cord_y(cord1_str);
+    uint64_t x12 = get_cord_x(cord1_end);
+    uint64_t y12 = get_cord_y(cord1_end);
+    uint64_t x21 = get_cord_x(cord2_str);
+    uint64_t y21 = get_cord_y(cord2_str);
+    (void) cord2_end;
+    int flag = is_cord_block_end (cord1_str) ||  
+                             (x11 > x21) || 
+                             (y11 > y21) ||
+                (x12 > x21 && y12 < y21) ||
+                (x12 < x21 && y12 > x21) ||
+                get_cord_strand (cord1_str ^ cord2_str);
+    dout << "ifCreateNew_" << x12 << y12 << x21 << y21 << flag << "\n";
+    return flag;
+}
+/*
+ * create a cigar pair start from cord1 ends at cord2 as *=*D or *=*I
+ * @f_m = 0 use '=', else use 'X' cigar
+ */
+void createRectangleCigarPair (uint64_t cord1, uint64_t cord2, 
+                               CigarElement<> & cigar1,
+                               CigarElement<> & cigar2,
+                               int f_m)
+{
+    uint64_t dx = get_cord_x (cord2 - cord1);
+    uint64_t dy = get_cord_y (cord2 - cord1);
+    cigar1.operation = (!f_m) ? '=' : 'X'; 
+    if (dx >= dy) 
     {
+        cigar2.operation = 'D';
+        cigar1.count = dy;
+        cigar2.count = dx - dy;
+    }
+    else 
+    {
+        cigar2.operation = 'I';
+        cigar1.count = dx;
+        cigar2.count = dy - dx;
+    }
+}
+
+/*
+ * NOTE::@cords are required to meet the conditons declared at function of ifCreateNew_()
+ */
+uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar starts 
+                      uint64_t cord1_str, 
+                      uint64_t cord1_end,
+                      uint64_t cord2_str, 
+                      String<CigarElement<> > & cigar)
+{
+    uint64_t x0 = get_cord_x (cigar_str);
+    uint64_t y0 = get_cord_y (cigar_str);
+    uint64_t x11 = get_cord_x(cord1_str);
+    uint64_t y11 = get_cord_y(cord1_str);
+    uint64_t x12 = get_cord_x(cord1_end);
+    uint64_t y12 = get_cord_y(cord1_end);
+    uint64_t x21 = get_cord_x(cord2_str);
+    uint64_t y21 = get_cord_y(cord2_str);
+
+    CigarElement<> cigar1, cigar2;
+    uint64_t next_cigar_str;
+    int opn;
+    char ops;
+    if (x0 - y0 != x11 - y11) 
+    {
+        dout << "err" << x0 << y0 << x11 << y11 << "\n";
+        return ~0; //return error
+    }
+
+    uint64_t mstrx = get_cord_x(cigar_str); //match ('M'='X' + '=') start
+    uint64_t mstry = get_cord_y(cigar_str); 
+    uint64_t dx = x21 - mstrx;
+    uint64_t dy = y21 - mstry;
+    int e_upper = std::min(x12 - mstrx, y12 - mstry); //'=' len upper bound
+    uint64_t m_len = std::min(dx, dy); //'=' + 'X' len
+    if (m_len <= e_upper)
+    {
+        createRectangleCigarPair(cord1_str, cord2_str, cigar1, cigar2, 0); //'='
+        cout << "c12" << cigar1.count << cigar1.operation << "\n";
+        appendCigar (cigar, cigar1);
+        appendCigar (cigar, cigar2);
+        next_cigar_str = cord2_str;
+    }
+    else
+    {
+        createRectangleCigarPair(cord1_str, cord1_end, cigar1, cigar2, 0); //'='
+        appendCigar (cigar, cigar1);
+        appendCigar (cigar, cigar2);
+        createRectangleCigarPair(cord1_end, cord2_str, cigar1, cigar2, 1); //'X'
+        appendCigar (cigar, cigar1);
+        appendCigar (cigar, cigar2);
+        next_cigar_str = cord2_str;
 
     }
-    else if (x <= x2 && y1 <= y2)
-    {
-        df
-    }
-    else if (x > x2 && y1 > y2)
-    {
-
-    }
-    else if (x > x2 && y1 <= y2)
-    {
-
-    }
+    //dout << "next_cigar_str" << get_cord_y(next_cigar_str) << get_cord_y(cord2_str) << "\n";
     return next_cigar_str;
 }
 
+/*
+ *  Function to convert cords to bam
+ *  WARN::The @cords_str[0] and back(@cords_str) are required to have block end sign
+    Otherwise will cause seg fault. 
+ *  NOTE::addjacent cords, cord1 and cord2, will be break into different bams if cord1y > cord2y || cord1x >
+    cord2x
+ */
 void cords2BamLink(String<uint64_t> & cords_str, 
                    String<uint64_t> & cords_end,
                    String<BamAlignmentRecordLink> & bam_link_records)
 {
     uint64_t cigar_str;
+    uint64_t cord1_str;
+    uint64_t cord2_str;
+    uint64_t cord1_end;
+    int f_soft = 1; //soft clip in cigar;
+    int f_new = 1;
     for (int i = 1; i < length(cords_str); i++)
     {
-        if (is_cord_block_end (cords[i - 1]) ||  
-            get_cord_y(cords_str[i - 1]) > get_cord_y(cords_str[i]) || 
-            get_cord_x(cords_str[i - 1]) > get_cord_x(cords_str[i]) ||
-            get_cord_y(cords_end[i - 1]) > get_cord_y(cords_end[i]) || 
-            get_cord_x(cords_end[i - 1]) > get_cord_x(cords_end[i])) //initiate
+        if (f_new) //initiate a record for new block 
         {
-
+            f_new = 0;
+            int g_id = get_cord_id(cords_str[i]);
+            int g_beginPos = get_cord_x(cords_str[i]);
+            int r_beginPos = get_cord_y(cords_str[i]);
+            int strand = get_cord_strand (cords_str[i]);
+            insertNewBamRecord (bam_link_records, g_id, g_beginPos, r_beginPos, strand);
+            cigar_str = cords_str[i];
+            dout << "x11" << i<< "\n";
+        }
+        if (i == length(cords_str) - 1 ||
+            ifCreateNew_ (cords_str[i], cords_end[i], 
+                          cords_str[i + 1], cords_end[i + 1])) // last cord of current block
+        {
+            cord1_str = cords_str[i];
+            cord1_end = cords_end[i];
+            cord2_str = cords_end[i];
+            f_new = 1; //next cord[i + 1] will start a new recordd
+            dout << "x12" << i << get_cord_y(cord1_str) << "\n";
         }
         else
         {
-            unsigned opn;
-            char ops; 
-            cigar_str = cord2cigar(cords_str[i - 1], cords_end[i - 1], 
-                                   cords_str[i], cords_end[i], cigar_str);
+            cord1_str = cords_str[i];
+            cord1_end = cords_end[i];
+            cord2_str = cords_str[i + 1];
+            dout << "x13" << i<< "\n";
         }
-        
+        cigar_str = cord2cigar_ (cigar_str, 
+                                 cord1_str, cord1_end, cord2_str, 
+                                 back(bam_link_records).cigar);
+        if (cigar_str == ~0) //error
+        {
+            break;
+        }
     }
 }
-*/
+
+void cords2BamLink(StringSet<String<uint64_t> > & cords_str, 
+                   StringSet<String<uint64_t> > & cords_end,
+                   StringSet<String<BamAlignmentRecordLink> > & bam_link_records,
+                   int thd_cord_size)
+{
+    if (empty(bam_link_records))
+    {
+        resize (bam_link_records, length(cords_str));
+    }
+    for (int i = 0; i < length(cords_str); i++)
+    {
+        if (empty(cords_end) || empty(cords_end[i]))
+        {
+            String<uint64_t> tmp_end; 
+            for (int j = 0; j < length(cords_str[i]); j++)
+            {
+                appendValue(tmp_end, shift_cord(cords_str[i][j], thd_cord_size, thd_cord_size));
+            }
+            std::cerr << "len " << length(cords_str[i]) << " " << length(tmp_end) << "\n";
+            cords2BamLink (cords_str[i], tmp_end, bam_link_records[i]);
+        }
+        else
+        {
+            cords2BamLink (cords_str[i], cords_end[i], bam_link_records[i]);
+        }
+    }
+}
+
+void print_cords_sam
+    (StringSet<String<uint64_t> > & cordset_str,    
+     StringSet<String<uint64_t> > & cordset_end,    
+     StringSet<String<BamAlignmentRecordLink> > & bam_records,
+     StringSet<CharString> & genmsId, 
+     StringSet<CharString> & readsId,
+     StringSet<String<Dna5> > & genms,
+     int thd_cord_size,
+     std::ofstream & of)
+{
+    cords2BamLink (cordset_str, cordset_end, bam_records, thd_cord_size);
+    print_align_sam (genms, genmsId, readsId, bam_records, of);
+}   

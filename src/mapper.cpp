@@ -41,6 +41,7 @@ Mapper::Mapper(Options & options):
     uint64_t thd_gap_lower = 10; 
     r_paths = options.r_paths;
     g_paths = options.g_paths; 
+    cord_size = window_size;
     loadRecords(getGenomes(), getGenomesId(), g_paths);
     switch (options.sensitivity)
     {
@@ -179,7 +180,6 @@ int print_align_sam (Mapper & mapper)
                      mapper.getReadsId(),
                      mapper.getGenomesId(),
                      mapper.getBamRecords(),
-                     mapper.getCords(),
                      mapper.getOf()
                      );
     return 0;
@@ -195,10 +195,12 @@ int print_clips_gvf(Mapper & mapper)
 int print_cords_sam(Mapper & mapper)
 {
     print_cords_sam(mapper.getCords(),
+                    mapper.getCords2(),
                     mapper.getBamRecords(),
                     mapper.getGenomesId(),
                     mapper.getReadsId(),
                     mapper.getGenomes(),
+                    mapper.getCordSize(),
                     mapper.getOf()
         );
     return 0;
