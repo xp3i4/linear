@@ -45,19 +45,19 @@ int print_align_sam_header_ (StringSet<CharString> & genomesId,
                             );
 
 int print_align_sam_record_(StringSet<String<BamAlignmentRecord > > & records, 
-                            StringSet<CharString> & readsId, 
                             StringSet<CharString> & genomesId,
+                            StringSet<CharString> & readsId, 
                             std::ofstream & of
                             );
 
 int print_align_sam_record_(StringSet<String<BamAlignmentRecordLink> > & records, 
-                            StringSet<CharString> & readsId, 
                             StringSet<CharString> & genomesId,
+                            StringSet<CharString> & readsId, 
                             std::ofstream & of
                             );
 int print_align_sam (StringSet<String<Dna5> > & genms,
-                     StringSet<CharString> & readsId,
                      StringSet<CharString> & genmsId,
+                     StringSet<CharString> & readsId,
                      StringSet<String<BamAlignmentRecordLink> > & bam_records,
                      std::ofstream & of
                      );

@@ -177,8 +177,8 @@ int print_cords_apf(Mapper & mapper)
 int print_align_sam (Mapper & mapper)
 {
     print_align_sam (mapper.getGenomes(),
-                     mapper.getReadsId(),
                      mapper.getGenomesId(),
+                     mapper.getReadsId(),
                      mapper.getBamRecords(),
                      mapper.getOf()
                      );
