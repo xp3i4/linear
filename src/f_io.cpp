@@ -665,7 +665,6 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
             {
                 appendValue(tmp_end, shift_cord(cords_str[i][j], thd_cord_size, thd_cord_size));
             }
-            std::cerr << "len " << length(cords_str[i]) << " " << length(tmp_end) << "\n";
             cords2BamLink (cords_str[i], tmp_end, bam_link_records[i]);
         }
         else

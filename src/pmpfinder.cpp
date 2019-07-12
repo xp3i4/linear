@@ -838,6 +838,9 @@ uint64_t nextWindow(FeaturesDynamic & f1,
 bool extendWindow(FeaturesDynamic & f1, 
                   FeaturesDynamic & f2, 
                   String<uint64_t> & cords, 
+                  uint64_t read_str,  //extend window between [read_str, read_end) of the read
+                  uint64_t read_end, 
+                  uint64_t read_len,
                   float & score, 
                   uint64_t & strand)
 {
@@ -845,10 +848,19 @@ bool extendWindow(FeaturesDynamic & f1,
     0:get_cord_y(cords[length(cords) - 2]) + window_delta;
     unsigned len = length(cords) - 1;
     uint64_t new_cord;
+    uint64_t read_str2 = read_str;
+    uint64_t read_end2 = read_end;
+    if (get_cord_strand(back(cords)))
+    {
+        read_str2 = read_len - read_end - 1;
+        read_end2 = read_len - read_str - 1;
+    }
     while (pre_cord_y < get_cord_y(back(cords)))
     {
         new_cord = previousWindow(f1, f2, back(cords), score);
-        if (new_cord && get_cord_y(new_cord) > pre_cord_y)
+        if (new_cord && 
+            get_cord_y(new_cord) > pre_cord_y && 
+            get_cord_y(new_cord) > read_str2)
         {
             appendValue(cords, new_cord);
         }
@@ -864,7 +876,7 @@ bool extendWindow(FeaturesDynamic & f1,
     while (true)
     {
         new_cord = nextWindow(f1, f2, back(cords), score);
-        if (new_cord)
+        if (new_cord && get_cord_y(new_cord) < read_end2)
         {
             appendValue(cords, new_cord);
         }
@@ -939,8 +951,7 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
     unsigned distThd;
     while(!_DefaultHit.isBlockEnd(*(it - 1)))
     {
-
-        if(get_cord_y(*(it))>get_cord_y(back(cord)) +  window_delta) 
+        if(get_cord_y(*it) > get_cord_y(back(cord)) +  window_delta) 
         {
             uint64_t new_cord = _DefaultCord.hit2Cord_dstr(*(it));
             uint64_t strand = get_cord_strand(new_cord);
@@ -994,6 +1005,9 @@ bool path_dst(typename Iterator<String<uint64_t> >::Type hitBegin,
               StringSet<FeaturesDynamic> & f1,
               StringSet<FeaturesDynamic> & f2, 
               String<uint64_t> & cords,
+              uint64_t read_str,
+              uint64_t read_end,
+              uint64_t read_len,
               float const & thd_min_block_len
               )
 {
@@ -1006,7 +1020,7 @@ bool path_dst(typename Iterator<String<uint64_t> >::Type hitBegin,
         do{
             uint64_t strand = get_cord_strand(back(cords));
             uint64_t genomeId = get_cord_id(back(cords));
-            extendWindow(f1[strand], f2[genomeId], cords, score, strand);
+            extendWindow(f1[strand], f2[genomeId], cords, read_str, read_end, read_len, score, strand);
         }
         while (nextCord(it, hitEnd, f1, f2, preBlockPtr, cords, thd_min_block_len));
         return endCord(cords, preBlockPtr, thd_min_block_len);   
@@ -1091,16 +1105,18 @@ void _printHit(String<uint64_t>  & hit, CharString header)
 }
 
 unsigned getDIndexMatchAll (DIndex & index,
-                              String<Dna5> & read,
-                              String<uint64_t> & set,
-                              MapParm & mapParm)
+                            String<Dna5> & read,
+                            String<uint64_t> & set,
+                            uint64_t read_str,   //map [read_str, read_end) of read
+                            uint64_t read_end,
+                            MapParm & mapParm)
 {
     int dt = 0;
     LShape shape(index.getShape());
     uint64_t xpre = 0;
     //std::cout << shape.span << shape.weight << "\n";
     hashInit(shape, begin(read));
-    for (unsigned k = 0; k < length(read); k++)
+    for (unsigned k = read_str; k < read_end; k++)
     {
         hashNexth(shape, begin(read) + k);
         uint64_t pre = ~0;
@@ -1148,17 +1164,21 @@ unsigned getDIndexMatchAll (DIndex & index,
  unsigned getIndexMatchAll(LIndex & index,
                            String<Dna5> & read,
                            String<uint64_t> & set,
+                           uint64_t read_str,
+                           uint64_t read_end,
                            MapParm & mapParm)
 {   
     int dt = 0;
     LShape shape(index.shape);
     uint64_t xpre = 0;
     hashInit(shape, begin(read));
-    for (unsigned k = 0; k < length(read); k++)
+    dout << "alpha" << mapParm.alpha << "\n";
+    for (unsigned k = read_str; k < read_end; k++)
     {
         hashNexth(shape, begin(read) + k);
         uint64_t pre = ~0;
         if (++dt == mapParm.alpha)
+//        if (++dt == 10)
         {
             dt = 0;
             if(hashNextX(shape, begin(read) + k) ^ xpre)
@@ -1481,13 +1501,12 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
         int64_t anc_y = get_cord_y(anchors[k]);
         int64_t dy2 = std::abs(int64_t(anc_y - get_cord_y(ak2)));
         int64_t dy3 = std::abs(int64_t(anc_y - get_cord_y(ak3)));
-        if ((
-             get_cord_x(anchors[k] - ak2) < thd_anchor_err * dy2 ||
+        if ((get_cord_x(anchors[k] - ak2) < thd_anchor_err * dy2 ||
              get_cord_x(anchors[k] - ak3) < thd_anchor_err * dy3) &&
              k != anchors.length() - 1
             )
         {
-        //dout << "anchors" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
+        dout << "anchors" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
             if(anchors.deltaPos2(k, k - 1) >  mapParm.shapeLen)
                 c_b += mapParm.shapeLen;
             else
@@ -1499,7 +1518,7 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
         }
         else
         {
-        //dout << "anchorsxxxxxx" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << dy2 << get_cord_x(ak2) << "\n";
+        dout << "anchorsxxxxxx" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << dy2 << get_cord_x(ak2) << "\n";
             if (c_b > thd_anchor_accept_lens && 
                 (k - sb) >= (max_y - min_y) * thd_anchor_accept_dens)
             {
@@ -1547,53 +1566,63 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
     }
 }
 
- uint64_t mnMapReadAll( LIndex  & index,
-                           String<Dna5> & read,
-                          Anchors & anchors,
-                          MapParm & mapParm,
-                          String<uint64_t> & hit  
-                         )
+uint64_t mnMapReadAll(LIndex  & index,
+                      String<Dna5> & read,
+                      Anchors & anchors,
+                      uint64_t read_str,
+                      uint64_t read_end,
+                      MapParm & mapParm,
+                      String<uint64_t> & hit  
+                      )
 {
-    getIndexMatchAll(index, read, anchors.set, mapParm);    
+    getIndexMatchAll(index, read, anchors.set, read_str, read_end, mapParm);    
     return getAnchorMatchAll(anchors, length(read), mapParm, hit);
 }
 
  uint64_t mnMapReadFirst( LIndex  & index,
-                           String<Dna5> & read,
+                          String<Dna5> & read,
                           Anchors & anchors,
+                          uint64_t read_str,
+                          uint64_t read_end,
                           MapParm & mapParm,
                           String<uint64_t> & hit  
                          )
 {
-    getIndexMatchAll(index, read, anchors.set,  mapParm);    
+    getIndexMatchAll(index, read, anchors.set, read_str, read_end, mapParm);    
     return getAnchorMatchFirst(anchors, length(read), mapParm, hit);
 }
 
  uint64_t mnMapReadList(LIndex  & index,
                         String<Dna5> & read,
                         Anchors & anchors,
+                        uint64_t read_str,
+                        uint64_t read_end,
                         MapParm & mapParm,
                         String<uint64_t> & hit)
 {
-    getIndexMatchAll(index, read, anchors.set, mapParm);    
+    getIndexMatchAll(index, read, anchors.set, read_str, read_end, mapParm);    
     //printf("done getinxmatchall\n");
     return  getAnchorMatchList(anchors, length(read), mapParm, hit);
 }
-
-uint64_t mnMapReadList( IndexDynamic & index,
-                        String<Dna5> & read,
-                        Anchors & anchors,
-                        MapParm & mapParm,
-                        String<uint64_t> & hit)
+/*
+ * Map [read_str, read_end) of the read
+ */
+uint64_t mnMapReadList(IndexDynamic & index,
+                       String<Dna5> & read,
+                       Anchors & anchors,
+                       uint64_t read_str,
+                       uint64_t read_end,
+                       MapParm & mapParm,
+                       String<uint64_t> & hit)
 {
     if (index.isHIndex())
     {
-        getIndexMatchAll(index.hindex, read, anchors.set, mapParm);    
+        getIndexMatchAll(index.hindex, read, anchors.set, read_str, read_end, mapParm);    
         getDAnchorMatchList(anchors, length(read), mapParm, hit);
     }   
     else if (index.isDIndex())
     {
-        getDIndexMatchAll(index.dindex, read, anchors.set, mapParm);    
+        getDIndexMatchAll(index.dindex, read, anchors.set, read_str, read_end, mapParm);    
         getDAnchorMatchList(anchors, length(read), mapParm, hit);
     }
     return 0;
@@ -1619,7 +1648,7 @@ int chain_blocks (String<uint64_t> & cords,
         return 0;
     }
     typedef std::pair<unsigned, unsigned> UPair;
-    String<UPair> str_ends; //pointers to first and last cord in block
+    String<UPair> str_ends; //pointers to first and last cord of each block
     unsigned p_str = 1;
     for (unsigned i = 2; i < length(cords); i++)
     {
@@ -1669,7 +1698,6 @@ int chain_blocks (String<uint64_t> & cords,
         }
         for (unsigned j = str_ends[i].first; j < str_ends[i].second; j++)
         {
-
             tmp_cords[k] = cords[j];
             k++;
         }
@@ -1681,21 +1709,23 @@ int chain_blocks (String<uint64_t> & cords,
     }
 }
 
-uint64_t apxMap (IndexDynamic & index,
-                 String<Dna5> & read,
-                 Anchors & anchors,
-                 MapParm & mapParm,
-                 String<uint64_t> & hit, 
-                 StringSet<FeaturesDynamic> & f1,
-                 StringSet<FeaturesDynamic> & f2,
-                 String<uint64_t> & cords, 
-                 float cordLenThr)
+uint64_t apxMap_ (IndexDynamic & index,
+                  String<Dna5> & read,
+                  Anchors & anchors,
+                  MapParm & mapParm,
+                  String<uint64_t> & hit, 
+                  StringSet<FeaturesDynamic> & f1,
+                  StringSet<FeaturesDynamic> & f2,
+                  String<uint64_t> & cords, 
+                  uint64_t read_str,
+                  uint64_t read_end,
+                  float cordLenThr)
 {
     //todo::wrapper the thds
     uint64_t thd_large_gap = 1000; // make sure thd_large_gap <= thd_combine_blocks
     uint64_t thd_chain_blocks = 10000; //two blocks of cords will be combined to one if 1.they can be combined 2. they are close enough (< this)
-    mnMapReadList(index, read, anchors, mapParm, hit);
-    path_dst(begin(hit), end(hit), f1, f2, cords, cordLenThr);
+    mnMapReadList(index, read, anchors, read_str, read_end, mapParm, hit);
+    path_dst(begin(hit), end(hit), f1, f2, cords, read_str, read_end, length(read), cordLenThr);
     chain_blocks (cords, length(read), thd_large_gap, thd_chain_blocks);
     int seg = 0;
     for (int i = 0; i < length(cords); i++)
@@ -1707,6 +1737,21 @@ uint64_t apxMap (IndexDynamic & index,
             seg = 1 - seg;
         }
     }
+}
+
+uint64_t apxMap (IndexDynamic & index,
+                 String<Dna5> & read,
+                 Anchors & anchors,
+                 MapParm & mapParm,
+                 String<uint64_t> & hit, 
+                 StringSet<FeaturesDynamic> & f1,
+                 StringSet<FeaturesDynamic> & f2,
+                 String<uint64_t> & cords, 
+                 float cordLenThr
+                 )
+{
+    uint64_t res = apxMap_(index, read, anchors, mapParm, hit, f1, f2, cords, 0, length(read), cordLenThr);
+    return res;
 }
 
 /*===================================================
