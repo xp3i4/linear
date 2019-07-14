@@ -83,5 +83,6 @@ uint64_t apxMap (IndexDynamic & index,
                  StringSet<FeaturesDynamic> & f1,
                  StringSet<FeaturesDynamic> & f2,
                  String<uint64_t> & cords, 
-                 float cordLenThr);
+                 float cordLenThr,
+                 int f_chain);
 #endif

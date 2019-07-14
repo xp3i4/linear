@@ -12,6 +12,8 @@ using std::endl;
 int64_t const LLMAX = (1LL << 63) - 1;
 int64_t const LLMIN = -LLMAX;
 
+typedef std::pair<uint64_t, uint64_t> UPair;
+
 int const typeFeatures1_32 = 1;
 int const typeFeatures2_48 = 2;
 int FeaturesDynamic::isFs1_32()
@@ -1160,6 +1162,7 @@ unsigned getDIndexMatchAll (DIndex & index,
 /**
  * Search double strand pattern in the index and
  * append to anchors
+ * NOTE::@read_str and @read_end must be coordinates of @read rather than its reverse complement
  */
  unsigned getIndexMatchAll(LIndex & index,
                            String<Dna5> & read,
@@ -1473,12 +1476,13 @@ uint64_t getAnchorMatchList2(Anchors & anchors,
     }
 }
 
-uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapParm & mapParm, String<uint64_t> & hit)
+uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read_end, MapParm & mapParm, String<uint64_t> & hit, int thd_best_n)
 {
+    dout << "anchors_str\n";
     float thd_err_rate = 0.2;
     float thd_anchor_accept_dens = 0.001; //todo::tune err, kmer step related
     float thd_anchor_accept_lens_rate = 0.01;
-    int thd_anchor_accept_lens = thd_anchor_accept_lens_rate * readLen;
+    int thd_anchor_accept_lens = thd_anchor_accept_lens_rate * (read_end - read_str);
     double t1 = sysTime();
     float thd_anchor_err = 0.2;
     int thd_sig = 10;
@@ -1539,19 +1543,27 @@ uint64_t getDAnchorMatchList(Anchors & anchors, unsigned const & readLen, MapPar
     {
         std::sort (begin(list), end(list), std::greater<uint64_t>());
         int tmp = length(list) > mapParm.listN ? mapParm.listN : length(list);
+        int record_num = 1;
         for (int k = 0; k < tmp; k++)
         {
+            if (record_num > thd_best_n)
+            {
+                break;
+            }
             if ((list[0] / 10) < list[k] && list[k])
             {
                 sb = ((list[k] >> 20) & mask);
                 sc = list[k] & mask;
                 //dout <<"hitxxxxxx\n";
+                dout << "anchorslist" << sb << sc << "\n";
                 for (unsigned n = sb; n < sc; n++)
                 {
                     appendValue(hit, anchors[n]);
                     //dout << "hit" << get_cord_y(back(hit)) << get_cord_x(back(hit)) << "\n";
                 }   
+                ++record_num;
                 _DefaultHit.setBlockEnd(back(hit));
+
             }
             else
             {
@@ -1613,102 +1625,188 @@ uint64_t mnMapReadList(IndexDynamic & index,
                        uint64_t read_str,
                        uint64_t read_end,
                        MapParm & mapParm,
-                       String<uint64_t> & hit)
+                       String<uint64_t> & hit,
+                       int thd_best_n)
 {
     if (index.isHIndex())
     {
         getIndexMatchAll(index.hindex, read, anchors.set, read_str, read_end, mapParm);    
-        getDAnchorMatchList(anchors, length(read), mapParm, hit);
+        getDAnchorMatchList(anchors, read_str, read_end, mapParm, hit, thd_best_n);
     }   
     else if (index.isDIndex())
     {
         getDIndexMatchAll(index.dindex, read, anchors.set, read_str, read_end, mapParm);    
-        getDAnchorMatchList(anchors, length(read), mapParm, hit);
+        getDAnchorMatchList(anchors, read_str, read_end, mapParm, hit, thd_best_n);
     }
     return 0;
 }
 
-/**
- * sort cords and combine two blocks if they are not overlapped 
- * NOTE::cords in the same block are required to have the same strand
+/*----------  Chain & Wrapper   ----------*/
+/*
+ * Shortcut of gathering start and end pos of each block of consecutive cords 
+ *  
  */
-int chain_blocks (String<uint64_t> & cords, 
-                  uint64_t readLen, 
-                  uint64_t thd_large_gap,
-                  uint64_t thd_chain_blocks)
+int gather_blocks_ (String<uint64_t> & cords, 
+                    String<UPair> & str_ends, //result [] closed 
+                    String<UPair> & str_ends_p, //result pointer [,) right open
+                    uint64_t readLen,
+                    uint64_t thd_large_gap,
+                    uint64_t thd_cord_size)
 {
-     //small gaps processed in the gap module
-    uint64_t cmprevconst = readLen - 1;
-    if (thd_large_gap > thd_chain_blocks)
-    {
-        return 0;
-    }
+    //small gaps processed in the gap module
+    clear(str_ends);
     if (length(cords) < 2)
     {
         return 0;
     }
-    typedef std::pair<unsigned, unsigned> UPair;
-    String<UPair> str_ends; //pointers to first and last cord of each block
+    uint64_t d_shift = thd_cord_size / 2; //NOTE::str end is shifted by this value
     unsigned p_str = 1;
+
     for (unsigned i = 2; i < length(cords); i++)
     {
-        if (is_cord_block_end(cords[i - 1]))
+        if (is_cord_block_end(cords[i - 1])||
+           !isCordsConsecutive_(cords[i - 1], cords[i], thd_large_gap))
         {
-            appendValue(str_ends, UPair(p_str, i));
-            p_str = i;
-        }
-        else if (get_cord_y(cords[i] - cords[i - 1]) > thd_large_gap && 
-                 get_cord_x(cords[i] - cords[i - 1]) > thd_large_gap)
-        {
-            appendValue(str_ends, UPair(p_str, i));
+            uint64_t b_str = shift_cord (cords[p_str], d_shift, d_shift);
+            uint64_t b_end = shift_cord (cords[i - 1], d_shift, d_shift);
+            appendValue (str_ends, UPair(b_str, b_end));
+            appendValue (str_ends_p, UPair(p_str, i));
             p_str = i;
         }
     }
-    appendValue (str_ends, UPair(p_str, length(cords)));
-    if (length(str_ends) < 2)
+    uint64_t b_str = shift_cord (cords[p_str], d_shift, d_shift);
+    uint64_t b_end = shift_cord (back(cords), d_shift, d_shift);
+    appendValue (str_ends, UPair(b_str, b_end));
+    appendValue (str_ends_p, UPair(p_str, length(cords)));
+
+    return 0; 
+}
+
+//shortcut to get y pair
+UPair getUPForwardy(UPair str_end, uint64_t readLen)
+{
+    if (get_cord_strand(str_end.first))
+    {
+        return UPair(readLen - get_cord_y(str_end.second) - 1,
+                     readLen - get_cord_y(str_end.first) - 1);
+    }
+    else
+    {
+        return UPair(get_cord_y(str_end.first),
+                     get_cord_y(str_end.second));
+    }
+}
+
+//Collect gaps in coordinates y
+int gather_gaps_y_ (String<uint64_t> & cords, 
+                    String<UPair> & str_ends,
+                    String<UPair> & gaps,
+                    uint64_t readLen,
+                    uint64_t thd_gap_size)
+{
+    std::sort (begin(str_ends), end(str_ends), [& cords, &readLen](UPair & i, UPair & j)
+        {
+            uint64_t y1 = get_cord_strand(i.first) ? 
+                          readLen - get_cord_y(i.second) - 1 : get_cord_y(i.first);
+            uint64_t y2 = get_cord_strand(j.first) ? 
+                          readLen - get_cord_y(j.second) - 1 : get_cord_y(j.first);
+            return y1 < y2; 
+        });
+    dout << "y12" << length(str_ends) << "\n";
+    uint64_t f_cover = 0;
+    uint64_t cord1 = 0;
+    uint64_t cord2 = 0;
+    UPair y1, y2;
+    for (unsigned i = 1; i < length(str_ends); i++)
+    {
+        if (!f_cover)
+        {
+            y1 = getUPForwardy(str_ends[i - 1], readLen);
+            cord1 = str_ends[i - 1].second;
+        }
+        cord2 = str_ends[i].first;
+        y2 = getUPForwardy(str_ends[i], readLen);
+        dout << "y12" << y1.first  << y1.second << y2.first << y2.second << "\n";
+        if (y1.second > y2.second)  
+        {
+            //y2 is skipped
+            //y1.first < y2.first (sort y.first)
+            //then region of y2 is all covered by y1;
+            f_cover = 1;
+        }
+        else
+        {
+            if (y2.first > y1.second &&  //NOTE::uint don't eliminate the first condition
+                y2.first - y1.second > thd_gap_size) 
+            {
+                print_cord (cord1, "y13");
+                print_cord (cord2, "y13");
+                appendValue (gaps, UPair(cord1, cord2));
+            }
+            f_cover = 0; 
+        }
+    }
+}
+
+/**
+ * sort cords and combine two blocks if they are not overlapped 
+ * NOTE::cords of the same block are required to have the same strand
+ */
+int chain_blocks_ (String<uint64_t> & cords,
+                   String<UPair> & str_ends_p,
+                   uint64_t readLen,
+                   int64_t thd_chain_blocks_lower,
+                   int64_t thd_chain_blocks_upper)
+{
+    dout << "aj111111111111\n";
+    if (empty(cords) || empty(str_ends_p))
     {
         return 0;
     }
-    std::sort (begin(str_ends), end(str_ends), [cords](UPair & i, UPair & j){
+    std::sort (begin(str_ends_p), end(str_ends_p), [& cords](UPair & i, UPair & j){
         return get_cord_x(cords[i.first]) < get_cord_x(cords[j.first]);
     });
     String<uint64_t> tmp_cords;
     resize (tmp_cords, length(cords));
     unsigned k = 1;
     tmp_cords[0] = cords[0];
-    for (unsigned i = 0; i < length(str_ends); i++)
+    uint64_t cord1 = cords[str_ends_p[0].first];
+    uint64_t cord2 = cords[str_ends_p[0].second - 1];
+    UPair y1 = getUPForwardy (UPair(cord1, cord2), readLen);
+    UPair y2 = y1;
+    for (unsigned i = 0; i < length(str_ends_p); i++)
     {
+        dout << "aj" << i << length(str_ends_p) << str_ends_p[i].first << str_ends_p[i].second << length(cords) << "\n";
         if (i > 0) //skip combine in the first block
         {
-            int64_t dy = get_cord_y(cords[str_ends[i].first]) - 
-                         get_cord_y(tmp_cords[k - 1]);
-            int64_t dx = get_cord_x(cords[str_ends[i].first]) - 
-                         get_cord_x(tmp_cords[k - 1]);            
-            if (get_cord_strand (cords[str_ends[i].first] ^ tmp_cords[k - 1]))
+            uint64_t cord1 = cords[str_ends_p[i].first];
+            uint64_t cord2 = cords[str_ends_p[i].second - 1];
+            int64_t dx = get_cord_x(cord1) - get_cord_x(tmp_cords[k - 1]); 
+            y2 = getUPForwardy(UPair(cord1, cord2), readLen);
+            int64_t dy = y2.first - y1.second;
+            dout << "aj4" <<dy << dx << y2.first << y2.second << "\n";
+            if (dy > thd_chain_blocks_lower && dy < thd_chain_blocks_upper &&
+                dx > thd_chain_blocks_lower && dx < thd_chain_blocks_upper)
             {
-                dy = get_cord_y(tmp_cords[k - 1]) + get_cord_y(cords[str_ends[i].first]) - cmprevconst;
-            }
-            
-            dout << "remove" << cmprevconst <<  get_cord_y(cords[str_ends[i].first]) << get_cord_y(tmp_cords[k - 1]) << dy << dx << thd_chain_blocks << "\n";
-            if (dy > 0 && dy < thd_chain_blocks &&
-                dx > 0 && dx < thd_chain_blocks)
-            {
+                dout << "aj2" << k - 1 << "\n";
                 _DefaultHit.unsetBlockEnd(tmp_cords[k - 1]);
             }
         }
-        for (unsigned j = str_ends[i].first; j < str_ends[i].second; j++)
+        for (unsigned j = str_ends_p[i].first; j < str_ends_p[i].second; j++)
         {
             tmp_cords[k] = cords[j];
+            dout << "aj" << j << k << length(tmp_cords) << "\n";
             k++;
         }
+        y1 = y2;
     }
-    //cords = tmp_cords;
-    for (unsigned i = 0; i < length(cords); i++)
-    {
-        cords[i] = tmp_cords[i];
-    }
+    //return 0;
+    cords = tmp_cords;
 }
 
+/*
+ * Approximate map within [@read_str, read_end) of @read
+ */
 uint64_t apxMap_ (IndexDynamic & index,
                   String<Dna5> & read,
                   Anchors & anchors,
@@ -1719,24 +1817,14 @@ uint64_t apxMap_ (IndexDynamic & index,
                   String<uint64_t> & cords, 
                   uint64_t read_str,
                   uint64_t read_end,
-                  float cordLenThr)
+                  float cordLenThr,
+                  int thd_best_n) //flag if chain_blocks
 {
     //todo::wrapper the thds
-    uint64_t thd_large_gap = 1000; // make sure thd_large_gap <= thd_combine_blocks
-    uint64_t thd_chain_blocks = 10000; //two blocks of cords will be combined to one if 1.they can be combined 2. they are close enough (< this)
-    mnMapReadList(index, read, anchors, read_str, read_end, mapParm, hit);
+    clear (hit);
+    anchors.init(1);
+    mnMapReadList(index, read, anchors, read_str, read_end, mapParm, hit, thd_best_n);
     path_dst(begin(hit), end(hit), f1, f2, cords, read_str, read_end, length(read), cordLenThr);
-    chain_blocks (cords, length(read), thd_large_gap, thd_chain_blocks);
-    int seg = 0;
-    for (int i = 0; i < length(cords); i++)
-    {
-        set_cord_recd(cords[i], seg);
-        set_cord_main(cords[i]);
-        if (_DefaultCord.isBlockEnd(cords[i]))
-        {
-            seg = 1 - seg;
-        }
-    }
 }
 
 uint64_t apxMap (IndexDynamic & index,
@@ -1747,11 +1835,73 @@ uint64_t apxMap (IndexDynamic & index,
                  StringSet<FeaturesDynamic> & f1,
                  StringSet<FeaturesDynamic> & f2,
                  String<uint64_t> & cords, 
-                 float cordLenThr
-                 )
+                 float cordLenThr,
+                 int f_chain)
 {
-    uint64_t res = apxMap_(index, read, anchors, mapParm, hit, f1, f2, cords, 0, length(read), cordLenThr);
-    return res;
+    int64_t thd_cord_size = window_size; 
+    int64_t thd_large_gap = 1000;     // make sure thd_large_gap <= thd_combine_blocks
+    int64_t thd_chain_blocks_lower = -100;
+    int64_t thd_chain_blocks_upper = 10000; //two blocks of cords will be combined to one if 1.they can be combined 2. they are close enough (< this)
+    int thd_best_n = 999; //unlimited best hit;
+    if (f_chain)
+    {
+        MapParm mapParm1 = mapParm;
+        MapParm mapParm2 = mapParm;
+        mapParm2.alpha = 5;
+        mapParm2.listN = mapParm2.listN2;
+        thd_best_n = 999; //unlimited best hit;
+        apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, 0, length(read), cordLenThr, thd_best_n);
+        String<UPair> str_ends;
+        String<UPair> str_ends_p;
+        String<UPair> gaps;
+        gather_blocks_ (cords, str_ends, str_ends_p, length(read), thd_large_gap, thd_cord_size);
+        gather_gaps_y_ (cords, str_ends, gaps, length(read), thd_large_gap);
+        //chain_blocks_ (cords, str_ends, length(read), thd_chain_blocks);
+        
+        uint64_t map_d = thd_cord_size >> 1; // cords + to map areas
+        uint64_t str_y = 0;                  //stry y of interval between two consecutive blocks
+        for (int i = 0; i < length(gaps); i++) //check large gap and re map the gaps
+        {
+            UPair y = getUPForwardy (gaps[i], length(read));
+            uint64_t y1 = y.first;
+            uint64_t y2 = y.second;
+            dout << "gpy" << y.first << y.second << "\n";
+            thd_best_n = 1; //best hit only
+            apxMap_(index, read, anchors, mapParm2, hit, f1, f2, cords, y1, y2, cordLenThr, thd_best_n);
+        }
+        clear (str_ends);
+        clear (str_ends_p);
+        gather_blocks_ (cords, str_ends, str_ends_p, length(read), thd_large_gap, thd_cord_size);
+        chain_blocks_ (cords, str_ends_p, length(read), thd_chain_blocks_lower, thd_chain_blocks_upper);
+    }
+    else
+    {
+        float senThr = mapParm.senThr / thd_cord_size;  
+        MapParm mapParm1 = mapParm;
+        MapParm mapParm2 = mapParm;
+        mapParm2.alpha = mapParm2.alpha2;
+        mapParm2.listN = mapParm2.listN2;
+
+        apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, 0, length(read), cordLenThr, thd_best_n);
+        if (_DefaultCord.getMaxLen(cords) < length(read) * senThr)
+        {
+            clear(cords);
+            apxMap_ (index, read, anchors, mapParm2, hit, f1, f2, cords, 0, length(read), cordLenThr, thd_best_n);
+        }   
+    }
+
+    //Mark signs used in the alignment part
+    int seg = 0; //add sgn to cords 
+    for (int i = 0; i < length(cords); i++)
+    {
+        set_cord_recd(cords[i], seg);
+        set_cord_main(cords[i]);
+        if (_DefaultCord.isBlockEnd(cords[i]))
+        {
+            seg = 1 - seg;
+        }
+    }
+    return 0;
 }
 
 /*===================================================

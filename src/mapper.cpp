@@ -330,16 +330,15 @@ int map_(IndexDynamic & index,
         _compltRvseStr(reads[j], comStr);
         createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
         createFeatures(begin(comStr), end(comStr), f1[1]);
-        anchors.init(1);
-        clear(crhit);
-        apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, cordsTmp[c], cordLenThr);
+        int f_chain = 1; 
+        dout << "str2" << j << "\n";
+        apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, cordsTmp[c], cordLenThr, f_chain);
+        /*
         if (_DefaultCord.getMaxLen(cordsTmp[c]) < length(reads[j]) * senThr)
         {
-            clear(cordsTmp[c]);
-            anchors.init(1);
-            clear(crhit);
-            apxMap (index, reads[j], anchors, complexParm, crhit, f1, f2, cordsTmp[c], cordLenThr);
+            apxMap (index, reads[j], anchors, complexParm, crhit, f1, f2, cordsTmp[c], cordLenThr, f_chain);
         }   
+        */
         if (fm_handler_.isMapGap(f_map))
         {
             mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], g_hs, g_anchor, clipsTmp[c], f1, f2, gap_len_min, window_size, thd_err_rate);

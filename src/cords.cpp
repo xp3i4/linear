@@ -251,3 +251,16 @@ void print_cords(String<uint64_t> & cords, CharString header)
         }
     }
 }
+//Use as gap condition
+int isCordsConsecutive_(uint64_t & cord1, uint64_t cord2, uint64_t thd_cord_gap)
+{
+    uint64_t x1 = get_cord_x (cord1);
+    uint64_t x2 = get_cord_x (cord2);
+    uint64_t y1 = get_cord_y (cord1);
+    uint64_t y2 = get_cord_y (cord2);
+    return !get_cord_strand(cord1 ^ cord2) &&
+           x1 < x2 && y1 < y2 &&
+           x2 - x1 < thd_cord_gap &&
+           y2 - y1 < thd_cord_gap;
+}
+

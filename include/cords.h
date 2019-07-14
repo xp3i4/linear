@@ -139,5 +139,6 @@ void set_cord_recd(uint64_t & cord, uint64_t sgn);
 uint64_t is_cord_main(uint64_t cord);
 int64_t atomic_inc_cord_y (int64_t & cord); // atomic cord++, return the new cord
 uint64_t is_cord_block_end(uint64_t);
+int isCordsConsecutive_(uint64_t & cord1, uint64_t cord2, uint64_t thd_cord_gap);
 
 #endif

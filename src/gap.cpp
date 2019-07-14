@@ -2584,20 +2584,6 @@ uint64_t clip_tile (String<Dna5> & seq1,
 }
 
 /*----------  Reform tiles of gaps  ----------*/
-/*
- * Is consecutive or gapped  
- */
-int isCordsConsecutive_(uint64_t & cord1, uint64_t cord2, uint64_t thd_cord_gap)
-{
-    uint64_t x1 = get_cord_x (cord1);
-    uint64_t x2 = get_cord_x (cord2);
-    uint64_t y1 = get_tile_y (cord1);
-    uint64_t y2 = get_tile_y (cord2);
-    return !get_tile_strand(cord1 ^ cord2) &&
-           x1 < x2 && y1 < y2 &&
-           x2 - x1 < thd_cord_gap &&
-           y2 - y1 < thd_cord_gap;
-}
 
 int isTilesConsecutive_(uint64_t & tile1, uint64_t tile2, uint64_t thd_cord_gap)
 {
@@ -3126,7 +3112,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
 
     int64_t shift_x;
     int64_t shift_y;
-    uint64_t thd_max_extend = 2000;
+    uint64_t thd_max_extend = 2000;  //Important::tune::whether process in gap or pmpfiner.h
     uint64_t thd_max_extend_x = thd_max_extend;
     uint64_t thd_max_extend_y = thd_max_extend; //>large gaps are supposed to be handled during the apx part.
     int64_t thd_dxy_min = 80;
