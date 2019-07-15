@@ -410,7 +410,6 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f)
     std::vector<int96> buffer(3, zero96); //buffer of 3 cells in one script
     resize (f, (it_end - it_str - window48) / scpt_step + 1); 
     setInt96(f[0], zero96);
-    //dout << "cf48" << length(f) << it_end - it_str << "\n";
     for (int i = 0; i < 3; i++) //init f[0]
     {
         for (int j = i << scpt_bit; j < (i << scpt_bit) + scpt_step; j++)
@@ -1175,7 +1174,6 @@ unsigned getDIndexMatchAll (DIndex & index,
     LShape shape(index.shape);
     uint64_t xpre = 0;
     hashInit(shape, begin(read));
-    dout << "alpha" << mapParm.alpha << "\n";
     for (unsigned k = read_str; k < read_end; k++)
     {
         hashNexth(shape, begin(read) + k);
@@ -1354,7 +1352,6 @@ uint64_t getAnchorMatchList(Anchors & anchors,
         if (get_cord_x(anchors[k]) - get_cord_x(ak) > thd_anchor_err * readLen ||
             k == anchors.length() - 1)
         {
-        //dout << "anchors1xxxxxxxxxx" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
             if (c_b > mapParm.anchorLenThr * readLen)
             {
                 anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
@@ -1366,7 +1363,6 @@ uint64_t getAnchorMatchList(Anchors & anchors,
         }
         else 
         {
-        //dout << "anchors2" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
             //cb += std::min(anchors.deltaPos2(k, k - 1), mapParm.shapeLen);
             if(anchors.deltaPos2(k, k - 1) >  mapParm.shapeLen)
                 c_b += mapParm.shapeLen;
@@ -1429,7 +1425,6 @@ uint64_t getAnchorMatchList2(Anchors & anchors,
         if (get_cord_x(anchors[k]) - get_cord_x(ak) > thd_anchor_err * readLen ||
             k == anchors.length() - 1)
         {
-        //dout << "anchors1xxxxxxxxxx" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
             if (c_b > mapParm.anchorLenThr * readLen)
             {
                 anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
@@ -1441,7 +1436,6 @@ uint64_t getAnchorMatchList2(Anchors & anchors,
         }
         else 
         {
-        //dout << "anchors2" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
             //cb += std::min(anchors.deltaPos2(k, k - 1), mapParm.shapeLen);
             if(anchors.deltaPos2(k, k - 1) >  mapParm.shapeLen)
                 c_b += mapParm.shapeLen;
@@ -1478,7 +1472,6 @@ uint64_t getAnchorMatchList2(Anchors & anchors,
 
 uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read_end, MapParm & mapParm, String<uint64_t> & hit, int thd_best_n)
 {
-    dout << "anchors_str\n";
     float thd_err_rate = 0.2;
     float thd_anchor_accept_dens = 0.001; //todo::tune err, kmer step related
     float thd_anchor_accept_lens_rate = 0.01;
@@ -1510,7 +1503,6 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
              k != anchors.length() - 1
             )
         {
-        dout << "anchors" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << "\n";
             if(anchors.deltaPos2(k, k - 1) >  mapParm.shapeLen)
                 c_b += mapParm.shapeLen;
             else
@@ -1522,7 +1514,6 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
         }
         else
         {
-        dout << "anchorsxxxxxx" << k << get_cord_y(anchors[k]) <<get_cord_x(anchors[k]) << dy2 << get_cord_x(ak2) << "\n";
             if (c_b > thd_anchor_accept_lens && 
                 (k - sb) >= (max_y - min_y) * thd_anchor_accept_dens)
             {
@@ -1555,7 +1546,6 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
                 sb = ((list[k] >> 20) & mask);
                 sc = list[k] & mask;
                 //dout <<"hitxxxxxx\n";
-                dout << "anchorslist" << sb << sc << "\n";
                 for (unsigned n = sb; n < sc; n++)
                 {
                     appendValue(hit, anchors[n]);
@@ -1719,13 +1709,11 @@ int gather_gaps_y_ (String<uint64_t> & cords,
                           readLen - get_cord_y(j.second) - 1 : get_cord_y(j.first);
             return y1 < y2; 
         });
-    dout << "y12" << length(str_ends) << "\n";
     uint64_t f_cover = 0;
     uint64_t cord1 = 0;
     uint64_t cord2 = 0;
     UPair y1, y2;
     y1 = getUPForwardy (str_ends[0], readLen);
-    dout << "y121" << y1.first << "\n";
     if (y1.first > thd_gap_size) //check str[0]
     {
         uint64_t cord2 = str_ends[0].first;
@@ -1740,7 +1728,6 @@ int gather_gaps_y_ (String<uint64_t> & cords,
         }
         cord2 = str_ends[i].first;
         y2 = getUPForwardy(str_ends[i], readLen);
-        dout << "y12" << y1.first  << y1.second << y2.first << y2.second << "\n";
         if (y1.second > y2.second)  
         {
             //y2 is skipped
@@ -1753,8 +1740,6 @@ int gather_gaps_y_ (String<uint64_t> & cords,
             if (y2.first > y1.second &&  //NOTE::uint don't eliminate the first condition
                 y2.first - y1.second > thd_gap_size) 
             {
-                print_cord (cord1, "y13");
-                print_cord (cord2, "y13");
                 appendValue (gaps, UPair(cord1, cord2));
             }
             f_cover = 0; 
@@ -1778,7 +1763,6 @@ int chain_blocks_ (String<uint64_t> & cords,
                    int64_t thd_chain_blocks_lower,
                    int64_t thd_chain_blocks_upper)
 {
-    dout << "aj111111111111\n";
     if (empty(cords) || empty(str_ends_p))
     {
         return 0;
@@ -1796,7 +1780,6 @@ int chain_blocks_ (String<uint64_t> & cords,
     UPair y2 = y1;
     for (unsigned i = 0; i < length(str_ends_p); i++)
     {
-        dout << "aj" << i << length(str_ends_p) << str_ends_p[i].first << str_ends_p[i].second << length(cords) << "\n";
         if (i > 0) //skip combine in the first block
         {
             uint64_t cord1 = cords[str_ends_p[i].first];
@@ -1804,18 +1787,15 @@ int chain_blocks_ (String<uint64_t> & cords,
             int64_t dx = get_cord_x(cord1) - get_cord_x(tmp_cords[k - 1]); 
             y2 = getUPForwardy(UPair(cord1, cord2), readLen);
             int64_t dy = y2.first - y1.second;
-            dout << "aj4" <<dy << dx << y2.first << y2.second << "\n";
             if (dy > thd_chain_blocks_lower && dy < thd_chain_blocks_upper &&
                 dx > thd_chain_blocks_lower && dx < thd_chain_blocks_upper)
             {
-                dout << "aj2" << k - 1 << "\n";
                 _DefaultHit.unsetBlockEnd(tmp_cords[k - 1]);
             }
         }
         for (unsigned j = str_ends_p[i].first; j < str_ends_p[i].second; j++)
         {
             tmp_cords[k] = cords[j];
-            dout << "aj" << j << k << length(tmp_cords) << "\n";
             k++;
         }
         y1 = y2;
@@ -1885,7 +1865,6 @@ uint64_t apxMap (IndexDynamic & index,
             UPair y = getUPForwardy (gaps[i], length(read));
             uint64_t y1 = y.first;
             uint64_t y2 = y.second;
-            dout << "gpy" << y.first << y.second << "\n";
             thd_best_n = 1; //best hit only
             apxMap_(index, read, anchors, mapParm2, hit, f1, f2, cords, y1, y2, cordLenThr, thd_best_n);
         }

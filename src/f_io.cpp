@@ -465,7 +465,6 @@ int print_align_sam (StringSet<String<Dna5> > & genms,
     print_align_sam_header_(genmsId, 
                             genms,
                             of);
-    dout << "length(readsid)" << length(readsId) << "\n"    ;
     print_align_sam_record_(bam_records,
                             genmsId,
                             readsId,
@@ -504,7 +503,6 @@ int ifCreateNew_(uint64_t cord1_str, uint64_t cord1_end, uint64_t cord2_str, uin
                 (x12 > x21 && y12 < y21) ||
                 (x12 < x21 && y12 > x21) ||
                 get_cord_strand (cord1_str ^ cord2_str);
-    dout << "ifCreateNew_" << x12 << y12 << x21 << y21 << flag << "\n";
     return flag;
 }
 /*
@@ -557,7 +555,6 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
     char ops;
     if (x0 - y0 != x11 - y11) 
     {
-        dout << "err" << x0 << y0 << x11 << y11 << "\n";
         return ~0; //return error
     }
 
@@ -570,7 +567,6 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
     if (m_len <= e_upper)
     {
         createRectangleCigarPair(cord1_str, cord2_str, cigar1, cigar2, 0); //'='
-        cout << "c12" << cigar1.count << cigar1.operation << "\n";
         appendCigar (cigar, cigar1);
         appendCigar (cigar, cigar2);
         next_cigar_str = cord2_str;
@@ -618,7 +614,6 @@ void cords2BamLink(String<uint64_t> & cords_str,
             int strand = get_cord_strand (cords_str[i]);
             insertNewBamRecord (bam_link_records, g_id, g_beginPos, r_beginPos, strand);
             cigar_str = cords_str[i];
-            dout << "x11" << i<< "\n";
         }
         if (i == length(cords_str) - 1 ||
             ifCreateNew_ (cords_str[i], cords_end[i], 
@@ -628,14 +623,12 @@ void cords2BamLink(String<uint64_t> & cords_str,
             cord1_end = cords_end[i];
             cord2_str = cords_end[i];
             f_new = 1; //next cord[i + 1] will start a new recordd
-            dout << "x12" << i << get_cord_y(cord1_str) << "\n";
         }
         else
         {
             cord1_str = cords_str[i];
             cord1_end = cords_end[i];
             cord2_str = cords_str[i + 1];
-            dout << "x13" << i<< "\n";
         }
         cigar_str = cord2cigar_ (cigar_str, 
                                  cord1_str, cord1_end, cord2_str, 

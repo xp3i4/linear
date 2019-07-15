@@ -325,13 +325,11 @@ int map_(IndexDynamic & index,
     {
         double t1 = sysTime ();
         red_len[thd_id] += length(reads[j]);
-        std::cout << "[]::rawmap::j " << j <<"\n";
         float cordLenThr = length(reads[j]) * cordThr;
         _compltRvseStr(reads[j], comStr);
         createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
         createFeatures(begin(comStr), end(comStr), f1[1]);
         int f_chain = 1; 
-        dout << "str2" << j << "\n";
         apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, cordsTmp[c], cordLenThr, f_chain);
         /*
         if (_DefaultCord.getMaxLen(cordsTmp[c]) < length(reads[j]) * senThr)
@@ -351,7 +349,7 @@ int map_(IndexDynamic & index,
             //check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
             //>>debug
         }
-        dout << "sysTime" << j << sysTime() - t1 << "\n";
+        //dout << "sysTime" << j << sysTime() - t1 << "\n";
         c += 1;
     } 
     #pragma omp for ordered
