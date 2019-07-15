@@ -1181,7 +1181,7 @@ unsigned getDIndexMatchAll (DIndex & index,
         hashNexth(shape, begin(read) + k);
         uint64_t pre = ~0;
         if (++dt == mapParm.alpha)
-//        if (++dt == 10)
+//        if (++dt == 1)
         {
             dt = 0;
             if(hashNextX(shape, begin(read) + k) ^ xpre)
@@ -1644,7 +1644,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
 /*----------  Chain & Wrapper   ----------*/
 /*
  * Shortcut of gathering start and end pos of each block of consecutive cords 
- *  
+ * NOTE::str and end coordniates of each block is shifted by @thd_cord_size / 2 based on the cord coordinates 
  */
 int gather_blocks_ (String<uint64_t> & cords, 
                     String<UPair> & str_ends, //result [] closed 
@@ -1682,7 +1682,7 @@ int gather_blocks_ (String<uint64_t> & cords,
     return 0; 
 }
 
-//shortcut to get y pair
+//shortcut to get y pair (str, end) of block on the forward strand (y projection)
 UPair getUPForwardy(UPair str_end, uint64_t readLen)
 {
     if (get_cord_strand(str_end.first))
@@ -1704,6 +1704,13 @@ int gather_gaps_y_ (String<uint64_t> & cords,
                     uint64_t readLen,
                     uint64_t thd_gap_size)
 {
+    uint64_t cord_frt = shift_cord(0, 0, 0); //cord at front 
+    uint64_t cord_end = shift_cord(0, 0, readLen); //..end
+    if (empty(str_ends))
+    {
+        appendValue (gaps, UPair(cord_frt, cord_end));
+        return 0;
+    }
     std::sort (begin(str_ends), end(str_ends), [& cords, &readLen](UPair & i, UPair & j)
         {
             uint64_t y1 = get_cord_strand(i.first) ? 
@@ -1717,6 +1724,13 @@ int gather_gaps_y_ (String<uint64_t> & cords,
     uint64_t cord1 = 0;
     uint64_t cord2 = 0;
     UPair y1, y2;
+    y1 = getUPForwardy (str_ends[0], readLen);
+    dout << "y121" << y1.first << "\n";
+    if (y1.first > thd_gap_size) //check str[0]
+    {
+        uint64_t cord2 = str_ends[0].first;
+        appendValue(gaps, UPair(cord_frt, cord2));
+    }
     for (unsigned i = 1; i < length(str_ends); i++)
     {
         if (!f_cover)
@@ -1746,6 +1760,12 @@ int gather_gaps_y_ (String<uint64_t> & cords,
             f_cover = 0; 
         }
     }
+    if (readLen - y2.second > thd_gap_size) //be sure y2 = back(str_ends)
+    {
+        uint64_t cord1 = back(str_ends).second;
+        appendValue(gaps, UPair(cord1, cord_end));
+    }
+    return 0;
 }
 
 /**
