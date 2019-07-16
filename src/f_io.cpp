@@ -23,6 +23,7 @@ void print_cords_apf(CordsSetType & cords,
     uint64_t seqsCordEnd;
     char main_icon_strand = '+', icon_strand = '+';
     int fflag = 0;
+    
     for (unsigned k = 0; k < length(cords); k++)
     {
         if (!empty(cords[k]))

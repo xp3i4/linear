@@ -364,7 +364,6 @@ int64_t _windowDist48_4(Iterator<String<int96> >::Type it1,  //feature string it
     printInt96(*(it2 + 1), "4842");
     printInt96(*(it2 + 2), "4842");
     printInt96(*(it2 + 3), "4842");
-    dout << "\n";
     for (int i = 0; i < 12; i++)
     {
         printInt96(*(it1 + i), "int1");
@@ -430,9 +429,7 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f)
         for (int j = i - scpt_step + window48; j < i + window48; j++)
         {
             add2merInt96(buffer[ii], it_str + j);
-            //std::cout << *(it_str + j);
         }
-        //printInt96(buffer[ii], "cf2");
         incInt96(f[next], buffer[ii]);
         ii = addMod3[ii];
         next++;
@@ -943,7 +940,9 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
                StringSet<FeaturesDynamic> & f2,
                unsigned & preCordStart,
                String<uint64_t> & cord,
-               float const & thd_min_block_len
+               float const & thd_min_block_len,
+               unsigned readLen,
+               unsigned thd_cord_size
                )
 {
 //TODO: add maxlen of anchor to the first node in cord;
@@ -969,7 +968,7 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
             {
                 distThd = _apx_parm2_48.windowThreshold;
             }
-            if(dist < distThd)
+            if(dist < distThd && get_cord_y(new_cord) + thd_cord_size < uint64_t(readLen))
             {
                 appendValue(cord, new_cord);
                 ++it;
@@ -1012,6 +1011,7 @@ bool path_dst(typename Iterator<String<uint64_t> >::Type hitBegin,
               float const & thd_min_block_len
               )
 {
+    unsigned thd_cord_size = window_size;
     typename Iterator<String<uint64_t> >::Type it = hitBegin;
     unsigned preBlockPtr;
     float score = 0;
@@ -1023,9 +1023,11 @@ bool path_dst(typename Iterator<String<uint64_t> >::Type hitBegin,
             uint64_t genomeId = get_cord_id(back(cords));
             extendWindow(f1[strand], f2[genomeId], cords, read_str, read_end, read_len, score, strand);
         }
-        while (nextCord(it, hitEnd, f1, f2, preBlockPtr, cords, thd_min_block_len));
+        while (nextCord(it, hitEnd, f1, f2, preBlockPtr, cords, thd_min_block_len, read_len, thd_cord_size));
+        set_cord_end (back(cords));
         return endCord(cords, preBlockPtr, thd_min_block_len);   
     }
+    set_cord_end (back(cords));
     //std::cout << "[]::path_dist::cord " 
     return false;
 }
@@ -1545,11 +1547,9 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
             {
                 sb = ((list[k] >> 20) & mask);
                 sc = list[k] & mask;
-                //dout <<"hitxxxxxx\n";
                 for (unsigned n = sb; n < sc; n++)
                 {
                     appendValue(hit, anchors[n]);
-                    //dout << "hit" << get_cord_y(back(hit)) << get_cord_x(back(hit)) << "\n";
                 }   
                 ++record_num;
                 _DefaultHit.setBlockEnd(back(hit));
@@ -1649,7 +1649,8 @@ int gather_blocks_ (String<uint64_t> & cords,
     {
         return 0;
     }
-    uint64_t d_shift = thd_cord_size / 2; //NOTE::str end is shifted by this value
+    uint64_t d_shift_max = thd_cord_size / 2;
+    uint64_t d_shift = d_shift_max; //NOTE::str end is shifted by this value
     unsigned p_str = 1;
 
     for (unsigned i = 2; i < length(cords); i++)
@@ -1657,17 +1658,24 @@ int gather_blocks_ (String<uint64_t> & cords,
         if (is_cord_block_end(cords[i - 1])||
            !isCordsConsecutive_(cords[i - 1], cords[i], thd_large_gap))
         {
+            d_shift = std::min (readLen - get_cord_y(cords[p_str]) - 1, d_shift_max);
             uint64_t b_str = shift_cord (cords[p_str], d_shift, d_shift);
+            d_shift = std::min (readLen - get_cord_y(cords[i - 1]) - 1, d_shift_max);
             uint64_t b_end = shift_cord (cords[i - 1], d_shift, d_shift);
             appendValue (str_ends, UPair(b_str, b_end));
             appendValue (str_ends_p, UPair(p_str, i));
             p_str = i;
         }
     }
-    uint64_t b_str = shift_cord (cords[p_str], d_shift, d_shift);
-    uint64_t b_end = shift_cord (back(cords), d_shift, d_shift);
-    appendValue (str_ends, UPair(b_str, b_end));
-    appendValue (str_ends_p, UPair(p_str, length(cords)));
+    //if (get_cord_y(cords[p_str] - back(cords))) //cords[]_y != back()_y
+    //{
+        d_shift = std::min (readLen - get_cord_y(back(cords)) - 1, d_shift_max);
+        uint64_t b_str = shift_cord (cords[p_str], d_shift, d_shift);
+        d_shift = std::min (readLen - get_cord_y(back(cords)) - 1, d_shift_max);
+        uint64_t b_end = shift_cord (back(cords), d_shift, d_shift);
+        appendValue (str_ends, UPair(b_str, b_end));
+        appendValue (str_ends_p, UPair(p_str, length(cords)));
+    //}
 
     return 0; 
 }
@@ -1798,10 +1806,11 @@ int chain_blocks_ (String<uint64_t> & cords,
             tmp_cords[k] = cords[j];
             k++;
         }
+        set_cord_end (tmp_cords[k - 1]);
         y1 = y2;
     }
-    //return 0;
     cords = tmp_cords;
+    //return 0;
 }
 
 /*
