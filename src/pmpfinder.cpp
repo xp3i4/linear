@@ -1695,7 +1695,7 @@ int gather_gaps_y_ (String<uint64_t> & cords,
                     uint64_t thd_gap_size)
 {
     uint64_t cord_frt = shift_cord(0, 0, 0); //cord at front 
-    uint64_t cord_end = shift_cord(0, 0, readLen); //..end
+    uint64_t cord_end = shift_cord(0, 0, readLen - 1); //..end
     if (empty(str_ends))
     {
         appendValue (gaps, UPair(cord_frt, cord_end));
