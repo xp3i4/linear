@@ -45,9 +45,13 @@ void print_cords_apf(CordsSetType & cords,
                         block_len++;
                         m++;
                     }
-                    if (main_strand_count > (block_len >> 1))
+                    if (main_strand_count > (block_len / 2))
                     {
                         main_icon_strand = '-';
+                    }
+                    else if (main_strand_count == (block_len / 2))
+                    {
+                        main_icon_strand = get_cord_strand(cords[k][j]) ? '-' : '+';
                     }
                     else
                     {
