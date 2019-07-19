@@ -2613,6 +2613,7 @@ uint64_t reform_tile_ (String<Dna5> & seq1,
         set_tile_end(tile_str);
         set_tile_end(tile_end);
     }
+    print_cord(clip, "rft");
     return clip;
 }
 
@@ -2693,11 +2694,9 @@ int reform_tiles(String<Dna5> & seq1,
     uint64_t tail_tile = shift_tile(gap_end, -thd_tile_size, -thd_tile_size); 
     remove_tile_sgn(head_tile);
     remove_tile_sgn(tail_tile);
-    if (get_cord_y(head_tile) > get_cord_y(tail_tile) ||
-        get_cord_x(head_tile) > get_cord_x(tail_tile))
-    {
-        //return 1;
-    }
+
+    dout << "rft" << get_cord_y(gap_str) << get_cord_y(gap_end) << "\n";
+
     String<uint64_t> tiles_str_tmp;
     String<uint64_t> tiles_end_tmp;
     if (direction != g_map_left)
@@ -2751,6 +2750,8 @@ int reform_tiles(String<Dna5> & seq1,
                 thd_err_rate);
     tiles_str = tiles_str_tmp;
     tiles_end = tiles_end_tmp;
+    g_print_tiles_(tiles_str, "rtf1");
+    g_print_tiles_(tiles_end, "rtf2");
     return 0;
 }
 
@@ -3074,7 +3075,6 @@ int insert_tiles2Cords_(String<uint64_t> & cords_str,
                      gap_str, gap_end, direction, 
                      thd_cord_gap, thd_tile_size, thd_err_rate);
         //try dup for each sp_tiles element.
-        /*
         for (int j = 0; j < getClipsLen(sp_tiles); j++)
         {
             String <uint64_t> dup_tiles_str;
@@ -3096,7 +3096,6 @@ int insert_tiles2Cords_(String<uint64_t> & cords_str,
                          dup_str, dup_end, dup_direction,
                          thd_cord_gap, thd_tile_size, thd_err_rate);
         }
-        */
         return 0;
     }
 }
@@ -3233,9 +3232,9 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             uint64_t gap_str = cords_str[i];
             if (length(read) - 1 - get_cord_y(gap_str) > thd_cord_gap)
             {
-                if (i == length(cords_str) - 1 || 
-                    !isBlocksLinkable(cords_str[i], cords_str[i + 1], length(read) - 1, thd_max_chain_distance))
-                {
+                //if (i == length(cords_str) - 1 || 
+                //    !isBlocksLinkable(cords_str[i], cords_str[i + 1], length(read) - 1, thd_max_chain_distance))
+                //{
                     shift_x = std::min(thd_max_extend_x, 
                                       length(seqs[sid]) - get_cord_x(gap_str));
                     shift_y = std::min(thd_max_extend_y, 
@@ -3261,12 +3260,12 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                              thd_err_rate,
                              thd_dxy_min);
                     insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_tile_size);
-                }
-                else
-                {
+                //}
+                //else
+               // {
                     //None
                     //handled in the next cord i + 1
-                }
+                //}
             }
         }
     }
