@@ -318,6 +318,7 @@ int map_(IndexDynamic & index,
     
     String<uint64_t> g_hs;
     String<uint64_t> g_anchor;
+    String<UPair> apx_gaps; 
     resize (g_hs, 1ULL << 20);
     resize (g_anchor, 1ULL<<20);
     #pragma omp for
@@ -331,7 +332,7 @@ int map_(IndexDynamic & index,
         createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
         createFeatures(begin(comStr), end(comStr), f1[1]);
         int f_chain = 1; 
-        apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, cordsTmp[c], cordLenThr, f_chain);
+        apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordLenThr, f_chain);
         /*
         if (_DefaultCord.getMaxLen(cordsTmp[c]) < length(reads[j]) * senThr)
         {
@@ -340,7 +341,7 @@ int map_(IndexDynamic & index,
         */
         if (fm_handler_.isMapGap(f_map))
         {
-            mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], g_hs, g_anchor, clipsTmp[c], f1, f2, gap_len_min, window_size, thd_err_rate);
+            mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], g_hs, g_anchor, clipsTmp[c], apx_gaps, f1, f2, gap_len_min, window_size, thd_err_rate);
 
         }
         if (fm_handler_.isAlign(f_map))

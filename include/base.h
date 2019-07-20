@@ -16,6 +16,9 @@ extern const unsigned base_threshold_;
 extern const unsigned base_kmer_step_;
 extern const uint64_t base_llt_max_;
 
+extern int64_t const LLMAX;
+extern int64_t const LLMIN;
+
 typedef Iterator <String <Dna5> >::Type TIter5;
 typedef unsigned uint;
 typedef uint64_t uintll;

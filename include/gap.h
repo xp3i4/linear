@@ -29,10 +29,11 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             String<uint64_t> & g_hs,
             String<uint64_t> & g_anchor,
             String<uint64_t> & clips,
+            String<UPair> & apx_gaps,
             StringSet<FeaturesDynamic> & f1,
             StringSet<FeaturesDynamic>& f2,
-            int thd_gap, 
-            int thd_tileSize,
+            int64_t thd_gap, 
+            int64_t thd_tileSize,
             float thd_err_rate
            );
 

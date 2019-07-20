@@ -8,6 +8,7 @@ using namespace seqan;
 //NOTE:Length of read < 1M;
 typedef std::array<int, 3> int96;
 typedef int96 FeatureType;
+typedef std::pair<uint64_t, uint64_t> UPair;
 
 extern const unsigned window_size; //16*12
 
@@ -82,7 +83,19 @@ uint64_t apxMap (IndexDynamic & index,
                  String<uint64_t> & hit, 
                  StringSet<FeaturesDynamic> & f1,
                  StringSet<FeaturesDynamic> & f2,
+                 String<UPair> & apx_gaps,
                  String<uint64_t> & cords, 
                  float cordLenThr,
                  int f_chain);
+int gather_blocks_ (String<uint64_t> & cords, 
+                    String<UPair> & str_ends,   //result [] closed 
+                    String<UPair> & str_ends_p, //result pointer [,) right open
+                    uint64_t readLen,
+                    uint64_t thd_large_gap,
+                    uint64_t thd_cord_size);
+int gather_gaps_y_ (String<uint64_t> & cords, 
+                    String<UPair> & str_ends,
+                    String<UPair> & gaps,
+                    uint64_t readLen,
+                    uint64_t thd_gap_size);
 #endif

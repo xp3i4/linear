@@ -491,7 +491,7 @@ void appendCigar(String<CigarElement< > > & cigars, CigarElement<> cigar)
     appendCigar(cigars, cigar.operation, cigar.count);
 }
 /*
- * If need to create new bam record given the @cords
+ * If necessary to create new bam record given the @cords
  */
 int ifCreateNew_(uint64_t cord1_str, uint64_t cord1_end, uint64_t cord2_str, uint64_t cord2_end)
 {

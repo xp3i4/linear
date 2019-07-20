@@ -9,11 +9,6 @@ using namespace seqan;
 using std::cout;
 using std::endl;
 
-int64_t const LLMAX = (1LL << 63) - 1;
-int64_t const LLMIN = -LLMAX;
-
-typedef std::pair<uint64_t, uint64_t> UPair;
-
 int const typeFeatures1_32 = 1;
 int const typeFeatures2_48 = 2;
 int FeaturesDynamic::isFs1_32()
@@ -1683,7 +1678,13 @@ int gather_blocks_ (String<uint64_t> & cords,
         appendValue (str_ends, UPair(b_str, b_end));
         appendValue (str_ends_p, UPair(p_str, length(cords)));
     //}
-
+    //<<debug
+    for (auto gse : str_ends)
+    {
+        dout << "gse" << get_cord_y(gse.first) << get_cord_y(gse.second) << "\n";
+    }
+    dout << "gsexxx\n";
+    //>>debug
     return 0; 
 }
 
@@ -1715,6 +1716,7 @@ int gather_gaps_y_ (String<uint64_t> & cords,
                     uint64_t readLen,
                     uint64_t thd_gap_size)
 {
+    dout << "mggap-------------------" << length(str_ends) << "\n";
     uint64_t cord_frt = shift_cord(0, 0, 0); //cord at front 
     uint64_t cord_end = shift_cord(0, 0, readLen - 1); //..end
     if (empty(str_ends))
@@ -1749,6 +1751,7 @@ int gather_gaps_y_ (String<uint64_t> & cords,
         }
         cord2 = str_ends[i].first;
         y2 = getUPForwardy(str_ends[i], readLen);
+        dout << "mggapx2" << y2.first << y2.second << "\n";
         if (y1.second > y2.second)  
         {
             //y2 is skipped
@@ -1773,6 +1776,13 @@ int gather_gaps_y_ (String<uint64_t> & cords,
     }
     return 0;
 }
+/*
+UPair check_gaps_y (String<UPair> & gaps, UPair gap)
+{
+    for ()
+}
+*/
+
 /*
  * Chainable block: y1_end < y2_str, x1_end < x2_str
  * Slightly different on different stands
@@ -1885,6 +1895,7 @@ uint64_t apxMap (IndexDynamic & index,
                  String<uint64_t> & hit, 
                  StringSet<FeaturesDynamic> & f1,
                  StringSet<FeaturesDynamic> & f2,
+                 String<UPair> & apx_gaps,
                  String<uint64_t> & cords, 
                  float cordLenThr,
                  int f_chain)
@@ -1894,6 +1905,7 @@ uint64_t apxMap (IndexDynamic & index,
     int64_t thd_chain_blocks_lower = -100;
     int64_t thd_chain_blocks_upper = 10000; //two blocks of cords will be combined to one if 1.they can be combined 2. they are close enough (< this)
     int thd_best_n = 999; //unlimited best hit;
+    clear(apx_gaps);
     if (f_chain)
     {
         MapParm mapParm1 = mapParm;
@@ -1904,16 +1916,15 @@ uint64_t apxMap (IndexDynamic & index,
         apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, 0, length(read), cordLenThr, thd_best_n);
         String<UPair> str_ends;
         String<UPair> str_ends_p;
-        String<UPair> gaps;
         gather_blocks_ (cords, str_ends, str_ends_p, length(read), thd_large_gap, thd_cord_size);
-        gather_gaps_y_ (cords, str_ends, gaps, length(read), thd_large_gap);
+        gather_gaps_y_ (cords, str_ends, apx_gaps, length(read), thd_large_gap);
         //chain_blocks_ (cords, str_ends, length(read), thd_chain_blocks);
         
         uint64_t map_d = thd_cord_size >> 1; // cords + to map areas
         uint64_t str_y = 0;                  //stry y of interval between two consecutive blocks
-        for (int i = 0; i < length(gaps); i++) //check large gap and re map the gaps
+        for (int i = 0; i < length(apx_gaps); i++) //check large gap and re map the gaps
         {
-            UPair y = getUPForwardy (gaps[i], length(read));
+            UPair y = getUPForwardy (apx_gaps[i], length(read));
             uint64_t y1 = y.first;
             uint64_t y2 = y.second;
             thd_best_n = 1; //best hit only
