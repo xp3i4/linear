@@ -92,7 +92,8 @@ int gather_blocks_ (String<uint64_t> & cords,
                     String<UPair> & str_ends_p, //result pointer [,) right open
                     uint64_t readLen,
                     uint64_t thd_large_gap,
-                    uint64_t thd_cord_size);
+                    uint64_t thd_cord_size,
+                    int f_set_end); //will set block end sgn at end of evey detected new noncontinous block
 int gather_gaps_y_ (String<uint64_t> & cords, 
                     String<UPair> & str_ends,
                     String<UPair> & gaps,

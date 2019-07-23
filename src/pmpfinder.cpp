@@ -1636,13 +1636,18 @@ uint64_t mnMapReadList(IndexDynamic & index,
 /*
  * Shortcut of gathering start and end pos of each block of consecutive cords 
  * NOTE::str and end coordniates of each block is shifted by @thd_cord_size / 2 based on the cord coordinates 
+ * NOTE::block is different to block of cords.
+    1. Block of cords also includes inv cords.
+    2. Here block refers to cords of continuous x and y
+   inv end will call set_cord_end if @f_set_end is true
  */
 int gather_blocks_ (String<uint64_t> & cords, 
                     String<UPair> & str_ends, //result [] closed 
                     String<UPair> & str_ends_p, //result pointer [,) right open
                     uint64_t readLen,
                     uint64_t thd_large_gap,
-                    uint64_t thd_cord_size)
+                    uint64_t thd_cord_size,
+                    int f_set_end) //is set_cord_end for each block 
 {
     //small gaps processed in the gap module
     clear(str_ends);
@@ -1665,7 +1670,10 @@ int gather_blocks_ (String<uint64_t> & cords,
             uint64_t b_end = shift_cord (cords[i - 1], d_shift, d_shift);
             appendValue (str_ends, UPair(b_str, b_end));
             appendValue (str_ends_p, UPair(p_str, i));
-            set_cord_end (cords[i - 1]);
+            if (f_set_end)
+            {
+                set_cord_end (cords[i - 1]);
+            }
             p_str = i;
         }
     }
@@ -1755,7 +1763,7 @@ int gather_gaps_y_ (String<uint64_t> & cords,
         if (y1.second > y2.second)  
         {
             //y2 is skipped
-            //y1.first < y2.first (sort y.first)
+            //since 1.first < y2.first (sort y.first)
             //then region of y2 is all covered by y1;
             f_cover = 1;
         }
@@ -1850,6 +1858,8 @@ int chain_blocks_ (String<uint64_t> & cords,
             if (_isChainable(c1, c2, readLen, thd_chain_blocks_lower, thd_chain_blocks_upper))
             {
                 _DefaultHit.unsetBlockEnd(tmp_cords[k - 1]);
+                //print_cord (tmp_cords[k - 1], "ccs");
+                dout << "ccs" << is_cord_block_end(tmp_cords[k - 1]) << "\n";
             }
         }
         for (unsigned j = str_ends_p[i].first; j < str_ends_p[i].second; j++)
@@ -1916,7 +1926,7 @@ uint64_t apxMap (IndexDynamic & index,
         apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, 0, length(read), cordLenThr, thd_best_n);
         String<UPair> str_ends;
         String<UPair> str_ends_p;
-        gather_blocks_ (cords, str_ends, str_ends_p, length(read), thd_large_gap, thd_cord_size);
+        gather_blocks_ (cords, str_ends, str_ends_p, length(read), thd_large_gap, thd_cord_size, 1);
         gather_gaps_y_ (cords, str_ends, apx_gaps, length(read), thd_large_gap);
         //chain_blocks_ (cords, str_ends, length(read), thd_chain_blocks);
         
@@ -1933,7 +1943,7 @@ uint64_t apxMap (IndexDynamic & index,
         }
         clear (str_ends);
         clear (str_ends_p);
-        gather_blocks_ (cords, str_ends, str_ends_p, length(read), thd_large_gap, thd_cord_size);
+        gather_blocks_ (cords, str_ends, str_ends_p, length(read), thd_large_gap, thd_cord_size, 1);
         chain_blocks_ (cords, str_ends_p, length(read), thd_chain_blocks_lower, thd_chain_blocks_upper);
     }
     else
@@ -2018,7 +2028,6 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
  * then call previousWindow for cord1 and nextWindow for cord2 until x1 + window_size < x2
  * if cord1 and cord2 have different strand 
  * then call nextWindow for cord1 and previousWindow for cord2 along each own strand until it can't be extended any more.
- * 
  */         
  int extendPatch(StringSet<FeaturesDynamic> & f1, 
                  StringSet<FeaturesDynamic> & f2, 
