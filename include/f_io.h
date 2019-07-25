@@ -95,6 +95,7 @@ void print_cords_sam (StringSet<String<uint64_t> > & cordset_str,
                       StringSet<CharString> & readsId,
                       StringSet<String<Dna5> > & genms,
                       int thd_cord_size,
-                      std::ofstream & of
+                      std::ofstream & of,
+                      uint64_t thd_large_X
                       );
 #endif

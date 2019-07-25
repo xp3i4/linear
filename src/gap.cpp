@@ -1322,9 +1322,12 @@ struct MapAnchorParm
     std::sort (begin(anchor), begin(anchor) + anchor_end);
     anchor[anchor_end] = ~0;
     int pre_tile_end = 0;
-
+    dout << "sv2anchor<<<<<<<<<<<<<<<<<<<<<<" << get_cord_y(gap_str) << "\n";
     for (int k = 0; k < anchor_end + 1; k++)
     {
+        //<<debug
+        dout << "sv2anchor" << g_hs_anchor_get_strand (anchor[k]) << g_hs_anchor_getY(anchor[k]) << g_hs_anchor_getX(anchor[k]) << "\n";
+        //>>debug
         //TODO: handle thd_min_segment, anchor 
         int64_t d = std::abs((int64_t)g_hs_anchor_getY(anchor[k]) - (int64_t)g_hs_anchor_getY(anchor[prek]));
         if (g_hs_anchor_getAnchor(anchor[k]) - g_hs_anchor_getAnchor(anchor[prek]) > 
@@ -1454,6 +1457,7 @@ struct MapAnchorParm
             set_tile_end(back(tiles));
         }
     }
+  //  g_print_tiles_(tiles, "sv2anchor");
 /**
  * step 3. extend patch
  * extend window if there are gaps between tiles until the 
@@ -1461,6 +1465,7 @@ struct MapAnchorParm
  * ATTENTION: relation between y1 and y2 currently are not considered.
  */
 
+    g_print_tiles_(tiles, "mi20");
     uint64_t cord_str = gap_str;
     uint64_t cord_end = shift_cord(gap_end, -thd_tileSize, -thd_tileSize);
     //uint64_t cord_end = gap_end;
@@ -1472,6 +1477,7 @@ struct MapAnchorParm
             set_tile_start(tiles[0]);
             set_tile_end(back(tiles));
         }
+    g_print_tiles_(tiles, "mi222");
         return 0;
     } 
     for (int i = 0; i < length(tiles); i++)
@@ -1501,7 +1507,8 @@ struct MapAnchorParm
             i += extendPatch(f1, f2, tiles, i, tiles[i - 1], tiles[i], revscomp_const, thd_overlap_size, thd_gap_size);   
         }
     }
-
+    g_print_tiles_(tiles, "sv2anchor");
+    g_print_tiles_(tiles, "mi21");
     //convert tile sgn (tile end) to cord sgn (block end) and remove illegal tiles.
     int num_block = 0;
     for (int i = 0; i < length(tiles); i++)
@@ -1544,6 +1551,7 @@ struct MapAnchorParm
     {
         resize (tiles, length(tiles) - di);
     }
+    g_print_tiles_(tiles, "mi22");
     return 0;
 }
 /**
@@ -1591,7 +1599,8 @@ int map_interval_(String<Dna5> & seq1, //genome
     }
     int g_hs_end = 0;
     int g_hs_anchor_end = 0;
-
+    print_cord(gap_str, "mi2>>>>>");
+    print_cord(gap_end, "mi2>>>>");
     uint64_t rvcp_const = length(seq2) - 1;
     uint64_t gs_str = get_cord_x(gap_str);
     uint64_t gs_end = get_cord_x(gap_end);
@@ -1608,7 +1617,7 @@ int map_interval_(String<Dna5> & seq1, //genome
     g_hs_end = g_mapHs_kmer_(seq2, g_hs, gr_str, gr_end, g_hs_end, 1, 1);
 
     std::sort (begin(g_hs), begin(g_hs) + g_hs_end);
-
+    dout << "mi3" << g_hs_end << anchor_lower << anchor_upper << "\n";
     int p1 = 0, p2 = 0;
     for (int k = 1; k < g_hs_end; k++)
     {    
@@ -1625,6 +1634,13 @@ int map_interval_(String<Dna5> & seq1, //genome
                 p2 = k; 
         }
     }
+    //<<debug
+    for (int i = 0; i < g_hs_anchor_end; i++)
+    {
+        dout << "mi2" << g_hs_anchor_get_strand (g_hs_anchor[i]) << g_hs_anchor_getY(g_hs_anchor[i]) << g_hs_anchor_getX(g_hs_anchor[i]) << "\n";
+    }
+    //>>debug
+    g_print_tiles_(g_hs_tile, "mi20x");
     g_mapHs_anchor_sv_(g_hs_anchor, g_hs_tile, f1, f2, 
                        gap_str, gap_end,
                        g_hs_anchor_end, 
@@ -1632,6 +1648,8 @@ int map_interval_(String<Dna5> & seq1, //genome
                        rvcp_const,
                        direction
                       );
+    g_print_tiles_(g_hs_tile, "mi2x");
+    //dout << "mi2" << g_hs_anchor_end << "\n";
 }
 /*
  * Shortcut to eliminate restrictions on anchors (any anchor will be recorded)
@@ -3049,6 +3067,7 @@ int insert_tiles2Cords_(String<uint64_t> & cords,
     }
     else if (direction == g_map_closed)
     {
+        g_print_tiles_(tiles, "ins2c");
         uint64_t recd = get_cord_recd(cords[pos]);//set cord flag
         set_tiles_cords_sgns (tiles, recd);
         uint64_t cordtmp = cords[pos];
@@ -3216,6 +3235,7 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                      clips, g_hs, g_anchor, sp_tiles, 
                      gap_str, gap_end, direction, 
                      thd_cord_gap, thd_tile_size, thd_err_rate);
+        g_print_tiles_(tiles_str, "mpl");
     }
     else if (get_cord_y(gap_end) - get_cord_y(gap_str) > (length(g_hs)) ||
         get_cord_x(gap_end) - get_cord_x(gap_str) > (length(g_hs)) ||
@@ -3264,6 +3284,8 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                          dup_str, dup_end, dup_direction,
                          thd_cord_gap, thd_tile_size, thd_err_rate);
         }
+            g_print_tiles_(tiles_str, "clip[1");
+            g_print_tiles_(tiles_end, "clip[1");
     }
 
     return 0;
@@ -3277,13 +3299,24 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
 int64_t _getMaxGapsyOverlap(String<UPair> & gapsy, uint64_t gap_str, uint64_t gap_end)
 {
     int64_t overlap = 0;
-    uint64_t gap_stry = get_cord_y(gap_str);
-    uint64_t gap_endy = get_cord_y(gap_end);
+    int64_t gap_stry = get_cord_y(gap_str);
+    int64_t gap_endy = get_cord_y(gap_end);
     for (unsigned i = 0 ; i < length(gapsy); i++)
     {
-        uint64_t ystr = gapsy[i].first;
-        uint64_t yend = gapsy[i].second;
-        overlap = std::max(overlap, int64_t(std::min (gap_stry, yend) - std::max(gap_endy, ystr)));
+        int64_t ystr = gapsy[i].first;
+        int64_t yend = gapsy[i].second;
+        if (gap_stry >= ystr && gap_stry <= yend)
+        {
+            return std::min(gap_endy, yend) - gap_stry;
+        }
+        else if (gap_endy >= ystr && gap_endy <= yend)
+        {
+            return gap_endy - std::max(gap_stry, ystr);
+        }
+        else
+        {
+            return 0;
+        }
     }
     return  overlap;
 }
@@ -3493,8 +3526,12 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                 direction = g_map_rght;
                 _DefaultHit.unsetBlockEnd(gap_str);
                 _DefaultHit.unsetBlockEnd(gap_end);
-                dout << "mgend1" << get_cord_y(cords_str[i]) << is_cord_block_end(cords_str[i]) << "\n";
                 int max_gap_overlap_y = _getMaxGapsyOverlap(apx_gaps, gap_str, gap_end);
+                for (auto e : apx_gaps)
+                {
+                    dout << "apx_gaps" << e.first << e.second << get_cord_y(gap_str) << get_cord_y(gap_end) << "\n";
+                }
+                dout << "mgend1" << get_cord_y(cords_str[i]) << is_cord_block_end(cords_str[i]) << max_gap_overlap_y << "\n";
                 if (max_gap_overlap_y > thd_cord_gap)
                 {
                     mapGap_ (seqs, read, comstr, 
