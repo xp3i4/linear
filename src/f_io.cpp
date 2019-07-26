@@ -502,7 +502,6 @@ int ifCreateNew_(uint64_t cord1_str, uint64_t cord1_end, uint64_t cord2_str, uin
     uint64_t x21 = get_cord_x(cord2_str);
     uint64_t y21 = get_cord_y(cord2_str);
     (void) cord2_end;
-    dout << thd_large_X << "ifcrn\n";
     int flag = is_cord_block_end (cord1_str) ||  
                              (x11 > x21) || 
                              (y11 > y21) ||

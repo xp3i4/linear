@@ -14,7 +14,7 @@ const unsigned base_threshold_  = 30;
 const unsigned base_kmer_step_  = 1000;
 const uint64_t base_llt_max_    = ~0;
 
-int64_t const LLMAX = (1LL << 63) - 1;
+int64_t const LLMAX = (1LL << 62) - 1; //(1ULL << 63) - 1 is integer overflow on some compilers
 int64_t const LLMIN = -LLMAX;
 
 using std::cerr;
@@ -33,7 +33,7 @@ Options::Options():
            date += " ";
            date += __DATE__;
         }
-std::string Options::getOutputPath() const {return oPath;};
+std::string Options::getOutputPath() const {return oPath;}
 
 /*
  * flip strand from 0, 1 to -1, 1;
@@ -141,7 +141,7 @@ std::pair<uint, uint> loadRecords(StringSet<String<Dna5> > & seqs,
             Options::PathType path
             )
 {
-    double time = sysTime();
+    //double time = sysTime();
     SeqFileIn gFile;
     std::pair<uint, uint> res;
     if (!open(gFile, toCString(path)))
@@ -245,7 +245,7 @@ int loadRecords(StringSet<String<Dna5> > & seqs,
         std::pair<uint, uint> res = loadRecords(seqs, ids, paths[i]);
         uint len_sum = res.first;
         uint seqCount = res.second; 
-        if (len_sum == ~0 || seqCount == ~0)
+        if (len_sum == uint(~0) || seqCount == uint(~0))
         {
             status += 1;
             continue;
@@ -279,7 +279,7 @@ int loadRecords(StringSet<String<Dna5> > & seqs,
 
 PMRecord::PMRecord(Options & options)
 {
-
+    (void) options;
 }
 
  void Anchors::init(AnchorType val, unsigned range)
@@ -353,11 +353,11 @@ PMRecord::PMRecord(Options & options)
 uint64_t & Anchors::operator [](unsigned p)
 {
     return set[p];
-};
+}
 unsigned Anchors::length() 
 {
     return seqan::length(set);
-};
+}
 
 void MapParm::print()
 {
@@ -418,6 +418,7 @@ Dout & Dout::operator << (int64_t n)
 Dout & Dout::operator << (uint64_t n)
 {
     std::cout << n << " "; 
+    return *this;
 }
 Dout & Dout::operator << (CharString n)
 {
@@ -432,8 +433,8 @@ Dout & Dout::operator << (CharString n)
     return *this;
 }
 Dout & Dout::operator << (String<int64_t> & n)
-{
-    for (int i = 0; i < length(n); i++)
+    {
+    for (uint i = 0; i < length(n); i++)
     {
         std::cout << n[i] << " ";
     }
@@ -453,7 +454,7 @@ void ostreamWapper::print_message(std::string strs,
     std::string spaces = "";
     if (start > length(contents))
     {
-        for (int i = 0; i < start - length(contents); i++)
+        for (uint i = 0; i < start - length(contents); i++)
         {
             append (spaces, " ");
         }

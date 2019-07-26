@@ -40,7 +40,7 @@ uint64_t hashInit(LShape & me, TIterS it)
     me.hValue = 0;
     me.crhValue = 0;
     me.leftChar = 0;
-    me.x = me.leftChar- ordC;
+    me.x = me.leftChar - ordC;
     uint64_t k =0, count = 0; //COMP for complemnet value;
     while (count < me.span)
     {
@@ -56,7 +56,7 @@ uint64_t hashInit(LShape & me, TIterS it)
     for (unsigned i = 0; i < me.span - 1; ++i)
     {
         uint64_t val = ordValue ((ShapeType)*(it + k + i));
-        me.x += (val << 1) - ordC;
+        me.x += (int(val) << 1) - ordC;
         me.hValue = (me.hValue << 2) + val;
         me.crhValue += ((COMP4 - val) << bit);
         bit += 2;
@@ -82,7 +82,7 @@ uint64_t hashNext(LShape & me, TIterS it)
 {
     SEQAN_ASSERT_GT((unsigned)me.span, 0u);
     uint64_t v1;
-    unsigned t, span = me.span << 1, weight = me.weight << 1;
+    unsigned t = 0, span = me.span << 1, weight = me.weight << 1;
     uint64_t v2 = ordValue((ShapeType)*(it + me.span - 1));
     uint64_t mask = getMask(span - 2);
     me.hValue=((me.hValue & mask)<<2)+ v2;
@@ -101,17 +101,17 @@ uint64_t hashNext(LShape & me, TIterS it)
         v2 = me.crhValue;
         me.strand = 1;
     }
-    for (unsigned k = 64-span; k <= 64 - weight; k+=2)
+    for (unsigned k = 64 - span; k <= 64 - weight; k += 2)
     {
         v1 = v2 << k >> (64-weight);
         if(me.XValue > v1)
         {
-            me.XValue=v1;
+            me.XValue = v1;
             t = k;
         }
     } 
-    me.YValue = (v2 >> (64-t) << (64 - t - weight)) +
-            (v2 & ((1ULL<<(64 - t - weight)) - 1)) + 
+    me.YValue = (v2 >> (64 - t) << (64 - t - weight)) +
+            (v2 & ((1ULL << (64 - t - weight)) - 1)) + 
             (t << (span - weight - 1));
     return me.XValue; 
 }
@@ -122,14 +122,14 @@ uint64_t hashNext(LShape & me, TIterS it)
 uint64_t hashNexth(LShape & me, TIterS it)
 {
     SEQAN_ASSERT_GT((unsigned)me.span, 0u);
-    uint64_t v2 = ordValue((ShapeType)*(it + me.span - 1 ));
     uint64_t mask = getMask((me.span << 1) - 2);
+    int v2 = ordValue((ShapeType)*(it + me.span - 1 ));
     me.hValue = ((me.hValue & mask) << 2) + v2;
     me.crhValue = ((me.crhValue >> 2) & mask) + 
                   ((COMP4 - v2) << ((me.span << 1) - 2));
     me.x += (v2 - me.leftChar) << 1;
     me.leftChar = ordValue((ShapeType)*(it));
-    return me.x; 
+    return me.x < 0 ? me.hValue : me.crhValue;
 }
 /**
  * only calculate hash value for single strand
@@ -156,15 +156,15 @@ uint64_t hashPre_hs(LShape & me, TIterS it)
 uint64_t hashNextV(LShape & me, TIterS it)
 {
     SEQAN_ASSERT_GT((unsigned)me.span, 0u);
-    uint64_t v2 = ordValue((ShapeType)*(it + me.span - 1 ));
     uint64_t mask = getMask((me.span << 1) - 2);
+    int v2 = ordValue((ShapeType)*(it + me.span - 1 ));
     me.hValue=((me.hValue & mask) << 2) + v2;
     me.crhValue=((me.crhValue >> 2) & mask) + 
                 ((COMP4 - v2) << ((me.span <<1) - 2));
     me.x += (v2 - me.leftChar) << 1;
     me.leftChar = ordValue((ShapeType)*(it));
-    me.strand = (me.x >> 63) & 1; //Note: me.x type is uint64_t
-    return (me.x > 0)?me.hValue:me.crhValue; 
+    me.strand = me.x < 0 ? 1 : 0;
+    return me.strand ? me.crhValue : me.hValue;
 }
 /*
  * this hashNext function is for index only collect mini hash value [minindex]
@@ -175,7 +175,7 @@ uint64_t hashNextX(LShape & me, TIterS it)
     SEQAN_ASSERT_GT((unsigned)me.span, 0u);
     uint64_t v1;
     unsigned span = me.span << 1, weight = me.weight << 1;
-    uint64_t t, v2;
+    uint64_t t = 0, v2;
     if (me.x > 0)
     {
         v2 =me.hValue; 

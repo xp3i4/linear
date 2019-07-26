@@ -238,7 +238,7 @@ uint64_t is_cord_block_end (uint64_t cord)
 void print_cords(String<uint64_t> & cords, CharString header)
 {
     std::cout << header << "_cords_header \n";
-    for (int i = 1; i < length(cords); i++)
+    for (uint i = 1; i < length(cords); i++)
     {
         std::cout << header << " " 
                   << get_cord_y (cords[i]) << " "  
@@ -263,10 +263,7 @@ int isCordsConsecutive_(uint64_t & cord1, uint64_t cord2, uint64_t thd_cord_gap)
            x1 < x2 && y1 < y2 &&
            x2 - x1 < thd_cord_gap &&
            y2 - y1 < thd_cord_gap;
-    if (!f)
-    {
-      std::cout << "iscc " << x1 << " " << x2 << " " << y1 << " " << y2 << " "<< get_cord_strand(cord1 ^ cord2) << "\n";
-    }
+
     return f;
 }
 

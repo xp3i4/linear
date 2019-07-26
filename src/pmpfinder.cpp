@@ -1686,13 +1686,7 @@ int gather_blocks_ (String<uint64_t> & cords,
         appendValue (str_ends, UPair(b_str, b_end));
         appendValue (str_ends_p, UPair(p_str, length(cords)));
     //}
-    //<<debug
-    for (auto gse : str_ends)
-    {
-        dout << "gse" << get_cord_y(gse.first) << get_cord_y(gse.second) << "\n";
-    }
-    dout << "gsexxx\n";
-    //>>debug
+
     return 0; 
 }
 
@@ -1724,7 +1718,6 @@ int gather_gaps_y_ (String<uint64_t> & cords,
                     uint64_t readLen,
                     uint64_t thd_gap_size)
 {
-    dout << "mggap-------------------" << length(str_ends) << "\n";
     uint64_t cord_frt = shift_cord(0, 0, 0); //cord at front 
     uint64_t cord_end = shift_cord(0, 0, readLen - 1); //..end
     if (empty(str_ends))
@@ -1759,7 +1752,6 @@ int gather_gaps_y_ (String<uint64_t> & cords,
         }
         cord2 = str_ends[i].first;
         y2 = getUPForwardy(str_ends[i], readLen);
-        dout << "mggapx2" << y2.first << y2.second << "\n";
         if (y1.second > y2.second)  
         {
             //y2 is skipped
@@ -1816,7 +1808,6 @@ int _isChainable(UPair str_end1, UPair str_end2,
     else
     {
         int64_t dy = get_cord_y(str_end2.first - str_end1.second); 
-        dout << "_isChainable" << dy << dx << "\n";
         return dy > thd_chain_blocks_lower && dy < thd_chain_blocks_upper &&
                dx > thd_chain_blocks_lower && dx < thd_chain_blocks_upper;
     }
@@ -1858,8 +1849,6 @@ int chain_blocks_ (String<uint64_t> & cords,
             if (_isChainable(c1, c2, readLen, thd_chain_blocks_lower, thd_chain_blocks_upper))
             {
                 _DefaultHit.unsetBlockEnd(tmp_cords[k - 1]);
-                //print_cord (tmp_cords[k - 1], "ccs");
-                dout << "ccs" << is_cord_block_end(tmp_cords[k - 1]) << "\n";
             }
         }
         for (unsigned j = str_ends_p[i].first; j < str_ends_p[i].second; j++)
@@ -1938,7 +1927,6 @@ uint64_t apxMap (IndexDynamic & index,
             uint64_t y1 = y.first;
             uint64_t y2 = y.second;
             thd_best_n = 1; //best hit only
-            dout << "ap2" << y1 << y2 << "\n";
             apxMap_(index, read, anchors, mapParm2, hit, f1, f2, cords, y1, y2, cordLenThr, thd_best_n);
         }
         clear (str_ends);
@@ -1948,7 +1936,6 @@ uint64_t apxMap (IndexDynamic & index,
     }
     else
     {
-        dout << "dks\n";
         float senThr = mapParm.senThr / thd_cord_size;  
         MapParm mapParm1 = mapParm;
         MapParm mapParm2 = mapParm;
