@@ -194,7 +194,15 @@ uint64_t _getSA_i1(uint64_t const & node);
 uint64_t _getSA_i2(uint64_t const & node);
 uint64_t getXDir(HIndex const & index, uint64_t const & xval, uint64_t const & yval);
 uint64_t getXYDir(HIndex const & index, uint64_t const & xval, uint64_t const & yval);
+
 bool createHIndex(StringSet<String<Dna5> > & seq, LIndex & index, unsigned & threads, bool efficient);
+int createDIndex(StringSet<String<Dna5> > & seqs, 
+                 DIndex & index, 
+                 int64_t thd_min_step, 
+                 int64_t thd_max_step,
+                 int64_t thd_omit_block,
+                 unsigned threads
+                );
 bool createIndexDynamic(StringSet<String<Dna5> > & seq, IndexDynamic & index, unsigned threads, bool efficient);
 // uint64_t getXDir(LIndex const & index, uint64_t const & xval, uint64_t const & yval)
 

@@ -1695,6 +1695,33 @@ int gather_blocks_ (String<uint64_t> & cords,
     //>>debug
     return 0; 
 }
+/*
+ * shortcut function
+ * Drop too short blocks in cords 
+ */
+int clean_blocks_ (String<uint64_t> & cords, int64_t thd_drop_len) 
+{
+    uint p = 1;
+    int64_t len = 0;
+    for (uint i = 1; i < length(cords); i++)
+    {
+        len++;
+        if (p != i)
+        {
+            cords[p] = cords[i];
+        }
+        if (is_cord_block_end (cords[i]))
+        {
+            if (len < thd_drop_len)
+            {
+                p -= len;
+            }
+            len = 0;
+        }
+        p++;
+    }
+    resize (cords, p);
+}
 
 //shortcut to get y pair (str, end) of block on the forward strand (y projection)
 UPair getUPForwardy(UPair str_end, uint64_t readLen)
@@ -1914,6 +1941,9 @@ uint64_t apxMap (IndexDynamic & index,
     int64_t thd_large_gap = 1000;     // make sure thd_large_gap <= thd_combine_blocks
     int64_t thd_chain_blocks_lower = -100;
     int64_t thd_chain_blocks_upper = 10000; //two blocks of cords will be combined to one if 1.they can be combined 2. they are close enough (< this)
+    int64_t thd_drop_len = 2;
+    thd_drop_len = std::min (thd_drop_len, int64_t(length(read) * 0.05 / thd_cord_size)); //drop blocks length < this
+    dout << "thd_drop_len" << thd_drop_len << "\n";
     int thd_best_n = 999; //unlimited best hit;
     clear(apx_gaps);
     if (f_chain)
@@ -1926,6 +1956,7 @@ uint64_t apxMap (IndexDynamic & index,
         apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, 0, length(read), cordLenThr, thd_best_n);
         String<UPair> str_ends;
         String<UPair> str_ends_p;
+        //clean_blocks_ (cords, thd_drop_len);
         gather_blocks_ (cords, str_ends, str_ends_p, length(read), thd_large_gap, thd_cord_size, 1);
         gather_gaps_y_ (cords, str_ends, apx_gaps, length(read), thd_large_gap);
         //chain_blocks_ (cords, str_ends, length(read), thd_chain_blocks);
@@ -1945,6 +1976,7 @@ uint64_t apxMap (IndexDynamic & index,
         clear (str_ends_p);
         gather_blocks_ (cords, str_ends, str_ends_p, length(read), thd_large_gap, thd_cord_size, 1);
         chain_blocks_ (cords, str_ends_p, length(read), thd_chain_blocks_lower, thd_chain_blocks_upper);
+        //clean_blocks_ (cords, thd_drop_len);
     }
     else
     {

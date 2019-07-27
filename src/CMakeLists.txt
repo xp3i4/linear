@@ -29,10 +29,12 @@ add_library(linear_gap STATIC gap.cpp)
 add_library(linear_align_util STATIC align_util.cpp)
 add_library(linear_fio STATIC f_io.cpp)
 add_library(linear_align_interface STATIC align_interface.cpp)
+add_library(linear_mapper STATIC mapper.cpp)
 add_library(linear_test_units STATIC test_units.cpp)
 
-add_executable (linear mapper.cpp) 
-target_link_libraries (linear 
+add_executable (linear linear.cpp) 
+target_link_libraries (linear
+                       linear_mapper 
                        linear_test_units
                        linear_align_interface
                        linear_args_parser 
@@ -47,11 +49,20 @@ target_link_libraries (linear
                       ${SEQAN_LIBRARIES})
 
 add_executable (test_case test_case.cpp)
-target_link_libraries (test_case  
+target_link_libraries (test_case 
+                       linear_mapper
+                       linear_test_units
+                       linear_align_interface
+                       linear_args_parser 
+                       linear_pmpfinder 
+                       linear_gap 
+                       linear_fio 
+                       linear_align_util
+                       linear_index_util 
                        linear_shape_extend
-                       linear_base 
-                       linear_args_parser
-                      ${SEQAN_LIBRARIES}
-    )
+                       linear_cords 
+                       linear_base
+                      ${SEQAN_LIBRARIES})
+
 install (TARGETS linear RUNTIME DESTINATION bin)
 

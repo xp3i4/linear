@@ -2656,7 +2656,7 @@ uint64_t clip_tile (String<Dna5> & seq1,
         //<<debug
         if (get_tile_y(clip_str) > length(seq2))
         {
-            std::cerr << "erxxx2 " << get_cord_y(clip_str) << " " << get_cord_y(tile) << "\n";
+            std::cout << "erxxx2 " << get_cord_y(clip_str) << " " << get_cord_y(tile) << "\n";
         }
         //>>debug
         clip_direction = -1;
@@ -2827,9 +2827,16 @@ int reform_tiles(String<Dna5> & seq1,
     //Insert head_tile and tail tile at the front and end for each block of tiles
     uint64_t head_tile = gap_str;
     uint64_t tail_tile = shift_tile(gap_end, -thd_tile_size, -thd_tile_size); 
+    if (get_tile_x(gap_end) > thd_tile_size && get_tile_y (gap_end) > thd_tile_size)
+    {
+        tail_tile = shift_tile(gap_end, -thd_tile_size, -thd_tile_size);
+    }
+    else
+    {
+        tail_tile = head_tile;
+    }
     remove_tile_sgn(head_tile);
     remove_tile_sgn(tail_tile);
-
     dout << "rft" << get_cord_y(gap_str) << get_cord_y(gap_end) << "\n";
 
     String<uint64_t> tiles_str_tmp;
@@ -3073,7 +3080,7 @@ int insert_tiles2Cords_(String<uint64_t> & cords,
         uint64_t cordtmp = cords[pos];
         cords[pos - 1] = tiles[0];
         cords[pos] = back(tiles);
-        dout << "gmhs2_pos" << pos << length(tiles) << get_cord_y(cords[pos]) << get_cord_y(cords[pos - length(tiles)]) << "\n";
+        //dout << "gmhs2_pos" << pos << length(tiles) << get_cord_y(cords[pos]) << get_cord_y(cords[pos - length(tiles)]) << "\n";
         if (is_cord_block_end(cordtmp))
         {
             _DefaultHit.setBlockEnd(cords[pos]);
@@ -3238,11 +3245,11 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         g_print_tiles_(tiles_str, "mpl");
     }
     else if (get_cord_y(gap_end) - get_cord_y(gap_str) > (length(g_hs)) ||
-        get_cord_x(gap_end) - get_cord_x(gap_str) > (length(g_hs)) ||
-        get_cord_y(gap_end) > length(read) - 1 ||
-        get_cord_y(gap_str) > length(read) - 1 ||
-        get_cord_x(gap_end) > length(seqs[0]) - 1 ||
-        get_cord_x(gap_str) > length(seqs[0]) - 1)
+             get_cord_x(gap_end) - get_cord_x(gap_str) > (length(g_hs)) ||
+             get_cord_y(gap_end) > length(read) - 1 ||
+             get_cord_y(gap_str) > length(read) - 1 ||
+             get_cord_x(gap_end) > length(seqs[0]) - 1 ||
+             get_cord_x(gap_str) > length(seqs[0]) - 1)
     {
         print_cord (gap_str, "rej1");
         print_cord (gap_end, "rej1");

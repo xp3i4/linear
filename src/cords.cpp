@@ -170,8 +170,7 @@ uint64_t create_cord (uint64_t id, uint64_t cordx, uint64_t cordy, uint64_t stra
 }
 int64_t atomic_inc_cord_y (int64_t & cord) 
 {
-    int64_t tmp = atomicInc(cord);
-    return tmp;
+    return atomicInc(cord);
 }
 void set_cord_block_end(uint64_t & val)
 {

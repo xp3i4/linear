@@ -4,7 +4,7 @@
 #include "base.h"
 #include "index_util.h"
 #include "f_io.h"
-#include "mapparm.h"
+//#include "mapparm.h"
 
 
 class Mapper 
@@ -68,5 +68,7 @@ public:
     int getCordSize() {return cord_size;}
 
 };
+
+int map(Mapper & mapper, int p1);
 
 #endif
