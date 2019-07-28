@@ -1956,7 +1956,7 @@ uint64_t apxMap (IndexDynamic & index,
         apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, 0, length(read), cordLenThr, thd_best_n);
         String<UPair> str_ends;
         String<UPair> str_ends_p;
-        //clean_blocks_ (cords, thd_drop_len);
+        clean_blocks_ (cords, thd_drop_len);
         gather_blocks_ (cords, str_ends, str_ends_p, length(read), thd_large_gap, thd_cord_size, 1);
         gather_gaps_y_ (cords, str_ends, apx_gaps, length(read), thd_large_gap);
         //chain_blocks_ (cords, str_ends, length(read), thd_chain_blocks);
@@ -1976,7 +1976,7 @@ uint64_t apxMap (IndexDynamic & index,
         clear (str_ends_p);
         gather_blocks_ (cords, str_ends, str_ends_p, length(read), thd_large_gap, thd_cord_size, 1);
         chain_blocks_ (cords, str_ends_p, length(read), thd_chain_blocks_lower, thd_chain_blocks_upper);
-        //clean_blocks_ (cords, thd_drop_len);
+        clean_blocks_ (cords, thd_drop_len);
     }
     else
     {
