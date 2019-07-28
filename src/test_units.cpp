@@ -1,7 +1,13 @@
-#include "base.h"
+#include <seqan/arg_parse.h>
+#include <iostream>
+#include <fstream>
+#include <ctime>
 #include "cords.h"
-#include "align_util.h"
-#include "f_io.h"
+#include "pmpfinder.h"
+#include "gap.h"
+#include "align_interface.h"
+#include "mapper.h"
+#include "test_units.h"
 //
 //Check bamrecord cigar on base level
 int check_cigar(StringSet<String<Dna5> > & genomes,
@@ -162,3 +168,56 @@ int test_clip_anchors()
 
 }
 */
+/* test Dynamic index2 (direct index)
+
+*/
+int check_index2(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned threads)
+{
+    int64_t thd_min_step = 0;
+    int64_t thd_max_step = 0;
+    int64_t thd_omit_block = 1ULL << 62; //max infi
+    DIndex dindex = index.dindex;
+    LShape shape(dindex.getShape());
+    dout << "lensq" << length(seqs[0]) << "\n";
+
+    createDIndex(seqs, dindex, thd_min_step, thd_max_step, thd_omit_block, threads);
+
+    dout << "lenseq1" << back(dindex.getDir()) << "\n";
+
+    for (auto seq : seqs)
+    {
+        int64_t count = 0;
+        hashInit (shape, begin(seq));
+        for (int i = 0; i < length(seq) - shape.span; i++)
+        {
+            hashNexth (shape, begin(seq) + i);
+            if (++count > thd_min_step)
+            {
+                hashNextX (shape, begin(seq) + i);
+                //dout << "shape" << shape.XValue << "\n";
+                int64_t str_ = queryHsStr(dindex, shape.XValue);
+                int64_t end_ = queryHsEnd(dindex, shape.XValue);
+                int f_find = 0;
+                //dout << "x4xxxxxxxxxx " << i << end_ -  str_ << "\n";
+                for (int j = str_; j < end_; j++)
+                {
+                    int x = get_cord_x (dindex.getHs()[j]);
+                    //dout << "x4" << x << j << "\n";
+                    if (x == i)
+                    {
+                        f_find = 1;
+                        //dout << "find " << i << x << "\n";
+                    }
+                }
+                if (f_find == 0)
+                {
+                    dout << "cidx2_1" << i << end_ - str_ << "\n";
+                    return 1;
+                }
+                count = 0;
+            }
+        }
+    }
+    return 0;
+
+}

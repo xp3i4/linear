@@ -1540,8 +1540,9 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
     LShape & t_shape = index.getShape();
     String<int> & dir = index.getDir();
     String<int64_t> & hs = index.getHs();
-    resize (index.getDir(), index.fullSize(), 0);
+    resize (dir, index.fullSize(), 0);
     double t2 = sysTime();
+    dout << "idx2" << length(dir) << t_shape.weight << thd_min_step << thd_max_step << thd_omit_block<< "\n";
     dout << threads << "threads\n"; 
     for (int64_t i = 0; i < length(seqs); i++)
     {
@@ -1551,35 +1552,34 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
             appendValue(t_blocks, length(seqs[i]) / threads * j); 
         }
         appendValue (t_blocks, length(seqs[i]) - t_shape.span);
-        //dout << t_blocks << "cdx2\n";
-    #pragma omp parallel
-    {
-        unsigned t_id = omp_get_thread_num();
-        int64_t t_str = t_blocks[t_id];
-        int64_t t_end = t_blocks[t_id + 1];
-        int64_t preVal = ~0;
-        int64_t last_j = t_str - 1;
-        int64_t count = 0;
-        LShape shape = t_shape;
-        hashInit (shape, begin(seqs[i]) + t_str);
-        //dout << "cdx1 " << t_str<< t_end <<"\n";
-        for (int64_t j = t_str; j < t_end; j++)
+        #pragma omp parallel
         {
-            hashNexth(shape, begin(seqs[i]) + j);
-            if (++count > thd_min_step)
+            unsigned t_id = omp_get_thread_num();
+            dout << "idx3 " << t_id << "\n";
+            int64_t t_str = t_blocks[t_id];
+            int64_t t_end = t_blocks[t_id + 1];
+            int64_t preVal = ~0;
+            int64_t last_j = t_str - 1;
+            int64_t count = 0;
+            LShape shape = t_shape;
+            hashInit (shape, begin(seqs[i]) + t_str);
+            //dout << "cdx1 " << t_str<< t_end <<"\n";
+            for (int64_t j = t_str; j < t_end; j++)
             {
-                hashNextX(shape, begin(seqs[i]) + j);
-                if (preVal != shape.XValue || j - last_j > thd_max_step)
+                hashNexth(shape, begin(seqs[i]) + j);
+                if (++count > thd_min_step)
                 {
-                    atomicInc(dir[shape.XValue]);
-                    //dout << get_cord_y(atomicInc(dir[shape.XValue])) << get_cord_y(dir[shape.XValue]) << "xxx1";
-                    preVal = shape.XValue;
-                    last_j = j;
+                    hashNextX(shape, begin(seqs[i]) + j);
+                    if (preVal != shape.XValue || j - last_j > thd_max_step)
+                    {
+                        atomicInc(dir[shape.XValue]);
+                        preVal = shape.XValue;
+                        last_j = j;
+                    }
+                    count = 0;
                 }
-                count = 0;
             }
         }
-    }
     }
     //double t4 = sysTime();
     int64_t sum = 0;
@@ -1592,12 +1592,14 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
         sum += dir[i];
         dir[i] = sum - dir[i];
     }
+    dout << "dt" << sum << back(dir) << "\n";
     //dout << sysTime() - t4 << "x5\n";
     int64_t EmptyVal = create_cord(length(seqs),0,0,0); 
     //make sure genomeid >= length(seqs) and cord y be 0! y points to next empty.
     resize (hs, sum, EmptyVal);
     serr.print_message("--Index::inite   ", 0, 1, std::cerr);
     serr.print_message("=>Index::hashing", 0, 2, std::cerr);
+    int64_t maxinfi = LLMAX;
     for (int64_t i = 0; i < length(seqs); i++)
     {
         String<int64_t> t_blocks;
@@ -1607,43 +1609,53 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
         }
         appendValue (t_blocks, length(seqs[i]) - t_shape.span);
         //dout << "cx22"<<t_blocks << "\n";
-    #pragma omp parallel
-    {   
-        unsigned t_id = omp_get_thread_num();
-        int64_t t_str = t_blocks[t_id];
-        int64_t t_end = t_blocks[t_id + 1];
-        int64_t preVal = ~0;
-        int64_t last_j = t_str - 1;
-        int64_t count = 0;
-        LShape shape = t_shape;
-        hashInit (shape, begin(seqs[i]) + t_str);
-        //dout << "strd " << t_str << t_end << "\n";
-        for (int64_t j = t_str; j < t_end; j++)
-        {
-            hashNexth (shape, begin(seqs[i]) + j);
-            if (++count > thd_min_step)
+        #pragma omp parallel
+        {   
+            unsigned t_id = omp_get_thread_num();
+            int64_t t_str = t_blocks[t_id];
+            int64_t t_end = t_blocks[t_id + 1];
+            int64_t preVal = ~0;
+            int64_t last_j = t_str - 1;
+            int64_t count = 0;
+            LShape shape = t_shape;
+            hashInit (shape, begin(seqs[i]) + t_str);
+            //dout << "strd " << t_str << t_end << "\n";
+            for (int64_t j = t_str; j < t_end; j++)
             {
-                hashNextX (shape, begin(seqs[i]) + j);
-                if (preVal != shape.XValue || j - last_j > thd_max_step)
+                hashNexth (shape, begin(seqs[i]) + j);
+                if (++count > thd_min_step)
                 {
-                    if (dir[shape.XValue + 1] - dir[shape.XValue ])
+                    hashNextX (shape, begin(seqs[i]) + j);
+                    if (preVal != shape.XValue || j - last_j > thd_max_step)
                     {
-                        int64_t k = dir[shape.XValue];
-                        k += get_cord_y (atomic_inc_cord_y(hs[k])) - 1;
-                        hs[k] = create_cord(i, j, 0, shape.strand);
-                        hs[dir[shape.XValue]] = shift_cord(hs[dir[shape.XValue]], 0, 1); //y++;
-                        preVal = shape.XValue;
-                        last_j = j;
-                    }
-                } 
-                count = 0;
-            }
-        }  
-    }
+                        if (dir[shape.XValue + 1] - dir[shape.XValue])
+                        {
+                            int64_t slot_str = dir[shape.XValue];
+                            int64_t k = slot_str + get_cord_y(atomic_inc_cord_y(hs[slot_str])) - 1;
+                            int64_t new_cord = create_cord(i, j, 0, shape.strand); //be sure new_cord_y == 0 
+                            if (k == slot_str) 
+                            {           //atomic creation the first cord which cotains shared pointer
+                                new_cord -= EmptyVal;
+                                atomicAdd(hs[k], new_cord); //original hs[k] = EmptyVal + pointer
+                            }
+                            else
+                            {
+                                hs[k] = new_cord;
+                            }
+                            preVal = shape.XValue;
+                            last_j = j;
+                        }
+                    } 
+                    count = 0;
+                }
+            }  
+        }
     }
     std::cout << "createDIndex " << sysTime() - t << " " << sysTime() - t2 << "\n";
     serr.print_message("Index::hash        ", 2, 1, std::cerr);
-    serr.print_message("End createing index", 2, 1, std::cerr);
+    serr.print_message("End createing index ", 2, 0, std::cerr);
+    serr.print_message(sysTime() - t, 2, 1, std::cerr);
+    return 0;
 }
 
 int64_t queryHsStr(DIndex & index, int64_t xval)

@@ -1,17 +1,107 @@
-#include <seqan/arg_parse.h>
 #include <iostream>
 #include <fstream>
 #include <ctime>
-#include "args_parser.h"
 #include "cords.h"
 #include "pmpfinder.h"
 #include "gap.h"
 #include "align_interface.h"
 #include "mapper.h"
-#include "test_units.h"
+//#include "test_units.h"
 
 using namespace seqan; 
 using std::cerr;
+
+//efficient 
+MapParm parm1 ( 
+        base_block_size_,     //blockSize,
+        //Const_::_DELTA,          //delta(Const_::_DELTA),
+        64,                          //delta
+        base_threshold_,     //threshold(Const_::_THRESHOLD),
+        base_kmer_step_,       //kmerStep(Const_::_KMERSTEP),
+        base_shape_len_,      //shapeLen(Const_::_SHAPELEN),
+        1,                      //senstivity(0),
+        0,                      //anchorDeltaThr(),
+        1000,                   //minReadLen(1000),
+        10,                      //listN
+        20,                      //listN2
+        15,                     //alpha(Const_::_ALPHA),
+        5,                      //alpha2 for complex mapping 
+        0.02,                    //anchorLenThr(0.02),    anchors with lenghth > this parameter is pushed into the queue
+        0.5,                     //rcThr(0.75)
+        0.7,                     //cordThr length of cord < cordThr are abandone
+        0.7,                     //senthr: perfrom next filter on cords of length < senthr 
+        0.1                      //clsthr: thread of cluster
+); 
+
+//normal
+MapParm parm0 ( 
+        base_block_size_,     //blockSize,
+        base_delta_,          //delta(Const_::_DELTA),
+        base_threshold_,     //threshold(Const_::_THRESHOLD),
+        base_kmer_step_,       //kmerStep(Const_::_KMERSTEP),
+        base_shape_len_,      //shapeLen(Const_::_SHAPELEN),
+        0,                      //senstivity(0),
+        0,                      //anchorDeltaThr(),
+        1000,                   //minReadLen(1000),
+        10,                      //listN
+        20,                      //listN2
+        15,                     //alpha(Const_::_ALPHA),
+        5,                      //alpha2 for complex mapping
+        0.02,                    //anchorLenThr(0.02),    anchors with lenghth > this parameter is pushed into the queue
+        0.5,                     //rcThr(0.8)
+        0.2,                     //cordThr length of cord < cordThr are abandoned
+        0.2,                     //senthr: length of cord < senthr are erased duing path
+        0.1                      //clsthr: thread of cluster
+
+); 
+
+//sensitive
+MapParm parm2 ( 
+        base_block_size_,     //blockSize,
+        //Const_::_DELTA,          //delta(Const_::_DELTA),
+        64,                      //delta
+        base_threshold_,     //threshold(Const_::_THRESHOLD),
+        base_kmer_step_,       //kmerStep(Const_::_KMERSTEP),
+        base_shape_len_,      //shapeLen(Const_::_SHAPELEN),
+        2,                      //senstivity(0),
+        0,                      //anchorDeltaThr(),
+        1000,                   //minReadLen(1000),
+        4,                      //listN
+        50,                      //listN2
+        0.65,                     //alpha(Const_::_ALPHA),
+        0.5,                      //alpha2 for complex mapping
+        0.02,                    //anchorLenThr(0.02),    anchors with lenghth > this parameter is pushed into the queue
+        0.8,                     //rcThr(0.75)
+        0.8,                      //cordThr length of cord < cordThr are abandoned
+        0.8,                     //senthr: length of cord < senthr are erased duing path
+        0.1                      //clsthr: thread of cluster
+
+        
+); 
+
+
+MapParm parmt ( 
+        base_block_size_,     //blockSize,
+        base_delta_,          //delta(Const_::_DELTA),
+        base_threshold_,     //threshold(Const_::_THRESHOLD),
+        base_kmer_step_,       //kmerStep(Const_::_KMERSTEP),
+        base_shape_len_,      //shapeLen(Const_::_SHAPELEN),
+        0,                      //senstivity(0),
+        0,                      //anchorDeltaThr(),
+        1000,                   //minReadLen(1000),
+        2,                         //listN
+        2,                      //listN2
+        0.75,                     //alpha(Const_::_ALPHA),
+        0.65,                      //alpha2 for complex mapping
+        0.02,                    //anchorLenThr(0.02),    anchors with lenghth > this parameter is pushed into the queue
+        0.8,                     //rcThr(0.8)
+        0.8,                       //cordThr length of cord < cordThr are abandoned
+        0.8,                     //senthr: length of cord < senthr are erased duing path
+        0.1                      //clsthr: thread of cluster
+        
+); 
+
+
 /**
  * flags controlling print func;
  */ 
@@ -386,6 +476,7 @@ int map(Mapper & mapper, int p1)
     //serr.print_message("=>Create index", 0, 1, std::cerr);
     omp_set_num_threads(mapper.thread());
     mapper.createIndex(false); // true: destruct genomes string to reduce memory footprint
+    //return 0;
     StringSet<FeaturesDynamic> f2;
     createFeatures(mapper.getGenomes(), f2, mapper.getFeatureType(), mapper.thread());
     std::cout << "mapf " << mapper.getFeatureType() << "\n";
@@ -479,20 +570,3 @@ int map(Mapper & mapper, int p1)
     return 0;
 }
 
-int main(int argc, char const ** argv)
-{
-    double time = sysTime();
-    //(void)argc;
-    Options options;
-    options.versions = "1.8.2";
-    std::cerr << "["<< options.versions
-              << "]\nEncapsulated: Mapping reads efficiently" << std::endl;
-    seqan::ArgumentParser::ParseResult res = parseCommandLine(options, argc, argv);
-    if (res != seqan::ArgumentParser::PARSE_OK)
-        return res == seqan::ArgumentParser::PARSE_ERROR;
-
-    Mapper mapper(options);
-    map(mapper, options.p1);
-    std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
-    return 0;
-}

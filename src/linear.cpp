@@ -1,19 +1,10 @@
 #include <seqan/arg_parse.h>
-#include <iostream>
-#include <fstream>
-#include <ctime>
 #include "args_parser.h"
-#include "cords.h"
-#include "pmpfinder.h"
-#include "gap.h"
-#include "align_interface.h"
 #include "mapper.h"
-#include "test_units.h"
-
 using namespace seqan; 
-using std::cerr;
 
-int main(int argc, const char ** argv)
+
+int main(int argc, char const ** argv)
 {
     double time = sysTime();
     //(void)argc;
@@ -26,9 +17,7 @@ int main(int argc, const char ** argv)
         return res == seqan::ArgumentParser::PARSE_ERROR;
 
     Mapper mapper(options);
-    omp_set_num_threads(mapper.thread());
-    check_index2 (mapper.getGenomes(), mapper.index(), mapper.thread());
-
+    map(mapper, options.p1);
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
     return 0;
 }
