@@ -168,6 +168,57 @@ int test_clip_anchors()
 
 }
 */
+int check_index1(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned threads)
+{
+    HIndex hindex = index.hindex;
+    LShape shape(hindex.getShape());
+    dout << "lensq" << length(seqs[0]) << "\n";
+    uint thd_step = 1;
+    createHIndex(seqs, hindex, threads, thd_step, false);
+
+    for (auto seq : seqs)
+    {
+        int64_t count = 0;
+        hashInit (shape, begin(seq));
+        for (int i = 0; i < length(seq) - shape.span; i++)
+        {
+            hashNexth (shape, begin(seq) + i);
+            if (++count > thd_step)
+            {
+                hashNextX (shape, begin(seq) + i);
+                uint f_find = 0;
+                uint64_t pos = getXDir(hindex, shape.XValue, shape.YValue);
+                uint64_t ptr = _DefaultHs.getHeadPtr(hindex.ysa[pos-1]);
+                while ((_DefaultHs.getHsBodyY(hindex.ysa[pos]) == shape.YValue || 
+                        _DefaultHs.getHsBodyY(hindex.ysa[pos]) == 0))
+                {
+                    if (((hindex.ysa[pos] & _DefaultHsBase.bodyCodeFlag) >>_DefaultHsBase.bodyCodeBit) ^ shape.strand)
+                    {
+
+                    }
+                    else
+                    {    
+                        f_find = 1;
+                        dout << "f_find" << f_find << "\n";
+                    }
+                    if (++pos > length(hindex.ysa) - 1)
+                    {
+                        break;
+                    }
+                }
+                if (f_find == 0)
+                {
+                    dout << "cidx2_1" << i  << "\n";
+                    //return 1;
+                }
+                count = 0;
+            }
+        }
+    }
+    return 0;
+
+}
+
 /* test Dynamic index2 (direct index)
 
 */

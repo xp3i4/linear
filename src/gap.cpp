@@ -3312,6 +3312,7 @@ int64_t _getMaxGapsyOverlap(String<UPair> & gapsy, uint64_t gap_str, uint64_t ga
     {
         int64_t ystr = gapsy[i].first;
         int64_t yend = gapsy[i].second;
+        dout << "_ystr" << ystr << yend << length(gapsy) << "\n";
         if (gap_stry >= ystr && gap_stry <= yend)
         {
             return std::min(gap_endy, yend) - gap_stry;
@@ -3320,10 +3321,7 @@ int64_t _getMaxGapsyOverlap(String<UPair> & gapsy, uint64_t gap_str, uint64_t ga
         {
             return gap_endy - std::max(gap_stry, ystr);
         }
-        else
-        {
-            return 0;
-        }
+        overlap = 0;
     }
     return  overlap;
 }
@@ -3536,7 +3534,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                 int max_gap_overlap_y = _getMaxGapsyOverlap(apx_gaps, gap_str, gap_end);
                 for (auto e : apx_gaps)
                 {
-                    dout << "apx_gaps" << e.first << e.second << get_cord_y(gap_str) << get_cord_y(gap_end) << "\n";
+                    dout << "apx_gaps1" << e.first << e.second << get_cord_y(gap_str) << get_cord_y(gap_end) << "\n";
                 }
                 dout << "mgend1" << get_cord_y(cords_str[i]) << is_cord_block_end(cords_str[i]) << max_gap_overlap_y << "\n";
                 if (max_gap_overlap_y > thd_cord_gap)

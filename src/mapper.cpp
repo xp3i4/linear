@@ -115,10 +115,13 @@ struct F_Print_
  */
 struct F_Map_
 {
+    void setApxChainOFF(uint & f){f &= ~8;}
+    void setApxChainON(uint & f){f |= 8;}
     void setMapGapOFF(uint & f){f &= ~2;}
     void setMapGapON(uint & f){f |= 2;}
     void setAlignOFF(uint & f){f &= ~4;}
     void setAlignON(uint & f){f |= 4;}
+    uint isApxChain(uint & f){return f & 8;}
     uint isMapGap (uint & f){return f & 2;}
     uint isAlign (uint & f){return f & 4;}
 }fm_handler_;
@@ -197,6 +200,14 @@ Mapper::Mapper(Options & options):
         fm_handler_.setMapGapON(f_map);
     }
     dout << "gap_len"<< gap_len_min << options.gap_len << "\n";
+    if (options.apx_chain_flag == 0)
+    {
+        fm_handler_.setApxChainOFF(f_map);
+    }
+    else
+    {
+        fm_handler_.setApxChainON(f_map);
+    }
     if (options.aln_flag == 0)
     {
         fm_handler_.setAlignOFF(f_map);
@@ -206,7 +217,7 @@ Mapper::Mapper(Options & options):
         fm_handler_.setAlignON(f_map);
         fp_handler_.setPrintSam(f_print);
     }
-    dout << "sam_flag " << options.sam_flag << f_print << "\n";
+    dout << "sam_flag " << options.sam_flag << f_print << options.apx_chain_flag << (f_map & 8) << "\n";
     if (options.sam_flag)
     {
         fp_handler_.setPrintSam(f_print);
@@ -382,6 +393,16 @@ int map_(IndexDynamic & index,
     resize (gap_len, threads, 0);
     resize (red_len, threads, 0);
     float thd_err_rate = 0.2;
+    int f_chain = 1; 
+    if (fm_handler_.isApxChain(f_map))
+    {
+        f_chain = 1;
+    }
+    else
+    {
+        f_chain = 0;
+    }
+    dout << "fchain" << f_chain << (f_map & 8) << "\n";
 #pragma omp parallel
 {
     unsigned size2 = length(reads) / threads;
@@ -423,14 +444,7 @@ int map_(IndexDynamic & index,
         _compltRvseStr(reads[j], comStr);
         createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
         createFeatures(begin(comStr), end(comStr), f1[1]);
-        int f_chain = 1; 
         apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordLenThr, f_chain);
-        /*
-        if (_DefaultCord.getMaxLen(cordsTmp[c]) < length(reads[j]) * senThr)
-        {
-            apxMap (index, reads[j], anchors, complexParm, crhit, f1, f2, cordsTmp[c], cordLenThr, f_chain);
-        }   
-        */
         if (fm_handler_.isMapGap(f_map))
         {
             mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], g_hs, g_anchor, clipsTmp[c], apx_gaps, f1, f2, gap_len_min, window_size, thd_err_rate);

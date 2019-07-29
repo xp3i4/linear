@@ -172,6 +172,7 @@ public:
     HIndex(StringSet<String<Dna5> > const & text);
     bool isEmptyDir(uint64_t);
     void clear();
+    LShape & getShape();
 }; 
 
 typedef HIndex LIndex; 
@@ -195,7 +196,7 @@ uint64_t _getSA_i2(uint64_t const & node);
 uint64_t getXDir(HIndex const & index, uint64_t const & xval, uint64_t const & yval);
 uint64_t getXYDir(HIndex const & index, uint64_t const & xval, uint64_t const & yval);
 
-bool createHIndex(StringSet<String<Dna5> > & seq, LIndex & index, unsigned & threads, bool efficient);
+bool createHIndex(StringSet<String<Dna5> > & seq, LIndex & index, unsigned & threads, unsigned thd_step, bool efficient);
 int createDIndex(StringSet<String<Dna5> > & seqs, 
                  DIndex & index, 
                  int64_t thd_min_step, 
