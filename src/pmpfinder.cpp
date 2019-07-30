@@ -1533,8 +1533,8 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
         }
 
     }
-    print_cords(anchors.set, "set");
-    dout << "anchors<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
+    //print_cords(anchors.set, "set");
+    //dout << "anchors<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
     if (!empty(list))
     {
         std::sort (begin(list), end(list), std::greater<uint64_t>());
@@ -1628,7 +1628,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
     {  
         getIndexMatchAll(index.hindex, read, anchors.set, read_str, read_end, mapParm);    
         getDAnchorMatchList(anchors, read_str, read_end, mapParm, hit, thd_best_n);
-        print_cords (hit, "mnmrl1");
+        //print_cords (hit, "mnmrl1");
     }   
     else if (index.isDIndex())
     {

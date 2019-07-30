@@ -647,13 +647,14 @@ void g_print_tiles_(String<uint64_t> & tiles, CharString str = "print_tiles")
  * NOTE: index free local mapping for gaps 
  */
 /**
- * g_hs_anchor: N/A[13]|strand[1]|anchor[30]|cord_y[20]
+ * g_hs_anchor: N/A[13]|strand[1]|anchorX[30]|cord_y[20]
  * @strand := shape strand of kmer in genome ^ shape strand of kmer in read
  * While the kmers are always picked up from the genome and read rather than
  * the reverse complement of the read. 
  * This is different from anchors used in chainning.
- * @anchor = x - y + g_hs_anchor_zero. g_hs_anchor_zero to restrict @anchor > 0.
-   -g_hs_anchor_zero <= x - y < g_hs_anchor_zero
+ * @anchor := n/a[..]|strand[1]|anchorX[30]
+ * @anchorX = x - y + g_hs_anchor_zero. g_hs_anchor_zero to restrict @anchorX > 0. 
+   (bits overflow otherwise) such that -g_hs_anchor_zero <= x - y < g_hs_anchor_zero
  */
 uint64_t const g_hs_anchor_mask1 = (1ULL << 20) - 1;
 uint64_t const g_hs_anchor_mask1_ = ~ g_hs_anchor_mask1;
@@ -2746,9 +2747,9 @@ uint64_t reform_tile_ (String<Dna5> & seq1,
  * Scan and Clip tile in @tiles_str from [@pos_str, @pos_end) if there exists gap;
  * if (length(tiles_str) == 1)g_map_closed is not allowed
  * else
- * The fist tile in @tiles_str is clipped towards right;
-   The last towards left; 
- * others clipped both direction.
+ *  The fist tile of each tile block in @tiles_str is clipped towards right only if @direction == g_map_lef;
+    The last tile ...towards left... only if == g_map_rght; 
+ *  Others clipped towards both direction if necessary (exists gap).
  */
 int reform_tiles_(String<Dna5> & seq1,
                   String<Dna5> & seq2,   //read 
@@ -2758,7 +2759,7 @@ int reform_tiles_(String<Dna5> & seq1,
                   String<uint64_t> & clips,
                   String<uint64_t> & g_hs,
                   String<uint64_t> & g_hs_anchor,
-                  String<uint64_t> & sp_tiles, //record tiles id that needs additional process.
+                  String<uint64_t> & sp_tiles, //record tiles id that needs additional process(dups).
                   int pos_str,
                   int pos_end,
                   int direction,
@@ -2835,6 +2836,10 @@ int reform_tiles_(String<Dna5> & seq1,
     }
 }
 
+/*
+ @direction == g_map_left @gap_str is ommited::will not append to tiles to be clipped
+ @direction == g_map_rght @gap_end is ommited::will not append to tiles to be clipped
+ */
 int reform_tiles(String<Dna5> & seq1,
                  String<Dna5> & seq2,
                  String<Dna5> & comstr, //complement reverse of the read (seq2)
@@ -3199,6 +3204,7 @@ int mapExtend_(StringSet<String<Dna5> > & seqs,
     g_print_tiles_(tiles_str, "mextl2");
     dout << "mextd" << direction << "\n";
 }
+
 /*
  * Map any possible anchors within the gap
  */
@@ -3246,34 +3252,58 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
 
     if (get_cord_strand(gap_str ^ gap_end))
     {
-        g_cmpll.min(shift_x, x2 - x1) 
-                << int64_t(length(ref) - 1 - get_cord_x(gap_end));
-        g_cmpll.min(shift_y, (x2 - x1) * (1 + thd_err_rate)) 
-                << int64_t(length(read) - 1 - get_cord_y(gap_end));
-        uint64_t gap_end2 = shift_cord (gap_str, shift_x, shift_y);
+        if (direction != g_map_closed)
+        {
+            return -1; //this case is not allowed
+        }
+        String<uint64_t> tiles_str1;
+        String<uint64_t> tiles_str2;
+        String<uint64_t> tiles_end1;
+        String<uint64_t> tiles_end2;
+        String<uint64_t> clips1;
+        String<uint64_t> clips2;
+        int direction1 = g_map_rght;
+        int direction2 = g_map_left;
+
+        g_cmpll.min(shift_x, x2 - x1) << int64_t(length(ref) - 1 - get_cord_x(gap_end));
+        g_cmpll.min(shift_y, (x2 - x1) * (1 + thd_err_rate)) << int64_t(length(read) - 1 - get_cord_y(gap_end));
+        uint64_t gap_str1 = gap_str;
+        uint64_t gap_end1 = shift_cord (gap_str, shift_x, shift_y);
+        mapExtend_ (seqs, read, comstr, 
+                    gap_str1, gap_end1, 
+                    LLMIN, LLMAX,
+                    g_hs, g_anchor, 
+                    f1, f2,  
+                    tiles_str1, tiles_end1, clips1, 
+                    direction1,
+                    thd_cord_gap, thd_tile_size, thd_cord_remap,
+                    thd_err_rate, thd_dxy_min);
+
         g_cmpll.min(shift_x, x2 - x1) << int64_t(get_cord_x(gap_end));
         g_cmpll.min(shift_y, (x2 - x1) * (1 + thd_err_rate)) << int64_t(get_cord_y(gap_end));
         uint64_t gap_str2 = shift_cord (gap_end, -shift_x, -shift_y);
-        g_mapHs_(ref, read, comstr,
-                 g_hs, g_anchor, tiles_str, f1, f2,
-                 gap_str, gap_end2, LLMIN, LLMAX,
-                 thd_da_zero, thd_tile_size, thd_dxy_min,
-                 g_map_rght
-               );
-        g_mapHs_(ref, read, comstr,
-                 g_hs, g_anchor, tiles_str, f1, f2,
-                 gap_str2, gap_end,
-                 thd_da_zero, thd_tile_size, thd_dxy_min,
-                 g_map_left
-               ); 
-        print_cord(gap_str2, "mpl");
-        print_cord(gap_end, "mpl");
-        reform_tiles(ref, read, comstr, 
-                     tiles_str, tiles_end,
-                     clips, g_hs, g_anchor, sp_tiles, 
-                     gap_str, gap_end, direction, 
-                     thd_cord_gap, thd_tile_size, thd_err_rate);
-        g_print_tiles_(tiles_str, "mpl");
+        uint64_t gap_end2 = gap_end;
+        mapExtend_ (seqs, read, comstr, 
+                    gap_str2, gap_end2, 
+                    LLMIN, LLMAX,
+                    g_hs, g_anchor, 
+                    f1, f2,  
+                    tiles_str2, tiles_end2, clips2, 
+                    direction2,
+                    thd_cord_gap, thd_tile_size, thd_cord_remap,
+                    thd_err_rate, thd_dxy_min);
+        g_print_tiles_(tiles_str1, "mgds1");
+        g_print_tiles_(tiles_str2, "mgds2");
+        if (!empty(tiles_str1))
+        {
+            append(tiles_str, tiles_str1);
+            append(tiles_end, tiles_end1);
+        }
+        if (!empty(tiles_str2))
+        {
+            append(tiles_str, tiles_str2);
+            append(tiles_end, tiles_end2);
+        }
     }
     else if (get_cord_y(gap_end) - get_cord_y(gap_str) > (length(g_hs)) ||
              get_cord_x(gap_end) - get_cord_x(gap_str) > (length(g_hs)) ||
