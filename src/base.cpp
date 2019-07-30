@@ -26,6 +26,7 @@ Options::Options():
         index_t(1),
         feature_t(2),
         gap_len(0),
+        apx_chain_flag(1),
         aln_flag(0),
         sam_flag(0)
         {

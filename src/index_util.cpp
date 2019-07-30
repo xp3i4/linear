@@ -314,6 +314,10 @@ HIndex::HIndex(StringSet<String<Dna5> > const & text):
 {
     (void) text;
 }
+LShape & HIndex::getShape()
+{
+    return shape; 
+}
 bool HIndex::isEmptyDir(uint64_t pos)
 {
     return pos == emptyDir;
@@ -670,13 +674,13 @@ void HIndex::clear()
  bool _createHsArray(StringSet<String<Dna5> > & seq, 
                      String<uint64_t> & hs, 
                      LShape & shape, 
-                     unsigned & threads, 
+                     unsigned threads,
+                     unsigned thd_step, 
                      bool efficient = true)
 {
     double time = sysTime();
     uint64_t hsRealEnd = 0;
-    unsigned const step = 10;
-    resize (hs, lengthSum(seq) * 2/step + 1000);
+    resize (hs, lengthSum(seq) * 2 / thd_step + 1000);
     std::vector<int64_t> hsRealSize(threads, 0);
     std::vector<int64_t> seqChunkSize(threads, 0);
     std::vector<int64_t> hss(threads, 0);
@@ -699,14 +703,14 @@ void HIndex::clear()
             {
                 seqChunkSize[thd_id] = size2 + 1;
                 start = (size2 + 1) * thd_id;
-                hsStart = hsRealEnd + (start << 1) / step + thd_id * 10;
+                hsStart = hsRealEnd + (start << 1) / thd_step + thd_id * 10;
                 hss[thd_id] = hsStart;
             }
             else
             {
                 seqChunkSize[thd_id] = size2;
                 start =  length(seq[j]) + 1 - tshape.span - size2 * (threads - thd_id);
-                hsStart = hsRealEnd + (start << 1) / step + thd_id * 10;
+                hsStart = hsRealEnd + (start << 1) / thd_step + thd_id * 10;
                 hss[thd_id] = hsStart;
             }
  
@@ -720,12 +724,12 @@ void HIndex::clear()
 
                     if (k > seqChunkSize[thd_id] - tshape.span + 1 + start)
                     {
-                        k = seqChunkSize[thd_id] - (seqChunkSize[thd_id] + start) % step + step + start;
+                        k = seqChunkSize[thd_id] - (seqChunkSize[thd_id] + start) % thd_step + thd_step + start;
                     }
                 }
                 hashNext(tshape, begin(seq[j]) + k);
                 //if (++ct_step != step)
-                if (k % step == 0)
+                if (k % thd_step == 0)
                 {
                     if (tshape.XValue ^ preX)
                     {
@@ -1399,11 +1403,13 @@ bool checkHsSort(String<uint64_t> const & hs)
         XString & xstr, String<uint64_t> & hs,  
         LShape & shape, 
         uint64_t & indexEmptyDir, 
-        unsigned & threads, bool efficient)    
+        unsigned & threads, 
+        unsigned thd_step,
+        bool efficient)    
 {
     double time = sysTime();
     //_createHsArray2_MF(seq, hs, shape, threads);
-    _createHsArray(seq, hs, shape, threads, efficient);
+    _createHsArray(seq, hs, shape, threads, thd_step, efficient);
     _createYSA(hs, xstr, indexEmptyDir, threads);
     std::cerr << "  End creating Index Time[s]:" << sysTime() - time << " \n";
     return true; 
@@ -1417,9 +1423,9 @@ String<uint64_t> & hs,  LShape & shape, uint64_t & indexEmptyDir)
     std::cerr << "  End creating Index Time[s]:" << sysTime() - time << " \n";
     return true; 
 }
-bool createHIndex(StringSet<String<Dna5> > & seq, HIndex & index, unsigned & threads, bool efficient)
+bool createHIndex(StringSet<String<Dna5> > & seq, HIndex & index, unsigned & threads, unsigned thd_step, bool efficient)
 {
-    return _createQGramIndexDirSA_parallel(seq, index.xstr, index.ysa, index.shape, index.emptyDir, threads, efficient);
+    return _createQGramIndexDirSA_parallel(seq, index.xstr, index.ysa, index.shape, index.emptyDir, threads, thd_step, efficient);
 }
 
 bool _createQGramIndex(HIndex & index, StringSet<String<Dna5> > & seq, unsigned threads = 1)
@@ -1431,7 +1437,7 @@ bool _createQGramIndex(HIndex & index, StringSet<String<Dna5> > & seq, unsigned 
 int const typeDIx = 1;
 int const typeHIx = 2;
 
-unsigned dshape_len = 22;
+unsigned dshape_len = 21; //!!WARN::only odd number, even is not allowed
 DIndex::DIndex():
     shape(dshape_len)
 {}
@@ -1692,11 +1698,12 @@ IndexDynamic::IndexDynamic(StringSet<String<Dna5> > & seqs):hindex(seqs)
 
 bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned threads, bool efficient)
 {
-    int64_t thd_min_step = 4;
-    int64_t thd_max_step = 10;
-    int64_t thd_omit_block = 50;
+
     if (index.isDIndex())
     {
+        int64_t thd_min_step = 4;
+        int64_t thd_max_step = 10;
+        int64_t thd_omit_block = 50; 
         std::cout << "cidx\n";
         //TODO::parm wrapping 
         return createDIndex(seqs, index.dindex, 
@@ -1708,7 +1715,8 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
     }
     else if (index.isHIndex())
     {
-        return createHIndex(seqs, index.hindex, threads, efficient);
+        unsigned thd_step = 10;
+        return createHIndex(seqs, index.hindex, threads, thd_step, efficient);
     }
 
 }

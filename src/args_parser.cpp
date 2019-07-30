@@ -59,6 +59,10 @@ parseCommandLine(Options & options, int argc, char const ** argv)
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
     addOption(parser, seqan::ArgParseOption(
+        "c", "apx_chain_flag", "0 to turn off chaining during apx map",
+            seqan::ArgParseArgument::INTEGER, "INT"
+        )); 
+    addOption(parser, seqan::ArgParseOption(
         "a", "aln_flag", "0 to turn off alignment module",
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
@@ -105,8 +109,10 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     getOptionValue(options.index_t, parser, "index_type");
     getOptionValue(options.feature_t, parser, "feature_type");
     getOptionValue(options.gap_len, parser, "gap_len");
+    getOptionValue(options.apx_chain_flag, parser, "apx_chain_flag");
     getOptionValue(options.aln_flag, parser, "aln_flag");
     getOptionValue(options.sam_flag, parser, "sam_flag");
+    dout << "options.apx_chain_flag" << options.apx_chain_flag << "\n";
     //std::cerr << "xxxxx " << options.gap_len << isSet(parser, "gap_len") << "\n";
     std::vector<std::string> args;
     args = getArgumentValues(parser, 0);

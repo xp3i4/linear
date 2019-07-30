@@ -1115,7 +1115,7 @@ unsigned getDIndexMatchAll (DIndex & index,
     int dt = 0;
     LShape shape(index.getShape());
     uint64_t xpre = 0;
-    //std::cout << shape.span << shape.weight << "\n";
+    dout << "ssw" << shape.span << shape.weight << "\n";
     hashInit(shape, begin(read));
     for (unsigned k = read_str; k < read_end; k++)
     {
@@ -1147,6 +1147,7 @@ unsigned getDIndexMatchAll (DIndex & index,
                     if (get_cord_x(val) > cordy)
                     {
                         //todo::may out of boundary
+                        //dout << "gdima" << cordy << get_cord_x(val) << "\n";
                         val = shift_cord (val, -cordy, cordy - get_cord_y(val));
                         appendValue(set, val);
                     }
@@ -1498,11 +1499,11 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
         int64_t anc_y = get_cord_y(anchors[k]);
         int64_t dy2 = std::abs(int64_t(anc_y - get_cord_y(ak2)));
         int64_t dy3 = std::abs(int64_t(anc_y - get_cord_y(ak3)));
-        if ((get_cord_x(anchors[k] - ak2) < thd_anchor_err * dy2 ||
-             get_cord_x(anchors[k] - ak3) < thd_anchor_err * dy3) &&
-             k != anchors.length() - 1
-            )
+        int f_continuous =  (get_cord_x(anchors[k] - ak2) < thd_anchor_err * dy2 ||
+                             get_cord_x(anchors[k] - ak3) < thd_anchor_err * dy3); 
+        if (f_continuous)
         {
+            //dout << "anchors" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) << get_cord_strand(anchors[k]) << "\n";
             if(anchors.deltaPos2(k, k - 1) >  mapParm.shapeLen)
                 c_b += mapParm.shapeLen;
             else
@@ -1511,27 +1512,28 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
             ak3 = anchors[k - ((k - sb) >> 2)];
             min_y = std::min(min_y, get_cord_y(anchors[k]));
             max_y = std::max(max_y, get_cord_y(anchors[k]));
-            //dout << "anchors" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) <<"\n";
+
         }
-        else
+        if (!f_continuous || k == anchors.length() - 1)
         {
             if (c_b > thd_anchor_accept_lens && 
-                (k - sb) >= (max_y - min_y) * thd_anchor_accept_dens)
+                (k - sb) >= uint((max_y - min_y) * thd_anchor_accept_dens))
             {
                 anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
                 appendValue(list, (c_b << 40) + (sb << 20) + k);
+                //dout << "cbsb" << sb << k << "\n";
             }
+            //dout << "anchors-----------" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) << c_b << sb << k << max_y << min_y <<(max_y - min_y) * thd_anchor_accept_dens << get_cord_strand(anchors[k]) <<"\n";
             sb = k;
             ak2 = anchors[k];
             ak3 = anchors[k];
             c_b = mapParm.shapeLen;
             min_y = get_cord_y(anchors[k]);
             max_y = get_cord_y(anchors[k]);
-            //dout << "anchors-----------" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) <<"\n";
         }
 
     }
-
+    //print_cords(anchors.set, "set");
     //dout << "anchors<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
     if (!empty(list))
     {
@@ -1554,13 +1556,15 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
                 }   
                 ++record_num;
                 _DefaultHit.setBlockEnd(back(hit));
-
+            ;     
             }
             else
             {
                 break;
             }
         }
+        
+        //print_cords (hit, "gdialx");
         return (list[0] >> 40);   
     }
     else
@@ -1609,7 +1613,7 @@ uint64_t mnMapReadAll(LIndex  & index,
 }
 /*
  * Map [read_str, read_end) of the read
- */
+ */  
 uint64_t mnMapReadList(IndexDynamic & index,
                        String<Dna5> & read,
                        Anchors & anchors,
@@ -1620,14 +1624,16 @@ uint64_t mnMapReadList(IndexDynamic & index,
                        int thd_best_n)
 {
     if (index.isHIndex())
-    {
+    {  
         getIndexMatchAll(index.hindex, read, anchors.set, read_str, read_end, mapParm);    
         getDAnchorMatchList(anchors, read_str, read_end, mapParm, hit, thd_best_n);
+        //print_cords (hit, "mnmrl1");
     }   
     else if (index.isDIndex())
     {
         getDIndexMatchAll(index.dindex, read, anchors.set, read_str, read_end, mapParm);    
         getDAnchorMatchList(anchors, read_str, read_end, mapParm, hit, thd_best_n);
+
     }
     return 0;
 }
@@ -1717,7 +1723,7 @@ int clean_blocks_ (String<uint64_t> & cords, int64_t thd_drop_len)
     resize (cords, p);
 }
 
-//shortcut to get y pair (str, end) of block on the forward strand (y projection)
+//shortcut to convert cords pair to y pair (stry, endy) on the forward strand (y projection)
 UPair getUPForwardy(UPair str_end, uint64_t readLen)
 {
     if (get_cord_strand(str_end.first))
@@ -1761,28 +1767,28 @@ int gather_gaps_y_ (String<uint64_t> & cords,
         return y1 < y2; 
     });
     uint64_t f_cover = 0;
-    uint64_t cord1 = 0;
-    uint64_t cord2 = 0;
+    uint64_t cordy1 = 0;
+    uint64_t cordy2 = 0;
     UPair y1 = getUPForwardy (str_ends[0], readLen);
     UPair y2 = y1;
     if (y1.first > thd_gap_size) //check str[0]
     {
-        cord2 = y1.first;
-        appendValue(gaps, UPair(cord_frt, cord2));
+        cordy2 = y1.first;
+        appendValue(gaps, UPair(cord_frt, cordy2));
     }
     for (unsigned i = 1; i < length(str_ends); i++)
     {
         if (!f_cover)
         {
             y1 = getUPForwardy(str_ends[i - 1], readLen);
-            cord1 = str_ends[i - 1].second;
+            cordy1 = get_cord_y(str_ends[i - 1].second);
         }
-        cord2 = str_ends[i].first;
+        cordy2 = get_cord_y(str_ends[i].first);
         y2 = getUPForwardy(str_ends[i], readLen);
         if (y1.second > y2.second)  
         {
-            //y2 is skipped
-            //since 1.first < y2.first (sort y.first)
+            //skip y2
+            //since y1.first < y2.first (y.first has been sorted)
             //then region of y2 is all covered by y1;
             f_cover = 1;
         }
@@ -1791,15 +1797,15 @@ int gather_gaps_y_ (String<uint64_t> & cords,
             if (y2.first > y1.second &&  //NOTE::uint don't eliminate the first condition
                 y2.first - y1.second > thd_gap_size) 
             {
-                appendValue (gaps, UPair(cord1, cord2));
+                appendValue (gaps, UPair(cordy1, cordy2));
             }
             f_cover = 0; 
         }
     }
     if (readLen - y2.second > thd_gap_size) //be sure y2 = back(str_ends)
     {
-        cord1 = y2.second;
-        appendValue(gaps, UPair(cord1, cord_end));
+        cordy1 = y2.second;
+        appendValue(gaps, UPair(cordy1, cord_end));
     }
     return 0;
 }
@@ -1932,7 +1938,6 @@ uint64_t apxMap (IndexDynamic & index,
     int64_t thd_chain_blocks_upper = 10000; //two blocks of cords will be combined to one if 1.they can be combined 2. they are close enough (< this)
     int64_t thd_drop_len = 2;
     thd_drop_len = std::min (thd_drop_len, int64_t(length(read) * 0.05 / thd_cord_size)); //drop blocks length < this
-    dout << "thd_drop_len" << thd_drop_len << "\n";
     int thd_best_n = 999; //unlimited best hit;
     clear(apx_gaps);
     if (f_chain)
@@ -1980,6 +1985,7 @@ uint64_t apxMap (IndexDynamic & index,
             clear(cords);
             apxMap_ (index, read, anchors, mapParm2, hit, f1, f2, cords, 0, length(read), cordLenThr, thd_best_n);
         }   
+        clean_blocks_ (cords, thd_drop_len);
     }
 
     //Mark signs used in the alignment part
