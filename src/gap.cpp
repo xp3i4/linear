@@ -665,14 +665,12 @@ uint64_t const g_hs_anchor_bit2 = 50;
 uint64_t const g_hs_anchor_mask2 = ~(1ULL << 50);
 uint64_t const g_hs_anchor_zero = 1ULL << (20);
 
-
-
 uint64_t g_hs_anchor_getCord (uint64_t anchor)
 {
     return anchor & g_hs_anchor_mask1;
 }
 
-uint64_t g_hs_anchor_getAnchor (uint64_t anchor)
+uint64_t g_hs_anchor_getAnchor (uint64_t anchor) // return @anchor := strand + anchorx
 {
     return ((anchor >> g_hs_anchor_bit1) - g_hs_anchor_zero)& g_hs_anchor_mask5;
 }
@@ -713,10 +711,10 @@ static const uint64_t g_hs_mask2 = (1ULL << 30) - 1;
 static const uint64_t g_hs_mask3 = (1ULL << 32) - 1;
 
 void g_hs_setGhs_(uint64_t & val, 
-                         uint64_t xval, 
-                         uint64_t type, 
-                         uint64_t strand, 
-                         uint64_t coord)
+                  uint64_t xval, 
+                  uint64_t type, 
+                  uint64_t strand, 
+                  uint64_t coord)
 {
     val = (xval << 33) + (type<< 31) + (strand << 30) + coord;
 }
@@ -1588,8 +1586,8 @@ int map_interval_(String<Dna5> & seq1, //genome
               StringSet<FeaturesDynamic > & f2,
               uint64_t gap_str,
               uint64_t gap_end, 
-              int64_t anchor_lower,
-              int64_t anchor_upper,
+              int64_t cord_lower,
+              int64_t cord_upper,
               int thd_tile_size,   //WARNING 192 not allowed to change.
               int direction = g_map_closed
              )
@@ -1607,7 +1605,8 @@ int map_interval_(String<Dna5> & seq1, //genome
     uint64_t gs_end = get_cord_x(gap_end);
     uint64_t gr_str = get_cord_y(gap_str);
     uint64_t gr_end = get_cord_y(gap_end);
-
+    uint64_t anchor_lower = cord_lower;
+    uint64_t anchor_upper = cord_upper; 
     if (get_cord_strand(gap_str))
     {
         gr_str = rvcp_const - gr_str;
