@@ -1503,7 +1503,7 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
                              get_cord_x(anchors[k] - ak3) < thd_anchor_err * dy3); 
         if (f_continuous)
         {
-            dout << "anchors" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) << get_cord_strand(anchors[k]) << "\n";
+            //dout << "anchors" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) << get_cord_strand(anchors[k]) << "\n";
             if(anchors.deltaPos2(k, k - 1) >  mapParm.shapeLen)
                 c_b += mapParm.shapeLen;
             else
@@ -1523,7 +1523,7 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
                 appendValue(list, (c_b << 40) + (sb << 20) + k);
                 //dout << "cbsb" << sb << k << "\n";
             }
-            dout << "anchors-----------" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) << c_b << sb << k << max_y << min_y <<(max_y - min_y) * thd_anchor_accept_dens << get_cord_strand(anchors[k]) <<"\n";
+            //dout << "anchors-----------" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) << c_b << sb << k << max_y << min_y <<(max_y - min_y) * thd_anchor_accept_dens << get_cord_strand(anchors[k]) <<"\n";
             sb = k;
             ak2 = anchors[k];
             ak3 = anchors[k];
@@ -1565,7 +1565,7 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
             }
         }
         
-         print_cords (hit, "gdialx");
+        //print_cords (hit, "gdialx");
         return (list[0] >> 40);   
     }
     else
