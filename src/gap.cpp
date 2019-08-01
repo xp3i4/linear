@@ -949,72 +949,10 @@ int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
     return g_anchor_end + n;
 }
 
-/*
- * cluster all the anchor candidates within the gap: 
- */
- void g_mapHs_anchor_ (String<uint64_t> & anchor, 
-                       String<uint64_t> & tile, 
-                       int anchor_end, 
-                       int thd_tileSize,
-                       uint64_t  main_strand, 
-                       int revscomp_const
-                       )
-{
-    int64_t thd_min_segment = 100;
-    int64_t prek = 0;
-    int64_t prex = -1;
-    int64_t prey = -1; 
-    int anchor_len = 0, max_anchor_len = 0, max_prek = 0, max_k = 0;
-    int thd_k_in_window = 1;
-    float thd_error_percent = 0.6;
-    std::sort (begin(anchor), begin(anchor) + anchor_end);
-    anchor[anchor_end] = ~0;
-    for (int k = 0; k < anchor_end + 1; k++)
-    {
-        //TODO: handle thd_min_segment, anchor 
-        int64_t d = std::abs((int64_t)g_hs_anchor_getY(anchor[k]) - (int64_t)g_hs_anchor_getY(anchor[prek]));
-        if (g_hs_anchor_getAnchor(anchor[k]) - g_hs_anchor_getAnchor(anchor[prek]) > 
-            thd_error_percent * std::max(thd_min_segment, d))
-        {
-            if ((std::abs(anchor_len / (float)(g_hs_anchor_getY(anchor[k - 1]) - g_hs_anchor_getY(anchor[prek]))) > g_thd_anchor_density && anchor_len > 2) || anchor_len > g_thd_anchor)
-            {
-                std::sort (begin(anchor) + prek, 
-                    begin(anchor) + k, 
-                    [](uint64_t & s1, uint64_t & s2)
-                    {
-                        return g_hs_anchor_getX(s2) > g_hs_anchor_getX(s1);
-                    });
-                prex = prey  = -1;
-                for (int j = prek + 1; j < k; j++)
-                {
-                //TODO: change for invs, y is in descending order 
-                    if ((g_hs_anchor_getX(anchor[j]) > prex + thd_tileSize
-                        || g_hs_anchor_getY(anchor[j]) > prey + thd_tileSize))
-                    {
-                        prex = g_hs_anchor_getX(anchor[j - 1]);
-                        prey = g_hs_anchor_getY(anchor[j - 1]);
-                        appendValue (tile, g_hs_anchor_2Tile(anchor[j - 1],  revscomp_const));
-                    }
-                }
-                appendValue (tile, g_hs_anchor_2Tile(anchor[k - 1], revscomp_const));
-            }
-            prek = k;
-            anchor_len = 0;
-        }
-        else
-        {
-            anchor_len++;
-        }
-    }
 
-    std::sort (begin(tile), 
-               end(tile),
-               [](uint64_t & s1, uint64_t & s2)
-               {
-                   return _defaultTile.getX(s1) < _defaultTile.getX(s2);
-                });
-}
 
+
+/*=====  Section of MapAnchor_: function, parms and wrapper  ======*/
 /**
  * cluster all anchors and trim tiles for sv
  * Will conduct additional processing. 
@@ -1034,7 +972,7 @@ int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
                            uint64_t  main_strand, 
                            uint64_t genomeId,
                            int anchor_end, 
-                           int thd_tileSize,
+                           int thD_tile_size,
                            int revscomp_const,
                            int direction
                            )
@@ -1042,9 +980,9 @@ int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
     int64_t thd_min_segment = 100;
     int thd_k_in_window = 1;
     int thd_fscore = 45;
-    float thd_overlap_tile = thd_tileSize * 0.4;
-    float thd_err_rate = 0.6;
-    float thd_swap_tile = thd_tileSize * 0.05;
+    float thd_overlap_tile = thD_tile_size * 0.4;
+    float thD_err_rate = 0.6;
+    float thd_swap_tile = thD_tile_size * 0.05;
     
     /**
      * cluster anchors
@@ -1063,7 +1001,7 @@ int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
         
         int64_t d = std::abs((int64_t)g_hs_anchor_getY(anchor[k]) - (int64_t)g_hs_anchor_getY(anchor[prek]));
         if (g_hs_anchor_getAnchor(anchor[k]) - g_hs_anchor_getAnchor(anchor[prek]) > 
-            thd_err_rate * std::max(thd_min_segment, d))
+            thD_err_rate * std::max(thd_min_segment, d))
         {
             if ((std::abs(anchor_len / (float)(g_hs_anchor_getY(anchor[k - 1]) - g_hs_anchor_getY(anchor[prek]))) > g_thd_anchor_density && anchor_len > 2) || anchor_len > g_thd_anchor)
             {
@@ -1083,8 +1021,8 @@ int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
                 }
                 for (int j = prek + 1; j < k; j++)
                 {
-                    if ((g_hs_anchor_getX(anchor[j]) > prex + thd_tileSize ||  
-                         g_hs_anchor_getY(anchor[j]) > prey + thd_tileSize))
+                    if ((g_hs_anchor_getX(anchor[j]) > prex + thD_tile_size ||  
+                         g_hs_anchor_getY(anchor[j]) > prey + thD_tile_size))
                     {
                         prex = g_hs_anchor_getX(anchor[j - 1]);
                         prey = g_hs_anchor_getY(anchor[j - 1]);
@@ -1111,9 +1049,9 @@ int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
         }
     }
     /**
-     * remove poorly anchored tile: score < thd_tileSize 
+     * remove poorly anchored tile: score < thD_tile_size 
      */
-    float tz = thd_tileSize / 2;
+    float tz = thD_tile_size / 2;
     int prep = 0;
     for (int i = 0; i < length(score); i++)
     {
@@ -1228,11 +1166,12 @@ int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
     //g_print_tiles_(tiles, f1, f2);
 }
 
+/*----------  Section of MapAnchor2_: function, parm and wrapper  ----------*/
+
 unsigned _get_tile_f_ (uint64_t & tile,
                        StringSet<FeaturesDynamic > & f1,
                        StringSet<FeaturesDynamic> & f2)
 {
-
    // uint64_t tile = shift_tile(k_tile, )
     uint64_t tile_x = _defaultTile.getX(tile);
     uint64_t tile_y = _defaultTile.getY(tile);
@@ -1245,12 +1184,12 @@ unsigned _get_tile_f_ (uint64_t & tile,
 }
 
 unsigned _get_tile_f_tri_ (uint64_t & tile,
-                  uint64_t & new_tile,
-                  StringSet<FeaturesDynamic > & f1,
-                  StringSet<FeaturesDynamic > & f2, 
-                  unsigned thd_accept_score,
-                  int block_size = window_size
-                  )
+                           uint64_t & new_tile,
+                           StringSet<FeaturesDynamic > & f1,
+                           StringSet<FeaturesDynamic > & f2, 
+                           unsigned thd_accept_score,
+                           int block_size = window_size
+                           )
 {
     int shift = window_size / 4;
     uint64_t tile_l = shift_tile(tile, -shift, -shift);
@@ -1277,41 +1216,38 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
         }
     }
 }
-//!!TODO::[Important] tune the parm, especially the thd_err_rate 
-struct MapAnchorParm
-{
 
-};
 /**
- * cluster all anchors and trim tiles for sv
- * Will conduct additional processing. 
- * Don't call it in the pipeline of approximate mapping.
+ * ~Methods function of mapGAnchor2_
+ * Cluster anchors and trim tiles for sv
+ * Additional process is conducted. 
+ * Don't call it in during the approximate mapping.
  */  
- int g_mapHs_anchor_sv2_ (String<uint64_t> & anchor, 
-                          String<uint64_t> & tiles, 
-                          StringSet<FeaturesDynamic> & f1,
-                          StringSet<FeaturesDynamic> & f2,
-                          uint64_t gap_str,
-                          uint64_t gap_end,
-                          int anchor_end, 
-                          int thd_tileSize,
-                          int revscomp_const,
-                          int direction
-                          )
+ int map_g_anchor2_ (String<uint64_t> & anchor, 
+                   String<uint64_t> & tiles, 
+                   StringSet<FeaturesDynamic> & f1,
+                   StringSet<FeaturesDynamic> & f2,
+                   uint64_t gap_str,
+                   uint64_t gap_end,
+                   int anchor_end, 
+                   int revscomp_const,
+                   int direction,
+                   int const & thD_tile_size,
+                   float const & thD_err_rate,
+                   int const & thd_pattern_in_window,
+                   int const & thd_overlap_size,
+                   int const & thd_gap_size,
+                   float const & thd_overlap_tile,
+                   float const & thd_swap_tile,
+                   float const & thd_anchor_density,
+                   int64_t const & thd_min_segment)
 {
     //dout << "sv2\n";
     CmpInt64 g_cmpll;
-    int block_size = window_size;
-    int64_t thd_min_segment = 100;
-    int thd_pattern_in_window = 1;
-    unsigned thd_fscore = get_windowThreshold(f1);
-    float thd_overlap_tile = thd_tileSize * 0.4;
-    float thd_err_rate = 0.2;
-    float thd_swap_tile = thd_tileSize * 0.05;
-    int thd_overlap_size = 170;
-    int thd_gap_size = 180;
+    int block_size = thD_tile_size;
     uint64_t main_strand = get_cord_strand(gap_str);
     
+    uint thd_fscore = get_windowThreshold(f1);
     //step 1. cluster anchors cord_end
     int64_t prek = 0;
     int64_t prex = -1;
@@ -1330,14 +1266,14 @@ struct MapAnchorParm
         //TODO: handle thd_min_segment, anchor 
         int64_t d = std::abs((int64_t)g_hs_anchor_getY(anchor[k]) - (int64_t)g_hs_anchor_getY(anchor[prek]));
         if (g_hs_anchor_getAnchor(anchor[k]) - g_hs_anchor_getAnchor(anchor[prek]) > 
-            thd_err_rate * std::max(thd_min_segment, d))
+            thD_err_rate * std::max(thd_min_segment, d))
         {
-            int thd_anchor_accpet = g_thd_anchor_density * 
+            int thd_anchor_accpet = thd_anchor_density * 
             std::abs(int64_t(g_hs_anchor_getY(anchor[k - 1]) - 
                              g_hs_anchor_getY(anchor[prek])));
             thd_anchor_accpet = std::max (thd_anchor_accpet, 2);
             thd_anchor_accpet = std::min (g_thd_anchor, thd_anchor_accpet);
-
+            dout << "sv2acl" << anchor_len << thd_anchor_accpet << "\n";
             if (anchor_len > thd_anchor_accpet) 
             {
                 std::sort (begin(anchor) + prek, 
@@ -1350,8 +1286,8 @@ struct MapAnchorParm
                 prey = g_hs_anchor_getY(anchor[prek]);
                 int kcount = 0;
 
-                uint64_t upper_x = g_hs_anchor_getX(anchor[prek]) + thd_tileSize;
-                uint64_t upper_y = g_hs_anchor_getY(anchor[prek]) + thd_tileSize;
+                uint64_t upper_x = g_hs_anchor_getX(anchor[prek]) + thD_tile_size;
+                uint64_t upper_y = g_hs_anchor_getY(anchor[prek]) + thD_tile_size;
                 int64_t centroid_x = 0;
                 int64_t centroid_y = 0;
                 int prej = prek;
@@ -1359,7 +1295,7 @@ struct MapAnchorParm
                 {
                     uint64_t x = g_hs_anchor_getX(anchor[j]);
                     uint64_t y = g_hs_anchor_getY(anchor[j]);
-                    if ((x > prex + thd_tileSize || y > prey + thd_tileSize)||
+                    if ((x > prex + thD_tile_size || y > prey + thD_tile_size)||
                          j == k - 1)
                     {
                         if (j != k - 1)
@@ -1381,7 +1317,7 @@ struct MapAnchorParm
                         uint64_t tmp_tile = create_tile(0, tmp_tile_x, tmp_tile_y, 
                                             g_hs_anchor_get_strand(anchor[prek]));
                         uint64_t new_tile;
-                        unsigned score = _get_tile_f_tri_(tmp_tile, new_tile, f1, f2, thd_fscore, thd_tileSize);
+                        unsigned score = _get_tile_f_tri_(tmp_tile, new_tile, f1, f2, thd_fscore, thD_tile_size);
                         if (kcount >= thd_pattern_in_window && 
                             score < thd_fscore)
                         {
@@ -1456,7 +1392,7 @@ struct MapAnchorParm
             set_tile_end(back(tiles));
         }
     }
-  //  g_print_tiles_(tiles, "sv2anchor");
+    g_print_tiles_(tiles, "sv22");
 /**
  * step 3. extend patch
  * extend window if there are gaps between tiles until the 
@@ -1466,7 +1402,7 @@ struct MapAnchorParm
 
     g_print_tiles_(tiles, "mi20");
     uint64_t cord_str = gap_str;
-    uint64_t cord_end = shift_cord(gap_end, -thd_tileSize, -thd_tileSize);
+    uint64_t cord_end = shift_cord(gap_end, -thD_tile_size, -thD_tile_size);
     //uint64_t cord_end = gap_end;
     if (empty(tiles))
     {
@@ -1527,10 +1463,10 @@ struct MapAnchorParm
     {
         uint64_t x_t = get_tile_x(tiles[i]);
         uint64_t y_t = get_tile_strand(tiles[i] ^ gap_str) ?
-                       revscomp_const - 1 - get_tile_y(tiles[i]) - thd_tileSize :
+                       revscomp_const - 1 - get_tile_y(tiles[i]) - thD_tile_size :
                        get_tile_y(tiles[i]);
-        if (x_t < x_str || x_t + thd_tileSize > x_end || 
-            y_t < y_str || y_t + thd_tileSize > y_end) //out of bound
+        if (x_t < x_str || x_t + thD_tile_size > x_end || 
+            y_t < y_str || y_t + thD_tile_size > y_end) //out of bound
         {
             di++; 
         }
@@ -1553,22 +1489,87 @@ struct MapAnchorParm
     g_print_tiles_(tiles, "mi22");
     return 0;
 }
-/**
- * wrapper
- */
- void g_mapHs_anchor_sv_ (String<uint64_t> & anchor, 
-                                String<uint64_t> & tiles, 
-                                StringSet<FeaturesDynamic > & f1,
-                                StringSet<FeaturesDynamic > & f2,
-                                uint64_t cord_str,
-                                uint64_t cord_end,
-                                int anchor_end, 
-                                int thd_tileSize,
-                                int revscomp_const,
-                                int direction
-                                )
+
+//!!TODO::[Important] tune the parm, especially the thD_err_rate [ing] 
+//Parms of function map_g_Anchor2_
+struct MapGAnchor2Parm_
 {
-    g_mapHs_anchor_sv2_ (anchor, tiles, f1, f2, cord_str, cord_end, anchor_end, thd_tileSize, revscomp_const, direction);
+    int thd_pattern_in_window;
+    int thd_overlap_size;
+    int thd_gap_size;
+    float thd_overlap_tile;
+    float thd_swap_tile;
+    float thd_anchor_density;
+    int64_t thd_min_segment;
+
+    MapGAnchor2Parm_ (int thD_tile_size, float thD_err_rate) 
+    {
+        thd_pattern_in_window = 1;
+        thd_overlap_size = 170;
+        thd_gap_size = 180;
+        thd_overlap_tile = thD_tile_size * 0.4;
+        thd_swap_tile = thD_tile_size * 0.05;
+        thd_anchor_density = 0.03;
+        thd_min_segment = 100;
+    }
+};
+
+//Function wrapper
+int map_g_anchor2_ (String<uint64_t> & anchor, 
+                    String<uint64_t> & tiles, 
+                    StringSet<FeaturesDynamic> & f1,
+                    StringSet<FeaturesDynamic> & f2,
+                    uint64_t gap_str,
+                    uint64_t gap_end,
+                    int anchor_end, 
+                    int revscomp_const,
+                    int direction,
+                    int thD_tile_size, //global parm
+                    float thD_err_rate,  //global parm
+                    MapGAnchor2Parm_ const & parm)
+{
+    return map_g_anchor2_ (anchor, tiles, f1, f2,
+                           gap_str, gap_end, anchor_end, 
+                           revscomp_const, direction,
+                           thD_tile_size,
+                           thD_err_rate,
+                           parm.thd_pattern_in_window,
+                           parm.thd_overlap_size,
+                           parm.thd_gap_size,
+                           parm.thd_overlap_tile,
+                           parm.thd_swap_tile,
+                           parm.thd_anchor_density,
+                           parm.thd_min_segment
+                           );
+}
+/**
+ * Main Function Parm Wrapper 
+ */
+struct MapGAnchorParm
+{
+    MapGAnchor2Parm_ mapGAnchor2parm_;
+    MapGAnchorParm(int thD_tile_size, float thD_err_rate):
+        mapGAnchor2parm_(thD_tile_size, thD_err_rate)
+    {};
+};
+/**
+ * Main Function MapAnchor_ 
+ */
+int map_g_anchor (String<uint64_t> & anchor, 
+                  String<uint64_t> & tiles, 
+                  StringSet<FeaturesDynamic > & f1,
+                  StringSet<FeaturesDynamic > & f2,
+                  uint64_t cord_str,
+                  uint64_t cord_end,
+                  int anchor_end, 
+                  int revscomp_const,
+                  int direction,
+                  int thD_tile_size,
+                  float thD_err_rate,
+                  MapGAnchorParm const & parm
+                  )
+{
+    return map_g_anchor2_(anchor, tiles, f1, f2, cord_str, cord_end, anchor_end, revscomp_const, direction, thD_tile_size, thD_err_rate, parm.mapGAnchor2parm_);
 }
 
 /**
@@ -1576,21 +1577,23 @@ struct MapAnchorParm
    mapping area as long as possible.
  * @gap_str and @gap_end should have the same strand
  */
-int map_interval_(String<Dna5> & seq1, //genome
-              String<Dna5> & seq2, //read
-              String<Dna5> & comstr,
-              String<uint64_t> & g_hs,
-              String<uint64_t> & g_hs_anchor,
-              String<uint64_t> & g_hs_tile,    //results
-              StringSet<FeaturesDynamic > & f1,  
-              StringSet<FeaturesDynamic > & f2,
-              uint64_t gap_str,
-              uint64_t gap_end, 
-              int64_t cord_lower,
-              int64_t cord_upper,
-              int thd_tile_size,   //WARNING 192 not allowed to change.
-              int direction = g_map_closed
-             )
+int map_interval(String<Dna5> & seq1, //genome
+                 String<Dna5> & seq2, //read
+                 String<Dna5> & comstr,
+                 String<uint64_t> & g_hs,
+                 String<uint64_t> & g_hs_anchor,
+                 String<uint64_t> & g_hs_tile,    //results
+                 StringSet<FeaturesDynamic > & f1,  
+                 StringSet<FeaturesDynamic > & f2,
+                 uint64_t gap_str,
+                 uint64_t gap_end, 
+                 int64_t cord_lower,
+                 int64_t cord_upper,
+                 int direction,
+                 int thD_tile_size,   //WARNING 192 not allowed to change.
+                 float thD_err_rate,
+                 MapGAnchorParm const & parm1 // extern parm
+                )
 {
     if (get_cord_strand (gap_str ^ gap_end))
     {
@@ -1641,44 +1644,19 @@ int map_interval_(String<Dna5> & seq1, //genome
     }
     //>>debug
     g_print_tiles_(g_hs_tile, "mi20x");
-    g_mapHs_anchor_sv_(g_hs_anchor, g_hs_tile, f1, f2, 
-                       gap_str, gap_end,
-                       g_hs_anchor_end, 
-                       thd_tile_size,
-                       rvcp_const,
-                       direction
-                      );
+    return map_g_anchor (g_hs_anchor, g_hs_tile, f1, f2, 
+                         gap_str, gap_end,
+                         g_hs_anchor_end, 
+                         rvcp_const,
+                         direction,
+                         thD_tile_size,
+                         thD_err_rate,
+                         parm1
+                        );
     g_print_tiles_(g_hs_tile, "mi2x");
     //dout << "mi2" << g_hs_anchor_end << "\n";
 }
-/*
- * Shortcut to eliminate restrictions on anchors (any anchor will be recorded)
- */
-int map_interval_(String<Dna5> & seq1, //genome
-              String<Dna5> & seq2, //read
-              String<Dna5> & comstr,
-              String<uint64_t> & g_hs,
-              String<uint64_t> & g_hs_anchor,
-              String<uint64_t> & g_hs_tile,    //results
-              StringSet<FeaturesDynamic > & f1,  
-              StringSet<FeaturesDynamic > & f2,
-              uint64_t gap_str,
-              uint64_t gap_end, 
-              int thd_tile_size,   //WARNING 192 not allowed to change.
-              int direction = g_map_closed
-             )
 
-{
-    int64_t anchor_upper = LLMAX; 
-    int64_t anchor_lower = LLMIN;
-    map_interval_(seq1, seq2, comstr,
-                  g_hs, g_hs_anchor, g_hs_tile, f1, f2,
-                  gap_str, gap_end,
-                  anchor_upper, anchor_lower,
-                  thd_tile_size,
-                  direction
-                  ); 
-}
 
 /**
  * Patch for duplication (only) where additional mapping in (,gap_str] or [gap_end,) is necessary.
@@ -1693,14 +1671,15 @@ int try_dup(String<Dna5> & seq,
             String<uint64_t> & tiles, //result
             uint64_t gap_str,
             uint64_t gap_end,
-            float thd_err_rate,
-            uint64_t thd_tile_size)
+            float thD_err_rate,
+            uint64_t thD_tile_size,
+            MapGAnchorParm const & parm1)
             //float band_ratio,
             //int direction)
 {
     int64_t dy;
     uint64_t tile1 = gap_str;
-    uint64_t tile2 = shift_tile(gap_end, -thd_tile_size, -thd_tile_size);
+    uint64_t tile2 = shift_tile(gap_end, -thD_tile_size, -thD_tile_size);
     if (get_tile_strand(tile1 ^ tile2))
     {
         dy = length(read) - 1 - get_tile_y(tile2) - get_tile_y(tile1);
@@ -1714,28 +1693,34 @@ int try_dup(String<Dna5> & seq,
         return 1;
     }
     int64_t shift_y = dy; 
-    int64_t shift_x = dy * (1 + thd_err_rate);
+    int64_t shift_x = dy * (1 + thD_err_rate);
 
     //extend tile1 towards right
-    uint64_t try_str = shift_tile(tile1, thd_tile_size / 2, thd_tile_size / 2);
+    uint64_t try_str = shift_tile(tile1, thD_tile_size / 2, thD_tile_size / 2);
     uint64_t try_end = shift_tile(try_str, shift_x, shift_y);
     int direction = 1;
-    map_interval_(seq, read, comstr,
-                  g_hs, g_anchor, tiles, f1, f2,
-                  try_str, try_end,
-                  thd_tile_size,
-                  direction
-                  );
+    map_interval(seq, read, comstr,
+                 g_hs, g_anchor, tiles, f1, f2,
+                 try_str, try_end,
+                 LLMIN, LLMAX,             
+                 direction,
+                 thD_tile_size,
+                 thD_err_rate,
+                 parm1
+                 );
     //extend tile2 towards left
-    try_end = shift_tile(tile2, thd_tile_size / 2, thd_tile_size / 2);
+    try_end = shift_tile(tile2, thD_tile_size / 2, thD_tile_size / 2);
     try_str = shift_tile(try_end, -shift_x, -shift_y);
     direction = -1;
-    map_interval_(seq, read, comstr,
-                  g_hs, g_anchor, tiles, f1, f2,
-                  try_str, try_end,
-                  thd_tile_size,
-                  direction
-                  );
+    map_interval(seq, read, comstr,
+                 g_hs, g_anchor, tiles, f1, f2,
+                 try_str, try_end,
+                 LLMIN, LLMAX,
+                 direction,
+                 thD_tile_size,
+                 thD_err_rate,
+                 parm1
+                 );
     return 0;
 }
 
@@ -1749,20 +1734,22 @@ int try_tiles_dup(String<Dna5> & seq,
                   String<uint64_t> & tiles, //result
                   uint64_t tile1,
                   uint64_t tile2,
-                  float thd_err_rate,
-                  uint64_t thd_tile_size)
+                  float thD_err_rate,
+                  uint64_t thD_tile_size,
+                  MapGAnchorParm parm1)
 {
     //shortcut to call dup for tiles
     uint64_t gap_str = tile1;
-    uint64_t gap_end = shift_tile(tile2, thd_tile_size, thd_tile_size);
+    uint64_t gap_end = shift_tile(tile2, thD_tile_size, thD_tile_size);
     return 0;
     int res = try_dup (seq, read, comstr,
                        f1, f2,
                        g_hs, g_anchor, tiles, //result
                        gap_str,
                        gap_end,
-                       thd_err_rate,
-                       thd_tile_size);
+                       thD_err_rate,
+                       thD_tile_size, 
+                       parm1);
     return res;
 }
 
@@ -1778,10 +1765,11 @@ int g_mapHs_(String<Dna5> & seq1, //genome
              uint64_t gap_end, 
              uint64_t anchor_lower,
              uint64_t anchor_upper,
-             float thd_err_rate,
-             int thd_tile_size,   //WARNING 192 not allowed to change.
+             float thD_err_rate,
+             int thD_tile_size,   //WARNING 192 not allowed to change.
              int64_t thd_dxy_min,
-             int direction //= g_map_closed
+             int direction, //= g_map_closed
+             MapGAnchorParm const & parm1
              )
 {
     clear(g_hs);
@@ -1789,8 +1777,8 @@ int g_mapHs_(String<Dna5> & seq1, //genome
     resize(g_hs, 1ULL << 20);
     resize(g_hs_anchor, 1ULL << 20);
 
-    float thd_da_zero = thd_err_rate; 
-    map_interval_(seq1, seq2, comstr, g_hs, g_hs_anchor, tiles, f1, f2, gap_str, gap_end, anchor_lower, anchor_upper, thd_tile_size, direction);
+    float thd_da_zero = thD_err_rate; 
+    map_interval(seq1, seq2, comstr, g_hs, g_hs_anchor, tiles, f1, f2, gap_str, gap_end, anchor_lower, anchor_upper, direction, thD_tile_size, thD_err_rate, parm1);
 }
 
 int g_mapHs_(String<Dna5> & seq1, //genome
@@ -1803,10 +1791,11 @@ int g_mapHs_(String<Dna5> & seq1, //genome
              StringSet<FeaturesDynamic > & f2,
              uint64_t gap_str,
              uint64_t gap_end, 
-             float thd_err_rate,
-             int thd_tile_size,   //WARNING 192 not allowed to change.
+             float thD_err_rate,
+             int thD_tile_size,   //WARNING 192 not allowed to change.
              int64_t thd_dxy_min,
-             int direction //= g_map_closed
+             int direction, //= g_map_closed
+             MapGAnchorParm const & parm1
              )
 {
     g_mapHs_(seq1, seq2, comstr,
@@ -1814,10 +1803,11 @@ int g_mapHs_(String<Dna5> & seq1, //genome
              f1, f2,
              gap_str,gap_end, 
              LLMIN,LLMAX,
-             thd_err_rate,
-             thd_tile_size,   //WARNING 192 not allowed to change.
+             thD_err_rate,
+             thD_tile_size,   //WARNING 192 not allowed to change.
              thd_dxy_min,
-             direction //= g_map_closed
+             direction, //= g_map_closed
+             parm1
              );
 }
 
@@ -2706,7 +2696,7 @@ int isTilesConsecutive_(uint64_t & tile1, uint64_t tile2, uint64_t thd_cord_gap)
 
 /*
  * @tile_str and tile_end refer to the start and end of the same tile rather than two different cords
- * @thd_tile_size is the regular size of tile, normally 192x192;
+ * @thD_tile_size is the regular size of tile, normally 192x192;
    However the size of the tile specified by the @tile_str and @tile_end is is allowed to be smaller than that.
  */
 uint64_t reform_tile_ (String<Dna5> & seq1,
@@ -2717,11 +2707,11 @@ uint64_t reform_tile_ (String<Dna5> & seq1,
                        uint64_t & tile_str, 
                        uint64_t & tile_end, 
                        int sv_flag, 
-                       int thd_tile_size
+                       int thD_tile_size
                        )
 {
     int f_e = is_tile_end(tile_str);
-    uint64_t clip = clip_tile (seq1, seq2, comstr, g_hs, g_hs_anchor, tile_str, sv_flag, thd_tile_size);
+    uint64_t clip = clip_tile (seq1, seq2, comstr, g_hs, g_hs_anchor, tile_str, sv_flag, thD_tile_size);
     int64_t shift;
     if (sv_flag & g_sv_r)
     {
@@ -2763,8 +2753,8 @@ int reform_tiles_(String<Dna5> & seq1,
                   int pos_end,
                   int direction,
                   int thd_cord_gap,
-                  int thd_tile_size,
-                  float thd_err_rate)
+                  int thD_tile_size,
+                  float thD_err_rate)
 {
     //<<debug
     if (direction == g_map_left)
@@ -2778,7 +2768,7 @@ int reform_tiles_(String<Dna5> & seq1,
     }
     //Parms
     int64_t thd_dxy_min = 80; //skip ins del < this value todo tune later
-    float thd_da_zero = thd_err_rate; 
+    float thd_da_zero = thD_err_rate; 
 
     CmpInt64 g_cmpll;
     int sv_exists = 0;
@@ -2787,12 +2777,12 @@ int reform_tiles_(String<Dna5> & seq1,
     {
         if (direction == g_map_rght)
         {
-            reform_tile_ (seq1, seq2, comstr, g_hs, g_hs_anchor, tiles_str[pos_str], tiles_end[pos_str], g_sv_r, thd_tile_size);
+            reform_tile_ (seq1, seq2, comstr, g_hs, g_hs_anchor, tiles_str[pos_str], tiles_end[pos_str], g_sv_r, thD_tile_size);
             return 0;
         }
         else if (direction = g_map_left)
         {
-            reform_tile_ (seq1, seq2, comstr, g_hs, g_hs_anchor, tiles_str[pos_str], tiles_end[pos_str], g_sv_l, thd_tile_size);
+            reform_tile_ (seq1, seq2, comstr, g_hs, g_hs_anchor, tiles_str[pos_str], tiles_end[pos_str], g_sv_l, thD_tile_size);
             return 0;
         }
         else //== g_map_closed
@@ -2804,13 +2794,13 @@ int reform_tiles_(String<Dna5> & seq1,
     {
         if (direction == g_map_left)
         {
-            reform_tile_ (seq1, seq2, comstr, g_hs, g_hs_anchor, tiles_str[pos_str], tiles_end[pos_str], g_sv_l, thd_tile_size);
+            reform_tile_ (seq1, seq2, comstr, g_hs, g_hs_anchor, tiles_str[pos_str], tiles_end[pos_str], g_sv_l, thD_tile_size);
         }
         for (int i = pos_str + 1; i < pos_end; i++)
         {
             if (i > 0 && is_tile_end (tiles_str[i - 1]) && direction == g_map_left)
             {
-                reform_tile_ (seq1, seq2, comstr, g_hs, g_hs_anchor, tiles_str[i], tiles_end[i], g_sv_l, thd_tile_size);
+                reform_tile_ (seq1, seq2, comstr, g_hs, g_hs_anchor, tiles_str[i], tiles_end[i], g_sv_l, thD_tile_size);
                 continue;
             }
             int64_t dx = tile_distance_x(tiles_str[i - 1], tiles_str[i], uint64_t(length(seq2)));
@@ -2823,12 +2813,12 @@ int reform_tiles_(String<Dna5> & seq1,
                     insertClipEnd(sp_tiles, i);
                 }
 
-                reform_tile_ (seq1, seq2, comstr, g_hs, g_hs_anchor, tiles_str[i - 1], tiles_end[i - 1], g_sv_r, thd_tile_size);
-                reform_tile_ (seq1, seq2, comstr, g_hs, g_hs_anchor, tiles_str[i], tiles_end[i], g_sv_l, thd_tile_size);
+                reform_tile_ (seq1, seq2, comstr, g_hs, g_hs_anchor, tiles_str[i - 1], tiles_end[i - 1], g_sv_r, thD_tile_size);
+                reform_tile_ (seq1, seq2, comstr, g_hs, g_hs_anchor, tiles_str[i], tiles_end[i], g_sv_l, thD_tile_size);
             }
             if (direction == g_map_rght && is_tile_end(tiles_str[i]))
             {
-                reform_tile_ (seq1, seq2, comstr, g_hs, g_hs_anchor, tiles_str[i] , tiles_end[i], g_sv_r, thd_tile_size);
+                reform_tile_ (seq1, seq2, comstr, g_hs, g_hs_anchor, tiles_str[i] , tiles_end[i], g_sv_r, thD_tile_size);
             }
         }
         return 0;
@@ -2852,18 +2842,18 @@ int reform_tiles(String<Dna5> & seq1,
                  uint64_t gap_end, 
                  int direction,
                  int thd_cord_gap,
-                 int thd_tile_size,
-                 float thd_err_rate
+                 int thD_tile_size,
+                 float thD_err_rate
                 )
 {
     //dout << "rt\n";
     //step.1 init tiles_str, tiles_end;
     //Insert head_tile and tail tile at the front and end for each block of tiles
     uint64_t head_tile = gap_str;
-    uint64_t tail_tile = shift_tile(gap_end, -thd_tile_size, -thd_tile_size); 
-    if (get_tile_x(gap_end) > thd_tile_size && get_tile_y (gap_end) > thd_tile_size)
+    uint64_t tail_tile = shift_tile(gap_end, -thD_tile_size, -thD_tile_size); 
+    if (get_tile_x(gap_end) > thD_tile_size && get_tile_y (gap_end) > thD_tile_size)
     {
-        tail_tile = shift_tile(gap_end, -thd_tile_size, -thd_tile_size);
+        tail_tile = shift_tile(gap_end, -thD_tile_size, -thD_tile_size);
     }
     else
     {
@@ -2908,7 +2898,7 @@ int reform_tiles(String<Dna5> & seq1,
             }
         }
     }
-    int64_t d = shift_tile (0ULL, thd_tile_size, thd_tile_size);
+    int64_t d = shift_tile (0ULL, thD_tile_size, thD_tile_size);
     resize(tiles_end_tmp, length(tiles_str_tmp));
     for (int i = 0; i < length(tiles_str_tmp); i++)
     {
@@ -2928,8 +2918,8 @@ int reform_tiles(String<Dna5> & seq1,
                 0, length(tiles_str_tmp),
                 direction, 
                 thd_cord_gap, 
-                thd_tile_size,
-                thd_err_rate);
+                thD_tile_size,
+                thD_err_rate);
     tiles_str = tiles_str_tmp;
     tiles_end = tiles_end_tmp;
     g_print_tiles_(tiles_str, "rtf1");
@@ -3005,7 +2995,7 @@ int try_blocks_sv_ (String<uint64_t> & cords,
                     String<uint64_t> & clips,
                     uint64_t cmprevconst,
                     int64_t thd_max_chain_distance,
-                    int64_t thd_tile_size)
+                    int64_t thD_tile_size)
 {
     if (length(cords) < 2)
     {
@@ -3026,11 +3016,11 @@ int try_blocks_sv_ (String<uint64_t> & cords,
                 if (get_cord_x(cords[i - 1]) > get_cord_x(cords[i])) //dup
                 {
                     insertClipStr(clips, cords[i]);
-                    insertClipEnd(clips, shift_cord(cords[i - 1], thd_tile_size, thd_tile_size));
+                    insertClipEnd(clips, shift_cord(cords[i - 1], thD_tile_size, thD_tile_size));
                 }
                 else //ins
                 {
-                    insertClipStr(clips, shift_tile(cords[i - 1], thd_tile_size, thd_tile_size));
+                    insertClipStr(clips, shift_tile(cords[i - 1], thD_tile_size, thD_tile_size));
                     insertClipEnd(clips, cords[i]);
                 }
             }
@@ -3176,14 +3166,15 @@ int mapExtend_(StringSet<String<Dna5> > & seqs,
                String<uint64_t> & clips,     //results 
                int direction,
                int thd_cord_gap, 
-               int thd_tile_size,
+               int thD_tile_size,
                int thd_cord_remap, 
-               float thd_err_rate,
-               int64_t thd_dxy_min)
+               float thD_err_rate,
+               int64_t thd_dxy_min,
+               MapGAnchorParm const & parm1)
 {
     String <Dna5> & ref = seqs[get_cord_id(gap_str)];
     String<uint64_t> sp_tiles; 
-    float thd_da_zero = thd_err_rate; 
+    float thd_da_zero = thD_err_rate; 
     print_cord(gap_str, "mex");
     print_cord(gap_end, "mex");
     print_cord(anchor_lower, "mexa");
@@ -3191,15 +3182,15 @@ int mapExtend_(StringSet<String<Dna5> > & seqs,
     g_mapHs_(ref, read, comstr,
              g_hs, g_anchor, tiles_str, f1, f2,
              gap_str, gap_end, anchor_lower, anchor_upper,
-             thd_da_zero, thd_tile_size, thd_dxy_min,
-             g_map_rght
+             thd_da_zero, thD_tile_size, thd_dxy_min,
+             g_map_rght, parm1
        );
     g_print_tiles_(tiles_str, "mextl");
     reform_tiles(ref, read, comstr, 
                  tiles_str, tiles_end,
                  clips, g_hs, g_anchor, sp_tiles, 
                  gap_str, gap_end, direction, 
-                 thd_cord_gap, thd_tile_size, thd_err_rate);
+                 thd_cord_gap, thD_tile_size, thD_err_rate);
     g_print_tiles_(tiles_str, "mextl2");
     dout << "mextd" << direction << "\n";
 }
@@ -3221,10 +3212,11 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
              String<uint64_t> & clips,         //results 
              int direction,
              int thd_cord_gap, 
-             int thd_tile_size,
+             int thD_tile_size,
              int thd_cord_remap, 
-             float thd_err_rate,
-             int64_t thd_dxy_min
+             float thD_err_rate,
+             int64_t thd_dxy_min,
+             MapGAnchorParm const & parm1
             )
 {
 
@@ -3234,7 +3226,7 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
     //return 0;
 //>>debug
     CmpInt64 g_cmpll;
-    float thd_da_zero = thd_err_rate; 
+    float thd_da_zero = thD_err_rate; 
     clear(tiles_str);
     clear(tiles_end);
     _DefaultHit.unsetBlockEnd(gap_str); //remove cord sgn, format cord to tiles
@@ -3265,7 +3257,7 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         int direction2 = g_map_left;
 
         g_cmpll.min(shift_x, x2 - x1) << int64_t(length(ref) - 1 - get_cord_x(gap_end));
-        g_cmpll.min(shift_y, (x2 - x1) * (1 + thd_err_rate)) << int64_t(length(read) - 1 - get_cord_y(gap_end));
+        g_cmpll.min(shift_y, (x2 - x1) * (1 + thD_err_rate)) << int64_t(length(read) - 1 - get_cord_y(gap_end));
         uint64_t gap_str1 = gap_str;
         uint64_t gap_end1 = shift_cord (gap_str, shift_x, shift_y);
         mapExtend_ (seqs, read, comstr, 
@@ -3275,11 +3267,11 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                     f1, f2,  
                     tiles_str1, tiles_end1, clips1, 
                     direction1,
-                    thd_cord_gap, thd_tile_size, thd_cord_remap,
-                    thd_err_rate, thd_dxy_min);
+                    thd_cord_gap, thD_tile_size, thd_cord_remap,
+                    thD_err_rate, thd_dxy_min, parm1);
 
         g_cmpll.min(shift_x, x2 - x1) << int64_t(get_cord_x(gap_end));
-        g_cmpll.min(shift_y, (x2 - x1) * (1 + thd_err_rate)) << int64_t(get_cord_y(gap_end));
+        g_cmpll.min(shift_y, (x2 - x1) * (1 + thD_err_rate)) << int64_t(get_cord_y(gap_end));
         uint64_t gap_str2 = shift_cord (gap_end, -shift_x, -shift_y);
         uint64_t gap_end2 = gap_end;
         mapExtend_ (seqs, read, comstr, 
@@ -3289,8 +3281,8 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                     f1, f2,  
                     tiles_str2, tiles_end2, clips2, 
                     direction2,
-                    thd_cord_gap, thd_tile_size, thd_cord_remap,
-                    thd_err_rate, thd_dxy_min);
+                    thd_cord_gap, thD_tile_size, thd_cord_remap,
+                    thD_err_rate, thd_dxy_min, parm1);
         g_print_tiles_(tiles_str1, "mgds1");
         g_print_tiles_(tiles_str2, "mgds2");
         if (!empty(tiles_str1))
@@ -3321,14 +3313,17 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         g_mapHs_(ref, read, comstr,
                  g_hs, g_anchor, tiles_str, f1, f2,
                  gap_str, gap_end,
-                 thd_da_zero, thd_tile_size, thd_dxy_min,
-                 direction
+                 thd_da_zero, thD_tile_size, thd_dxy_min,
+                 direction,
+                 parm1
                 );
+
+        g_print_tiles_(tiles_str, "ghs_tile");
         reform_tiles(ref, read, comstr, 
                      tiles_str, tiles_end,
                      clips, g_hs, g_anchor, sp_tiles,
                      gap_str, gap_end, direction, 
-                     thd_cord_gap, thd_tile_size, thd_err_rate);
+                     thd_cord_gap, thD_tile_size, thD_err_rate);
         //try dup for each sp_tiles element.
         for (int j = 0; j < getClipsLen(sp_tiles); j++)
         {
@@ -3343,13 +3338,14 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                            f1, f2,
                            g_hs, g_anchor, dup_tiles_str,
                            dup_str, dup_end, 
-                           thd_err_rate, 
-                           thd_tile_size);
+                           thD_err_rate, 
+                           thD_tile_size,
+                           parm1);
             reform_tiles(ref, read, comstr,
                          dup_tiles_str, dup_tiles_end,
                          dup_clips, g_hs, g_anchor, dup_sp_tiles,
                          dup_str, dup_end, dup_direction,
-                         thd_cord_gap, thd_tile_size, thd_err_rate);
+                         thd_cord_gap, thD_tile_size, thD_err_rate);
         }
             g_print_tiles_(tiles_str, "clip[1");
             g_print_tiles_(tiles_end, "clip[1");
@@ -3394,14 +3390,14 @@ void _updateCordsStrEndValue(String<uint64_t> & cords_str,
                              unsigned i,
                              uint64_t cord1,
                              uint64_t cord2,
-                             uint64_t thd_tile_size)
+                             uint64_t thD_tile_size)
 {
     if (empty(cords_end))
     {
         resize (cords_end, length(cords_str));
         for (unsigned i = 0; i < length(cords_str); i++)
         {
-            cords_end[i] = shift_cord (cords_str[i], thd_tile_size, thd_tile_size);
+            cords_end[i] = shift_cord (cords_str[i], thD_tile_size, thD_tile_size);
         }
     }
     set_cord_xy (cords_str[i], get_cord_x(cord1), get_cord_y(cord1));
@@ -3425,8 +3421,8 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             StringSet<FeaturesDynamic > & f1,
             StringSet<FeaturesDynamic > & f2,
             int64_t thd_gap, 
-            int64_t thd_tile_size,
-            float thd_err_rate
+            int64_t thD_tile_size,
+            float thD_err_rate
            )
 {
     CmpInt64 g_cmpll;
@@ -3447,10 +3443,13 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
     int64_t thd_dxy_min = 80;
     int64_t thd_extend_xy = 3; //extend at first or last cord of seqs
     int64_t thd_max_chain_distance = thd_max_extend;
-    int64_t block_size = thd_tile_size; 
-    int64_t thd_cord_size = thd_tile_size; //NOTE::this is the cord size, may be different from thd_tile_size.
+    int64_t block_size = thD_tile_size; 
+    int64_t thd_cord_size = thD_tile_size; //NOTE::this is the cord size, may be different from thD_tile_size.
     int64_t thd_cord_remap = 100;
     int64_t thd_cord_gap = thd_gap + block_size;
+
+    MapGAnchorParm parm1(thD_tile_size, thD_err_rate);
+
     clear(apx_gaps);
     gather_blocks_ (cords_str, str_ends, str_ends_p, length(read), thd_cord_gap, thd_cord_size, 0);
     gather_gaps_y_ (cords_str, str_ends, apx_gaps, length(read), thd_cord_gap);
@@ -3502,10 +3501,11 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                              clips, 
                              direction,
                              thd_cord_gap, 
-                             thd_tile_size,
+                             thD_tile_size,
                              thd_cord_remap,
-                             thd_err_rate,
-                             thd_dxy_min);
+                             thD_err_rate,
+                             thd_dxy_min,
+                             parm1);
 
                     insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size);
                 }
@@ -3522,7 +3522,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                           tile_str, 
                           tile_end, 
                           g_sv_l, 
-                          thd_tile_size
+                          thD_tile_size
                         );
                     print_cord(tile_str, "strc");
                     print_cord(tile_end, "endc");
@@ -3541,10 +3541,10 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                                 clips, 
                                 direction,
                                 thd_cord_gap, 
-                                thd_tile_size,
+                                thD_tile_size,
                                 thd_cord_remap,
-                                thd_err_rate,
-                                thd_dxy_min);
+                                thD_err_rate,
+                                thd_dxy_min, parm1);
                     insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size);
                 }
             }
@@ -3570,10 +3570,11 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                     clips, 
                     direction,
                     thd_cord_gap, 
-                    thd_tile_size,
+                    thD_tile_size,
                     thd_cord_remap,
-                    thd_err_rate,
-                    thd_dxy_min);
+                    thD_err_rate,
+                    thd_dxy_min, 
+                    parm1);
             insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size);
         }
         if (_DefaultHit.isBlockEnd(cords_str[i]))  ///right clip end cord
@@ -3608,10 +3609,11 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                              clips, 
                              direction,
                              thd_cord_gap, 
-                             thd_tile_size, 
+                             thD_tile_size, 
                              thd_cord_remap,
-                             thd_err_rate,
-                             thd_dxy_min);
+                             thD_err_rate,
+                             thd_dxy_min,
+                             parm1);
                     insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size);
                 }
                 else
@@ -3627,7 +3629,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                                   tile_str, 
                                   tile_end, 
                                   g_sv_r, 
-                                  thd_tile_size
+                                  thD_tile_size
                                   );
                     _updateCordsStrEndValue(cords_str, cords_end, i, tile_str, tile_end, block_size);
                     print_cord(tile_str, "strc2");
@@ -3646,10 +3648,11 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                                 clips, 
                                 direction,
                                 thd_cord_gap, 
-                                thd_tile_size,
+                                thD_tile_size,
                                 thd_cord_remap,
-                                thd_err_rate,
-                                thd_dxy_min);
+                                thD_err_rate,
+                                thd_dxy_min, 
+                                parm1);
                     dout << "ccend2 " << get_cord_y(gap_str) << "\n";
                     insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size);
                     print_cords(cords_str, "ccend21");
@@ -3658,7 +3661,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             }
         }
     }
-    //try_blocks_sv_(cords_str, clips, length(read) - 1, thd_max_chain_distance, thd_tile_size);
+    //try_blocks_sv_(cords_str, clips, length(read) - 1, thd_max_chain_distance, thD_tile_size);
     return 0;
 }
 
