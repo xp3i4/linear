@@ -1948,6 +1948,12 @@ uint64_t apxMap (IndexDynamic & index,
                  float cordLenThr,
                  int f_chain)
 {
+    //<<debug
+    //mapParm.delta = 
+    //mapParm
+    //>>debug
+
+
     int64_t thd_cord_size = window_size; 
     int64_t thd_large_gap = 1000;     // make sure thd_large_gap <= thd_combine_blocks
     int64_t thd_chain_blocks_lower = -100;

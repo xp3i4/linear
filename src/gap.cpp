@@ -1640,7 +1640,7 @@ int map_interval(String<Dna5> & seq1, //genome
     //<<debug
     for (int i = 0; i < g_hs_anchor_end; i++)
     {
-        dout << "mi2" << g_hs_anchor_get_strand (g_hs_anchor[i]) << g_hs_anchor_getY(g_hs_anchor[i]) << g_hs_anchor_getX(g_hs_anchor[i]) << "\n";
+        dout << "mi2anchor" << g_hs_anchor_get_strand (g_hs_anchor[i]) << g_hs_anchor_getY(g_hs_anchor[i]) << g_hs_anchor_getX(g_hs_anchor[i]) << "\n";
     }
     //>>debug
     g_print_tiles_(g_hs_tile, "mi20x");
@@ -1653,8 +1653,6 @@ int map_interval(String<Dna5> & seq1, //genome
                          thD_err_rate,
                          parm1
                         );
-    g_print_tiles_(g_hs_tile, "mi2x");
-    //dout << "mi2" << g_hs_anchor_end << "\n";
 }
 
 
