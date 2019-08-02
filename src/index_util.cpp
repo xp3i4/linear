@@ -608,7 +608,10 @@ void HIndex::clear()
  */
  bool _createHsArray(StringSet<String<Dna5> > & seq, 
                      String<uint64_t> & hs, 
-                     LShape & shape)
+                     LShape & shape,
+                     unsigned gstr,
+                     unsigned gend
+                     )
 {
     double time = sysTime();
     uint64_t preX = ~0;
@@ -620,7 +623,7 @@ void HIndex::clear()
     //unsigned start = 2;
     uint64_t thd_step = 3;
     hs[0] = hs[1] = 0;
-    for(uint64_t j = 0; j < length(seq); j++)
+    for(uint64_t j = gstr; j < gend; j++)
     {
         hashInit(shape, begin(seq[j]));
         for (uint64_t k =0; k < length(seq[j]) - shape.span + 1; k++)
@@ -675,6 +678,8 @@ void HIndex::clear()
  bool _createHsArray(StringSet<String<Dna5> > & seq, 
                      String<uint64_t> & hs, 
                      LShape & shape, 
+                     unsigned gstr,
+                     unsigned gend,
                      unsigned threads,
                      unsigned thd_step, 
                      bool efficient = true)
@@ -686,7 +691,7 @@ void HIndex::clear()
     std::vector<int64_t> seqChunkSize(threads, 0);
     std::vector<int64_t> hss(threads, 0);
     //uint64_t seqChunkSize[4] = {0};
-    for(uint64_t j = 0; j < length(seq); j++)
+    for(uint64_t j = gstr; j < gend; j++)
     {
         std::cerr << "=>Index::Initiate             " << (float)j / length(seq) * 100<< "%           \r";
         uint64_t thd_count = 0; // count number of elements in hs[] for each thread
@@ -1404,6 +1409,8 @@ bool checkHsSort(String<uint64_t> const & hs)
         XString & xstr, String<uint64_t> & hs,  
         LShape & shape, 
         uint64_t & indexEmptyDir, 
+        unsigned gstr,
+        unsigned gend,
         unsigned & threads, 
         unsigned thd_step,
         uint64_t thd_blocklimit,
@@ -1411,15 +1418,15 @@ bool checkHsSort(String<uint64_t> const & hs)
 {
     double time = sysTime();
     //_createHsArray2_MF(seq, hs, shape, threads);
-    _createHsArray(seq, hs, shape, threads, thd_step, efficient);
+    _createHsArray(seq, hs, shape, gstr, gend, threads, thd_step, efficient);
     _createYSA(hs, xstr, indexEmptyDir, threads, thd_blocklimit);
     std::cerr << "  End creating Index Time[s]:" << sysTime() - time << " \n";
     return true; 
 }
 
-bool createHIndex(StringSet<String<Dna5> > & seq, HIndex & index, unsigned & threads, unsigned thd_step, uint64_t thd_blocklimit, bool efficient)
+bool createHIndex(StringSet<String<Dna5> > & seq, HIndex & index, unsigned gstr, unsigned gend, unsigned & threads, unsigned thd_step, uint64_t thd_blocklimit, bool efficient)
 {
-    return _createQGramIndexDirSA_parallel(seq, index.xstr, index.ysa, index.shape, index.emptyDir, threads, thd_step, thd_blocklimit, efficient);
+    return _createQGramIndexDirSA_parallel(seq, index.xstr, index.ysa, index.shape, index.emptyDir, gstr, gend, threads, thd_step, thd_blocklimit, efficient);
 }
 
 /*----------  DIndex and wrapper  ----------*/
@@ -1450,10 +1457,20 @@ String<int64_t> & DIndex::getHs()
 {
     return hs;
 }
+void DIndex::clear()
+{
+    seqan::clear(dir);
+    shrinkToFit(dir);
+    seqan::clear(hs);
+    shrinkToFit(hs);
+}
 int createDIndex_serial(StringSet<String<Dna5> > & seqs, 
                         DIndex & index, 
                         int64_t thd_min_step, 
-                        int64_t thd_max_step)
+                        int64_t thd_max_step,
+                        unsigned gstr,
+                        unsigned gend
+                        )
 {
     double t = sysTime();
     LShape & shape = index.getShape();
@@ -1523,11 +1540,16 @@ int createDIndex_serial(StringSet<String<Dna5> > & seqs,
     std::cout << "createDIndex " << sysTime() - t << " " << sysTime() - t2 << "\n";
 }
 
+/**
+ * create index on [@gstr, @gend)th genomes 
+ */
 int createDIndex(StringSet<String<Dna5> > & seqs, 
                  DIndex & index, 
                  int64_t thd_min_step, 
                  int64_t thd_max_step,
                  int64_t thd_omit_block,
+                 unsigned gstr,
+                 unsigned gend,
                  unsigned threads
                 )
 {
@@ -1540,7 +1562,7 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
     double t2 = sysTime();
     dout << "idx2" << length(dir) << t_shape.weight << thd_min_step << thd_max_step << thd_omit_block<< "\n";
     dout << threads << "threads\n"; 
-    for (int64_t i = 0; i < length(seqs); i++)
+    for (int64_t i = gstr; i < gend; i++)
     {
         String<int64_t> t_blocks;
         for (int j = 0; j < threads; j++)
@@ -1682,11 +1704,21 @@ void IndexDynamic::setDIndex()
 {
     typeIx = typeDIx;
 }
-
+void IndexDynamic::clearIndex()
+{
+    if (isHIndex())
+    {
+       hindex.clear();
+    }
+    else if (isDIndex())
+    {
+        dindex.clear();
+    }
+}
 IndexDynamic::IndexDynamic(StringSet<String<Dna5> > & seqs):hindex(seqs)
 {}
 
-bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned threads, bool efficient)
+bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned gstr, unsigned gend, unsigned threads, bool efficient)
 {
 
     if (index.isDIndex())
@@ -1700,14 +1732,17 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
                             thd_min_step, 
                             thd_max_step, 
                             thd_omit_block,
+                            gstr, gend,
                             threads);
-//        return createDIndex_serial(seqs, index.dindex, 4, 10);
+//       return createDIndex_serial(seqs, index.dindex, 4, 10);
     }
     else if (index.isHIndex())
     {
         unsigned thd_step = 10;
         uint64_t thd_blocklimit = 32;
-        return createHIndex(seqs, index.hindex, threads, thd_step, thd_blocklimit, efficient);
+        return createHIndex(seqs, index.hindex, 
+                            gstr, gend, 
+                            threads, thd_step, thd_blocklimit, efficient);
     }
 
 }

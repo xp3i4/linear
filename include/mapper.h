@@ -45,7 +45,7 @@ public:
     void printCordsRaw();
     void printCordsRaw2();
     int print_vcf();
-    int createIndex(bool = false);
+    int createIndex(unsigned, unsigned, bool = false);
     unsigned sens(){return parm.sensitivity;}
     unsigned & thread(){return _thread;}
     StringSet<CharString> & getReadsId(){return record.id1;}

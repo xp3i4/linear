@@ -1949,8 +1949,9 @@ uint64_t apxMap (IndexDynamic & index,
                  int f_chain)
 {
     //<<debug
-    //mapParm.delta = 
-    //mapParm
+    //mapParm.delta = 200;
+    //mapParm.alpha = 5;
+    //mapParm.kmerStep = 500;
     //>>debug
 
 
