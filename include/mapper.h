@@ -68,10 +68,17 @@ public:
     uint getGapLenMin () {return gap_len_min;}
     int getCordSize() {return cord_size;}
     void loadGenomes();
+    void clearIndex();
 
 };
 
-int map(Mapper & mapper, unsigned gstr, unsigned gend, StringSet<FeaturesDynamic> & f2, int p1);
-int filter(Mapper & mapper, StringSet<FeaturesDynamic> f2, int p1);
+int map(Mapper & mapper, 
+        StringSet<FeaturesDynamic> & f2, 
+        StringSet<String<short> > & buckets, 
+        int gid, 
+        int f_buckets_enabled,
+        int p1);
+
+int filter(Mapper & mapper, StringSet<FeaturesDynamic> f2, StringSet<String<short> > & buckets, int p1);
 
 #endif

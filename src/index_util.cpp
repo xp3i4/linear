@@ -990,7 +990,7 @@ bool checkHsSort(String<uint64_t> const & hs)
     return h1;
 }
 
- uint64_t getXDir(XString const & xstr, uint64_t const & xval, uint64_t const & yval)
+uint64_t getXDir(XString const & xstr, uint64_t const & xval, uint64_t const & yval)
 {
         uint64_t val, delta = 0;
         uint64_t h1 = _DefaultXNodeFunc.hash(xval) & xstr.mask;

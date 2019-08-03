@@ -243,6 +243,7 @@ void print_cords(String<uint64_t> & cords, CharString header)
                   << get_cord_y (cords[i]) << " "  
                   << get_cord_x(cords[i]) << " "
                   << get_cord_strand(cords[i]) << " "
+                  << get_cord_id(cords[i]) << " "
                   << is_cord_block_end(cords[i]) << "\n";
         if (is_cord_block_end(cords[i]))
         {

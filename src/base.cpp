@@ -123,13 +123,27 @@ std::ifstream::pos_type _filesize(const char* filename)
     return in.tellg(); 
 }
 
-int readRecords_block (StringSet<CharString> & ids, StringSet<String<Dna5> > & reads, String<size_t> & lens, SeqFileIn & fin, int blockSize)
+int readRecords_buckets (StringSet<CharString> & ids, StringSet<String<Dna5> > & reads, StringSet<String<short> >& buckets, SeqFileIn & fin, uint rstr, uint rend, uint bucketId)
 {
     int start = length(reads);
-    readRecords(ids, reads, fin, blockSize);
-    for (unsigned k = 0; k < length(reads) - start; k++)
+    CharString tmp_id;
+    String<Dna5> tmp_read;
+
+    for (int i = rstr; i < rend; i++)
     {
-        appendValue (lens, length(reads[start + k]));
+        if (!atEnd(fin))
+        {
+            readRecord (tmp_id, tmp_read, fin);
+            if (buckets[i][bucketId]) //only when true
+            {
+                appendValue (ids, tmp_id);
+                appendValue (reads, tmp_read);
+            }
+        }
+        else
+        {
+            break;
+        }
     }
     return 0;
 }
@@ -490,12 +504,22 @@ void ostreamWapper::print_message(unsigned data,
                                   std::ostream & os)
 {
     std::ostringstream strs;
-    strs << (data / 100);
+    strs << data;
     std::string str = strs.str();
     print_message(str, start, end_type, os);
 }
 
 ostreamWapper serr;
+
+std::string _2stdstring (CharString str)
+{
+    std::string rsl;
+    for (int i = 0; i < length(str); i++)
+    {
+        rsl.push_back(char(str[i]));
+    }
+    return rsl;
+}
 
 CmpInt64 & CmpInt64::init(int64_t & rslt, int64_t init_val) 
 { 
