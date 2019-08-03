@@ -34,6 +34,7 @@ class Mapper
 public:
     Mapper();
     Mapper(Options & options);
+    void loadOptions(Options & options);
     StringSet<String<Dna5> > & getReads() {return record.seq1;}             
     StringSet<String<Dna5> > & getGenomes() {return record.seq2;}             
     MapParm & mapParm() {return parm;}
@@ -66,9 +67,11 @@ public:
     uint & getPrintFlag(){return f_print;}
     uint getGapLenMin () {return gap_len_min;}
     int getCordSize() {return cord_size;}
+    void loadGenomes();
 
 };
 
-int map(Mapper & mapper, int p1);
+int map(Mapper & mapper, unsigned gstr, unsigned gend, StringSet<FeaturesDynamic> & f2, int p1);
+int filter(Mapper & mapper, StringSet<FeaturesDynamic> f2, int p1);
 
 #endif

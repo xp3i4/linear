@@ -130,12 +130,17 @@ Mapper::Mapper(Options & options):
                record(options),
                index_dynamic(getGenomes())
 {
+    loadOptions(options);
+    loadGenomes();
+}
+
+void Mapper::loadOptions(Options & options)
+{
     uint64_t thd_gap_default = 50; //minium length of gap > 50 bases.
     uint64_t thd_gap_lower = 10; 
     r_paths = options.r_paths;
     g_paths = options.g_paths; 
     cord_size = window_size;
-    loadRecords(getGenomes(), getGenomesId(), g_paths);
     switch (options.sensitivity)
     {
         case 0: 
@@ -263,6 +268,12 @@ Options::PathsType & Mapper::getGPaths()
 {
     return g_paths;
 }
+
+void Mapper::loadGenomes()
+{
+    loadRecords(getGenomes(), getGenomesId(), getGPaths());
+}
+
 /*----------  Wrapper of print files   ----------*/
 int print_cords_apf(Mapper & mapper)
 {
@@ -480,18 +491,11 @@ int map_(IndexDynamic & index,
 }
 
 /**
- * Map control flow
+ * Map control interface
  */
-int map(Mapper & mapper, int p1)
+int map(Mapper & mapper, unsigned gstr, unsigned gend, StringSet<FeaturesDynamic> & f2, int p1)
 {
-    //std::cout << "ddd " << fm_handler_.isAlign(mapper.getMapFlag()) << "\n";
-    //serr.print_message("=>Create index", 0, 1, std::cerr);
-    omp_set_num_threads(mapper.thread());
-    mapper.createIndex(0, length(mapper.getGenomes()), false); // true: destruct genomes string to reduce memory footprint
-    //return 0;
-    StringSet<FeaturesDynamic> f2;
-    createFeatures(mapper.getGenomes(), f2, mapper.getFeatureType(), mapper.thread());
-    std::cout << "mapf " << mapper.getFeatureType() << "\n";
+    //std::cout << "mapf " << mapper.getFeatureType() << "\n";
     unsigned blockSize = 50000;
     SeqFileIn rFile;
     StringSet<std::string> file1s;
@@ -582,22 +586,34 @@ int map(Mapper & mapper, int p1)
     return 0;
 }
 
-/**
- * Map control flow
- *
-int map(Mapper & mapper, StringSet<FeaturesDynamic> f2, int p1)
+//Shortcut called within filter function
+void append_genome_bucket(StringSet<String<short> > & buckets, 
+                          StringSet<String<uint64_t> > & cordss, 
+                          unsigned gnmu)
 {
-    omp_set_num_threads(mapper.thread());
-    //StringSet<FeaturesDynamic> f2;
-    //createFeatures(mapper.getGenomes(), f2, mapper.getFeatureType(), mapper.thread());
-    for ()
-    mapper.clearIndex();
-    mapper.createIndex(false, i);
+    String<short> new_bucket;
+    resize (new_bucket, gnmu, 0);
+    for (auto & cords : cordss)
+    {
+        for (auto & cord : cords)
+        {
+            new_bucket[get_cord_id(cord)] = 1;
+        }
+    }
+    appendValue (buckets, new_bucket);
+}
+
+/*
+ * Filter control interface
+ */
+int filter(Mapper & mapper, StringSet<FeaturesDynamic> f2, int p1)
+{
     unsigned blockSize = 50000;
     SeqFileIn rFile;
     StringSet<std::string> file1s;
     StringSet<std::string> file2s;
     StringSet<std::string> file3s;
+    StringSet<String<short> > buckets; 
     for (auto path : mapper.getRPaths())
     {
         if(!open(rFile, toCString(path)))
@@ -619,14 +635,14 @@ int map(Mapper & mapper, StringSet<FeaturesDynamic> f2, int p1)
             serr.print_message(k, 0, 2, std::cerr);
             try
             {
-                readRecords(mapper.getReadsId(), mapper.getReads(), rFile, blockSize, i);
+                readRecords(mapper.getReadsId(), mapper.getReads(), rFile, blockSize);
             }
             catch (Exception const & e)
             {
 
             }
             //serr.print_message("", 50, 2, std::cerr); 
-            serr.print_message("=>Map::mapping ", 0, 0, std::cerr);
+            serr.print_message("=>Map::Filtering genomes ", 0, 0, std::cerr);
             serr.print_message(path, 0, 0, std::cerr);
             serr.print_message (" block ", 0, 0, std::cerr);
             serr.print_message(k, 0, 0, std::cerr);
@@ -648,9 +664,9 @@ int map(Mapper & mapper, StringSet<FeaturesDynamic> f2, int p1)
                  mapper.thread(), 
                  p1);
             time2 = sysTime() - time2;
-            std::cerr <<  "--Map::file " << path << " block "<< k << " Size " << length(mapper.getReads()) << " Elapsed Time[s]: file_I/O " << time1 << " map "<< time2 << "\n";
-            serr.print_message("=>Write results to disk", 0, 2, std::cerr);
-            print_mapper_results(mapper);
+            std::cerr <<  "--Map::Filtering genomes " << path << " block "<< k << " Size " << length(mapper.getReads()) << " Elapsed Time[s]: file_I/O " << time1 << " map "<< time2 << "\n";
+            serr.print_message("=>Recording geonme buckets", 0, 2, std::cerr);
+            append_genome_bucket(buckets, mapper.getCords(), length(mapper.getGenomes()));
             clear (mapper.getCords());
             clear (mapper.getCords2());
             clear (mapper.getClips());
@@ -661,6 +677,7 @@ int map(Mapper & mapper, StringSet<FeaturesDynamic> f2, int p1)
             clear (mapper.getBamRecords());
             k++;
         }      
+    }
         std::string file1 = mapper.getOutputPrefix() + ".apf";
         std::string file2 = mapper.getOutputPrefix() + ".gvf";
         std::string file3 = mapper.getOutputPrefix() + ".sam";
@@ -668,7 +685,6 @@ int map(Mapper & mapper, StringSet<FeaturesDynamic> f2, int p1)
         appendValue (file2s, file2);
         appendValue (file3s, file3);
         close(rFile);
-    }
     serr.print_message("--Write results to disk 100%", 0, 1, cerr);
     for (uint i = 0; i < length(file1s); i++)
     {
@@ -682,4 +698,4 @@ int map(Mapper & mapper, StringSet<FeaturesDynamic> f2, int p1)
     //print_mapper_results(mapper);
     return 0;
 }
-*/
+
