@@ -390,7 +390,7 @@ void HIndex::clear()
 /*
  * parallel sort hs for index either collecting kmers or collecting minimizers
  * bucket[]+
- * However it needs larger memory footprint.
+ * However requires larger memory footprint.
  */
  bool _hsSortX_1(Iterator<String<uint64_t> >::Type const & begin, 
                        Iterator<String<uint64_t> >::Type const & end, 
@@ -475,16 +475,19 @@ void HIndex::clear()
                         output[ctd[thd_id][x] + it] = *(begin + k + it);
                         //output[ctd[x][thd_id] + it] = *(begin + k + it);
                     }
-                    unsigned thd_num = (ctd[thd_id][x] < thd_n1)?ctd[thd_id][x]/(size + 1):(ctd[thd_id][x] - thd_n1) / size + thd1;
-                    //unsigned thd_num = (ctd[x][thd_id] < thd_n1)?ctd[x][thd_id]/(size + 1):(ctd[x][thd_id] - thd_n1) / size + thd1;
-                    //printf("[thd_num] %d %d %d\n", thd_id, x, ctd[thd_id][x]);
+                    unsigned thd_num = (ctd[thd_id][x] < thd_n1) ? 
+                                       (ctd[thd_id][x]) / (size + 1) : 
+                                       (ctd[thd_id][x] - thd_n1) / size + thd1;
                     ctd[thd_id][x] += ptr;
-                    //ctd[x][thd_id] += ptr;
                     x = *(begin + k) << (l_move - p_bit)>> r_move;
                     if (thd_num == threads - 1)
+                    {
                         next[thd_id][0][x + 1] += ptr;
+                    }
                     else
+                    {
                         next[thd_id][thd_num + 1][x] += ptr;
+                    }
                 }
             }
         }
@@ -779,21 +782,16 @@ void HIndex::clear()
         hsRealEnd += thd_count;
     }
     resize (hs, hsRealEnd + 1);
-    //shrinkToFit(hs);
     if (efficient)
     {
         clear(seq);
         shrinkToFit(seq);   
     }
     _DefaultHs.setHsHead(hs[hsRealEnd], 0, 0);
-    //std::cerr << "[debug] length of hs " << length(hs) << " " << hsRealEnd << "\n";
     std::cerr << "--Index::Initiate             Elapsed Time[s] " << sysTime() - time << " " << std::endl;
-//-k
     std::cerr << "=>Index::SortHash                                                   \r";
     time = sysTime();
     _hsSort(begin(hs), begin(hs) + hsRealEnd, shape.weight, threads);
-    //_hsSort(begin(hs) + start, begin(hs) + count, shape.weight);
-    
     std::cerr << "  Index::sortHash             Elapsed Time[s] " << sysTime() - time << std::endl;
     return true;
 }
@@ -1743,6 +1741,14 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
         return createHIndex(seqs, index.hindex, 
                             gstr, gend, 
                             threads, thd_step, thd_blocklimit, efficient);
+    }
+    else if (index.isMHIndex()) //Hindex part of Mix of DIndex and HIndex, super! 
+    {
+
+    }
+    else if (index.isMDIndex()) //DIndex part of Mix of DIndex and HIndex, !
+    {
+
     }
 
 }

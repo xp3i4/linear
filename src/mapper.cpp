@@ -278,7 +278,7 @@ void Mapper::clearIndex()
     index_dynamic.clearIndex();
 }
 
-/*----------  Wrapper of print files   ----------*/
+/*----------  Wrapper of file I/O   ----------*/
 int print_cords_apf(Mapper & mapper)
 {
     print_cords_apf(mapper.getCords(), 
