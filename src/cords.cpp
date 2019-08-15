@@ -4,6 +4,10 @@
  
 using namespace seqan;
 
+uint64_t const_anchor_zero = (1ULL << 20); // make sure y in cord < this  
+uint64_t FORWARD_STRAND = 0;
+uint64_t REVERSE_STRAND = 1; 
+
 CordBase::CordBase():
         bit(20),
         flagEnd(1ULL << 60),
@@ -59,7 +63,7 @@ uint64_t Cord::hit2Cord(uint64_t const & hit,
                uint64_t const & mask2
               ) const
 {
-    return (hit + ((hit & mask) << bit)) & mask2;
+    return (hit + ((hit & mask) << bit) - (const_anchor_zero << bit)) & mask2;
 }
 
 uint64_t Cord::hit2Cord_dstr(uint64_t const & hit, 
@@ -68,7 +72,7 @@ uint64_t Cord::hit2Cord_dstr(uint64_t const & hit,
                uint64_t const & mask2
               ) const
 {
-    return (hit + ((hit & mask) << bit)) & mask2;
+    return (hit + ((hit & mask) << bit)  - (const_anchor_zero << bit)) & mask2;
 }
 
 uint64_t Cord::cord2Cell(uint64_t const & cord, 
@@ -270,3 +274,7 @@ int isCordsConsecutive_(uint64_t & cord1, uint64_t cord2, uint64_t thd_cord_gap)
     return f;
 }
 
+uint64_t make_anchor(uint64_t id, uint64_t x, uint64_t y, uint64_t strand)
+{
+    return create_cord (id, x - y + const_anchor_zero, y, strand);
+}

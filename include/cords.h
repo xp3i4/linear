@@ -7,6 +7,13 @@ using seqan::String;
 using seqan::StringSet;
 using seqan::CharString;
 using namespace seqan;
+/* @anchorX = x - y + g_hs_anchor_zero. g_hs_anchor_zero to restrict @anchorX > 0. 
+   (bits overflow otherwise) such that -g_hs_anchor_zero <= x - y < g_hs_anchor_zero
+*/
+extern uint64_t const_anchor_zero;
+extern uint64_t FORWARD_STRAND;
+extern uint64_t REVERSE_STRAND; 
+
 /*
  * Cord(C): coordinate of base;
  * :=|main[1]|record[1]|strand[1]|blockEnd[1]|gC [40] |rC [20]
@@ -140,5 +147,6 @@ uint64_t is_cord_main(uint64_t cord);
 int64_t atomic_inc_cord_y (int64_t & cord); // atomic cord++, return the new cord
 uint64_t is_cord_block_end(uint64_t);
 int isCordsConsecutive_(uint64_t & cord1, uint64_t cord2, uint64_t thd_cord_gap);
+uint64_t make_anchor(uint64_t id, uint64_t x, uint64_t y, uint64_t strand);
 
 #endif

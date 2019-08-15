@@ -1198,17 +1198,18 @@ unsigned getDIndexMatchAll (DIndex & index,
                 {
                     if (_DefaultHs.getHsBodyS(pre - index.ysa[pos]) > mapParm.kmerStep)
                     {
+                        uint64_t id = _getSA_i1(_DefaultHs.getHsBodyS(index.ysa[pos]));
+                        uint64_t x  = _getSA_i2(_DefaultHs.getHsBodyS(index.ysa[pos]));
                         if (((index.ysa[pos] & _DefaultHsBase.bodyCodeFlag) >>_DefaultHsBase.bodyCodeBit) ^ shape.strand)
                         {
                             
-                            uint64_t cordy = length(read) - 1 - k;
-                            appendValue(set, (((_DefaultHs.getHsBodyS(index.ysa[pos]) - cordy) << 20) 
-                                + cordy) | _DefaultHitBase.flag2);
+                            uint64_t new_anchor = make_anchor(id, x, length(read) - 1 - k, REVERSE_STRAND);
+                            appendValue(set, new_anchor);
                         }
                         else
                         {    
-                            uint64_t cordy = k;
-                            appendValue(set, ((_DefaultHs.getHsBodyS(index.ysa[pos]) - cordy) << 20) | cordy);
+                            uint64_t new_anchor = make_anchor (id, x, k, FORWARD_STRAND);
+                            appendValue (set, new_anchor);
                         }
                         pre = index.ysa[pos];
                     }
@@ -1477,7 +1478,6 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
     float thd_anchor_accept_dens = 0.001; //todo::tune err, kmer step related
     float thd_anchor_accept_lens_rate = 0.01;
     int thd_anchor_accept_lens = thd_anchor_accept_lens_rate * (read_end - read_str);
-    double t1 = sysTime();
     float thd_anchor_err = 0.2;
     int thd_sig = 10;
     if (anchors.length() <= 1)
@@ -1485,12 +1485,10 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
         return 0;
     }
     uint64_t ak2 = anchors[0], ak3 = anchors[0]; //2/4, 3/4
-    uint64_t c_b=mapParm.shapeLen, sb=0, sc = 0;
+    uint64_t c_b = mapParm.shapeLen, sb = 1, sc = 0;
     anchors.sort(anchors.begin(), anchors.end());
     //anchors[0] = anchors[1];
     ak2=anchors[0];
-    t1 = sysTime() - t1;
-    double t2 = sysTime();
     uint64_t mask = (1ULL << 20) - 1;
     String<int64_t> list;
     uint64_t min_y = ~0ULL, max_y = 0;
@@ -1504,10 +1502,9 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
         if (f_continuous)
         {
             dout << "anchors" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) << get_cord_strand(anchors[k]) << "\n";
-            if(anchors.deltaPos2(k, k - 1) >  mapParm.shapeLen)
-                c_b += mapParm.shapeLen;
-            else
-                c_b += anchors.deltaPos2(k, k - 1); 
+            int64_t dy = get_cord_y(anchors.set[k]) - get_cord_y(anchors.set[k - 1]);
+            dy = std::min(std::abs(dy), int64_t(mapParm.shapeLen));
+            c_b += dy; 
             ak2 = anchors[(sb + k) >> 1]; //update the ak to the median 
             ak3 = anchors[k - ((k - sb) >> 2)];
             min_y = std::min(min_y, get_cord_y(anchors[k]));
@@ -1521,7 +1518,7 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
             {
                 anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
                 appendValue(list, (c_b << 40) + (sb << 20) + k);
-                //dout << "cbsb" << sb << k << "\n";
+                dout << "cbsb" << sb << k << c_b << thd_anchor_accept_lens << uint((max_y - min_y) * thd_anchor_accept_dens) << "\n";
             }
             dout << "anchors-----------" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) << c_b << sb << k << max_y << min_y <<(max_y - min_y) * thd_anchor_accept_dens << get_cord_strand(anchors[k]) <<"\n";
             sb = k;
@@ -1550,14 +1547,17 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
             {
                 sb = ((list[k] >> 20) & mask);
                 sc = list[k] & mask;
+                dout << "sbsc<<<<\n";
                 for (unsigned n = sb; n < sc; n++)
                 {
-                dout << "sbsc" << sb << sc << n << get_cord_y(anchors.set[n]) << get_cord_x(anchors.set[n]) << "\n";
+                dout << "sbsc" << sb << sc << n << get_cord_y(anchors.set[n]) << get_cord_x(anchors.set[n])  - const_anchor_zero << "\n";
                     appendValue(hit, anchors[n]);
                 }   
+                if (!empty(hit))
+                {
+                    _DefaultHit.setBlockEnd(back(hit));
+                }
                 ++record_num;
-                _DefaultHit.setBlockEnd(back(hit));
-            ;     
             }
             else
             {
