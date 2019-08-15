@@ -1742,6 +1742,7 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
                             gstr, gend, 
                             threads, thd_step, thd_blocklimit, efficient);
     }
+    /*
     else if (index.isMHIndex()) //Hindex part of Mix of DIndex and HIndex, super! 
     {
 
@@ -1750,6 +1751,6 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
     {
 
     }
-
+    */
 }
 

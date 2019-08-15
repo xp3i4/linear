@@ -177,7 +177,7 @@ ApxMapParm2_48::ApxMapParm2_48():
     ApxMapParm(),
     scpt_step(16),
     scpt_bit(4),
-    windowThreshold(72),
+    windowThreshold(72), 
     abort_score(1000)
 {}
 
@@ -794,7 +794,7 @@ uint64_t nextWindow2_48(String<int96> & f1, //read
             new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         }
     }
-
+    //dout << "nw1" << min << get_cord_y(new_cord) << "\n";
     score += min;
     return new_cord;
 }
@@ -966,6 +966,7 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
             {
                 distThd = _apx_parm2_48.windowThreshold;
             }
+            dout << "distthd" << dist << distThd << "\n";
             if(dist < distThd && get_cord_y(new_cord) + thd_cord_size < uint64_t(readLen))
             {
                 appendValue(cord, new_cord);
@@ -1160,11 +1161,10 @@ unsigned getDIndexMatchAll (DIndex & index,
     return 0;    
 }
 /**
- * Search double strand pattern in the index and
- * append to anchors
+ * Search double strand pattern in the index and append to anchors
  * NOTE::@read_str and @read_end must be coordinates of @read rather than its reverse complement
  */
- unsigned getIndexMatchAll(LIndex & index,
+ unsigned getHIndexMatchAll(LIndex & index,
                            String<Dna5> & read,
                            String<uint64_t> & set,
                            uint64_t read_str,
@@ -1503,7 +1503,7 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
                              get_cord_x(anchors[k] - ak3) < thd_anchor_err * dy3); 
         if (f_continuous)
         {
-            //dout << "anchors" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) << get_cord_strand(anchors[k]) << "\n";
+            dout << "anchors" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) << get_cord_strand(anchors[k]) << "\n";
             if(anchors.deltaPos2(k, k - 1) >  mapParm.shapeLen)
                 c_b += mapParm.shapeLen;
             else
@@ -1523,7 +1523,7 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
                 appendValue(list, (c_b << 40) + (sb << 20) + k);
                 //dout << "cbsb" << sb << k << "\n";
             }
-            //dout << "anchors-----------" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) << c_b << sb << k << max_y << min_y <<(max_y - min_y) * thd_anchor_accept_dens << get_cord_strand(anchors[k]) <<"\n";
+            dout << "anchors-----------" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) << c_b << sb << k << max_y << min_y <<(max_y - min_y) * thd_anchor_accept_dens << get_cord_strand(anchors[k]) <<"\n";
             sb = k;
             ak2 = anchors[k];
             ak3 = anchors[k];
@@ -1534,7 +1534,7 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
 
     }
     //print_cords(anchors.set, "set");
-    //dout << "anchors<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
+    dout << "anchors<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
     if (!empty(list))
     {
         std::sort (begin(list), end(list), std::greater<uint64_t>());
@@ -1552,7 +1552,7 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
                 sc = list[k] & mask;
                 for (unsigned n = sb; n < sc; n++)
                 {
-                dout << "sbsc" << sb << sc << n << get_cord_y(anchors.set[n]) << "\n";
+                dout << "sbsc" << sb << sc << n << get_cord_y(anchors.set[n]) << get_cord_x(anchors.set[n]) << "\n";
                     appendValue(hit, anchors[n]);
                 }   
                 ++record_num;
@@ -1583,7 +1583,7 @@ uint64_t mnMapReadAll(LIndex  & index,
                       String<uint64_t> & hit  
                       )
 {
-    getIndexMatchAll(index, read, anchors.set, read_str, read_end, mapParm);    
+    getHIndexMatchAll(index, read, anchors.set, read_str, read_end, mapParm);    
     return getAnchorMatchAll(anchors, length(read), mapParm, hit);
 }
 
@@ -1596,7 +1596,7 @@ uint64_t mnMapReadAll(LIndex  & index,
                           String<uint64_t> & hit  
                          )
 {
-    getIndexMatchAll(index, read, anchors.set, read_str, read_end, mapParm);    
+    getHIndexMatchAll(index, read, anchors.set, read_str, read_end, mapParm);    
     return getAnchorMatchFirst(anchors, length(read), mapParm, hit);
 }
 
@@ -1608,7 +1608,7 @@ uint64_t mnMapReadAll(LIndex  & index,
                         MapParm & mapParm,
                         String<uint64_t> & hit)
 {
-    getIndexMatchAll(index, read, anchors.set, read_str, read_end, mapParm);    
+    getHIndexMatchAll(index, read, anchors.set, read_str, read_end, mapParm);    
     //printf("done getinxmatchall\n");
     return  getAnchorMatchList(anchors, length(read), mapParm, hit);
 }
@@ -1626,9 +1626,10 @@ uint64_t mnMapReadList(IndexDynamic & index,
 {
     if (index.isHIndex())
     {  
-        getIndexMatchAll(index.hindex, read, anchors.set, read_str, read_end, mapParm);    
+        getHIndexMatchAll(index.hindex, read, anchors.set, read_str, read_end, mapParm);    
         getDAnchorMatchList(anchors, read_str, read_end, mapParm, hit, thd_best_n);
-        //print_cords (hit, "mnmrl1");
+        dout << "mnmrl1\n";
+        print_cords (hit, "mnmrl1");
     }   
     else if (index.isDIndex())
     {
@@ -1996,7 +1997,7 @@ uint64_t apxMap (IndexDynamic & index,
         gather_blocks_ (cords, str_ends, str_ends_p, length(read), thd_large_gap, thd_cord_size, 1);
         chain_blocks_ (cords, str_ends_p, length(read), thd_chain_blocks_lower, thd_chain_blocks_upper);
         clean_blocks_ (cords, thd_drop_len);
-        print_cords(cords, "check");
+        //print_cords(cords, "check");
     }
     else
     {

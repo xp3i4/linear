@@ -5,7 +5,7 @@
 using namespace seqan; 
 
 
-int process1 (Options & options, int p1)
+int process1 (Mapper & mapper, Options & options, int p1)
 {
     StringSet<FeaturesDynamic> f2;
     StringSet<String<short> > emptyBuckets; 
@@ -69,14 +69,17 @@ int main(int argc, char const ** argv)
         return res == seqan::ArgumentParser::PARSE_ERROR;
     Mapper mapper(options);
     uint thd_g_size = 300 << 20; //300M bases 
+    /*
     if (lengthSum(mapper.getGenomes ()) > thd_g_size)
     {
         process2 (mapper, options, p1);
     }
     else
     {
-        process1 (mapper, p1);
-    }
+        */
+    int p1 = 0;
+        process1 (mapper, options, p1);
+    //}
     //process2 (options, options.p1);
     std::cerr << "Time in sum[s] " << sysTime() - time << "      \n";
     return 0;

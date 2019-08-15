@@ -18,6 +18,7 @@ extern const uint64_t base_llt_max_;
 
 extern int64_t const LLMAX;
 extern int64_t const LLMIN;
+extern unsigned const UMAX;
 
 typedef Iterator <String <Dna5> >::Type TIter5;
 typedef unsigned uint;

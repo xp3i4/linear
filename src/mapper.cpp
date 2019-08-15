@@ -398,6 +398,7 @@ int map_(IndexDynamic & index,
 {
     float senThr = mapParm.senThr / window_size;  //map for 2 roun if cords cover len <
     float cordThr = 0.3 / window_size; //cords cover length < are aborted
+    uint thd_min_read_len = 200;
     //todo::tune the cordThr try to merge cords of blocks 
     MapParm complexParm = mapParm;
     complexParm.alpha = complexParm.alpha2;
@@ -455,19 +456,22 @@ int map_(IndexDynamic & index,
         double t1 = sysTime ();
         red_len[thd_id] += length(reads[j]);
         float cordLenThr = length(reads[j]) * cordThr;
-        _compltRvseStr(reads[j], comStr);
-        createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
-        createFeatures(begin(comStr), end(comStr), f1[1]);
-        apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordLenThr, f_chain);
-        if (fm_handler_.isMapGap(f_map))
+        if (length(reads[j]) > thd_min_read_len)
         {
-            mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], g_hs, g_anchor, clipsTmp[c], apx_gaps, f1, f2, gap_len_min, window_size, thd_err_rate);
+            _compltRvseStr(reads[j], comStr);
+            createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
+            createFeatures(begin(comStr), end(comStr), f1[1]);
+            apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordLenThr, f_chain);
+            if (fm_handler_.isMapGap(f_map))
+            {
+                mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], g_hs, g_anchor, clipsTmp[c], apx_gaps, f1, f2, gap_len_min, window_size, thd_err_rate);
 
-        }
-        if (fm_handler_.isAlign(f_map))
-        {
-            align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
-            //check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
+            }
+            if (fm_handler_.isAlign(f_map))
+            {
+                align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
+                //check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
+            }
         }
         c += 1;
     } 

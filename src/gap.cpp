@@ -672,12 +672,12 @@ uint64_t g_hs_anchor_getCord (uint64_t anchor)
 
 uint64_t g_hs_anchor_getAnchor (uint64_t anchor) // return @anchor := strand + anchorx
 {
-    return ((anchor >> g_hs_anchor_bit1) - g_hs_anchor_zero)& g_hs_anchor_mask5;
+    return ((anchor >> g_hs_anchor_bit1) & g_hs_anchor_mask5) - g_hs_anchor_zero;
 }
 
 uint64_t g_hs_anchor_getX (uint64_t val)
 {
-    return (((val >> g_hs_anchor_bit1) - g_hs_anchor_zero) & g_hs_anchor_mask3) + 
+    return (((val >> g_hs_anchor_bit1)) & g_hs_anchor_mask3) - g_hs_anchor_zero + 
            (val & g_hs_anchor_mask1);
 }
 
@@ -731,7 +731,7 @@ void g_hs_setAnchor_(uint64_t & val,
 {
     uint64_t strand = ((hs1 ^ hs2) >> 30 ) & 1;
     uint64_t x = revscomp_const * strand - _nStrand(strand) * (hs2 & g_hs_mask2); 
-    val = (((hs1 - x + g_hs_anchor_zero) & (g_hs_mask2))<< 20) + 
+    val = (((hs1 + g_hs_anchor_zero - x) & (g_hs_mask2))<< 20) + 
           x + (strand << g_hs_anchor_bit2);
 }
 ///get xvalue and type
@@ -940,6 +940,7 @@ int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
             uint64_t tmp_anchor;
             g_hs_setAnchor_(tmp_anchor, g_hs[i], g_hs[j], revscomp_const);
             int64_t tmp = g_hs_anchor_getAnchor(tmp_anchor);
+            std::cout << "gmsaa" << (g_hs[i] & ((1ULL << 30) - 1)) << " " << (g_hs[j] & ((1ULL << 30) - 1)) << " " << g_hs_anchor_getX(tmp_anchor) << "\n";
             if (tmp < anchor_upper && tmp >= anchor_lower)
             {
                 g_anchor[g_anchor_end + n++] = tmp_anchor;
@@ -1173,16 +1174,27 @@ unsigned _get_tile_f_ (uint64_t & tile,
                        StringSet<FeaturesDynamic> & f2)
 {
    // uint64_t tile = shift_tile(k_tile, )
+    uint thd_abort_score = UMAX;
     uint64_t tile_x = _defaultTile.getX(tile);
     uint64_t tile_y = _defaultTile.getY(tile);
-    unsigned fscore = 
-        _windowDist(f1[get_tile_strand(tile)], 
-                    f2[get_tile_id(tile)],
+    uint64_t n1 = get_tile_strand(tile);
+    uint64_t n2 = get_tile_id(tile);
+    unsigned fscore;
+    if (n1 < length(f1) && n2 < length(f2))
+    {
+        fscore = _windowDist(f1[n1],  f2[n2],
                     _DefaultCord.cord2Cell(tile_y), 
                     _DefaultCord.cord2Cell(get_tile_x(tile)));
+    }
+    else
+    {
+        fscore = thd_abort_score;
+    }
     return fscore;
 }
-
+/*
+ * only when score < @thd_accept_score, @new_tile is meaningful
+ */
 unsigned _get_tile_f_tri_ (uint64_t & tile,
                            uint64_t & new_tile,
                            StringSet<FeaturesDynamic > & f1,
@@ -1191,17 +1203,21 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
                            int block_size = window_size
                            )
 {
-    int shift = window_size / 4;
-    uint64_t tile_l = shift_tile(tile, -shift, -shift);
-    uint64_t tile_r = shift_tile(tile, shift, shift);
+    int shift = block_size / 4;
+    unsigned thd_abort_score = UMAX; // make sure thd_abort_score > thd_accept_score
     unsigned fscore =  _get_tile_f_ (tile, f1, f2) ;
+
+    uint64_t x = get_tile_x(tile);
+    uint64_t y = get_tile_y(tile);
     if (fscore < thd_accept_score)
     {
         new_tile = tile;
         return fscore;
     }
-    else
+    else 
     {
+        uint64_t tile_l = shift_tile(tile, -shift, -shift);
+        uint64_t tile_r = shift_tile(tile, shift, shift);
         fscore = std::min(_get_tile_f_(tile_l, f1, f2), fscore);
         if (fscore < thd_accept_score)
         {
@@ -1211,10 +1227,19 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
         else
         {
             new_tile = tile_r;
-            return std::min(_get_tile_f_(tile_r, f1, f2), fscore);
-
+            fscore = std::min(_get_tile_f_(tile_r, f1, f2), fscore);
+            if (fscore < thd_accept_score)
+            {
+                return fscore;
+            }
+            else
+            {
+                new_tile = tile;
+                return UMAX;
+            }
         }
     }
+    return UMAX;
 }
 
 /**
@@ -1257,11 +1282,11 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
     std::sort (begin(anchor), begin(anchor) + anchor_end);
     anchor[anchor_end] = ~0;
     int pre_tile_end = 0;
-    dout << "sv2anchor<<<<<<<<<<<<<<<<<<<<<<" << get_cord_y(gap_str) << "\n";
+    dout << "sv2anchorx<<<<<<<<<<<<<<<<<<<<<<" << get_cord_y(gap_str) << "\n";
     for (int k = 0; k < anchor_end + 1; k++)
     {
         //<<debug
-        dout << "sv2anchor" << g_hs_anchor_get_strand (anchor[k]) << g_hs_anchor_getY(anchor[k]) << g_hs_anchor_getX(anchor[k]) << "\n";
+        dout << "sv2anchorx" << g_hs_anchor_get_strand (anchor[k]) << g_hs_anchor_getY(anchor[k]) << g_hs_anchor_getX(anchor[k]) << "\n";
         //>>debug
         //TODO: handle thd_min_segment, anchor 
         int64_t d = std::abs((int64_t)g_hs_anchor_getY(anchor[k]) - (int64_t)g_hs_anchor_getY(anchor[prek]));
@@ -1316,6 +1341,7 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
                         int64_t tmp_tile_y = centroid_y - tmp_shift ;
                         uint64_t tmp_tile = create_tile(0, tmp_tile_x, tmp_tile_y, 
                                             g_hs_anchor_get_strand(anchor[prek]));
+                        dout << "centroid" << centroid_x << tmp_shift << "\n";
                         uint64_t new_tile;
                         unsigned score = _get_tile_f_tri_(tmp_tile, new_tile, f1, f2, thd_fscore, thD_tile_size);
                         if (kcount >= thd_pattern_in_window && 
@@ -1342,6 +1368,7 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
                     {
                         centroid_x += g_hs_anchor_getX(anchor[j]);
                         centroid_y += g_hs_anchor_getY(anchor[j]);
+                        dout << "c2c" << centroid_x << "\n";
                         kcount++;
                     }
 
@@ -3046,7 +3073,7 @@ int insert_tiles2Cords_(String<uint64_t> & cords,
                         String<uint64_t> & tiles,
                         int direction)
 {
-    if (length(tiles) < 2 && direction == g_map_closed)
+    if ((length(tiles) < 2 && direction == g_map_closed) || empty(tiles))
     {
         return 1;
     }
@@ -3145,6 +3172,7 @@ int insert_tiles2Cords_(String<uint64_t> & cords_str,
     unsigned postmp = pos;
     insert_tiles2Cords_(cords_str, pos, tiles_str, direction);
     insert_tiles2Cords_(cords_end, postmp, tiles_end, direction);
+    return 0;
 }
 
 /*----------------------  Gap main func ----------------------*/
