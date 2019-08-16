@@ -4,12 +4,12 @@
 #include "cords.h"
 #include "gap.h"
 
-//NOTE::clip & map direction:: towards left < 0, right > 0, both 0
 using std::endl;
 /*=============================================
 =               Glaobal Utilities             =
 =============================================*/
 
+//NOTE::clip & map direction:: towards left < 0, right > 0, both 0
 int const g_sv_inv = 1;     
 int const g_sv_ins = 2;     
 int const g_sv_del = 4;     
@@ -26,6 +26,21 @@ int const g_clip_semi_r = 2048;
 int const g_map_left = -1;
 int const g_map_closed = 0;
 int const g_map_rght = 1;
+
+/*
+ * NOTE! the following parameters are correlated.
+ * Change them carefully 
+ */
+int const g_shape_len = 8;
+int const g_thd_anchor = 6;
+float const g_thd_anchor_density = 0.03;
+float const g_thd_error_percent = 0.2;
+//----------------------------------------
+///c_ functions to clip breakpoints by counting kmers
+const unsigned c_shape_len = 8; //anchor shape
+const unsigned c_shape_len2 = 4; //base-level clipping shape
+const unsigned c_shape_len3 = 4; //base-level clipping gap shape
+
 /**
  * Operations of coordinates of ClipRecords 
  * Based on struct Tile 
@@ -175,292 +190,14 @@ int print_clips_gvf_(StringSet<String<uint64_t> > & clips,
     return 0;
 }
 
-/*=======  End of interface function  =======*/
+//=======  End of interface function  =======*//
 
-
-struct GNodeBase
-{
-    const unsigned xBitLen;
-    const unsigned sBitLen;
-    const unsigned cBitLen; 
-    const uint64_t xmask;
-    const uint64_t smask;
-    const uint64_t cmask;
-
-    GNodeBase():
-        xBitLen(32),
-        sBitLen(1),
-        cBitLen(30),
-        xmask((1ULL << xBitLen) - 1),
-        smask((1ULL << sBitLen) - 1),
-        cmask((1ULL << cBitLen) - 1)
-        {}
-}_defaultGNodeBase;
-
-//GNode: N/A[1]|xval[32]|strand[1]|coordinate[30]
-struct GNode
-{
-     void setValue (uint64_t & val, uint64_t const & xval, 
-                   uint64_t const & strand, uint64_t const & coordinate, 
-                   uint64_t const & sbit = _defaultGNodeBase.sBitLen,
-                   uint64_t const & cbit = _defaultGNodeBase.cBitLen)
-    {
-        val = (xval << (cbit + sbit)) + (strand << cbit) + coordinate;
-    }
-     uint64_t makeValue (uint64_t const & xval, uint64_t & strand, uint64_t const & coordinate, 
-                        uint64_t const & sbit = _defaultGNodeBase.sBitLen,
-                        uint64_t const & cbit = _defaultGNodeBase.cBitLen)
-    {
-        return (xval << (cbit + sbit)) + (strand << cbit) + coordinate;
-    }
-     uint64_t getXValue (uint64_t const & xval, 
-                        uint64_t const & bit = _defaultGNodeBase.cBitLen + _defaultGNodeBase.sBitLen, 
-                        uint64_t const & xmask = _defaultGNodeBase.xmask)
-    {
-        return (xval >> bit) & xmask;
-    }
-     uint64_t getStrand (uint64_t const & xval, 
-                        uint64_t const & bit = _defaultGNodeBase.cBitLen, 
-                        uint64_t const & mask = _defaultGNodeBase.smask)
-    {
-        return (xval >> bit) & mask;
-    }
-     uint64_t getCoord (uint64_t const & xval, 
-                        uint64_t const & mask = _defaultGNodeBase.cmask)
-    {
-        return (xval & mask);
-    }
-}_defaultGNode;
-
-/*
- * NOTE! the following parameters are correlated.
- * Do not change them independently 
- */
-int const g_shape_len = 8;
-int const g_thd_anchor = 6;
-float const g_thd_anchor_density = 0.03;
-float const g_thd_error_percent = 0.2;
-
-struct GIndex
-{
-    String <uint64_t> g_hs;
-    String <uint64_t> g_dir;
-    LShape shape;
-    GIndex():
-    shape(g_shape_len){};
-    GIndex(unsigned shape_len):
-    shape(shape_len)
-    {};
-};
-
-int g_createDir_(String<Dna5> & seq, uint64_t gs_start, uint64_t gs_end, 
-                 String<uint64_t> & g_hs, String<uint64_t> & g_dir, 
-                 LShape & shape)
-{
-    hashInit(shape, begin(seq) + gs_start);
-    unsigned count = 0; 
-    unsigned const step = 10;
-    unsigned countx = 0;
-    uint64_t preX = 0;
-    clear(g_hs);
-    for (uint64_t k = gs_start; k < gs_end; k++)
-    {
-        if (++count == step)  //collecting every 10 bases
-        {
-            hashNext(shape, begin(seq) + k);
-            if (shape.XValue == preX && countx < shape.span - shape.weight)
-            {
-                ++countx;
-            }
-            else
-            {
-                //TODO: k - getT(shape)
-                appendValue(g_hs, _defaultGNode.makeValue(shape.XValue, shape.strand, k));
-                preX = shape.XValue;
-                countx = 0;
-            }
-            count = 0;
-        }
-        else
-        {
-            hashNexth(shape, begin(seq) + k);
-        }
-    }
-    appendValue(g_hs, ~0);
-    std::sort (begin(g_hs), end(g_hs) - 1);
-    count = 0;
-    for (uint64_t k = 0; k < length(g_hs) - 1; k++)
-    {
-        if (_defaultGNode.getXValue(g_hs[k] ^ g_hs[k + 1])) //g_hs[k].xval != g_hs[k+1].xval
-        {
-            g_dir[_defaultGNode.getXValue(g_hs[k])] = k - count;
-            count = 0;
-        }
-        else
-        {
-            ++count; 
-        }
-    }
-    return 0;
-}    
-
-void g_createDir(String<Dna5> & seq, uint64_t gs_start, uint64_t gs_end, GIndex & g_index) 
-{
-    clear(g_index.g_dir);
-    resize(g_index.g_dir,  1 << (g_index.shape.weight * 2));
-    g_createDir_(seq, gs_start, gs_end, g_index.g_hs, g_index.g_dir, g_index.shape);
-}
-
-
-struct gapbase_
-{
-    const unsigned iBitLen = 10;
-    const unsigned cBitLen = 30;
-    const unsigned bBitLen = 24;
-    const unsigned imask = (1ULL << iBitLen) - 1;
-    const unsigned cmask = (1ULL << cBitLen) - 1;
-    const unsigned bmask = (1ULL << bBitLen) - 1;
-} _defaultgapbase_;
-
-struct Gap_
-{
-     uint64_t getId (uint64_t & val, 
-                           uint64_t const & bit = _defaultgapbase_.cBitLen + _defaultgapbase_.bBitLen,
-                           uint64_t const & mask = _defaultgapbase_.bmask)
-    {
-        return (val >> bit) & mask;
-    }
-     uint64_t getStart(uint64_t & val, 
-                      uint64_t const & bit = _defaultgapbase_.bBitLen, 
-                      uint64_t const & mask = _defaultgapbase_.cmask)
-    {
-        return (val >> bit) & mask;
-    }
-     uint64_t getEnd(uint64_t & val, 
-                    uint64_t const & bit = _defaultgapbase_.bBitLen, 
-                    uint64_t const & cmask = _defaultgapbase_.cmask,
-                    uint64_t const & bmask = _defaultgapbase_.bmask)
-    {
-        return ((val >> bit) & cmask) + (val & bmask);
-    }
-     uint64_t getLength (uint64_t & val, uint64_t const & mask = _defaultgapbase_.bmask)
-    {
-        return val & mask;
-    }
-     uint64_t makeValue (uint64_t start, uint64_t len, 
-                        uint64_t const & bit = _defaultgapbase_.bBitLen)
-    {
-        return (start << bit) + len;
-    }
-}_defaultGap_;
-
-struct Gap
-{
-    uint64_t gap1; //seq
-    uint64_t gap2; //read
-     uint64_t getId1()
-    {
-        return _defaultGap_.getId(gap1);
-    }
-     uint64_t getId2()
-    {
-        return _defaultGap_.getId(gap2);
-    }
-     uint64_t getStart1 ()
-    {
-        return _defaultGap_.getStart (gap1);
-    }
-     uint64_t getStart2 ()
-    {
-        return _defaultGap_.getStart (gap2);
-    }
-     uint64_t getEnd1 ()
-    {
-        return _defaultGap_.getEnd (gap1);
-    }
-     uint64_t getEnd2 ()
-    {
-        return _defaultGap_.getEnd (gap2);
-    }
-    Gap()
-    {
-        
-    }
-    Gap(uint64_t start1, uint64_t end1, uint64_t start2, uint64_t end2)
-    {
-        gap1 = _defaultGap_.makeValue (start1, end1 - start1);
-        gap2 = _defaultGap_.makeValue (start2, end2 - start2);   
-    }
-     void setValue (uint64_t start1, uint64_t end1, uint64_t start2, uint64_t end2)
-    {    
-        gap1 = _defaultGap_.makeValue (start1, end1 - start1);
-        gap2 = _defaultGap_.makeValue (start2, end2 - start2);   
-    }
-};
-
- Gap makeGap (uint64_t start1, uint64_t end1, uint64_t start2, uint64_t end2)
-{    
-    Gap gap (start1, end1, start2, end2);
-    return gap;
-}
-
-//N/A[2]strand[1]|N/A[1]|anchor[40]|coord[20]
-//strand = 1 or 0
-struct ACoordBase
-{
-    unsigned const sBitLen = 1;
-    unsigned const aBitLen = 40;
-    unsigned const cBitLen = 20;
-    unsigned const sBit = 61;
-    
-    uint64_t const amask = (1ULL << aBitLen) - 1;
-    uint64_t const cmask = (1ULL << cBitLen) - 1;
-    
-}_defaultACoordBase;
-
-struct ACoord
-{
-     uint64_t makeValue(uint64_t cf, uint64_t cr,  uint64_t strand,
-                       uint64_t const & sbit = _defaultACoordBase.sBit,
-                       uint64_t const & bit = _defaultACoordBase.cBitLen) 
-    {
-        return (strand << sbit) + ((cf + _nStrand(strand) * cr) << bit) + cr;
-    }
-     uint64_t reverseAnchor(uint64_t & anchor, uint64_t const & mask = _defaultACoordBase.amask)
-    {
-        return (-anchor) & mask;
-    }
-     uint64_t getAnchor (uint64_t val, 
-                        uint64_t const & mask = _defaultACoordBase.amask, 
-                        uint64_t const & bit = _defaultACoordBase.cBitLen,
-                        uint64_t const & mask2 = (1ULL << _defaultACoordBase.sBit)) 
-    {
-        return (val & mask2) + ((val >> bit) & mask);
-    }
-     uint64_t getCoord (uint64_t val, 
-                       uint64_t const & mask = _defaultACoordBase.cmask)
-    {
-        return val & mask;
-    }
-     uint64_t getX (uint64_t val, 
-                   uint64_t const & bit = _defaultACoordBase.cBitLen, 
-                   uint64_t const & mask = _defaultACoordBase.amask, 
-                   uint64_t const & bit2 = _defaultACoordBase.sBit,
-                   uint64_t const & mask3 = _defaultACoordBase.cmask
-                  )
-    {
-        return ((val >> bit) & mask) + _nStrand((val >> bit2) & 1) * (val & mask3);
-    }
-     uint64_t getY (uint64_t val)
-    {
-        return getCoord(val);
-    }
-    
-}_defaultACoord;
-
-//struct::Tile tile_sign[2]|strand[1]|tileEnd[1](cordEnd)|x[40]|y[20]
-//tile_sign:=1 start, 2 end, 0 body;
-//0-61 bits same as the Format::Cord
+/**
+ * Struct Tile  : Cord
+ * tile_sign[2]|strand[1]|tileEnd[1](cordEnd)|x[40]|y[20]
+ * tile_sign:=1 start, 2 end, 0 body;
+ * 0-61 bits same as the Format::Cord
+*/
 struct TileBase
 {
     uint64_t const xBitLen = 40;
@@ -630,21 +367,12 @@ void g_print_tiles_(String<uint64_t> & tiles, CharString str = "print_tiles")
     }
 }
 
- uint64_t acoord2Tile(uint64_t val, 
-                         uint64_t const & bit = _defaultACoordBase.cBitLen,
-                         uint64_t const & bit2 = _defaultACoordBase.sBit,
-                         uint64_t const & mask = _defaultACoordBase.cmask)
-{
-    return val - ((_nStrand((val >> bit2) & 1) * (val & mask)) << bit);
-}
-
-
 /*=============================================
 =           Index free Map and clip           =
 =============================================*/
 /**
  * Part 2
- * NOTE: index free local mapping for gaps 
+ * NOTE: index free mapping for gaps 
  */
 /**
  * g_hs_anchor: N/A[13]|strand[1]|anchorX[30]|cord_y[20]
@@ -949,8 +677,6 @@ int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
     }
     return g_anchor_end + n;
 }
-
-
 
 
 /*=====  Section of MapAnchor_: function, parms and wrapper  ======*/
@@ -1882,10 +1608,7 @@ int64_t g_anchor_da_(uint64_t val1, uint64_t val2)
     return int64_t (g_hs_anchor_getAnchor(val2) - g_hs_anchor_getAnchor(val1));
 }
 
-///c_ functions to clip breakpoints by counting kmers
-const unsigned c_shape_len = 8; //anchor shape
-const unsigned c_shape_len2 = 4; //base-level clipping shape
-const unsigned c_shape_len3 = 4; //base-level clipping gap shape
+
 
 /**
  * stream seq creating hs
