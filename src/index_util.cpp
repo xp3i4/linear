@@ -1738,10 +1738,10 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
     else if (index.isHIndex())
     {
         unsigned thd_step = 10;
-        unsigned thd_shape_len = 25;
+        unsigned thd_shape_len = 25; //WARN only odd number is allowed due to double strand hash
         uint64_t thd_blocklimit = 32;
         float alpha = 1.6;
-        index.hindex.shape.init_shape_parm(thd_shape_len);
+        index.hindex.shape.init_shape_parm(thd_shape_len / 2 * 2 + 1);
         dout << "span" << index.hindex.shape.span << "\n";
         index.hindex.alpha = alpha;
         return createHIndex(seqs, index.hindex, 
