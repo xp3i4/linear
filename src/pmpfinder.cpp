@@ -1252,7 +1252,7 @@ uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read
                              get_cord_x(anchors[k] - ak3) < thd_anchor_err * dy3); 
         if (f_continuous)
         {
-            dout << "anchors" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) << get_cord_strand(anchors[k]) << "\n";
+            //dout << "anchors" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) << get_cord_strand(anchors[k]) << "\n";
             int64_t dy = get_cord_y(anchors.set[k]) - get_cord_y(anchors.set[k - 1]);
             dy = std::min(std::abs(dy), int64_t(mapParm.shapeLen));
             c_b += dy; 
@@ -1269,9 +1269,9 @@ uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read
             {
                 anchors.sortPos2(anchors.begin() + sb, anchors.begin() + k);
                 appendValue(list, (c_b << 40) + (sb << 20) + k);
-                dout << "cbsb" << sb << k << c_b << thd_anchor_accept_lens << uint((max_y - min_y) * thd_anchor_accept_dens) << "\n";
+                //dout << "cbsb" << sb << k << c_b << thd_anchor_accept_lens << uint((max_y - min_y) * thd_anchor_accept_dens) << "\n";
             }
-            dout << "anchors-----------" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) << c_b << sb << k << max_y << min_y <<(max_y - min_y) * thd_anchor_accept_dens << get_cord_strand(anchors[k]) <<"\n";
+            //dout << "anchors-----------" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) << c_b << sb << k << max_y << min_y <<(max_y - min_y) * thd_anchor_accept_dens << get_cord_strand(anchors[k]) <<"\n";
             sb = k;
             ak2 = anchors[k];
             ak3 = anchors[k];
@@ -1282,7 +1282,7 @@ uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read
 
     }
     //print_cords(anchors.set, "set");
-    dout << "anchors<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
+    //dout << "anchors<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" << anchors.length() << " \n";
 }
 
 uint64_t getDHitList(String<uint64_t> & hit, String<int64_t> & list, Anchors & anchors, MapParm & mapParm, int thd_best_n)
@@ -1303,7 +1303,7 @@ uint64_t getDHitList(String<uint64_t> & hit, String<int64_t> & list, Anchors & a
             {
                 unsigned sb = ((list[k] >> 20) & mask);
                 unsigned sc = list[k] & mask;
-                dout << "sbsc<<<<\n";
+                dout << "sbsc<<<< " << (list[0] >> 40) << (list[k] >> 40) << "\n";
                 for (unsigned n = sb; n < sc; n++)
                 {
                 dout << "sbsc" << sb << sc << n << get_cord_y(anchors.set[n]) << get_cord_x(anchors.set[n])  - const_anchor_zero << "\n";
@@ -1353,8 +1353,6 @@ uint64_t mnMapReadList(IndexDynamic & index,
     {  
         getHIndexMatchAll(index.hindex, read, anchors.set, read_str, read_end, mapParm);    
         getDAnchorMatchList(anchors, read_str, read_end, mapParm, hit, thd_best_n);
-        dout << "mnmrl1\n";
-        print_cords (hit, "mnmrl1");
     }   
     else if (index.isDIndex())
     {
@@ -1418,13 +1416,7 @@ int gather_blocks_ (String<uint64_t> & cords,
         appendValue (str_ends, UPair(b_str, b_end));
         appendValue (str_ends_p, UPair(p_str, length(cords)));
     //}
-    //<<debug
-    for (auto gse : str_ends)
-    {
-        dout << "gse" << get_cord_y(gse.first) << get_cord_y(gse.second) << "\n";
-    }
-    dout << "gsexxx\n";
-    //>>debug
+
     return 0; 
 }
 /*

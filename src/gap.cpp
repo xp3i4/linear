@@ -458,7 +458,7 @@ struct ACoord
     
 }_defaultACoord;
 
-//Format::Tile tile_sign[2]|strand[1]|tileEnd[1]|x[40]|y[20]
+//struct::Tile tile_sign[2]|strand[1]|tileEnd[1](cordEnd)|x[40]|y[20]
 //tile_sign:=1 start, 2 end, 0 body;
 //0-61 bits same as the Format::Cord
 struct TileBase
@@ -1282,6 +1282,8 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
     std::sort (begin(anchor), begin(anchor) + anchor_end);
     anchor[anchor_end] = ~0;
     int pre_tile_end = 0;
+    //g_print_tiles_(anchor, "stanchor");
+
     dout << "sv2anchorx<<<<<<<<<<<<<<<<<<<<<<" << get_cord_y(gap_str) << "\n";
     for (int k = 0; k < anchor_end + 1; k++)
     {
@@ -1387,15 +1389,15 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
             anchor_len++;
         }
     }
-    //step 2. clip and merge 
+    //step 2. merge check: if different segments in tiles can be megered; if cant then do nothing
     String<uint64_t> tmp_tiles = tiles;
     std::sort (begin(tmp_tiles), end(tmp_tiles),
     [](uint64_t & s1, uint64_t & s2)
     {  
-
-      //  return _defaultTile.getX(s1) < _defaultTile.getX(s2);
+        //return _defaultTile.getX(s1) < _defaultTile.getX(s2);
         return get_tile_x(s1) < get_tile_x(s2);
     });
+    g_print_tiles_(tmp_tiles, "mi200");
     int merge_flag = 1;
     for (int i = 1; i < length(tmp_tiles); ++i)
     {
@@ -1419,15 +1421,13 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
             set_tile_end(back(tiles));
         }
     }
-    g_print_tiles_(tiles, "sv22");
 /**
  * step 3. extend patch
  * extend window if there are gaps between tiles until the 
    coordinates x1 - x2 < window_size or the gap can't be extend any more
- * ATTENTION: relation between y1 and y2 currently are not considered.
+ * ATTENTION: This methods takes no account of the relation between y1 and y2.
  */
-
-    g_print_tiles_(tiles, "mi20");
+    g_print_tiles_(tiles, "mi201");
     uint64_t cord_str = gap_str;
     uint64_t cord_end = shift_cord(gap_end, -thD_tile_size, -thD_tile_size);
     //uint64_t cord_end = gap_end;
@@ -1442,6 +1442,7 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
     g_print_tiles_(tiles, "mi222");
         return 0;
     } 
+    dout << "es<<<<<<<<<<<<<<<\n";
     for (int i = 0; i < length(tiles); i++)
     {
         if (is_tile_start(tiles[i]))
@@ -1450,6 +1451,9 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
             if (new_num)
             {
                 set_tile_start(tiles[i]);
+                g_print_tile(tiles[i + new_num - 1], "estr");
+                g_print_tile(tiles[i + new_num], "estr2");
+                dout << "esn1" << new_num << "\n";
                 i += new_num;
                 remove_tile_sgn_start(tiles[i]);
             }
@@ -1460,16 +1464,20 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
             if (new_num)
             {
                 remove_tile_sgn_end(tiles[i]);
+                //g_print_tile(tiles[i], "esend");
+                //g_print_tile(tiles[i + new_num], "esend2");
+                dout << "esn2" << new_num << "\n";
                 i += new_num;
                 set_tile_end(tiles[i]);
             }
         }
         if (i >= 1 && !is_tile_end (tiles[i - 1]) && !is_tile_start(tiles[i]))
         {
+                            //g_print_tile(tiles[i], "esmid");
+                //g_print_tile(tiles[i + new_num], "esmid2");
             i += extendPatch(f1, f2, tiles, i, tiles[i - 1], tiles[i], revscomp_const, thd_overlap_size, thd_gap_size);   
         }
     }
-    g_print_tiles_(tiles, "sv2anchor");
     g_print_tiles_(tiles, "mi21");
     //convert tile sgn (tile end) to cord sgn (block end) and remove illegal tiles.
     int num_block = 0;
@@ -1486,6 +1494,7 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
     int64_t y_end = get_cord_y(gap_end);
     int di = 0;
     int elem_block = 0;
+    int f_se = 0; //flag of tile sgn: 0:none, 1:str tile of current block is removed, 2:end..; 3:str+end..
     for (int i = 0; i < length(tiles); i++)
     {
         uint64_t x_t = get_tile_x(tiles[i]);
@@ -1493,20 +1502,46 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
                        revscomp_const - 1 - get_tile_y(tiles[i]) - thD_tile_size :
                        get_tile_y(tiles[i]);
         if (x_t < x_str || x_t + thD_tile_size > x_end || 
-            y_t < y_str || y_t + thD_tile_size > y_end) //out of bound
+            y_t < y_str || y_t + thD_tile_size > y_end) //out of bound of [gap_str, gap_end)
         {
+            if (f_se & 1)
+            {
+                if (is_tile_end(tiles[i]))
+                {
+                    f_se = 0;
+                }
+            }
+            else
+            { 
+                if (is_tile_start(tiles[i]))
+                {
+                    f_se |= 1; 
+                    if (is_tile_end(tiles[i]))
+                    {
+                        f_se = 0;
+                    }
+                }
+                else 
+                {
+                    if (is_tile_end(tiles[i]))
+                    {
+                        set_tile_end (tiles[i - di - 1]);
+                        set_cord_end (tiles[i - di - 1]);
+                    }
+                }
+            }
             di++; 
         }
         else 
         {
+            if (f_se & 1)
+            {
+                set_tile_start(tiles[i]);
+                f_se & (~1);
+            }
             tiles[i - di] = tiles[i];
             elem_block++; 
 
-        }
-        if (is_tile_end(tiles[i]) && num_block > 1 && elem_block)
-        {
-            set_cord_end(tiles[i - di]);
-            elem_block = 0;
         }
     }
     if (di)
@@ -3073,9 +3108,17 @@ int insert_tiles2Cords_(String<uint64_t> & cords,
                         String<uint64_t> & tiles,
                         int direction)
 {
+    dout << "i2c\n";
     if ((length(tiles) < 2 && direction == g_map_closed) || empty(tiles))
     {
         return 1;
+    }
+    for (auto & tile : tiles)
+    {
+        if (is_tile_end(tile))
+        {
+            set_cord_end (tile);
+        }
     }
     String<uint64_t> tmp_tiles;
     if (direction == g_map_left) //insert at front of cords
@@ -3117,20 +3160,20 @@ int insert_tiles2Cords_(String<uint64_t> & cords,
             _DefaultHit.setBlockEnd(cords[pos]);
         }
         else 
-        {
+        { 
             _DefaultHit.unsetBlockEnd(cords[pos]);
         }
         clear(tiles);
     }
     else if (direction == g_map_closed)
     {
-        g_print_tiles_(tiles, "ins2c");
+        g_print_tiles_(tiles, "i2cc");
+
         uint64_t recd = get_cord_recd(cords[pos]);//set cord flag
         set_tiles_cords_sgns (tiles, recd);
         uint64_t cordtmp = cords[pos];
         cords[pos - 1] = tiles[0];
         cords[pos] = back(tiles);
-        //dout << "gmhs2_pos" << pos << length(tiles) << get_cord_y(cords[pos]) << get_cord_y(cords[pos - length(tiles)]) << "\n";
         if (is_cord_block_end(cordtmp))
         {
             _DefaultHit.setBlockEnd(cords[pos]);
@@ -3159,7 +3202,8 @@ int insert_tiles2Cords_(String<uint64_t> & cords_str,
                         int direction,
                         int thd_cord_size)
 {
-    g_print_tiles_(tiles_str, "ins2c");
+    dout << "ins2cx1<<<<<<<<<\n";
+    g_print_tiles_(tiles_str, "ins2cx1");
     if (empty(cords_end))
     {
         resize (cords_end, length(cords_str));
@@ -3344,13 +3388,14 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                  parm1
                 );
 
-        g_print_tiles_(tiles_str, "ghs_tile");
+        g_print_tiles_(tiles_str, "ghs_tile1");
         reform_tiles(ref, read, comstr, 
                      tiles_str, tiles_end,
                      clips, g_hs, g_anchor, sp_tiles,
                      gap_str, gap_end, direction, 
                      thd_cord_gap, thD_tile_size, thD_err_rate);
         //try dup for each sp_tiles element.
+        g_print_tiles_(tiles_str, "ghs_tile2");
         for (int j = 0; j < getClipsLen(sp_tiles); j++)
         {
             String <uint64_t> dup_tiles_str;
@@ -3601,6 +3646,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                     thD_err_rate,
                     thd_dxy_min, 
                     parm1);
+            g_print_tiles_(tiles_str, "newtiles") ;
             insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size);
         }
         if (_DefaultHit.isBlockEnd(cords_str[i]))  ///right clip end cord
