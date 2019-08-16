@@ -302,17 +302,16 @@ XString::XString(uint64_t const & seqlen)
 }
 
 Hs _DefaultHs;
-const unsigned index_shape_len = 25;
+const unsigned index_shape_len = 25; 
 const float def_alpha = 1.6;
 HIndex::HIndex():
     alpha(def_alpha), 
     shape(index_shape_len)
     {}
-HIndex::HIndex(StringSet<String<Dna5> > const & text):
-    alpha(def_alpha), 
-    shape(index_shape_len)
+HIndex::HIndex(unsigned shape_len, float val):
+    alpha(val), 
+    shape(shape_len)
 {
-    (void) text;
 }
 LShape & HIndex::getShape()
 {
@@ -1713,7 +1712,7 @@ void IndexDynamic::clearIndex()
         dindex.clear();
     }
 }
-IndexDynamic::IndexDynamic(StringSet<String<Dna5> > & seqs):hindex(seqs)
+IndexDynamic::IndexDynamic(StringSet<String<Dna5> > & seqs):hindex()
 {}
 
 bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned gstr, unsigned gend, unsigned threads, bool efficient)
@@ -1724,6 +1723,8 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
         int64_t thd_min_step = 4;
         int64_t thd_max_step = 10;
         int64_t thd_omit_block = 50; 
+        unsigned thd_shape_len = 21;
+        index.hindex.shape.init_shape_parm(thd_shape_len);
         std::cout << "cidx\n";
         //TODO::parm wrapping 
         return createDIndex(seqs, index.dindex, 
@@ -1737,7 +1738,12 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
     else if (index.isHIndex())
     {
         unsigned thd_step = 10;
+        unsigned thd_shape_len = 25;
         uint64_t thd_blocklimit = 32;
+        float alpha = 1.6;
+        index.hindex.shape.init_shape_parm(thd_shape_len);
+        dout << "span" << index.hindex.shape.span << "\n";
+        index.hindex.alpha = alpha;
         return createHIndex(seqs, index.hindex, 
                             gstr, gend, 
                             threads, thd_step, thd_blocklimit, efficient);

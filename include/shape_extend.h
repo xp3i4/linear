@@ -17,6 +17,7 @@ public:
     int     leftChar;
     int     x;
 
+    void init_shape_parm (unsigned shape_span);
     LShape(unsigned span);
 };
 

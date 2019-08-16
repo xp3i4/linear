@@ -177,7 +177,7 @@ public:
     uint64_t emptyDir;
 
     HIndex();
-    HIndex(StringSet<String<Dna5> > const & text);
+    HIndex(unsigned shape_len, float index_alpha);
     bool isEmptyDir(uint64_t);
     void clear();
     LShape & getShape();
