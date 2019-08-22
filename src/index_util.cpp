@@ -781,6 +781,7 @@ void HIndex::clear()
         hsRealEnd += thd_count;
     }
     resize (hs, hsRealEnd + 1);
+    std::cout << "hs_size " << length(hs) << "\n";
     if (efficient)
     {
         clear(seq);
@@ -1365,6 +1366,7 @@ uint64_t getXDir(XString const & xstr, uint64_t const & xval, uint64_t const & y
             if (_DefaultHs.isHead(hs[m]) && _DefaultHs.getHeadPtr(hs[m]))
             {
                 ptr = _DefaultHs.getHeadPtr(hs[m]);
+                //std::cout << "thd_blocklimit " << ptr << "\n";
                 if (ptr < thd_blocklimit)
                 {
                     for (unsigned j = m + 1; j < m + ptr; j++)
@@ -1737,6 +1739,9 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
     }
     else if (index.isHIndex())
     {
+        //chr1: step=5, shape_len=25, block_limt =32|  0.077% > 32(block size) 
+        //chr1, 5,  21, 32 | 0.7% > 32 0.22% > 64
+        //chr1, 10, 21, 32 | 0.49% > 32  0.16% > 64
         unsigned thd_step = 10;
         unsigned thd_shape_len = 25; //WARN only odd number is allowed due to double strand hash
         uint64_t thd_blocklimit = 32;

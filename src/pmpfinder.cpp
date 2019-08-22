@@ -794,7 +794,7 @@ uint64_t nextWindow2_48(String<int96> & f1, //read
             new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         }
     }
-    //dout << "nw1" << min << get_cord_y(new_cord) << "\n";
+    //dout << "nw1" << min << get_cord_y(new_cord) << get_cord_x(new_cord)<< "\n";
     score += min;
     return new_cord;
 }
@@ -1303,10 +1303,10 @@ uint64_t getDHitList(String<uint64_t> & hit, String<int64_t> & list, Anchors & a
             {
                 unsigned sb = ((list[k] >> 20) & mask);
                 unsigned sc = list[k] & mask;
-                dout << "sbsc<<<< " << (list[0] >> 40) << (list[k] >> 40) << "\n";
+                //dout << "sbsc<<<< " << (list[0] >> 40) << (list[k] >> 40) << "\n";
                 for (unsigned n = sb; n < sc; n++)
                 {
-                dout << "sbsc" << sb << sc << n << get_cord_y(anchors.set[n]) << get_cord_x(anchors.set[n])  - const_anchor_zero << "\n";
+                //dout << "sbsc" << sb << sc << n << get_cord_y(anchors.set[n]) << get_cord_x(anchors.set[n])  - const_anchor_zero << get_cord_strand(anchors[n]) << "\n";
                     appendValue(hit, anchors[n]);
                 }   
                 if (!empty(hit))
