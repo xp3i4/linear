@@ -18,24 +18,27 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     for (int i = 0; i < argc; i++)
     {
         new_args.push_back(argv[i]);
-        if (std::string(argv[i]) == "-a" && (i + 1 >= argc || !is_number (argv[i])))
+        if (std::string(argv[i]) == "-a" && (i + 1 >= argc || !is_number (argv[i + 1])))
         {
             new_vals = "1";
-            new_args.push_back (new_vals);
+            new_args.push_back ((const char*)new_vals);
         }
-        if (std::string(argv[i]) == "-g" && (i + 1 >= argc || !is_number (argv[i])))
+        if (std::string(argv[i]) == "-g" && (i + 1 >= argc || !is_number (argv[i + 1])))
         {
             new_vals = "1";
-            new_args.push_back (new_vals);
+            new_args.push_back ((const char*)new_vals);
         }
-        if (std::string(argv[i]) == "-s" && (i + 1 >= argc || !is_number (argv[i])))
+        if (std::string(argv[i]) == "-s" && (i + 1 >= argc || !is_number (argv[i + 1])))
         {
             new_vals = "1";
-            new_args.push_back (new_vals);
+            new_args.push_back ((const char*)new_vals);
         }
     }
     argc = length(new_args);
-    
+    for (int i = 0; i < length(new_args); i++) 
+    {
+        std::cout << "args " << new_args[i] << "\n";
+    }
     // Setup ArgumentParser.
     seqan::ArgumentParser parser("Linear");
     // Set short description, version, and date.
@@ -132,7 +135,6 @@ parseCommandLine(Options & options, int argc, char const ** argv)
 
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res;
-
     getOptionValue(options.oPath, parser, "output");
     getOptionValue(options.sensitivity, parser, "preset");
     getOptionValue(options.thread, parser, "thread");
@@ -172,6 +174,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
             }
         }
     }
+    std::cout << "path " << args[1] << " " << length(args) << "\n";
     getOptionValue(options.listN, parser, "listn1");
     getOptionValue(options.listN2, parser, "listn2");
     getOptionValue(options.alpha, parser, "alpha1");
