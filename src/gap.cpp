@@ -926,10 +926,9 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
                            StringSet<FeaturesDynamic > & f1,
                            StringSet<FeaturesDynamic > & f2, 
                            unsigned thd_accept_score,
-                           int block_size = window_size
-                           )
+                           int thD_tile_size)
 {
-    int shift = block_size / 4;
+    int shift = thD_tile_size / 4;
     unsigned thd_abort_score = UMAX; // make sure thd_abort_score > thd_accept_score
     unsigned fscore =  _get_tile_f_ (tile, f1, f2) ;
 
@@ -970,9 +969,9 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
 
 /**
  * ~Methods function of mapGAnchor2_
+ * Map gaps of [gap_str, gap_end)
  * Cluster anchors and trim tiles for sv
- * Additional process is conducted. 
- * Don't call it in during the approximate mapping.
+ * Change thD_tile_size for differe size of window in the apx mapping
  */  
  int map_g_anchor2_ (String<uint64_t> & anchor, 
                    String<uint64_t> & tiles, 
@@ -996,21 +995,22 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
     //dout << "sv2\n";
     CmpInt64 g_cmpll;
     int block_size = thD_tile_size;
+    uint64_t new_tile = 0;
     uint64_t main_strand = get_cord_strand(gap_str);
-    
     uint thd_fscore = get_windowThreshold(f1);
-    //step 1. cluster anchors cord_end
+
+    //step 1. cluster anchors 
     int64_t prek = 0;
     int64_t prex = -1;
     int64_t prey = -1; 
     int64_t tmp_shift = block_size >> 1;
     int anchor_len = 0;
+    int pre_tile_end = 0;
     std::sort (begin(anchor), begin(anchor) + anchor_end);
     anchor[anchor_end] = ~0;
-    int pre_tile_end = 0;
     //g_print_tiles_(anchor, "stanchor");
 
-    dout << "sv2anchorx<<<<<<<<<<<<<<<<<<<<<<" << get_cord_y(gap_str) << "\n";
+    dout << "sv2anchorxx<<<<<<<<<<<<<<<<<<<<<<" << get_cord_y(gap_str) << "\n";
     for (int k = 0; k < anchor_end + 1; k++)
     {
         //<<debug
@@ -1029,11 +1029,10 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
             dout << "sv2acl" << anchor_len << thd_anchor_accpet << "\n";
             if (anchor_len > thd_anchor_accpet) 
             {
-                std::sort (begin(anchor) + prek, 
-                           begin(anchor) + k, 
-                [](uint64_t & s1, uint64_t & s2)
-                {return g_hs_anchor_getX(s2) > g_hs_anchor_getX(s1);
-                });
+                std::sort (begin(anchor) + prek, begin(anchor) + k, 
+                           [](uint64_t & s1, uint64_t & s2)
+                           {return g_hs_anchor_getX(s2) > g_hs_anchor_getX(s1);
+                           });
                 //prex = prey = - 1;
                 prex = g_hs_anchor_getX(anchor[prek]);
                 prey = g_hs_anchor_getY(anchor[prek]);
@@ -1048,8 +1047,7 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
                 {
                     uint64_t x = g_hs_anchor_getX(anchor[j]);
                     uint64_t y = g_hs_anchor_getY(anchor[j]);
-                    if ((x > prex + thD_tile_size || y > prey + thD_tile_size)||
-                         j == k - 1)
+                    if ((x > prex + thD_tile_size || y > prey + thD_tile_size)|| j == k - 1)
                     {
                         if (j != k - 1)
                         {
@@ -1058,31 +1056,31 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
                         }
                         else
                         {
-                            //centroid_x += g_hs_anchor_getX(anchor[j]);
-                            //centroid_y += g_hs_anchor_getY(anchor[j]);
                             centroid_x /= (j - prej);
                             centroid_y /= (j - prej);
                         }
                         g_cmpll.min(tmp_shift, block_size >> 1) << centroid_x 
                                                                 << centroid_y; 
-                        int64_t tmp_tile_x = centroid_x - tmp_shift ;
-                        int64_t tmp_tile_y = centroid_y - tmp_shift ;
-                        uint64_t tmp_tile = create_tile(0, tmp_tile_x, tmp_tile_y, 
-                                            g_hs_anchor_get_strand(anchor[prek]));
-                        dout << "centroid" << centroid_x << tmp_shift << "\n";
-                        uint64_t new_tile;
-                        unsigned score = _get_tile_f_tri_(tmp_tile, new_tile, f1, f2, thd_fscore, thD_tile_size);
-                        if (kcount >= thd_pattern_in_window && 
-                            score < thd_fscore)
+                        uint64_t tmp_tile = create_tile(get_cord_id(gap_str), 
+                                                        centroid_x - tmp_shift,
+                                                        centroid_y - tmp_shift,
+                                                        g_hs_anchor_get_strand(anchor[prek]));
+                        unsigned score = 
+                        _get_tile_f_tri_(tmp_tile, new_tile, f1, f2, thd_fscore, thD_tile_size);
+                        if (kcount >= thd_pattern_in_window && score < thd_fscore)
                         {
-                            if (empty(tiles) || is_tile_end(back(tiles)))
+                            if (empty (tiles) || is_tile_end(back(tiles)))
                             {
                                 set_tile_start(new_tile);
                                 appendValue (tiles, new_tile);
                             }
-                            else
+                            else  
                             {
-                                appendValue (tiles, new_tile);
+                                if (get_tile_x (new_tile) > get_tile_x(back(tiles)) &&
+                                    get_tile_y (new_tile) > get_tile_y(back(tiles)))
+                                {
+                                    appendValue (tiles, new_tile);
+                                }
                             }
                         }
                         prex = g_hs_anchor_getX(anchor[j - 1]);
@@ -1096,7 +1094,6 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
                     {
                         centroid_x += g_hs_anchor_getX(anchor[j]);
                         centroid_y += g_hs_anchor_getY(anchor[j]);
-                        dout << "c2c" << centroid_x << "\n";
                         kcount++;
                     }
 
@@ -1120,7 +1117,6 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
     std::sort (begin(tmp_tiles), end(tmp_tiles),
     [](uint64_t & s1, uint64_t & s2)
     {  
-        //return _defaultTile.getX(s1) < _defaultTile.getX(s2);
         return get_tile_x(s1) < get_tile_x(s2);
     });
     g_print_tiles_(tmp_tiles, "mi200");
@@ -1179,7 +1175,7 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
                 set_tile_start(tiles[i]);
                 g_print_tile(tiles[i + new_num - 1], "estr");
                 g_print_tile(tiles[i + new_num], "estr2");
-                dout << "esn1" << new_num << "\n";
+                dout << "esn1" << new_num << get_tile_y(tiles[i]) << "\n";
                 i += new_num;
                 remove_tile_sgn_start(tiles[i]);
             }
@@ -1192,35 +1188,25 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
                 remove_tile_sgn_end(tiles[i]);
                 //g_print_tile(tiles[i], "esend");
                 //g_print_tile(tiles[i + new_num], "esend2");
-                dout << "esn2" << new_num << "\n";
+                dout << "esn2" << new_num << get_tile_y(tiles[i]) << "\n";
                 i += new_num;
                 set_tile_end(tiles[i]);
             }
         }
         if (i >= 1 && !is_tile_end (tiles[i - 1]) && !is_tile_start(tiles[i]))
         {
-                            //g_print_tile(tiles[i], "esmid");
-                //g_print_tile(tiles[i + new_num], "esmid2");
+            //g_print_tile(tiles[i], "esmid");
+            //g_print_tile(tiles[i + new_num], "esmid2");
             i += extendPatch(f1, f2, tiles, i, tiles[i - 1], tiles[i], revscomp_const, thd_overlap_size, thd_gap_size);   
         }
     }
     g_print_tiles_(tiles, "mi21");
-    //convert tile sgn (tile end) to cord sgn (block end) and remove illegal tiles.
-    int num_block = 0;
-    for (int i = 0; i < length(tiles); i++)
-    {
-        if (is_tile_end(tiles[i]))
-        {
-            ++num_block;
-        }
-    }
+    //Remove out of bound tiles.
     int64_t x_str = get_tile_x(gap_str);
     int64_t y_str = get_tile_y(gap_str);
     int64_t x_end = get_cord_x(gap_end);
     int64_t y_end = get_cord_y(gap_end);
     int di = 0;
-    int elem_block = 0;
-    int f_se = 0; //flag of tile sgn: 0:none, 1:str tile of current block is removed, 2:end..; 3:str+end..
     for (int i = 0; i < length(tiles); i++)
     {
         uint64_t x_t = get_tile_x(tiles[i]);
@@ -1230,48 +1216,34 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
         if (x_t < x_str || x_t + thD_tile_size > x_end || 
             y_t < y_str || y_t + thD_tile_size > y_end) //out of bound of [gap_str, gap_end)
         {
-            if (f_se & 1)
+            if (is_tile_start (tiles[i]) && is_tile_end(tiles[i]))
             {
-                if (is_tile_end(tiles[i]))
+                //NONE
+            }
+            else if (is_tile_start(tiles[i]))
+            {
+                if (i + 1 < length(tiles)) 
                 {
-                    f_se = 0;
+                    set_tile_start(tiles[i + 1]);
+                }
+            }
+            else if (is_tile_end(tiles[i]))
+            {
+                if (i - di - 1 > 0)
+                {
+                    set_tile_end (tiles[i - di - 1]);
+                    //set_cord_end (tiles[i - di - 1]);
                 }
             }
             else
-            { 
-                if (is_tile_start(tiles[i]))
-                {
-                    f_se |= 1; 
-                    if (is_tile_end(tiles[i]))
-                    {
-                        f_se = 0;
-                    }
-                }
-                else 
-                {
-                    if (is_tile_end(tiles[i]))
-                    {
-                        if (i - di - 1 >= 0)
-                        {
-                            //std::cerr << "idie " << i << " " << di << "\n";
-                            set_tile_end (tiles[i - di - 1]);
-                            set_cord_end (tiles[i - di - 1]);
-                        }
-                    }
-                }
+            {
+                //NONE
             }
             di++; 
         }
         else 
         {
-            if (f_se & 1)
-            {
-                set_tile_start(tiles[i]);
-                f_se & (~1);
-            }
             tiles[i - di] = tiles[i];
-            elem_block++; 
-
         }
     }
     if (di)
@@ -3132,6 +3104,7 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                 );
 
         g_print_tiles_(tiles_str, "ghs_tile1");
+
         reform_tiles(ref, read, comstr, 
                      tiles_str, tiles_end,
                      clips, g_hs, g_anchor, sp_tiles,
@@ -3279,6 +3252,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
         }
     }
 //>>debug
+    int count = 0;
     //NOTE cords_str[0] is the head, regular cords_str starts from 1
     for (unsigned i = 1; i < length(cords_str); i++)
     {
@@ -3401,6 +3375,10 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                     parm1);
             g_print_tiles_(tiles_str, "newtiles") ;
             insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size, thd_max_segs_num);
+            //<<debug
+            //if (count++ == 1)
+            //return 0;
+            //>>debug
         }
         if (_DefaultHit.isBlockEnd(cords_str[i]))  ///right clip end cord
         {

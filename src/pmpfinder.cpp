@@ -971,6 +971,7 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
             {
                 appendValue(cord, new_cord);
                 ++it;
+        print_cord(back(cord), "nxt2");
                 return true;
             }
         }
@@ -990,6 +991,7 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
         //}
         preCordStart = length(cord);
         appendValue(cord, _DefaultCord.hit2Cord_dstr(*(it)));
+        print_cord(back(cord), "nxt3");
         ++it;
         return true;
     }
@@ -1252,7 +1254,7 @@ uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read
                              get_cord_x(anchors[k] - ak3) < thd_anchor_err * dy3); 
         if (f_continuous)
         {
-            //dout << "anchors" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) << get_cord_strand(anchors[k]) << "\n";
+            //dout << "anchors" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) - const_anchor_zero << get_cord_strand(anchors[k]) << "\n";
             int64_t dy = get_cord_y(anchors.set[k]) - get_cord_y(anchors.set[k - 1]);
             dy = std::min(std::abs(dy), int64_t(mapParm.shapeLen));
             c_b += dy; 
@@ -1271,7 +1273,7 @@ uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read
                 appendValue(list, (c_b << 40) + (sb << 20) + k);
                 //dout << "cbsb" << sb << k << c_b << thd_anchor_accept_lens << uint((max_y - min_y) * thd_anchor_accept_dens) << "\n";
             }
-            //dout << "anchors-----------" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) << c_b << sb << k << max_y << min_y <<(max_y - min_y) * thd_anchor_accept_dens << get_cord_strand(anchors[k]) <<"\n";
+            //dout << "anchors-----------" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) -const_anchor_zero << c_b << sb << k << max_y << min_y <<(max_y - min_y) * thd_anchor_accept_dens << get_cord_strand(anchors[k]) <<"\n";
             sb = k;
             ak2 = anchors[k];
             ak3 = anchors[k];
@@ -1306,7 +1308,7 @@ uint64_t getDHitList(String<uint64_t> & hit, String<int64_t> & list, Anchors & a
                 //dout << "sbsc<<<< " << (list[0] >> 40) << (list[k] >> 40) << "\n";
                 for (unsigned n = sb; n < sc; n++)
                 {
-                //dout << "sbsc" << sb << sc << n << get_cord_y(anchors.set[n]) << get_cord_x(anchors.set[n])  - const_anchor_zero << get_cord_strand(anchors[n]) << "\n";
+                dout << "sbsc" << sb << sc << n << get_cord_y(anchors.set[n]) << get_cord_x(anchors.set[n])  - const_anchor_zero << get_cord_strand(anchors[n]) << "\n";
                     appendValue(hit, anchors[n]);
                 }   
                 if (!empty(hit))
@@ -1793,11 +1795,11 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
 }
 /**
  * Extend windows between cord1, and cord2 if they are not overlapped,
- * and insert the windows to the k th element of the cords. 
- * if cord1 and cord2 have the same strand 
- * then call previousWindow for cord1 and nextWindow for cord2 until x1 + window_size < x2
- * if cord1 and cord2 have different strand 
- * then call nextWindow for cord1 and previousWindow for cord2 along each own strand until it can't be extended any more.
+   and insert the windows to the k th element of the cords. 
+ * If cord1 and cord2 are on the same strand 
+   then call previousWindow for cord1 and nextWindow for cord2 until x1 + window_size < x2
+ * If cord1 and cord2 are different strands
+   then call nextWindow for cord1 and previousWindow for cord2 along each own strand until it can't be extended any more.
  */         
  int extendPatch(StringSet<FeaturesDynamic> & f1, 
                  StringSet<FeaturesDynamic> & f2, 
@@ -1831,10 +1833,12 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
     int len = 0;
     uint64_t cord = pcord;
     String<uint64_t> tmp;
+    uint64_t x_bound = get_cord_x(scord);
+    uint64_t y_bound = get_cord_y(scord);
     while (isPreGap(cord, scord, revscomp_const, gap_size))
     {
         cord = nextWindow (f1[strand1], f2[genomeId1], cord, score);
-        if (cord)
+        if (cord && get_cord_y(cord) < y_bound && get_cord_x(cord) < x_bound)
         {
             appendValue (tmp, cord);
         }
@@ -1844,28 +1848,38 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
         }
     }
     uint64_t nw = pcord;
+    print_cords(tmp, "epp1");
     if (!empty (tmp))
     {
         len += length(tmp);
         nw = back(tmp);
         insert(cords, kk, tmp);
+        x_bound = get_cord_x (back(tmp));
+        y_bound = get_cord_y (back(tmp));
         clear(tmp);
+    }
+    else
+    {
+        x_bound = get_cord_x(pcord);
+        y_bound = get_cord_y(pcord);
+
     }
      
     cord = scord;
     while (isSucGap(cord, nw, revscomp_const, gap_size))
     {
         cord = previousWindow(f1[strand2], f2[genomeId2], cord, score);
-        if (cord)
+        if (cord && get_cord_y (cord) >  y_bound && get_cord_x(cord) > x_bound)
         {
-            //TODO do another round previousWindow if cord = 0.
             appendValue (tmp, cord);
+   
         }
         else
         {
             break;
         }
     }
+    print_cords(tmp, "epp2");
     if (!empty (tmp))
     {
         for (unsigned i = 0; i < length(tmp) / 2; i++)
