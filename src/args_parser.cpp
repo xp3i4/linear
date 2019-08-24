@@ -1,11 +1,44 @@
 #include <seqan/arg_parse.h>
 #include "base.h"
+
+bool is_number(const std::string& s)
+{
+    return !s.empty() && std::find_if(s.begin(), 
+        s.end(), [](char c) { return !std::isdigit(c); }) == s.end();
+}
+
 std::string CARTESIAN = "x";
 seqan::ArgumentParser::ParseResult
 parseCommandLine(Options & options, int argc, char const ** argv)
 {
     char const * str_g = "-g";
-
+    //return 0;
+    std::vector<const char*> new_args;
+    char* new_vals;
+    for (int i = 0; i < argc; i++)
+    {
+        new_args.push_back(argv[i]);
+        if (std::string(argv[i]) == "-a" && (i + 1 >= argc || !is_number (argv[i + 1])))
+        {
+            new_vals = "1";
+            new_args.push_back ((const char*)new_vals);
+        }
+        if (std::string(argv[i]) == "-g" && (i + 1 >= argc || !is_number (argv[i + 1])))
+        {
+            new_vals = "1";
+            new_args.push_back ((const char*)new_vals);
+        }
+        if (std::string(argv[i]) == "-s" && (i + 1 >= argc || !is_number (argv[i + 1])))
+        {
+            new_vals = "1";
+            new_args.push_back ((const char*)new_vals);
+        }
+    }
+    argc = length(new_args);
+    for (int i = 0; i < length(new_args); i++) 
+    {
+        std::cout << "args " << new_args[i] << "\n";
+    }
     // Setup ArgumentParser.
     seqan::ArgumentParser parser("Linear");
     // Set short description, version, and date.
@@ -98,11 +131,10 @@ parseCommandLine(Options & options, int argc, char const ** argv)
 
 
     // Parse command line.
-    seqan::ArgumentParser::ParseResult res = seqan::parse(parser, argc, argv);
+    seqan::ArgumentParser::ParseResult res = seqan::parse(parser, argc, &new_args[0]);
 
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res;
-
     getOptionValue(options.oPath, parser, "output");
     getOptionValue(options.sensitivity, parser, "preset");
     getOptionValue(options.thread, parser, "thread");
@@ -132,7 +164,6 @@ parseCommandLine(Options & options, int argc, char const ** argv)
         Options::PathsType * pp = & options.r_paths;
         for (size_t i = 0; i < length(args); i++)
         {
-            //dout << "args[i]" << args[i] << "\n";
             if (args[i] == CARTESIAN)
             {
                 pp = & options.g_paths;
@@ -143,6 +174,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
             }
         }
     }
+    std::cout << "path " << args[1] << " " << length(args) << "\n";
     getOptionValue(options.listN, parser, "listn1");
     getOptionValue(options.listN2, parser, "listn2");
     getOptionValue(options.alpha, parser, "alpha1");

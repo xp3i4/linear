@@ -2,11 +2,15 @@
 
 using namespace seqan;
 
+//WARN!!:: Only odd Shape len is allowed if call the hash due to the double strand hash value
+//All even shape len will be converted to len + 1
 typedef Dna5 ShapeType;
-
-LShape::LShape(unsigned span):
-        span(span),
-        weight(span - 8),
+void LShape::init_shape_parm (unsigned shape_span)
+{
+    span = shape_span ;
+    weight = span - 8;
+}
+LShape::LShape(unsigned shape_span):
         hValue(0),
         crhValue(0),
         XValue(0),
@@ -15,7 +19,7 @@ LShape::LShape(unsigned span):
         leftChar(0),
         x(0)
 {
-    
+    init_shape_parm(shape_span);
 }
 
 void resize(LShape & me, unsigned new_span, unsigned new_weight)

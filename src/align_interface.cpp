@@ -177,7 +177,8 @@ GapRecordHolder::getCords()
 //TODO:: change score type
 int const s1 = 3; //match
 int const s2 = -2; //mismatch
-int const s3 = -1; //gap
+int const s3 = -1; //gap extend
+int const s4 = -1; //gap open
 float s_score_density_thd = 2; //if < the value alignment of cords will be dropped
 float s_score_window_thd = 0.75;
 int thd_align_score = 350 /*depends on score_scheme*/;
@@ -186,7 +187,7 @@ uint64_t CORD_NULL = _DefaultCord.makeBlockEndVal(~0);
 uint64_t emptyCord = CORD_NULL - 1;
 
 GapParm _gap_parm;
-Score<int, Simple> _default_scheme_ (s1, s2, s3);
+Score<int, Simple> _default_scheme_ (s1, s2, s3, s4);
 
 int const flag_clip_unset = 1 << 32;
 int const flag_clip_head = 1;
@@ -489,8 +490,6 @@ int detach_copy_row(TRow & row1, TRow & row2)
     detach(row1);
 }
 
-
-
 int align_block (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
                         Row<Align<String<Dna5>, ArrayGaps> >::Type & row2,
                         String<Dna5> & genome,
@@ -552,6 +551,7 @@ int cord2row_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
         infix2 = infix(read, readStart, std::min(readEnd, length(read)));  
     }
     infix1 = infix(genome, genomeStart, std::min(genomeEnd, length(genome)));       
+    std::cout << "rowsize " << length(infix1) << " " << length(infix2) << "\n";
     assignSource (row1, infix1);  
     assignSource (row2, infix2); 
     return 0;
@@ -576,7 +576,9 @@ int align_cord (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     }
     else
     {
+        double time = sysTime();
         score = globalAlignment (row1, row2, scheme, AlignConfig<true, true, true, true>(), -band, band);
+        std::cout << "atime " << sysTime() - time << "\n";
     }
     return score;
 }

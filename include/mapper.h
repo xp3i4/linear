@@ -34,6 +34,7 @@ class Mapper
 public:
     Mapper();
     Mapper(Options & options);
+    void loadOptions(Options & options);
     StringSet<String<Dna5> > & getReads() {return record.seq1;}             
     StringSet<String<Dna5> > & getGenomes() {return record.seq2;}             
     MapParm & mapParm() {return parm;}
@@ -45,7 +46,7 @@ public:
     void printCordsRaw();
     void printCordsRaw2();
     int print_vcf();
-    int createIndex(bool = false);
+    int createIndex(unsigned, unsigned, bool = false);
     unsigned sens(){return parm.sensitivity;}
     unsigned & thread(){return _thread;}
     StringSet<CharString> & getReadsId(){return record.id1;}
@@ -66,9 +67,18 @@ public:
     uint & getPrintFlag(){return f_print;}
     uint getGapLenMin () {return gap_len_min;}
     int getCordSize() {return cord_size;}
+    void loadGenomes();
+    void clearIndex();
 
 };
 
-int map(Mapper & mapper, int p1);
+int map(Mapper & mapper, 
+        StringSet<FeaturesDynamic> & f2, 
+        StringSet<String<short> > & buckets, 
+        int gid, 
+        int f_buckets_enabled,
+        int p1);
+
+int filter(Mapper & mapper, StringSet<FeaturesDynamic> f2, StringSet<String<short> > & buckets, int p1);
 
 #endif

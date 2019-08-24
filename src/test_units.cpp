@@ -174,7 +174,7 @@ int check_index1(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned
     LShape shape(hindex.getShape());
     dout << "lensq" << length(seqs[0]) << "\n";
     uint thd_step = 1;
-    createHIndex(seqs, hindex, threads, thd_step, false);
+    createHIndex(seqs, hindex, 0, length(seqs), threads, thd_step, false);
 
     for (auto seq : seqs)
     {
@@ -231,7 +231,7 @@ int check_index2(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned
     LShape shape(dindex.getShape());
     dout << "lensq" << length(seqs[0]) << "\n";
 
-    createDIndex(seqs, dindex, thd_min_step, thd_max_step, thd_omit_block, threads);
+    createDIndex(seqs, dindex, thd_min_step, thd_max_step, thd_omit_block, 0, length(seqs), threads);
 
     dout << "lenseq1" << back(dindex.getDir()) << "\n";
 

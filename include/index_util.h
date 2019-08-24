@@ -59,9 +59,17 @@ public:
     LShape & getShape();
     int fullSize();
     int getShapeLen();
+    void clear();
 }; 
-int createDIndex(StringSet<String<Dna5> > &, DIndex &, int64_t, int64_t);
-int createDIndex(StringSet<String<Dna5> > &, DIndex &, int64_t, int64_t,  int);
+int createDIndex(StringSet<String<Dna5> > & seqs, 
+                 DIndex & index, 
+                 unsigned gstr,
+                 unsigned gend,
+                 int64_t thd_min_step, 
+                 int64_t thd_max_step,
+                 int64_t thd_omit_block,
+                 unsigned threads
+                );
 int64_t queryHsStr(DIndex & index, int64_t xval);
 int64_t queryHsEnd(DIndex & index, int64_t xval);
 
@@ -169,13 +177,29 @@ public:
     uint64_t emptyDir;
 
     HIndex();
-    HIndex(StringSet<String<Dna5> > const & text);
+    HIndex(unsigned shape_len, float index_alpha);
     bool isEmptyDir(uint64_t);
     void clear();
     LShape & getShape();
 }; 
 
 typedef HIndex LIndex; 
+uint64_t _getSA_i1(uint64_t const & node);
+uint64_t _getSA_i2(uint64_t const & node);
+uint64_t getXDir(HIndex const & index, uint64_t const & xval, uint64_t const & yval);
+uint64_t getXYDir(HIndex const & index, uint64_t const & xval, uint64_t const & yval);
+
+bool createHIndex(StringSet<String<Dna5> > & seq, 
+                  LIndex & index, 
+                  unsigned gstr,
+                  unsigned gend,
+                  unsigned & threads, 
+                  unsigned thd_step, 
+                  bool efficient);
+
+/*===============================================
+=            Section of IndexDynamic            =
+===============================================*/
 
 extern int const typeDIx;
 extern int const typeHIx;
@@ -188,23 +212,16 @@ struct IndexDynamic
     int isDIndex();
     void setHIndex();
     void setDIndex();
+    void clearIndex();
     IndexDynamic(StringSet<String<Dna5> > &);
 };
 
-uint64_t _getSA_i1(uint64_t const & node);
-uint64_t _getSA_i2(uint64_t const & node);
-uint64_t getXDir(HIndex const & index, uint64_t const & xval, uint64_t const & yval);
-uint64_t getXYDir(HIndex const & index, uint64_t const & xval, uint64_t const & yval);
-
-bool createHIndex(StringSet<String<Dna5> > & seq, LIndex & index, unsigned & threads, unsigned thd_step, bool efficient);
-int createDIndex(StringSet<String<Dna5> > & seqs, 
-                 DIndex & index, 
-                 int64_t thd_min_step, 
-                 int64_t thd_max_step,
-                 int64_t thd_omit_block,
-                 unsigned threads
-                );
-bool createIndexDynamic(StringSet<String<Dna5> > & seq, IndexDynamic & index, unsigned threads, bool efficient);
+bool createIndexDynamic(StringSet<String<Dna5> > & seq, 
+                        IndexDynamic & index, 
+                        unsigned gstr,
+                        unsigned gend,
+                        unsigned threads, 
+                        bool efficient);
 // uint64_t getXDir(LIndex const & index, uint64_t const & xval, uint64_t const & yval)
 
 /*=====  End of Section comment block  ======*/

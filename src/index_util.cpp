@@ -302,17 +302,16 @@ XString::XString(uint64_t const & seqlen)
 }
 
 Hs _DefaultHs;
-const unsigned index_shape_len = 25;
+const unsigned index_shape_len = 25; 
 const float def_alpha = 1.6;
 HIndex::HIndex():
     alpha(def_alpha), 
     shape(index_shape_len)
     {}
-HIndex::HIndex(StringSet<String<Dna5> > const & text):
-    alpha(def_alpha), 
-    shape(index_shape_len)
+HIndex::HIndex(unsigned shape_len, float val):
+    alpha(val), 
+    shape(shape_len)
 {
-    (void) text;
 }
 LShape & HIndex::getShape()
 {
@@ -390,7 +389,7 @@ void HIndex::clear()
 /*
  * parallel sort hs for index either collecting kmers or collecting minimizers
  * bucket[]+
- * However it needs larger memory footprint.
+ * However requires larger memory footprint.
  */
  bool _hsSortX_1(Iterator<String<uint64_t> >::Type const & begin, 
                        Iterator<String<uint64_t> >::Type const & end, 
@@ -475,16 +474,19 @@ void HIndex::clear()
                         output[ctd[thd_id][x] + it] = *(begin + k + it);
                         //output[ctd[x][thd_id] + it] = *(begin + k + it);
                     }
-                    unsigned thd_num = (ctd[thd_id][x] < thd_n1)?ctd[thd_id][x]/(size + 1):(ctd[thd_id][x] - thd_n1) / size + thd1;
-                    //unsigned thd_num = (ctd[x][thd_id] < thd_n1)?ctd[x][thd_id]/(size + 1):(ctd[x][thd_id] - thd_n1) / size + thd1;
-                    //printf("[thd_num] %d %d %d\n", thd_id, x, ctd[thd_id][x]);
+                    unsigned thd_num = (ctd[thd_id][x] < thd_n1) ? 
+                                       (ctd[thd_id][x]) / (size + 1) : 
+                                       (ctd[thd_id][x] - thd_n1) / size + thd1;
                     ctd[thd_id][x] += ptr;
-                    //ctd[x][thd_id] += ptr;
                     x = *(begin + k) << (l_move - p_bit)>> r_move;
                     if (thd_num == threads - 1)
+                    {
                         next[thd_id][0][x + 1] += ptr;
+                    }
                     else
+                    {
                         next[thd_id][thd_num + 1][x] += ptr;
+                    }
                 }
             }
         }
@@ -608,7 +610,10 @@ void HIndex::clear()
  */
  bool _createHsArray(StringSet<String<Dna5> > & seq, 
                      String<uint64_t> & hs, 
-                     LShape & shape)
+                     LShape & shape,
+                     unsigned gstr,
+                     unsigned gend
+                     )
 {
     double time = sysTime();
     uint64_t preX = ~0;
@@ -618,8 +623,9 @@ void HIndex::clear()
     resize(hs, lengthSum(seq) << 1);
     //-k
     //unsigned start = 2;
+    uint64_t thd_step = 3;
     hs[0] = hs[1] = 0;
-    for(uint64_t j = 0; j < length(seq); j++)
+    for(uint64_t j = gstr; j < gend; j++)
     {
         hashInit(shape, begin(seq[j]));
         for (uint64_t k =0; k < length(seq[j]) - shape.span + 1; k++)
@@ -632,7 +638,7 @@ void HIndex::clear()
             }
             
             hashNext(shape, begin(seq[j]) + k);
-            if (k % 3 != 0)
+            if (k % thd_step != 0)
             {
                 if (shape.XValue ^ preX)
                 {
@@ -674,6 +680,8 @@ void HIndex::clear()
  bool _createHsArray(StringSet<String<Dna5> > & seq, 
                      String<uint64_t> & hs, 
                      LShape & shape, 
+                     unsigned gstr,
+                     unsigned gend,
                      unsigned threads,
                      unsigned thd_step, 
                      bool efficient = true)
@@ -685,7 +693,7 @@ void HIndex::clear()
     std::vector<int64_t> seqChunkSize(threads, 0);
     std::vector<int64_t> hss(threads, 0);
     //uint64_t seqChunkSize[4] = {0};
-    for(uint64_t j = 0; j < length(seq); j++)
+    for(uint64_t j = gstr; j < gend; j++)
     {
         std::cerr << "=>Index::Initiate             " << (float)j / length(seq) * 100<< "%           \r";
         uint64_t thd_count = 0; // count number of elements in hs[] for each thread
@@ -773,21 +781,17 @@ void HIndex::clear()
         hsRealEnd += thd_count;
     }
     resize (hs, hsRealEnd + 1);
-    //shrinkToFit(hs);
+    std::cout << "hs_size " << length(hs) << "\n";
     if (efficient)
     {
         clear(seq);
         shrinkToFit(seq);   
     }
     _DefaultHs.setHsHead(hs[hsRealEnd], 0, 0);
-    //std::cerr << "[debug] length of hs " << length(hs) << " " << hsRealEnd << "\n";
     std::cerr << "--Index::Initiate             Elapsed Time[s] " << sysTime() - time << " " << std::endl;
-//-k
     std::cerr << "=>Index::SortHash                                                   \r";
     time = sysTime();
     _hsSort(begin(hs), begin(hs) + hsRealEnd, shape.weight, threads);
-    //_hsSort(begin(hs) + start, begin(hs) + count, shape.weight);
-    
     std::cerr << "  Index::sortHash             Elapsed Time[s] " << sysTime() - time << std::endl;
     return true;
 }
@@ -984,7 +988,7 @@ bool checkHsSort(String<uint64_t> const & hs)
     return h1;
 }
 
- uint64_t getXDir(XString const & xstr, uint64_t const & xval, uint64_t const & yval)
+uint64_t getXDir(XString const & xstr, uint64_t const & xval, uint64_t const & yval)
 {
         uint64_t val, delta = 0;
         uint64_t h1 = _DefaultXNodeFunc.hash(xval) & xstr.mask;
@@ -1127,7 +1131,7 @@ bool checkHsSort(String<uint64_t> const & hs)
 /*  
  * serial sort ysa 
  */
- bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir)
+ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir, uint64_t thd_blocklimit)
 {
 //-k
     uint64_t k = _DefaultHs.getHeadPtr(hs[0]);
@@ -1200,7 +1204,7 @@ bool checkHsSort(String<uint64_t> const & hs)
     while(_DefaultHs.getHeadPtr(hs[k]))
     {
         ptr = _DefaultHs.getHeadPtr(hs[k]);
-        if (ptr < blocklimit)
+        if (ptr < thd_blocklimit)
         {
             ++count;
         }
@@ -1224,7 +1228,7 @@ bool checkHsSort(String<uint64_t> const & hs)
     while(_DefaultHs.getHeadPtr(hs[k]))
     {
         ptr = _DefaultHs.getHeadPtr(hs[k]);
-        if (ptr < blocklimit)
+        if (ptr < thd_blocklimit)
         {
             requestXNode_noCollision(xstr, _DefaultHs.getHeadX(hs[k]), 
                     k + 1, _DefaultXNodeBase.xHead, _DefaultXNodeBase.returnDir);
@@ -1254,7 +1258,7 @@ bool checkHsSort(String<uint64_t> const & hs)
  * parallel sort ysa
  * this function is for index only collecting minihash value [minindex]
  */
- bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir, unsigned threads)
+ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir, unsigned threads, uint64_t thd_blocklimit)
 {
 
     uint64_t k = _DefaultHs.getHeadPtr(hs[0]);
@@ -1263,7 +1267,7 @@ bool checkHsSort(String<uint64_t> const & hs)
     uint64_t block_size = ptr;
     uint64_t countMove = 0, prek = 0;
     double time = sysTime();
-    uint64_t thd_countx = 0;
+    uint64_t countx = 0;
     std::vector<uint64_t> thd_hsStart(threads + 1, 0);
     std::cerr << "=>Index::SortYSA                                                  \r";
     while(_DefaultHs.getHeadPtr(hs[k]))
@@ -1288,7 +1292,7 @@ bool checkHsSort(String<uint64_t> const & hs)
         {
             hs[j - countMove]= hs[j];       
         }
-        ++thd_countx;
+        ++countx;
         k += ptr;
     }
     _DefaultHs.setHsHeadPtr(hs[prek], block_size);
@@ -1304,20 +1308,20 @@ bool checkHsSort(String<uint64_t> const & hs)
     ptr = 0;
     block_size = 0;
 
-#pragma omp parallel
-{
-    uint64_t ptr = 0;
-    #pragma omp for
-    for (uint64_t k = 0; k < length(hs) - 2; k++)
-    { 
-        if(_DefaultHs.isHead(hs[k]))
-        {
-            ptr = _DefaultHs.getHeadPtr(hs[k]);
-            _sort_YSA_Block(begin(hs) + k + 1, begin(hs) + k + ptr);
-        }   
-    }
+    #pragma omp parallel
+    {
+        uint64_t ptr = 0;
+        #pragma omp for
+        for (uint64_t k = 0; k < length(hs) - 2; k++)
+        { 
+            if(_DefaultHs.isHead(hs[k]))
+            {
+                ptr = _DefaultHs.getHeadPtr(hs[k]);
+                _sort_YSA_Block(begin(hs) + k + 1, begin(hs) + k + ptr);
+            }   
+        }
     
-}
+    }
     std::cerr << "  Index::SortYSA              Elapsed Time[s] " << sysTime() - time << std::endl;
     std::cerr << "=>Index::resize xstr                                            \r" ;
     ptr = 0; k = 0;
@@ -1327,7 +1331,7 @@ bool checkHsSort(String<uint64_t> const & hs)
     while(_DefaultHs.getHeadPtr(hs[k]))
     {
         ptr = _DefaultHs.getHeadPtr(hs[k]);
-        if (ptr < blocklimit)
+        if (ptr < thd_blocklimit)
         {
             ++count;
         }
@@ -1350,46 +1354,47 @@ bool checkHsSort(String<uint64_t> const & hs)
     std::cerr << "=>Index::request dir                                                  \r";
     time = sysTime();
 
-#pragma omp parallel 
-{
-    //uint64_t thd_id = omp_get_thread_num();
-    uint64_t ptr = 0;
-
-#pragma omp for 
-    for (uint64_t m = 0; m < length(hs); m++)
+    #pragma omp parallel 
     {
+        //uint64_t thd_id = omp_get_thread_num();
+        uint64_t ptr = 0;
 
-        if (_DefaultHs.isHead(hs[m]) && _DefaultHs.getHeadPtr(hs[m]))
+    #pragma omp for 
+        for (uint64_t m = 0; m < length(hs); m++)
         {
-            ptr = _DefaultHs.getHeadPtr(hs[m]);
-            if (ptr < blocklimit)
+
+            if (_DefaultHs.isHead(hs[m]) && _DefaultHs.getHeadPtr(hs[m]))
             {
-                for (unsigned j = m + 1; j < m + ptr; j++)
+                ptr = _DefaultHs.getHeadPtr(hs[m]);
+                //std::cout << "thd_blocklimit " << ptr << "\n";
+                if (ptr < thd_blocklimit)
                 {
-                    _DefaultHs.setHsBodyY(hs[j], 0);
-                }
-                requestXNode_noCollision_Atomic(xstr, _DefaultHs.getHeadX(hs[m]), 
-                       m + 1, _DefaultXNodeBase.xHead, _DefaultXNodeBase.returnDir);   
-            }
-            else
-            {
-                uint64_t xval = _DefaultHs.getHeadX(hs[m]);
-                //printf ("[debug]::hash %" PRIu64 " %d\n", xval, ptr);
-                
-                requestXNode_noCollision(xstr, xval, 
-                    ~1, _DefaultXNodeBase.virtualHead, _DefaultXNodeBase.returnDir);
-                for (unsigned j = m + 1; j < m + ptr; j++)
-                {
-                    if(_DefaultHs.getHsBodyY(hs[j] ^ hs[j - 1]))
+                    for (unsigned j = m + 1; j < m + ptr; j++)
                     {
-                        requestXNode_noCollision(xstr, (xval + ((hs[j] & ((1ULL<<61) - (1ULL<<41))) >>1)), 
-                            j, _DefaultXNodeBase.xHead, _DefaultXNodeBase.returnDir);
+                        _DefaultHs.setHsBodyY(hs[j], 0);
+                    }
+                    requestXNode_noCollision_Atomic(xstr, _DefaultHs.getHeadX(hs[m]), 
+                           m + 1, _DefaultXNodeBase.xHead, _DefaultXNodeBase.returnDir);   
+                }
+                else
+                {
+                    uint64_t xval = _DefaultHs.getHeadX(hs[m]);
+                    //printf ("[debug]::hash %" PRIu64 " %d\n", xval, ptr);
+                    
+                    requestXNode_noCollision(xstr, xval, 
+                        ~1, _DefaultXNodeBase.virtualHead, _DefaultXNodeBase.returnDir);
+                    for (unsigned j = m + 1; j < m + ptr; j++)
+                    {
+                        if(_DefaultHs.getHsBodyY(hs[j] ^ hs[j - 1]))
+                        {
+                            requestXNode_noCollision(xstr, (xval + ((hs[j] & ((1ULL<<61) - (1ULL<<41))) >>1)), 
+                                j, _DefaultXNodeBase.xHead, _DefaultXNodeBase.returnDir);
+                        }
                     }
                 }
             }
         }
     }
-}
 
     std::cerr << "  Index::request dir          Elapsed Time[s] " << sysTime() - time << std::endl;
     (void) threads;
@@ -1403,35 +1408,26 @@ bool checkHsSort(String<uint64_t> const & hs)
         XString & xstr, String<uint64_t> & hs,  
         LShape & shape, 
         uint64_t & indexEmptyDir, 
+        unsigned gstr,
+        unsigned gend,
         unsigned & threads, 
         unsigned thd_step,
+        uint64_t thd_blocklimit,
         bool efficient)    
 {
     double time = sysTime();
     //_createHsArray2_MF(seq, hs, shape, threads);
-    _createHsArray(seq, hs, shape, threads, thd_step, efficient);
-    _createYSA(hs, xstr, indexEmptyDir, threads);
+    _createHsArray(seq, hs, shape, gstr, gend, threads, thd_step, efficient);
+    _createYSA(hs, xstr, indexEmptyDir, threads, thd_blocklimit);
     std::cerr << "  End creating Index Time[s]:" << sysTime() - time << " \n";
     return true; 
-}
-bool _createQGramIndexDirSA(StringSet<String<Dna5> > & seq, XString & xstr, 
-String<uint64_t> & hs,  LShape & shape, uint64_t & indexEmptyDir)    
-{
-    double time = sysTime();
-    _createHsArray(seq, hs, shape);
-    _createYSA(hs, xstr, indexEmptyDir);
-    std::cerr << "  End creating Index Time[s]:" << sysTime() - time << " \n";
-    return true; 
-}
-bool createHIndex(StringSet<String<Dna5> > & seq, HIndex & index, unsigned & threads, unsigned thd_step, bool efficient)
-{
-    return _createQGramIndexDirSA_parallel(seq, index.xstr, index.ysa, index.shape, index.emptyDir, threads, thd_step, efficient);
 }
 
-bool _createQGramIndex(HIndex & index, StringSet<String<Dna5> > & seq, unsigned threads = 1)
+bool createHIndex(StringSet<String<Dna5> > & seq, HIndex & index, unsigned gstr, unsigned gend, unsigned & threads, unsigned thd_step, uint64_t thd_blocklimit, bool efficient)
 {
-    return _createQGramIndexDirSA(seq, index.xstr, index.ysa, index.shape, index.emptyDir);
+    return _createQGramIndexDirSA_parallel(seq, index.xstr, index.ysa, index.shape, index.emptyDir, gstr, gend, threads, thd_step, thd_blocklimit, efficient);
 }
+
 /*----------  DIndex and wrapper  ----------*/
 
 int const typeDIx = 1;
@@ -1460,10 +1456,20 @@ String<int64_t> & DIndex::getHs()
 {
     return hs;
 }
+void DIndex::clear()
+{
+    seqan::clear(dir);
+    shrinkToFit(dir);
+    seqan::clear(hs);
+    shrinkToFit(hs);
+}
 int createDIndex_serial(StringSet<String<Dna5> > & seqs, 
                         DIndex & index, 
                         int64_t thd_min_step, 
-                        int64_t thd_max_step)
+                        int64_t thd_max_step,
+                        unsigned gstr,
+                        unsigned gend
+                        )
 {
     double t = sysTime();
     LShape & shape = index.getShape();
@@ -1533,11 +1539,16 @@ int createDIndex_serial(StringSet<String<Dna5> > & seqs,
     std::cout << "createDIndex " << sysTime() - t << " " << sysTime() - t2 << "\n";
 }
 
+/**
+ * create index on [@gstr, @gend)th genomes 
+ */
 int createDIndex(StringSet<String<Dna5> > & seqs, 
                  DIndex & index, 
                  int64_t thd_min_step, 
                  int64_t thd_max_step,
                  int64_t thd_omit_block,
+                 unsigned gstr,
+                 unsigned gend,
                  unsigned threads
                 )
 {
@@ -1550,7 +1561,7 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
     double t2 = sysTime();
     dout << "idx2" << length(dir) << t_shape.weight << thd_min_step << thd_max_step << thd_omit_block<< "\n";
     dout << threads << "threads\n"; 
-    for (int64_t i = 0; i < length(seqs); i++)
+    for (int64_t i = gstr; i < gend; i++)
     {
         String<int64_t> t_blocks;
         for (int j = 0; j < threads; j++)
@@ -1692,11 +1703,21 @@ void IndexDynamic::setDIndex()
 {
     typeIx = typeDIx;
 }
-
-IndexDynamic::IndexDynamic(StringSet<String<Dna5> > & seqs):hindex(seqs)
+void IndexDynamic::clearIndex()
+{
+    if (isHIndex())
+    {
+       hindex.clear();
+    }
+    else if (isDIndex())
+    {
+        dindex.clear();
+    }
+}
+IndexDynamic::IndexDynamic(StringSet<String<Dna5> > & seqs):hindex()
 {}
 
-bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned threads, bool efficient)
+bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned gstr, unsigned gend, unsigned threads, bool efficient)
 {
 
     if (index.isDIndex())
@@ -1704,20 +1725,43 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
         int64_t thd_min_step = 4;
         int64_t thd_max_step = 10;
         int64_t thd_omit_block = 50; 
+        unsigned thd_shape_len = 21;
+        index.hindex.shape.init_shape_parm(thd_shape_len);
         std::cout << "cidx\n";
         //TODO::parm wrapping 
         return createDIndex(seqs, index.dindex, 
                             thd_min_step, 
                             thd_max_step, 
                             thd_omit_block,
+                            gstr, gend,
                             threads);
-//        return createDIndex_serial(seqs, index.dindex, 4, 10);
+//       return createDIndex_serial(seqs, index.dindex, 4, 10);
     }
     else if (index.isHIndex())
     {
+        //chr1: step=5, shape_len=25, block_limt =32|  0.077% > 32(block size) 
+        //chr1, 5,  21, 32 | 0.7% > 32 0.22% > 64
+        //chr1, 10, 21, 32 | 0.49% > 32  0.16% > 64
         unsigned thd_step = 10;
-        return createHIndex(seqs, index.hindex, threads, thd_step, efficient);
+        unsigned thd_shape_len = 25; //WARN only odd number is allowed due to double strand hash
+        uint64_t thd_blocklimit = 32;
+        float alpha = 1.6;
+        index.hindex.shape.init_shape_parm(thd_shape_len / 2 * 2 + 1);
+        dout << "span" << index.hindex.shape.span << "\n";
+        index.hindex.alpha = alpha;
+        return createHIndex(seqs, index.hindex, 
+                            gstr, gend, 
+                            threads, thd_step, thd_blocklimit, efficient);
     }
+    /*
+    else if (index.isMHIndex()) //Hindex part of Mix of DIndex and HIndex, super! 
+    {
 
+    }
+    else if (index.isMDIndex()) //DIndex part of Mix of DIndex and HIndex, !
+    {
+
+    }
+    */
 }
 

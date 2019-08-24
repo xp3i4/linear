@@ -7,6 +7,13 @@
 using namespace seqan;
 using std::ofstream;
 
+void print_cords_paf(CordsSetType & cords, 
+                     StringSet<String<Dna5> > & genomes,
+                     StringSet<String<Dna5> > & reads,
+                     StringSet<CharString> & genomesId,
+                     StringSet<CharString> & readsId,
+                     std::ofstream & of);
+
 void print_cords_apf(CordsSetType & cords, 
                      StringSet<String<Dna5> > & genomes,
                      StringSet<String<Dna5> > & reads,
