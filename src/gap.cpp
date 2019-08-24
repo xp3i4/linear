@@ -667,7 +667,6 @@ int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
             uint64_t tmp_anchor;
             g_hs_setAnchor_(tmp_anchor, g_hs[i], g_hs[j], revscomp_const);
             int64_t tmp = g_hs_anchor_getAnchor(tmp_anchor);
-            std::cout << "gmsaa" << (g_hs[i] & ((1ULL << 30) - 1)) << " " << (g_hs[j] & ((1ULL << 30) - 1)) << " " << g_hs_anchor_getX(tmp_anchor) << "\n";
             if (tmp < anchor_upper && tmp >= anchor_lower)
             {
                 g_anchor[g_anchor_end + n++] = tmp_anchor;
@@ -1018,7 +1017,6 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
                              g_hs_anchor_getY(anchor[prek])));
             thd_anchor_accpet = std::max (thd_anchor_accpet, 2);
             thd_anchor_accpet = std::min (g_thd_anchor, thd_anchor_accpet);
-            dout << "sv2acl" << anchor_len << thd_anchor_accpet << "\n";
             if (anchor_len > thd_anchor_accpet) 
             {
                 std::sort (begin(anchor) + prek, begin(anchor) + k, 
@@ -1111,7 +1109,6 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
     {  
         return get_tile_x(s1) < get_tile_x(s2);
     });
-    g_print_tiles_(tmp_tiles, "mi200");
     int merge_flag = 1;
     for (int i = 1; i < length(tmp_tiles); ++i)
     {
@@ -1155,7 +1152,6 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
         }
         return 0;
     } 
-    dout << "es<<<<<<<<<<<<<<<\n";
     for (int i = 0; i < length(tiles); i++)
     {
         if (is_tile_start(tiles[i]))
@@ -1164,9 +1160,6 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
             if (new_num)
             {
                 set_tile_start(tiles[i]);
-                g_print_tile(tiles[i + new_num - 1], "estr");
-                g_print_tile(tiles[i + new_num], "estr2");
-                dout << "esn1" << new_num << get_tile_y(tiles[i]) << "\n";
                 i += new_num;
                 remove_tile_sgn_start(tiles[i]);
             }
@@ -1179,7 +1172,6 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
                 remove_tile_sgn_end(tiles[i]);
                 //g_print_tile(tiles[i], "esend");
                 //g_print_tile(tiles[i + new_num], "esend2");
-                dout << "esn2" << new_num << get_tile_y(tiles[i]) << "\n";
                 i += new_num;
                 set_tile_end(tiles[i]);
             }
@@ -2752,7 +2744,6 @@ int insert_tiles2Cords_(String<uint64_t> & cords,
                         int direction,
                         int thd_max_segs_num)
 {
-    dout << "i2c\n";
     if ((length(tiles) < 2 && direction == g_map_closed) || empty(tiles))
     {
         return 1;
@@ -2767,13 +2758,7 @@ int insert_tiles2Cords_(String<uint64_t> & cords,
             ++segs_num;
         }
     }
-    //<<debug
-    if (segs_num == 227)
-    {
-        g_print_tiles_ (tiles, "segtiles");
-    }
-    //>>debug
-    dout << "segs_num " << segs_num << "\n";
+
     if (segs_num > thd_max_segs_num)
     {
         return segs_num | return_type1;
@@ -3027,15 +3012,12 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                  parm1
                 );
 
-        g_print_tiles_(tiles_str, "ghs_tile1");
-
         reform_tiles(ref, read, comstr, 
                      tiles_str, tiles_end,
                      clips, g_hs, g_anchor, sp_tiles,
                      gap_str, gap_end, direction, 
                      thd_cord_gap, thD_tile_size, thD_err_rate);
         //try dup for each sp_tiles element.
-        g_print_tiles_(tiles_str, "ghs_tile2");
         for (int j = 0; j < getClipsLen(sp_tiles); j++)
         {
             String <uint64_t> dup_tiles_str;
@@ -3195,7 +3177,6 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                 int max_gap_overlap_y = _getMaxGapsyOverlap(apx_gaps, gap_str, gap_end);
                 if (max_gap_overlap_y > thd_cord_gap)
                 {
-            dout << "mgleft1" << get_cord_y(gap_str) << get_cord_y(gap_end) << "\n";
                     mapGap_ (seqs, read, comstr, 
                              gap_str, gap_end, 
                              g_hs, g_anchor, 
@@ -3210,7 +3191,6 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                              thD_err_rate,
                              thd_dxy_min,
                              parm1);
-                    g_print_tiles_(tiles_str, "mgleft1");
                     insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size, thd_max_segs_num);
                 }
                 else
@@ -3277,7 +3257,6 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                     thD_err_rate,
                     thd_dxy_min, 
                     parm1);
-            g_print_tiles_(tiles_str, "newtiles") ;
             insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size, thd_max_segs_num);
             //<<debug
             //if (count++ == 1)

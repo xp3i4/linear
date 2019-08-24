@@ -34,11 +34,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
             new_args.push_back ((const char*)new_vals);
         }
     }
-    argc = length(new_args);
-    for (int i = 0; i < length(new_args); i++) 
-    {
-        std::cout << "args " << new_args[i] << "\n";
-    }
+    argc = length(new_args); 
     // Setup ArgumentParser.
     seqan::ArgumentParser parser("Linear");
     // Set short description, version, and date.
@@ -144,7 +140,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     getOptionValue(options.apx_chain_flag, parser, "apx_chain_flag");
     getOptionValue(options.aln_flag, parser, "aln_flag");
     getOptionValue(options.sam_flag, parser, "sam_flag");
-    dout << "options.apx_chain_flag" << options.apx_chain_flag << "\n";
+
     //std::cerr << "xxxxx " << options.gap_len << isSet(parser, "gap_len") << "\n";
     std::vector<std::string> args;
     args = getArgumentValues(parser, 0);
@@ -174,7 +170,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
             }
         }
     }
-    std::cout << "path " << args[1] << " " << length(args) << "\n";
+     
     getOptionValue(options.listN, parser, "listn1");
     getOptionValue(options.listN2, parser, "listn2");
     getOptionValue(options.alpha, parser, "alpha1");

@@ -966,12 +966,10 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
             {
                 distThd = _apx_parm2_48.windowThreshold;
             }
-            dout << "distthd" << dist << distThd << "\n";
             if(dist < distThd && get_cord_y(new_cord) + thd_cord_size < uint64_t(readLen))
             {
                 appendValue(cord, new_cord);
                 ++it;
-        print_cord(back(cord), "nxt2");
                 return true;
             }
         }
@@ -991,7 +989,6 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
         //}
         preCordStart = length(cord);
         appendValue(cord, _DefaultCord.hit2Cord_dstr(*(it)));
-        print_cord(back(cord), "nxt3");
         ++it;
         return true;
     }
@@ -1834,7 +1831,6 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
         }
     }
     uint64_t nw = pcord;
-    print_cords(tmp, "epp1");
     if (!empty (tmp))
     {
         len += length(tmp);
@@ -1865,7 +1861,6 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
             break;
         }
     }
-    print_cords(tmp, "epp2");
     if (!empty (tmp))
     {
         for (unsigned i = 0; i < length(tmp) / 2; i++)
