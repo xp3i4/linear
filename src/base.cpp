@@ -15,7 +15,7 @@ const unsigned base_kmer_step_  = 1000;
 const uint64_t base_llt_max_    = ~0;
 
 unsigned const UMAX = (1 << 30) - 1;
-int64_t const LLMAX = (1LL << 63) - 1;
+int64_t const LLMAX = (1LL << 62) - 1;
 int64_t const LLMIN = -LLMAX;
 
 
