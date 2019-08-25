@@ -1359,9 +1359,15 @@ int map_interval(String<Dna5> & seq1, //genome
         gr_end = rvcp_const - gr_end;
         std::swap (gr_end, gr_str);
     }
+    //systime benchmark: step1 / step2 = 0.27
+    //step1
+    double t1 = sysTime();
     g_hs_end = g_mapHs_kmer_(seq1, g_hs, gs_str, gs_end, g_hs_end, 10, 0);
     g_hs_end = g_mapHs_kmer_(seq2, g_hs, gr_str, gr_end, g_hs_end, 1, 1);
-
+    t1 = sysTime() - t1;
+    double t2 = sysTime();
+    //step1_end
+    //step 2
     std::sort (begin(g_hs), begin(g_hs) + g_hs_end);
     int p1 = 0, p2 = 0;
     for (int k = 1; k < g_hs_end; k++)
@@ -1379,7 +1385,7 @@ int map_interval(String<Dna5> & seq1, //genome
                 p2 = k; 
         }
     }
-    return map_g_anchor (g_hs_anchor, g_hs_tile, f1, f2, 
+    int f = map_g_anchor (g_hs_anchor, g_hs_tile, f1, f2, 
                          gap_str, gap_end,
                          g_hs_anchor_end, 
                          rvcp_const,
@@ -1388,6 +1394,10 @@ int map_interval(String<Dna5> & seq1, //genome
                          thD_err_rate,
                          parm1
                         );
+    //step2_end
+    t2 = sysTime() - t2; 
+    dout << "syst" << t1 / t2 << "\n";
+    return f;
 }
 
 
