@@ -997,6 +997,7 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
                    int64_t const & thd_min_segment)
 {
     //dout << "sv2\n";
+    int thd_abort_tiles = 10;
     CmpInt64 g_cmpll;
     int block_size = thD_tile_size;
     uint64_t new_tile = 0;
@@ -1117,7 +1118,7 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
             anchor_len++;
         }
     }
-    if (records_n > 10)
+    if (records_n > thd_abort_tiles)
     {
         return 1;
     }
@@ -1462,7 +1463,6 @@ int map_interval(String<Dna5> & seq1, //genome
     return f;
 
 }
-
 
 /**
  * Patch for duplication (only) where additional mapping in (,gap_str] or [gap_end,) is necessary.
