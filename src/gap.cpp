@@ -31,7 +31,7 @@ int const g_map_rght = 1;
  * NOTE! the following parameters are correlated.
  * Change them carefully 
  */
-int const g_shape_len = 8;
+int const g_shape_len = 16;
 int const g_thd_anchor = 6;
 float const g_thd_anchor_density = 0.03;
 float const g_thd_error_percent = 0.2;
@@ -435,8 +435,11 @@ void print_g_hs_anchor(String<uint64_t> & anchors,
 }
 ///g_hs: N/A[1]|xval[30]|type[2]strand[1]|coordinate[30]
 ///type=0: from genome, type=1: from read
-static const uint64_t g_hs_mask2 = (1ULL << 30) - 1;
-static const uint64_t g_hs_mask3 = (1ULL << 32) - 1;
+const uint64_t g_hs_bit1 = 30;
+const uint64_t g_hs_bit2 = 31;
+const uint64_t g_hs_bit3 = 33;
+const uint64_t g_hs_mask2 = (1ULL << 30) - 1;
+const uint64_t g_hs_mask3 = (1ULL << 32) - 1;
 
 void g_hs_setGhs_(uint64_t & val, 
                   uint64_t xval, 
@@ -623,10 +626,11 @@ void set_tiles_cords_sgns(String<uint64_t> & tiles, uint64_t sgn)
                    uint64_t start, 
                    uint64_t end, 
                    int g_hs_start, 
+                   int shape_len,
                    int step,  
                    uint64_t type)
 {
-    LShape shape(g_shape_len);
+    LShape shape(shape_len);
     hashInit(shape, begin(seq) + start);
     int count = 0; 
     int i = 0; 
@@ -1009,7 +1013,7 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
     std::sort (begin(anchor), begin(anchor) + anchor_end);
     anchor[anchor_end] = ~0;
     //g_print_tiles_(anchor, "stanchor");
-
+    int records_n = 0;
     dout << "sv2anchorxx<<<<<<<<<<<<<<<<<<<<<<" << get_cord_y(gap_str) << "\n";
     for (int k = 0; k < anchor_end + 1; k++)
     {
@@ -1101,6 +1105,7 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
                 if (!empty(tiles))
                 {
                     set_tile_end(back(tiles)) ;
+                    records_n++;
                 }
                 pre_tile_end = length(tiles);
             }
@@ -1111,6 +1116,10 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
         {
             anchor_len++;
         }
+    }
+    if (records_n > 10)
+    {
+        return 1;
     }
     //step 2. merge check: if different segments in tiles can be megered; if cant then do nothing
     String<uint64_t> tmp_tiles = tiles;
@@ -1336,6 +1345,37 @@ int map_g_anchor (String<uint64_t> & anchor,
     return map_g_anchor2_(anchor, tiles, f1, f2, cord_str, cord_end, anchor_end, revscomp_const, direction, thD_tile_size, thD_err_rate, parm.mapGAnchor2parm_);
 }
 
+int g_create_anchors_ (String<uint64_t> & g_hs,
+                       String<uint64_t> & g_hs_anchor,
+                       int & g_hs_end,
+                       int & g_hs_anchor_end,
+                       int shape_len, 
+                       int64_t anchor_lower,
+                       int64_t anchor_upper,
+                       uint64_t rvcp_const)
+{
+    uint64_t mask = (1ULL << (2 * shape_len + g_hs_bit3)) - 1;
+    std::sort (begin(g_hs), begin(g_hs) + g_hs_end, [mask](uint64_t & a, uint64_t & b){return (a & mask) < (b & mask);});
+    dout << "mi3" << g_hs_end << anchor_lower << anchor_upper << "\n";
+    int p1 = 0, p2 = 0;
+    for (int k = 1; k < g_hs_end; k++)
+    {    
+        switch (g_hs_getXT((g_hs[k] ^ g_hs[k - 1]) & mask))
+        {
+            case 0:       //x1 = x2 both from genome or read
+                break;
+            case 1:       //x1 = x2 one from genome the other from read
+                p2 = k;
+                break;
+            default:      //anchor current block before process next block 
+                g_hs_anchor_end = g_mapHs_setAnchors_(g_hs, g_hs_anchor, p1, p2, k, g_hs_anchor_end, rvcp_const, anchor_lower, anchor_upper);
+                p1 = k;
+                p2 = k; 
+        }
+    }
+    return 0;
+}
+
 /**
  * Map interval [@gap_str, @gap_end) to create a chain of tiles to extend the
    mapping area as long as possible.
@@ -1372,35 +1412,19 @@ int map_interval(String<Dna5> & seq1, //genome
     uint64_t gs_end = get_cord_x(gap_end);
     uint64_t gr_str = get_cord_y(gap_str);
     uint64_t gr_end = get_cord_y(gap_end);
-    uint64_t anchor_lower = cord_lower;
-    uint64_t anchor_upper = cord_upper; 
     if (get_cord_strand(gap_str))
     {
         gr_str = rvcp_const - gr_str;
         gr_end = rvcp_const - gr_end;
         std::swap (gr_end, gr_str);
     }
-    g_hs_end = g_mapHs_kmer_(seq1, g_hs, gs_str, gs_end, g_hs_end, 10, 0);
-    g_hs_end = g_mapHs_kmer_(seq2, g_hs, gr_str, gr_end, g_hs_end, 1, 1);
+    double t1 =sysTime();
+    g_hs_end = g_mapHs_kmer_(seq1, g_hs, gs_str, gs_end, g_hs_end, 15, 10, 0);
+    g_hs_end = g_mapHs_kmer_(seq2, g_hs, gr_str, gr_end, g_hs_end, 15, 1, 1);
+    t1 = sysTime() - t1;
 
-    std::sort (begin(g_hs), begin(g_hs) + g_hs_end);
-    dout << "mi3" << g_hs_end << anchor_lower << anchor_upper << "\n";
-    int p1 = 0, p2 = 0;
-    for (int k = 1; k < g_hs_end; k++)
-    {    
-        switch (g_hs_getXT(g_hs[k] ^ g_hs[k - 1]))
-        {
-            case 0:       //x1 = x2 both from genome or read
-                break;
-            case 1:       //x1 = x2 one from genome the other from read
-                p2 = k;
-                break;
-            default:      //anchor current block before process next block 
-                g_hs_anchor_end = g_mapHs_setAnchors_(g_hs, g_hs_anchor, p1, p2, k, g_hs_anchor_end, rvcp_const, anchor_lower, anchor_upper);
-                p1 = k;
-                p2 = k; 
-        }
-    }
+    double t2 =sysTime();
+    g_create_anchors_(g_hs, g_hs_anchor, g_hs_end, g_hs_anchor_end, 8, cord_lower, cord_upper, rvcp_const);
     //<<debug
     for (int i = 0; i < g_hs_anchor_end; i++)
     {
@@ -1408,7 +1432,7 @@ int map_interval(String<Dna5> & seq1, //genome
     }
     //>>debug
     g_print_tiles_(g_hs_tile, "mi20x");
-    return map_g_anchor (g_hs_anchor, g_hs_tile, f1, f2, 
+    int f = map_g_anchor (g_hs_anchor, g_hs_tile, f1, f2, 
                          gap_str, gap_end,
                          g_hs_anchor_end, 
                          rvcp_const,
@@ -1417,6 +1441,26 @@ int map_interval(String<Dna5> & seq1, //genome
                          thD_err_rate,
                          parm1
                         );
+     
+    if (f)
+    {
+        g_hs_anchor_end = 0;
+        clear (g_hs_tile);
+        g_create_anchors_(g_hs, g_hs_anchor, g_hs_end, g_hs_anchor_end, 15, cord_lower, cord_upper, rvcp_const);
+        f = map_g_anchor (g_hs_anchor, g_hs_tile, f1, f2, 
+                         gap_str, gap_end,
+                         g_hs_anchor_end, 
+                         rvcp_const,
+                         direction,
+                         thD_tile_size,
+                         thD_err_rate,
+                         parm1
+                        ); 
+    }
+    t2 = sysTime() - t2;
+    dout << "syst" << t1/t2 << "\n";
+    return f;
+
 }
 
 
