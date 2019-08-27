@@ -33,22 +33,30 @@ void FeaturesDynamic::setFeatureType(int type)
     {
         setFs1_32();
     }
-    else if (type == typeFeatures2_48)
+    else //default 
     {
         setFs2_48();
     }
 }
-
+ApxMapParm1_32 _apx_parm1_32;
+ApxMapParm2_48 _apx_parm2_48;
+int FeaturesDynamic::init(int type)
+{
+    setFeatureType(type);
+    if (isFs1_32())
+    {
+        apx_parm1_32 = & _apx_parm1_32;
+    }
+    else if (isFs2_48())
+    {
+        apx_parm2_48 = & _apx_parm2_48; 
+    }  
+    return fs_type;
+}
+FeaturesDynamic::FeaturesDynamic(){}
 FeaturesDynamic::FeaturesDynamic(int type)
 {
-    if (type == typeFeatures1_32)
-    {
-        fs_type = typeFeatures1_32;
-    }
-    else 
-    {
-        fs_type = typeFeatures2_48;
-    }
+    init(type);
 }
 
 void decInt96 (int96 & val, int96 & dval) // val -= dval
@@ -94,8 +102,7 @@ inline int64_t ordN_(Dna5 & a)
     return (res == 4) ? 100LL : res;
 }
 
-//======HIndex getIndexMatch()
-//<<debug util
+//Debug util
 int printScript(int64_t & val, CharString header)
 {
     int sum = 0;
@@ -114,95 +121,120 @@ int printScript(int64_t & val, CharString header)
 /*===================================================
 =            Approximate mapping section            =
 ===================================================*/
-struct ApxMapParm
-{
-    float band_width;
-    unsigned cell_size;
-    unsigned cell_num;
-    unsigned window_size; //16*12
-    unsigned window_delta;
-    unsigned sup;
-    unsigned med;
-    unsigned inf; 
-    ApxMapParm ();
-};
-
-ApxMapParm::ApxMapParm():
-    band_width(0.25),
-    cell_size(16),
-    cell_num(12),
-    window_size(cell_size * cell_num),
-    window_delta(window_size * (1 - 2 * band_width)),
-    sup(cell_num),
-    med(ceil((1 - band_width) * cell_num)),
-    inf(ceil((1 - 2 * band_width) * cell_num))
-{}
-
-struct ApxMapParm1_32 : ApxMapParm
-{
-    unsigned scpt_step;
-    unsigned scpt_bit;
-    unsigned scpt_len;
-    unsigned scpt_len2;
-    int scriptMask;
-    int scriptMask2;
-    unsigned windowThreshold;
-    unsigned abort_score;
-    ApxMapParm1_32 ();
-};
+ApxMapParmBase::ApxMapParmBase(){}
 
 ApxMapParm1_32::ApxMapParm1_32():
-    ApxMapParm(),
-    scpt_step(16),
-    scpt_bit(4),
-    scpt_len(5),
-    scpt_len2(scpt_len << 1),
-    scriptMask((1 << scpt_len) - 1),
-    scriptMask2(scriptMask << scpt_len),
-    windowThreshold(36),
+//variable marked by * is allowed to be modified 
+//variable of $ must be changed correspondingly when * is modified
+//varibel of const is not allowed to change.
+    //----window parm---
+    band_width(0.25), //*
+    cell_size(16), // const
+    cell_num(12), //* \in {6,12} number of cells per window 
+    windowThreshold(36), //$ window_size related
+    window_size(cell_size * cell_num), // const
+    window_delta(window_size * (1 - 2 * band_width)), //const
+    //----nextWindow parm---
+    sup(cell_num), //const 
+    med(ceil((1 - band_width) * cell_num)), //const
+    inf(ceil((1 - 2 * band_width) * cell_num)), //const
+    //----scprit parm----
+    scpt_step(16), //const
+    scpt_bit(4),  //const 2 ^ scpt_bit = scpt_step
+    scpt_len(5), //const 2 ^ scpt_len == 32
+    scpt_len2(scpt_len << 1), //const
+    scriptMask((1 << scpt_len) - 1), //const
+    scriptMask2(scriptMask << scpt_len), //const
+    scptCount{1, 1 << scpt_len, 1 << (scpt_len * 2), 0, 0}, //const
     abort_score(1000)
-{}
-
-
-struct ApxMapParm2_48 : ApxMapParm
 {
-    unsigned scpt_step;
-    unsigned scpt_bit; 
-    unsigned windowThreshold;
-    unsigned abort_score;
-    ApxMapParm2_48();
-};
+}
 
 ApxMapParm2_48::ApxMapParm2_48():
-    ApxMapParm(),
-    scpt_step(16),
-    scpt_bit(4),
-    windowThreshold(72), 
+    band_width(0.25),
+    cell_size(16),
+    cell_num(12), //* \in {3, 6, 12}
+    windowThreshold(72), //$ cell_num related
+    window_size(cell_size * cell_num),
+    window_delta(window_size * (1 - 2 * band_width)),
+
+    sup(cell_num),
+    med(ceil((1 - band_width) * cell_num)),
+    inf(ceil((1 - 2 * band_width) * cell_num)),
+
+    scpt_step(16), //const
+    scpt_bit(4),  //const
+    scpt_num (window_size / 48), //const
+    scpt_int_step (48 / scpt_step), //const
     abort_score(1000)
 {}
 
-ApxMapParm _apx_parm_base;
-ApxMapParm1_32 _apx_parm1_32;
-ApxMapParm2_48 _apx_parm2_48;
 
-unsigned get_windowThreshold(FeaturesDynamic & fs)
+
+unsigned getFeatureWindowDelta(FeaturesDynamic & fs)
 {
     if (fs.isFs1_32())
     {
-        return _apx_parm1_32.windowThreshold;
+        return fs.apx_parm1_32->window_delta;
+    }
+    else if (fs.isFs2_48())
+    {
+        return fs.apx_parm2_48->window_delta;
+    }
+}
+unsigned getFeatureWindowDelta(StringSet<FeaturesDynamic> & fss)
+{
+    if (!empty(fss))
+    {
+        return getFeatureWindowDelta(fss[0]);
+    }
+    else
+    {
+        //return _apx_parm_base.window_delta;
+        return 0;
+    }
+}
+unsigned getFeatureWindowSize(FeaturesDynamic & fs)
+{
+    if (fs.isFs1_32())
+    {
+        return fs.apx_parm1_32->window_size;
+    }
+    else if (fs.isFs2_48())
+    {
+        return fs.apx_parm2_48->window_size;
+    }
+}
+unsigned getFeatureWindowSize(StringSet<FeaturesDynamic> & fss)
+{
+    if (!empty(fss))
+    {
+        return getFeatureWindowSize(fss[0]);
+    }
+    else
+    {
+        //return _apx_parm_base.window_size;
+        return 0;
+    }
+}
+unsigned getWindowThreshold(FeaturesDynamic & fs)
+{
+    if (fs.isFs1_32())
+    {
+        return fs.apx_parm1_32->windowThreshold;
     }
     if (fs.isFs2_48())
     {
-        return _apx_parm2_48.windowThreshold;
+        return fs.apx_parm2_48->windowThreshold;
     }
     //return _apx_parm_base.windowThreshold;
     return 1000;
 }
-unsigned get_windowThreshold(StringSet<FeaturesDynamic> & fss)
+unsigned getWindowThreshold(StringSet<FeaturesDynamic> & fss)
 {
     if (!empty(fss))
     {
-        return get_windowThreshold(fss[0]);
+        return getWindowThreshold(fss[0]);
     }
     else
     {
@@ -210,52 +242,46 @@ unsigned get_windowThreshold(StringSet<FeaturesDynamic> & fss)
     }
 }
 
-const unsigned window_size = _apx_parm_base.window_size;
-const unsigned window_delta = window_size * (1 - 2 * _apx_parm_base.band_width);
-
-
-const unsigned scpt_step=16;
-const unsigned scpt_bit=4;
+const unsigned window_size = _apx_parm2_48.window_size;
 
 /*----------  Script encoding type I  ----------*/
-const unsigned scpt_len=5; 
-const unsigned scpt_len2 = scpt_len << 1;
-const int scriptMask = (1 << scpt_len) - 1;
-const int scptCount[5] = {1, 1<<scpt_len, 1 <<(scpt_len * 2), 0, 0};
-int _scriptDist1_32(int const & s1, int const & s2)
+//const int scptCount[5] = {1, 1<<scpt_len, 1 <<(scpt_len * 2), 0, 0};
+unsigned _scriptDist1_32(int const & s1, int const & s2, ApxMapParm1_32 & parm)
 {
-    int res = std::abs((s1 & scriptMask) - (s2 & scriptMask)) +
-              std::abs(((s1 >> scpt_len) & scriptMask) -
-                       ((s2 >> scpt_len) & scriptMask)) + 
-              std::abs((s1>> scpt_len2) - (s2 >> scpt_len2));
+    int res = std::abs((s1 & parm.scriptMask) - (s2 & parm.scriptMask)) +
+              std::abs(((s1 >> parm.scpt_len) & parm.scriptMask) -
+                       ((s2 >> parm.scpt_len) & parm.scriptMask)) + 
+              std::abs((s1>> parm.scpt_len2) - (s2 >> parm.scpt_len2));
     return res;
 }
 unsigned _windowDist1_32(Iterator<String<short> >::Type const & it1, 
-                         Iterator<String<short> >::Type const & it2)
+                         Iterator<String<short> >::Type const & it2,
+                         ApxMapParm1_32 & parm)
 {
-    return _scriptDist1_32(*it1, *it2) 
-         + _scriptDist1_32(*(it1 + 2), *(it2 + 2)) 
-         + _scriptDist1_32(*(it1 + 4), *(it2 + 4)) 
-         + _scriptDist1_32(*(it1 + 6), *(it2 + 6)) 
-         + _scriptDist1_32(*(it1 + 8), *(it2 + 8)) 
-         + _scriptDist1_32(*(it1 + 10), *(it2 + 10));
+    return _scriptDist1_32(*it1, *it2, parm) 
+         + _scriptDist1_32(*(it1 + 2), *(it2 + 2), parm) 
+         + _scriptDist1_32(*(it1 + 4), *(it2 + 4), parm) 
+         + _scriptDist1_32(*(it1 + 6), *(it2 + 6), parm) 
+         + _scriptDist1_32(*(it1 + 8), *(it2 + 8), parm) 
+         + _scriptDist1_32(*(it1 + 10), *(it2 + 10), parm);
 }
-void createFeatures1_32(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f)
+void createFeatures1_32(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f, ApxMapParm1_32 & parm)
 {
     unsigned next = 1;
-    unsigned window = 1 << scpt_len;
-    resize (f, ((itEnd - itBegin -window) >> scpt_bit) + 1);
+    //dout << "parm.scpt_bit\n";// << parm.scpt_bit << parm.scpt_step << parm.scpt_len << "\n";
+    unsigned window = 1 << parm.scpt_len;
+    resize (f, ((itEnd - itBegin - window) >> parm.scpt_bit) + 1);
     f[0] = 0;
     for (unsigned k = 0; k < window; k++)
     {
-        f[0] += scptCount[ordValue(*(itBegin + k))];
+        f[0] += parm.scptCount[ordValue(*(itBegin + k))];
     }
-    for (unsigned k = scpt_step; k < itEnd - itBegin - window ; k+=scpt_step) 
+    for (unsigned k = parm.scpt_step; k < itEnd - itBegin - window ; k += parm.scpt_step) 
     {
         f[next] = f[next - 1];
-        for (unsigned j = k - scpt_step; j < k; j++)
+        for (unsigned j = k - parm.scpt_step; j < k; j++)
         {
-            f[next] += scptCount[ordValue(*(itBegin + j + window))] - scptCount[ordValue(*(itBegin + j))];
+            f[next] += parm.scptCount[ordValue(*(itBegin + j + window))] - parm.scptCount[ordValue(*(itBegin + j))];
         }
         next++;
     }
@@ -279,38 +305,41 @@ uint64_t parallelParm_Static(uint64_t range,
     thd_end = thd_begin + ChunkSize; 
     return ChunkSize;
 }
-void createFeatures1_32(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f, unsigned threads)
+void createFeatures1_32(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f, unsigned threads, ApxMapParm1_32 & parm)
 {
-    unsigned window = 1 << scpt_len;
-    resize (f, ((itEnd - itBegin -window) >> scpt_bit) + 1);
+    unsigned window = 1 << parm.scpt_len;
+    resize (f, ((itEnd - itBegin - window) >> parm.scpt_bit) + 1);
 #pragma omp parallel
 {
     unsigned thd_id = omp_get_thread_num();
     uint64_t thd_begin;
     uint64_t thd_end;
-    uint64_t range = (itEnd - itBegin - window - scpt_step) / scpt_step;
+    uint64_t range = (itEnd - itBegin - window - parm.scpt_step) / parm.scpt_step;
     parallelParm_Static(range, threads, 
                         thd_id,  thd_begin, thd_end);
     uint64_t next = thd_begin;
-    thd_begin *= scpt_step;
-    thd_end *= scpt_step;
+    thd_begin *= parm.scpt_step;
+    thd_end *= parm.scpt_step;
     f[next] = 0;
     for (unsigned k = thd_begin; k < thd_begin + window; k++)
     {
-        f[next] += scptCount[ordValue(*(itBegin + k))];
+        f[next] += parm.scptCount[ordValue(*(itBegin + k))];
     }
     next++;
-    for (unsigned k = thd_begin + scpt_step; k < thd_end ; k += scpt_step) 
+    for (unsigned k = thd_begin + parm.scpt_step; k < thd_end ; k += parm.scpt_step) 
     {
         f[next] = f[next - 1];
-        for (unsigned j = k - scpt_step; j < k; j++)
+        for (unsigned j = k - parm.scpt_step; j < k; j++)
         {
-            f[next] += scptCount[ordValue(*(itBegin + j + window))] - scptCount[ordValue(*(itBegin + j))];
+            f[next] += parm.scptCount[ordValue(*(itBegin + j + window))] - parm.scptCount[ordValue(*(itBegin + j))];
         }
         next++;
     }
 }
 }
+
+/*----------  Script encoding type I.2 ----------*/
+
 
 /*----------  Script encoding type II  ----------*/
 /* TG TC TA GT GG int1  \
@@ -342,13 +371,15 @@ int64_t _scriptDist63_31(int const & s11, int const & s12, int const & s13,
            __scriptDist63_31(s13, s23);
 }
 //wrapper into 96 bit integer.
+//Distance of one pair of scpirts(48mer of each)
 int64_t _scriptDist63_31(int96 & s1, int96 & s2)
 {
     return  _scriptDist63_31(s1[0], s1[1], s1[2],
                              s2[0], s2[1], s2[2]);
 }
-int64_t _windowDist48_4(Iterator<String<int96> >::Type it1,  //feature string iterator
-                        Iterator<String<int96> >::Type it2)
+int64_t _windowDist2_48(Iterator<String<int96> >::Type it1,  //feature string iterator
+                        Iterator<String<int96> >::Type it2,
+                        ApxMapParm2_48 & parm)
 {
     /*
     printInt96(*it1, "4841");
@@ -365,13 +396,18 @@ int64_t _windowDist48_4(Iterator<String<int96> >::Type it1,  //feature string it
         printInt96(*(it2 + i), "int2");
         dout << "\n";
     }
-    */
     return _scriptDist63_31(*it1, *it2) + 
            _scriptDist63_31(*(it1 + 3), *(it2 + 3)) +
            _scriptDist63_31(*(it1 + 6), *(it2 + 6)) + 
            _scriptDist63_31(*(it1 + 9), *(it2 + 9));
 
-    
+    */
+    int64_t sum = 0;
+    for (unsigned i = 0; i < parm.scpt_num * parm.scpt_int_step; i += parm.scpt_int_step) 
+    {
+        sum += _scriptDist63_31(*(it1 + i), *(it2 + i));
+    }
+    return sum;
 }
 /**
  * 1.units[n] = (i << 8 + k) maps n to bits of int96 (ith int, kth bit);
@@ -396,17 +432,17 @@ void add2merInt96 (int96 & val, TIter5 it)
     val[i] += addVal;
     //std::cout << "a2i96 " << *it << *(it+1) << " " << ordV << " " << i << " " << addVal << " " << (1 << 255)<< "\n";
 }
-int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f)
+int createFeatures2_48(TIter5 it_str, TIter5 it_end, String<int96> & f, ApxMapParm2_48 & parm)
 {
     double t = sysTime();
     int addMod3[3] = {1, 2, 0};   // adMod3[i] = ++ i % 3;
     int96 zero96 = {0, 0, 0};
     std::vector<int96> buffer(3, zero96); //buffer of 3 cells in one script
-    resize (f, (it_end - it_str - window48) / scpt_step + 1); 
+    resize (f, (it_end - it_str - window48) / parm.scpt_step + 1); 
     setInt96(f[0], zero96);
     for (int i = 0; i < 3; i++) //init f[0]
     {
-        for (int j = i << scpt_bit; j < (i << scpt_bit) + scpt_step; j++)
+        for (int j = i << parm.scpt_bit; j < (i << parm.scpt_bit) + parm.scpt_step; j++)
         {
             add2merInt96(buffer[i], it_str + j);
         }
@@ -416,12 +452,12 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f)
     //std::cerr << " cf48 time " << sysTime() - t << "\n";
     int next = 1; //stream f[next]
     int ii = 0;
-    for (int i = scpt_step; i < it_end - it_str - window48 - 1; i += scpt_step) 
+    for (int i = parm.scpt_step; i < it_end - it_str - window48 - 1; i += parm.scpt_step) 
     {
         setInt96(f[next], f[next - 1]);
         decInt96(f[next], buffer[ii]);
         setInt96(buffer[ii], zero96); //clear to 0;
-        for (int j = i - scpt_step + window48; j < i + window48; j++)
+        for (int j = i - parm.scpt_step + window48; j < i + window48; j++)
         {
             add2merInt96(buffer[ii], it_str + j);
         }
@@ -431,18 +467,18 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f)
     }
     return 0;
 }
-int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f, unsigned threads)
+int createFeatures2_48(TIter5 it_str, TIter5 it_end, String<int96> & f, unsigned threads, ApxMapParm2_48 & parm)
 {
     int window = window48;
     if (it_end - it_str < window)
     {
         return 0;
     }
-    resize (f, ((it_end - it_str - window) >> scpt_bit) + 1);
-    int64_t range = (it_end - it_str - window) / scpt_step + 1; //numer of windows 
+    resize (f, ((it_end - it_str - window) >> parm.scpt_bit) + 1);
+    int64_t range = (it_end - it_str - window) / parm.scpt_step + 1; //numer of windows 
     if (range < threads)
     {
-        createFeatures48(it_str, it_end, f);
+        createFeatures2_48(it_str, it_end, f, parm);
         return 0;
     }
 #pragma omp parallel
@@ -461,8 +497,8 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f, unsigned t
     }
     int64_t thd_end = thd_begin + chunk_size;
     int64_t next = thd_begin;
-    thd_begin *= scpt_step;
-    thd_end *= scpt_step;
+    thd_begin *= parm.scpt_step;
+    thd_end *= parm.scpt_step;
     //std::cout << "cfs2 " << thd_id << " " << thd_begin << " " << thd_end << "\n";
 
     int addMod3[3] = {1, 2, 0};   // adMod3[i] = ++ i % 3;
@@ -472,8 +508,8 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f, unsigned t
     //std::cout << "cf48 " << length(f) << "\n";
     for (int i = 0; i < 3; i++) //init buffer and f[next]
     {
-        int tmp = thd_begin + (i << scpt_bit); 
-        for (int j = tmp; j < tmp + scpt_step; j++)
+        int tmp = thd_begin + (i << parm.scpt_bit); 
+        for (int j = tmp; j < tmp + parm.scpt_step; j++)
         {
             add2merInt96(buffer[i], it_str + j);
         }
@@ -483,12 +519,12 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f, unsigned t
     }
     int ii = 0;
     next++; //stream f[next]
-    for (int i = thd_begin + scpt_step; i < thd_end; i += scpt_step) 
+    for (int i = thd_begin + parm.scpt_step; i < thd_end; i += parm.scpt_step) 
     {
         setInt96(f[next], f[next - 1]);
         decInt96(f[next], buffer[ii]);
         setInt96(buffer[ii], zero96); //clear to 0;
-        for (int j = i - scpt_step + window; j < i + window; j++)
+        for (int j = i - parm.scpt_step + window; j < i + window; j++)
         {
             add2merInt96(buffer[ii], it_str + j);
             //std::cout << *(it_str + j);
@@ -502,21 +538,9 @@ int createFeatures48(TIter5 it_str, TIter5 it_end, String<int96> & f, unsigned t
 }
 
 /*----------  Script encoding wrapper  ----------*/
-//NOTE::!! need to check if it1 & it2 is out of boundary of features when calling
-unsigned _windowDist(Iterator<String<short> >::Type const & it1, 
-                     Iterator<String<short> >::Type const & it2)
-{
-    return _windowDist1_32(it1, it2);
-}
-//NOTE::!! need to check if it1 & it2 is out of boundary of features when calling
-unsigned _windowDist(Iterator<String<int96> >::Type const & it1, 
-                     Iterator<String<int96> >::Type const & it2)
-{
-    return _windowDist48_4(it1, it2);
-}
-//A wrapper that is(only) used in the gap.cpp
+//The wrapper is(only) used in the gap.cpp
 //Do not call this function frequently since the condition branch will drain the performance.
-//NOTE::!! boundary of features has been checked
+//NOTE::boundary of features is checked in this function
 unsigned _windowDist(FeaturesDynamic & f1,
                      FeaturesDynamic & f2,
                      uint64_t x1, uint64_t x2)
@@ -534,22 +558,22 @@ unsigned _windowDist(FeaturesDynamic & f1,
     {
         if (x1 < length(f1.fs1_32) && x2 < length(f2.fs1_32))
         {
-            return _windowDist (begin(f1.fs1_32) + x1, begin(f2.fs1_32) + x2);
+            return _windowDist1_32 (begin(f1.fs1_32) + x1, begin(f2.fs1_32) + x2, *(f1.apx_parm1_32));
         }
         else
         {
-            return _apx_parm1_32.abort_score;
+            return f1.apx_parm1_32->abort_score;
         }
     }
     else if (f1.isFs2_48())
     {
         if (x1 < length(f1.fs2_48) && x2 < length(f2.fs2_48))
         {
-            return _windowDist (begin(f1.fs2_48) + x1, begin(f2.fs2_48) + x2);
+            return _windowDist2_48 (begin(f1.fs2_48) + x1, begin(f2.fs2_48) + x2, *(f2.apx_parm2_48));
         }
         else
         {
-            return _apx_parm2_48.abort_score;
+            return f1.apx_parm2_48->abort_score;
         }
     }
 }
@@ -558,36 +582,40 @@ int createFeatures(TIter5 it_str, TIter5 it_end, FeaturesDynamic & f)
 {
     if (f.isFs1_32())
     {
-        createFeatures1_32(it_str, it_end, f.fs1_32);
+        createFeatures1_32(it_str, it_end, f.fs1_32, *(f.apx_parm1_32));
     }
     else if (f.isFs2_48())
     {
-        createFeatures48(it_str, it_end, f.fs2_48);
+        createFeatures2_48(it_str, it_end, f.fs2_48, *(f.apx_parm2_48));
     }
 }
+
 int createFeatures(TIter5 it_str, TIter5 it_end, FeaturesDynamic & f, unsigned threads)
 {
     if (f.isFs1_32())
     {
-        createFeatures1_32(it_str, it_end, f.fs1_32, threads);
+        createFeatures1_32(it_str, it_end, f.fs1_32, threads, *(f.apx_parm1_32));
     }
     else if (f.isFs2_48())
     {
-        createFeatures48(it_str, it_end, f.fs2_48, threads);
+        createFeatures2_48(it_str, it_end, f.fs2_48, threads, *(f.apx_parm2_48));
     }
 }
+
+//serial
 int createFeatures(StringSet<String<Dna5> > & seq, 
                    StringSet<FeaturesDynamic> & f,
-                   int feature_type
-                   )
+                   int feature_type)
 {
     resize(f, length(seq));
     for (unsigned k = 0; k < length(seq); k++)
     {
-        f[k].setFeatureType(feature_type);
+        f[k].init(feature_type);
         createFeatures(begin(seq[k]), end(seq[k]), f[k]);
     }
 }
+
+//parallel
 int createFeatures(StringSet<String<Dna5> > & seq, 
                    StringSet<FeaturesDynamic> & f, 
                    int feature_type,
@@ -596,7 +624,7 @@ int createFeatures(StringSet<String<Dna5> > & seq,
     resize(f, length(seq));
     for (unsigned k = 0; k < length(seq); k++)
     {
-        f[k].setFeatureType(feature_type);
+        f[k].init(feature_type);
         createFeatures(begin(seq[k]), end(seq[k]), f[k], threads);
     }
 }
@@ -608,7 +636,7 @@ uint64_t previousWindow1_32(String<short> & f1,
                             String<short> & f2, 
                             uint64_t cord,
                             float & score,
-                            ApxMapParm1_32 & parm = _apx_parm1_32)
+                            ApxMapParm1_32 & parm)
 {
     uint64_t genomeId = get_cord_id(cord);
     uint64_t strand = get_cord_strand(cord);
@@ -626,7 +654,7 @@ uint64_t previousWindow1_32(String<short> & f1,
     unsigned min = ~0;
     for (uint64_t x = x_suf - parm.sup; x < x_suf - parm.inf; x += 1) 
     {
-        unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
+        unsigned tmp = _windowDist1_32(begin(f1) + y, begin(f2) + x, parm);
         if (tmp < min)
         {
             min = tmp;
@@ -649,12 +677,12 @@ uint64_t previousWindow1_32(String<short> & f1,
     score += min;
     return new_cord;
 }
+
 uint64_t previousWindow2_48(String<int96> & f1, 
                             String<int96> & f2, 
                             uint64_t cord,
                             float & score,
-                            ApxMapParm2_48 & parm = _apx_parm2_48
-                            )
+                            ApxMapParm2_48 & parm)
 {
     uint64_t genomeId = get_cord_id(cord);
     uint64_t strand = get_cord_strand(cord);
@@ -672,7 +700,7 @@ uint64_t previousWindow2_48(String<int96> & f1,
     unsigned min = ~0;
     for (uint64_t x = x_suf - parm.sup; x < x_suf - parm.inf; x += 1) 
     {
-        unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
+        unsigned tmp = _windowDist2_48(begin(f1) + y, begin(f2) + x, parm);
         //<<debug
         //std::cout << "pw1 " << tmp << " " << x * 16 << " " << get_cord_y(cord) << "\n";
         //>>debug
@@ -704,8 +732,7 @@ uint64_t nextWindow1_32(String<short> & f1,
                     String<short> & f2, 
                     uint64_t cord,
                     float & score,
-                    ApxMapParm1_32 & parm = _apx_parm1_32 
-                    )
+                    ApxMapParm1_32 & parm)
 {
     uint64_t genomeId = get_cord_id(cord);
     uint64_t strand = get_cord_strand(cord);
@@ -723,7 +750,7 @@ uint64_t nextWindow1_32(String<short> & f1,
     
     for (uint64_t x = x_pre + parm.inf; x < x_pre + parm.sup; x += 1) 
     {
-        unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
+        unsigned tmp = _windowDist1_32(begin(f1) + y, begin(f2) + x, parm);
         if (tmp < min)
         {
             min = tmp;
@@ -748,12 +775,12 @@ uint64_t nextWindow1_32(String<short> & f1,
     score += min;
     return new_cord;
 }
+
 uint64_t nextWindow2_48(String<int96> & f1, //read  
                         String<int96> & f2, 
                         uint64_t cord,
                         float & score,
-                        ApxMapParm2_48 & parm = _apx_parm2_48
-                        )
+                        ApxMapParm2_48 & parm)
 {
     uint64_t genomeId = get_cord_id(cord);
     uint64_t strand = get_cord_strand(cord);
@@ -771,7 +798,7 @@ uint64_t nextWindow2_48(String<int96> & f1, //read
     
     for (uint64_t x = x_pre + parm.inf; x < x_pre + parm.sup; x += 1) 
     {
-        unsigned tmp = _windowDist(begin(f1) + y, begin(f2) + x);
+        unsigned tmp = _windowDist2_48(begin(f1) + y, begin(f2) + x, parm);
         //std::cout << "nw1 " << tmp << " " << x * 16 << "\n";
         if (tmp < min)
         {
@@ -798,6 +825,8 @@ uint64_t nextWindow2_48(String<int96> & f1, //read
     score += min;
     return new_cord;
 }
+
+//WARN::f1 & f2 are supposed to be the same type and parm
 uint64_t previousWindow(FeaturesDynamic & f1, 
                         FeaturesDynamic & f2, 
                         uint64_t cord,
@@ -805,26 +834,26 @@ uint64_t previousWindow(FeaturesDynamic & f1,
 {
     if (f1.isFs1_32())
     {
-        return previousWindow1_32(f1.fs1_32, f2.fs1_32, cord, score, _apx_parm1_32);
+        return previousWindow1_32(f1.fs1_32, f2.fs1_32, cord, score, *(f1.apx_parm1_32));
     }
     else if (f1.isFs2_48())
     {
-        return previousWindow2_48(f1.fs2_48, f2.fs2_48, cord, score, _apx_parm2_48);
+        return previousWindow2_48(f1.fs2_48, f2.fs2_48, cord, score, *(f1.apx_parm2_48));
     }
 }
+
 uint64_t nextWindow(FeaturesDynamic & f1, 
                     FeaturesDynamic & f2, 
                     uint64_t cord,
-                    float & score
-                    )
+                    float & score)
 {
     if (f1.isFs1_32())
     {
-        return nextWindow1_32(f1.fs1_32, f2.fs1_32, cord, score, _apx_parm1_32);
+        return nextWindow1_32(f1.fs1_32, f2.fs1_32, cord, score, *(f1.apx_parm1_32));
     }
     else if (f1.isFs2_48())
     {
-        return nextWindow2_48(f1.fs2_48, f2.fs2_48, cord, score, _apx_parm2_48);
+        return nextWindow2_48(f1.fs2_48, f2.fs2_48, cord, score, *(f1.apx_parm2_48));
     }
 }
 
@@ -838,7 +867,7 @@ bool extendWindow(FeaturesDynamic & f1,
                   uint64_t & strand)
 {
     uint64_t pre_cord_y = (_DefaultHit.isBlockEnd(cords[length(cords) - 2]))?
-    0:get_cord_y(cords[length(cords) - 2]) + window_delta;
+    0:get_cord_y(cords[length(cords) - 2]) + getFeatureWindowDelta(f1);
     unsigned len = length(cords) - 1;
     uint64_t new_cord;
     uint64_t read_str2 = read_str;
@@ -947,6 +976,7 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
     if (it >= hitEnd)
         return false;
     unsigned distThd;
+    unsigned window_delta = getFeatureWindowDelta(f1);
     while(!_DefaultHit.isBlockEnd(*(it - 1)))
     {
         if(get_cord_y(*it) > get_cord_y(back(cord)) +  window_delta) 
@@ -960,13 +990,13 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
                                         _DefaultCord.cord2Cell(get_cord_x(new_cord)));
             if (f1[strand].isFs1_32()) 
             {
-                distThd = _apx_parm1_32.windowThreshold;
+                distThd = f1[strand].apx_parm1_32->windowThreshold;
             }
             else if (f1[strand].isFs2_48())
             {
-                distThd = _apx_parm2_48.windowThreshold;
+                distThd = f1[strand].apx_parm2_48->windowThreshold;
             }
-            dout << "distthd" << dist << distThd << "\n";
+            //dout << "distthd" << dist << distThd << "\n";
             if(dist < distThd && get_cord_y(new_cord) + thd_cord_size < uint64_t(readLen))
             {
                 appendValue(cord, new_cord);
@@ -1012,7 +1042,7 @@ bool path_dst(typename Iterator<String<uint64_t> >::Type hitBegin,
               float const & thd_min_block_len
               )
 {
-    unsigned thd_cord_size = window_size;
+    unsigned thd_cord_size = getFeatureWindowSize(f1);
     typename Iterator<String<uint64_t> >::Type it = hitBegin;
     unsigned preBlockPtr;
     float score = 0;
@@ -1541,12 +1571,6 @@ int gather_gaps_y_ (String<uint64_t> & cords,
     }
     return 0;
 }
-/*
-UPair check_gaps_y (String<UPair> & gaps, UPair gap)
-{
-    for ()
-}
-*/
 
 /*
  * Chainable block: y1_end < y2_str, x1_end < x2_str
@@ -1674,7 +1698,7 @@ uint64_t apxMap (IndexDynamic & index,
     //>>debug
 
 
-    int64_t thd_cord_size = window_size; 
+    int64_t thd_cord_size = getFeatureWindowSize(f1); 
     int64_t thd_large_gap = 1000;     // make sure thd_large_gap <= thd_combine_blocks
     int64_t thd_chain_blocks_lower = -100;
     int64_t thd_chain_blocks_upper = 10000; //two blocks of cords will be combined to one if 1.they can be combined 2. they are close enough (< this)

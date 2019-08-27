@@ -440,8 +440,9 @@ int map_(IndexDynamic & index,
     resize(clipsTmp, ChunkSize);
     resize(bam_records_tmp, ChunkSize);
     resize(f1, 2);
-    f1[0].fs_type = f2[0].fs_type;
-    f1[1].fs_type = f2[0].fs_type;
+    f1[0].init(f2[0].fs_type);
+    f1[1].init(f2[0].fs_type);
+
     unsigned c = 0;
     
     String<uint64_t> g_hs;
