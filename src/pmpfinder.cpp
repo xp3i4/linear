@@ -9,8 +9,14 @@ using namespace seqan;
 using std::cout;
 using std::endl;
 
+int const typeFeatures1_16 = 0;
 int const typeFeatures1_32 = 1;
 int const typeFeatures2_48 = 2;
+
+int FeaturesDynamic::isFs1_16()
+{
+    return fs_type == typeFeatures1_16;
+}
 int FeaturesDynamic::isFs1_32()
 {
     return fs_type == typeFeatures1_32;
@@ -18,6 +24,10 @@ int FeaturesDynamic::isFs1_32()
 int FeaturesDynamic::isFs2_48()
 {
     return fs_type == typeFeatures2_48;
+}
+void FeaturesDynamic::setFs1_16()
+{
+    fs_type = typeFeatures1_16;
 }
 void FeaturesDynamic::setFs1_32()
 {
@@ -29,7 +39,11 @@ void FeaturesDynamic::setFs2_48()
 }
 void FeaturesDynamic::setFeatureType(int type)
 {
-    if (type == typeFeatures1_32)
+    if (type == typeFeatures1_16)
+    {
+        setFs1_16();
+    }
+    else if (type == typeFeatures1_32)
     {
         setFs1_32();
     }
@@ -38,18 +52,23 @@ void FeaturesDynamic::setFeatureType(int type)
         setFs2_48();
     }
 }
+ApxMapParm1_16 _apx_parm1_16;
 ApxMapParm1_32 _apx_parm1_32;
 ApxMapParm2_48 _apx_parm2_48;
 int FeaturesDynamic::init(int type)
 {
     setFeatureType(type);
+    if (isFs1_16())
+    {
+        apx_parm1_16 = new ApxMapParm1_16();
+    }
     if (isFs1_32())
     {
-        apx_parm1_32 = & _apx_parm1_32;
+        apx_parm1_32 = new ApxMapParm1_32();
     }
     else if (isFs2_48())
     {
-        apx_parm2_48 = & _apx_parm2_48; 
+        apx_parm2_48 = new ApxMapParm2_48(); 
     }  
     return fs_type;
 }
@@ -121,65 +140,78 @@ int printScript(int64_t & val, CharString header)
 /*===================================================
 =            Approximate mapping section            =
 ===================================================*/
-ApxMapParmBase::ApxMapParmBase(){}
-
-ApxMapParm1_32::ApxMapParm1_32():
+//ApxMapParm
 //variable marked by * is allowed to be modified 
 //variable of $ must be changed correspondingly when * is modified
 //varibel of const is not allowed to change.
-    //----window parm---
-    band_width(0.25), //*
-    cell_size(16), // const
-    cell_num(12), //* \in {6,12} number of cells per window 
-    windowThreshold(36), //$ window_size related
-    window_size(cell_size * cell_num), // const
-    window_delta(window_size * (1 - 2 * band_width)), //const
-    //----nextWindow parm---
-    sup(cell_num), //const 
-    med(ceil((1 - band_width) * cell_num)), //const
-    inf(ceil((1 - 2 * band_width) * cell_num)), //const
+unsigned window_size;
+ApxMapParmBase::ApxMapParmBase (float v1,
+                                unsigned v2,
+                                unsigned v3,
+                                unsigned v4, 
+                                unsigned v5,
+                                unsigned v6,
+                                unsigned v7,
+                                unsigned v8) :
+    band_width(v1),
+    cell_size(v2),
+    cell_num(v3),
+    windowThreshold(v4),
+    windowSize(cell_size * cell_num), 
+    windowDelta(windowSize * (1 - 2 * band_width)),
+    sup(cell_num),
+    med(ceil((1 - band_width) * cell_num)),
+    inf(ceil((1 - 2 * band_width) * cell_num)),
+    scpt_step(v5), //const
+    scpt_bit(v6),  //const 2 ^ scpt_bit = scpt_step
+    scpt_size(v7),
+    scpt_num(windowSize / scpt_size), //const
+    scpt_int_step (scpt_size / scpt_step), //const
+    abort_score(v8)
+{
+    window_size = windowSize;
+}
+
+ApxMapParm1_16::ApxMapParm1_16():
+    ApxMapParmBase(0.25, 16, 12, 60, 16, 4, 16, 1000),
     //----scprit parm----
-    scpt_step(16), //const
-    scpt_bit(4),  //const 2 ^ scpt_bit = scpt_step
     scpt_len(5), //const 2 ^ scpt_len == 32
     scpt_len2(scpt_len << 1), //const
     scriptMask((1 << scpt_len) - 1), //const
     scriptMask2(scriptMask << scpt_len), //const
-    scptCount{1, 1 << scpt_len, 1 << (scpt_len * 2), 0, 0}, //const
-    abort_score(1000)
+    scptCount{1, 1 << scpt_len, 1 << (scpt_len * 2), 0, 0} //const
 {
+    window_size = windowSize;
+}
+
+ApxMapParm1_32::ApxMapParm1_32():
+
+    ApxMapParmBase(0.25, 16, 12, 36, 16, 4, 32, 1000),
+    //----scprit parm----
+    scpt_len(5), //const 
+    scpt_len2(scpt_len << 1), //const
+    scriptMask((1 << scpt_len) - 1), //const
+    scriptMask2(scriptMask << scpt_len), //const
+    scptCount{1, 1 << scpt_len, 1 << (scpt_len * 2), 0, 0} //const
+{
+    window_size = windowSize;
 }
 
 ApxMapParm2_48::ApxMapParm2_48():
-    band_width(0.25),
-    cell_size(16),
-    cell_num(12), //* \in {3, 6, 12}
-    windowThreshold(72), //$ cell_num related
-    window_size(cell_size * cell_num),
-    window_delta(window_size * (1 - 2 * band_width)),
-
-    sup(cell_num),
-    med(ceil((1 - band_width) * cell_num)),
-    inf(ceil((1 - 2 * band_width) * cell_num)),
-
-    scpt_step(16), //const
-    scpt_bit(4),  //const
-    scpt_num (window_size / 48), //const
-    scpt_int_step (48 / scpt_step), //const
-    abort_score(1000)
-{}
-
-
+    ApxMapParmBase(0.25, 16, 12, 72, 16, 4, 48, 1000)
+{
+    window_size = windowSize;
+}
 
 unsigned getFeatureWindowDelta(FeaturesDynamic & fs)
 {
     if (fs.isFs1_32())
     {
-        return fs.apx_parm1_32->window_delta;
+        return fs.apx_parm1_32->windowDelta;
     }
     else if (fs.isFs2_48())
     {
-        return fs.apx_parm2_48->window_delta;
+        return fs.apx_parm2_48->windowDelta;
     }
 }
 unsigned getFeatureWindowDelta(StringSet<FeaturesDynamic> & fss)
@@ -190,7 +222,7 @@ unsigned getFeatureWindowDelta(StringSet<FeaturesDynamic> & fss)
     }
     else
     {
-        //return _apx_parm_base.window_delta;
+        //return _apx_parm_base.windowDelta;
         return 0;
     }
 }
@@ -198,11 +230,11 @@ unsigned getFeatureWindowSize(FeaturesDynamic & fs)
 {
     if (fs.isFs1_32())
     {
-        return fs.apx_parm1_32->window_size;
+        return fs.apx_parm1_32->windowSize;
     }
     else if (fs.isFs2_48())
     {
-        return fs.apx_parm2_48->window_size;
+        return fs.apx_parm2_48->windowSize;
     }
 }
 unsigned getFeatureWindowSize(StringSet<FeaturesDynamic> & fss)
@@ -213,7 +245,7 @@ unsigned getFeatureWindowSize(StringSet<FeaturesDynamic> & fss)
     }
     else
     {
-        //return _apx_parm_base.window_size;
+        //return _apx_parm_base.windowSize;
         return 0;
     }
 }
@@ -242,34 +274,36 @@ unsigned getWindowThreshold(StringSet<FeaturesDynamic> & fss)
     }
 }
 
-const unsigned window_size = _apx_parm2_48.window_size;
-
-/*----------  Script encoding type I  ----------*/
-//const int scptCount[5] = {1, 1<<scpt_len, 1 <<(scpt_len * 2), 0, 0};
-unsigned _scriptDist1_32(int const & s1, int const & s2, ApxMapParm1_32 & parm)
+/*----------  Script encoding type I 1_32  ----------*/
+//script:16 bits short int, contains 3 segments
+unsigned __scriptDist16_3(short const & s1, short const & s2, 
+                         short const & mask, unsigned const & len1, unsigned const & len2)
 {
-    int res = std::abs((s1 & parm.scriptMask) - (s2 & parm.scriptMask)) +
-              std::abs(((s1 >> parm.scpt_len) & parm.scriptMask) -
-                       ((s2 >> parm.scpt_len) & parm.scriptMask)) + 
-              std::abs((s1>> parm.scpt_len2) - (s2 >> parm.scpt_len2));
-    return res;
+    return  std::abs((s1 & mask) - (s2 & mask)) +
+            std::abs(((s1 >> len1) & mask) - ((s2 >> len1) & mask)) + 
+            std::abs((s1 >> len2) - (s2 >> len2));
+
+}
+unsigned _scriptDist1_32(short const & s1, short const & s2, ApxMapParm1_32 & parm)
+{
+    return __scriptDist16_3(s1, s2, parm.scriptMask, parm.scpt_len, parm.scpt_len2);
 }
 unsigned _windowDist1_32(Iterator<String<short> >::Type const & it1, 
                          Iterator<String<short> >::Type const & it2,
                          ApxMapParm1_32 & parm)
 {
-    return _scriptDist1_32(*it1, *it2, parm) 
-         + _scriptDist1_32(*(it1 + 2), *(it2 + 2), parm) 
-         + _scriptDist1_32(*(it1 + 4), *(it2 + 4), parm) 
-         + _scriptDist1_32(*(it1 + 6), *(it2 + 6), parm) 
-         + _scriptDist1_32(*(it1 + 8), *(it2 + 8), parm) 
-         + _scriptDist1_32(*(it1 + 10), *(it2 + 10), parm);
+    unsigned dist = 0;
+    for (unsigned i = 0; i < parm.scpt_num * parm.scpt_int_step; i += parm.scpt_int_step) 
+    {
+        dist += _scriptDist1_32(*(it1 + i), *(it2 + i), parm);
+    }
+    return dist;
 }
 void createFeatures1_32(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f, ApxMapParm1_32 & parm)
 {
     unsigned next = 1;
     //dout << "parm.scpt_bit\n";// << parm.scpt_bit << parm.scpt_step << parm.scpt_len << "\n";
-    unsigned window = 1 << parm.scpt_len;
+    unsigned window = parm.scpt_size;
     resize (f, ((itEnd - itBegin - window) >> parm.scpt_bit) + 1);
     f[0] = 0;
     for (unsigned k = 0; k < window; k++)
@@ -307,7 +341,7 @@ uint64_t parallelParm_Static(uint64_t range,
 }
 void createFeatures1_32(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f, unsigned threads, ApxMapParm1_32 & parm)
 {
-    unsigned window = 1 << parm.scpt_len;
+    unsigned window = parm.scpt_size;
     resize (f, ((itEnd - itBegin - window) >> parm.scpt_bit) + 1);
 #pragma omp parallel
 {
@@ -338,8 +372,66 @@ void createFeatures1_32(TIter5 const & itBegin, TIter5 const & itEnd, String<sho
 }
 }
 
-/*----------  Script encoding type I.2 ----------*/
+/*----------  Script encoding type I.2 1_16 ----------*/
+unsigned _scriptDist1_16(int const & s1, int const & s2, ApxMapParm1_16 & parm)
+{
+    return __scriptDist16_3(s1, s2, parm.scriptMask, parm.scpt_len, parm.scpt_len2);
+}
+unsigned _windowDist1_16(Iterator<String<short> >::Type const & it1, 
+                         Iterator<String<short> >::Type const & it2,
+                         ApxMapParm1_16 & parm)
+{
+    unsigned sum = 0;
+    //dout << "cptn" << parm.scpt_num * parm.scpt_int_step << parm.scpt_int_step << "\n";
+    for (unsigned i = 0; i < parm.scpt_num * parm.scpt_int_step; i += parm.scpt_int_step) 
+    {
+        sum += _scriptDist1_16(*(it1 + i), *(it2 + i), parm);
+    }
+    dout << "cptn" << sum << "\n";
+    return sum;
+}
+void createFeatures1_16(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f, ApxMapParm1_16 & parm)
+{
+    unsigned window = 16;
+    resize (f, ((itEnd - itBegin - window) >> parm.scpt_bit) + 1);
+    uint64_t next = 0;
+    for (unsigned k = 0; k < itEnd - itBegin - window ; k += parm.scpt_step) 
+    {
+        f[next] = 0;
+        for (unsigned j = k; j < k + window; j++)
+        {
+            f[next] += parm.scptCount[ordValue(*(itBegin + j))];
+        }
+        next++;
+    }
+}
+void createFeatures1_16(TIter5 const & itBegin, TIter5 const & itEnd, String<short> & f, unsigned threads, ApxMapParm1_16 & parm)
+{
+    unsigned window = 16;
+    resize (f, ((itEnd - itBegin - window) >> parm.scpt_bit) + 1);
+#pragma omp parallel
+{
+    unsigned thd_id = omp_get_thread_num();
+    uint64_t thd_begin;
+    uint64_t thd_end;
+    uint64_t range = (itEnd - itBegin - window - parm.scpt_step) / parm.scpt_step;
+    parallelParm_Static(range, threads, 
+                        thd_id,  thd_begin, thd_end);
+    uint64_t next = thd_begin;
+    thd_begin *= parm.scpt_step;
+    thd_end *= parm.scpt_step;
 
+    for (unsigned k = thd_begin; k < thd_end - window; k += parm.scpt_step) 
+    {
+        f[next] = 0;
+        for (unsigned j = k; j < k + window; j++)
+        {
+            f[next] += parm.scptCount[ordValue(*(itBegin + j))];
+        }
+        next++;
+    }
+}
+}
 
 /*----------  Script encoding type II  ----------*/
 /* TG TC TA GT GG int1  \
@@ -538,6 +630,25 @@ int createFeatures2_48(TIter5 it_str, TIter5 it_end, String<int96> & f, unsigned
 }
 
 /*----------  Script encoding wrapper  ----------*/
+unsigned __windowDist(FeaturesDynamic & f1,
+                      FeaturesDynamic & f2,
+                      uint64_t x1, uint64_t x2)
+{
+    
+    if (f1.isFs2_48())
+    {
+        return _windowDist2_48 (begin(f1.fs2_48) + x1, begin(f2.fs2_48) + x2, *(f2.apx_parm2_48));
+    }
+    else if (f1.isFs1_16())
+    {
+        return _windowDist1_16 (begin(f1.fs1_16) + x1, begin(f2.fs1_16) + x2, *(f1.apx_parm1_16));
+    }
+    else if (f1.isFs1_32())
+    {
+        return _windowDist1_32 (begin(f1.fs1_32) + x1, begin(f2.fs1_32) + x2, *(f1.apx_parm1_32));
+    }
+}
+
 //The wrapper is(only) used in the gap.cpp
 //Do not call this function frequently since the condition branch will drain the performance.
 //NOTE::boundary of features is checked in this function
@@ -545,27 +656,7 @@ unsigned _windowDist(FeaturesDynamic & f1,
                      FeaturesDynamic & f2,
                      uint64_t x1, uint64_t x2)
 {
-    //<<debug
-    /*
-    if (length(f1.fs2_48) < x1 + 1 || length(f2.fs2_48) < x2 + 1)
-    {
-        dout << "wd1 " << length(f1.fs2_48) << x1 <<length(f2.fs2_48) << x2 << "\n";
-        //return 1000;
-    }
-    */
-    //>>debug
-    if (f1.isFs1_32())
-    {
-        if (x1 < length(f1.fs1_32) && x2 < length(f2.fs1_32))
-        {
-            return _windowDist1_32 (begin(f1.fs1_32) + x1, begin(f2.fs1_32) + x2, *(f1.apx_parm1_32));
-        }
-        else
-        {
-            return f1.apx_parm1_32->abort_score;
-        }
-    }
-    else if (f1.isFs2_48())
+    if (f1.isFs2_48())
     {
         if (x1 < length(f1.fs2_48) && x2 < length(f2.fs2_48))
         {
@@ -576,29 +667,61 @@ unsigned _windowDist(FeaturesDynamic & f1,
             return f1.apx_parm2_48->abort_score;
         }
     }
+    else if (f1.isFs1_16())
+    {
+        if (x1 < length(f1.fs1_16) && x2 < length(f2.fs1_16))
+        {
+            return _windowDist1_16 (begin(f1.fs1_16) + x1, begin(f2.fs1_16) + x2, * (f1.apx_parm1_16));
+        }
+        else
+        {
+            return f1.apx_parm1_16->abort_score;
+        }
+    }
+    else if (f1.isFs1_32())
+    {
+        if (x1 < length(f1.fs1_32) && x2 < length(f2.fs1_32))
+        {
+            return _windowDist1_32 (begin(f1.fs1_32) + x1, begin(f2.fs1_32) + x2, *(f1.apx_parm1_32));
+        }
+        else
+        {
+            return f1.apx_parm1_32->abort_score;
+        }
+    }
 }
 
 int createFeatures(TIter5 it_str, TIter5 it_end, FeaturesDynamic & f)
 {
-    if (f.isFs1_32())
-    {
-        createFeatures1_32(it_str, it_end, f.fs1_32, *(f.apx_parm1_32));
-    }
-    else if (f.isFs2_48())
+
+    if (f.isFs2_48())
     {
         createFeatures2_48(it_str, it_end, f.fs2_48, *(f.apx_parm2_48));
+    }
+    else if (f.isFs1_16())
+    {
+        createFeatures1_16(it_str, it_end, f.fs1_16, *(f.apx_parm1_16));
+    }
+    else if (f.isFs1_32())
+    {
+        createFeatures1_32(it_str, it_end, f.fs1_32, *(f.apx_parm1_32));
     }
 }
 
 int createFeatures(TIter5 it_str, TIter5 it_end, FeaturesDynamic & f, unsigned threads)
 {
-    if (f.isFs1_32())
-    {
-        createFeatures1_32(it_str, it_end, f.fs1_32, threads, *(f.apx_parm1_32));
-    }
-    else if (f.isFs2_48())
+
+    if (f.isFs2_48())
     {
         createFeatures2_48(it_str, it_end, f.fs2_48, threads, *(f.apx_parm2_48));
+    }
+    else if (f.isFs1_16())
+    {
+        createFeatures1_16(it_str, it_end, f.fs1_16, threads, *(f.apx_parm1_16));
+    }
+    else if (f.isFs1_32())
+    {
+        createFeatures1_32(it_str, it_end, f.fs1_32, threads, *(f.apx_parm1_32));
     }
 }
 
@@ -727,12 +850,78 @@ uint64_t previousWindow2_48(String<int96> & f1,
     score += min;
     return new_cord;
 }
+uint64_t previousWindow(FeaturesDynamic & f1, //read  
+                        FeaturesDynamic & f2, 
+                        uint64_t cord,
+                        float & score)
+{
+    uint64_t genomeId = get_cord_id(cord);
+    uint64_t strand = get_cord_strand(cord);
+    uint64_t x_suf = _DefaultCord.cord2Cell(get_cord_x(cord));
+    uint64_t y_suf = _DefaultCord.cord2Cell(get_cord_y(cord));
+    uint64_t x_min = 0;
+    uint64_t y;
+    uint64_t new_cord = 0;
+    ApxMapParmBase * parm;
+    unsigned len1, len2; 
+
+    if (f1.isFs2_48())
+    {
+        parm = f1.apx_parm2_48;
+        len1 = length(f1.fs2_48);
+        len2 = length(f2.fs2_48);
+    }
+    else if (f1.isFs1_16())
+    {
+        parm = f1.apx_parm1_16;
+        len1 = length(f1.fs1_16);
+        len2 = length(f2.fs1_16);
+    }
+    else if (f1.isFs1_32())
+    {
+        parm = f2.apx_parm1_32;
+        len1 = length(f1.fs1_32);
+        len2 = length(f2.fs1_32);
+    }
+    
+    if (y_suf < parm->med || x_suf < parm->sup)
+        return 0;
+    else 
+        y = y_suf - parm->med;
+
+    unsigned min = ~0;
+    for (uint64_t x = x_suf - parm->sup; x < x_suf - parm->inf; x += 1) 
+    {
+        unsigned tmp = __windowDist(f1, f2, y, x);
+        if (tmp < min)
+        {
+            min = tmp;
+            x_min = x;
+        }
+    }
+    if (min > parm->windowThreshold)
+        return 0;    
+    else 
+    {
+        if ( x_suf - x_min > parm->med)
+        {
+            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_suf - parm->med)),  _DefaultCord.cell2Cord(x_suf - x_min - parm->med + y), strand);
+        }
+        else
+        {
+            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
+        } 
+    }
+    //std::cout << "pw2 " << get_cord_y(new_cord) << " " << min << "\n";
+    score += min;
+    return new_cord;
+}
 
 uint64_t nextWindow1_32(String<short> & f1, 
-                    String<short> & f2, 
-                    uint64_t cord,
-                    float & score,
-                    ApxMapParm1_32 & parm)
+                        String<short> & f2, 
+                        uint64_t cord,
+                        float & score,
+                        ApxMapParm1_32 & parm)
 {
     uint64_t genomeId = get_cord_id(cord);
     uint64_t strand = get_cord_strand(cord);
@@ -747,7 +936,7 @@ uint64_t nextWindow1_32(String<short> & f1,
         return 0;
     else 
         y = y_pre + parm.med;
-    
+
     for (uint64_t x = x_pre + parm.inf; x < x_pre + parm.sup; x += 1) 
     {
         unsigned tmp = _windowDist1_32(begin(f1) + y, begin(f2) + x, parm);
@@ -826,6 +1015,9 @@ uint64_t nextWindow2_48(String<int96> & f1, //read
     return new_cord;
 }
 
+
+
+/*
 //WARN::f1 & f2 are supposed to be the same type and parm
 uint64_t previousWindow(FeaturesDynamic & f1, 
                         FeaturesDynamic & f2, 
@@ -841,7 +1033,6 @@ uint64_t previousWindow(FeaturesDynamic & f1,
         return previousWindow2_48(f1.fs2_48, f2.fs2_48, cord, score, *(f1.apx_parm2_48));
     }
 }
-
 uint64_t nextWindow(FeaturesDynamic & f1, 
                     FeaturesDynamic & f2, 
                     uint64_t cord,
@@ -855,6 +1046,74 @@ uint64_t nextWindow(FeaturesDynamic & f1,
     {
         return nextWindow2_48(f1.fs2_48, f2.fs2_48, cord, score, *(f1.apx_parm2_48));
     }
+}
+*/
+
+uint64_t nextWindow(FeaturesDynamic & f1, 
+                    FeaturesDynamic & f2, 
+                    uint64_t cord,
+                    float & score)
+{
+    uint64_t genomeId = get_cord_id(cord);
+    uint64_t strand = get_cord_strand(cord);
+    uint64_t x_pre = _DefaultCord.cord2Cell(get_cord_x(cord));
+    uint64_t y_pre = _DefaultCord.cord2Cell(get_cord_y(cord));
+    uint64_t x_min = 0;
+    uint64_t y;
+    uint64_t new_cord = 0;
+    unsigned min = ~0;
+    ApxMapParmBase * parm;
+    unsigned len1, len2; 
+    if (f1.isFs2_48())
+    {
+        parm = f1.apx_parm2_48;
+        len1 = length(f1.fs2_48);
+        len2 = length(f2.fs2_48);
+    }
+    else if (f1.isFs1_16())
+    {
+        parm = f1.apx_parm1_16;
+        len1 = length(f1.fs1_16);
+        len2 = length(f2.fs1_16);
+    }
+    else if (f1.isFs1_32())
+    {
+        parm = f2.apx_parm1_32;
+        len1 = length(f1.fs1_32);
+        len2 = length(f2.fs1_32);
+    }
+
+    if (y_pre + parm->sup * 2 > len1 || x_pre + parm->sup * 2> len2)
+        return 0;
+    else 
+        y = y_pre + parm->med;
+    
+    for (uint64_t x = x_pre + parm->inf; x < x_pre + parm->sup; x += 1) 
+    {
+        unsigned tmp = __windowDist(f1, f2, y, x);
+        if (tmp < min)
+        {
+            min = tmp;
+            x_min = x;
+        }
+    }
+    if (min > parm->windowThreshold)
+    {
+       return 0;
+    }
+    else 
+    {
+        if ( x_min - x_pre > parm->med)
+        {
+            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_pre + parm->med)),  _DefaultCord.cell2Cord(x_pre + parm->med - x_min + y), strand);
+        }
+        else
+        {
+            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
+        }
+    }
+    score += min;
+    return new_cord;
 }
 
 bool extendWindow(FeaturesDynamic & f1, 
@@ -976,10 +1235,10 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
     if (it >= hitEnd)
         return false;
     unsigned distThd;
-    unsigned window_delta = getFeatureWindowDelta(f1);
+    unsigned windowDelta = getFeatureWindowDelta(f1);
     while(!_DefaultHit.isBlockEnd(*(it - 1)))
     {
-        if(get_cord_y(*it) > get_cord_y(back(cord)) +  window_delta) 
+        if(get_cord_y(*it) > get_cord_y(back(cord)) +  windowDelta) 
         {
             uint64_t new_cord = _DefaultCord.hit2Cord_dstr(*(it));
             uint64_t strand = get_cord_strand(new_cord);
@@ -1284,7 +1543,7 @@ uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read
                              get_cord_x(anchors[k] - ak3) < thd_anchor_err * dy3); 
         if (f_continuous)
         {
-            //dout << "anchors" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) - const_anchor_zero << get_cord_strand(anchors[k]) << "\n";
+            dout << "anchors" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) - const_anchor_zero << get_cord_strand(anchors[k]) << "\n";
             int64_t dy = get_cord_y(anchors.set[k]) - get_cord_y(anchors.set[k - 1]);
             dy = std::min(std::abs(dy), int64_t(mapParm.shapeLen));
             c_b += dy; 
@@ -1303,7 +1562,7 @@ uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read
                 appendValue(list, (c_b << 40) + (sb << 20) + k);
                 //dout << "cbsb" << sb << k << c_b << thd_anchor_accept_lens << uint((max_y - min_y) * thd_anchor_accept_dens) << "\n";
             }
-            //dout << "anchors-----------" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) -const_anchor_zero << c_b << sb << k << max_y << min_y <<(max_y - min_y) * thd_anchor_accept_dens << get_cord_strand(anchors[k]) <<"\n";
+            dout << "anchors-----------" << get_cord_y(anchors[k]) << get_cord_x(anchors[k]) -const_anchor_zero << c_b << sb << k << max_y << min_y <<(max_y - min_y) * thd_anchor_accept_dens << get_cord_strand(anchors[k]) <<"\n";
             sb = k;
             ak2 = anchors[k];
             ak3 = anchors[k];
@@ -1314,7 +1573,7 @@ uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read
 
     }
     //print_cords(anchors.set, "set");
-    //dout << "anchors<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" << anchors.length() << " \n";
+    dout << "anchors<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" << anchors.length() << " \n";
 }
 
 uint64_t getDHitList(String<uint64_t> & hit, String<int64_t> & list, Anchors & anchors, MapParm & mapParm, int thd_best_n)
@@ -1821,7 +2080,7 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
  * Extend windows between cord1, and cord2 if they are not overlapped,
    and insert the windows to the k th element of the cords. 
  * If cord1 and cord2 are on the same strand 
-   then call previousWindow for cord1 and nextWindow for cord2 until x1 + window_size < x2
+   then call previousWindow for cord1 and nextWindow for cord2 until x1 + windowSize < x2
  * If cord1 and cord2 are different strands
    then call nextWindow for cord1 and previousWindow for cord2 along each own strand until it can't be extended any more.
  */         

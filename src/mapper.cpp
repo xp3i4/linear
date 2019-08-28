@@ -168,14 +168,7 @@ void Mapper::loadOptions(Options & options)
     {
         index_dynamic.setDIndex();
     }
-    if (options.feature_t == 1)
-    {
-        feature_type = typeFeatures1_32; 
-    }
-    else if (options.feature_t == 2)
-    {
-        feature_type = typeFeatures2_48;
-    }
+    feature_type = options.feature_t;
     of_type = OF_NEW;
     f_map = 0;
     gap_len_min = options.gap_len;
@@ -442,7 +435,6 @@ int map_(IndexDynamic & index,
     resize(f1, 2);
     f1[0].init(f2[0].fs_type);
     f1[1].init(f2[0].fs_type);
-
     unsigned c = 0;
     
     String<uint64_t> g_hs;

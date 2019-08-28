@@ -10,77 +10,83 @@ typedef std::array<int, 3> int96;
 typedef int96 FeatureType;
 typedef std::pair<uint64_t, uint64_t> UPair;
 
-extern const unsigned window_size; //_apx_parm_base.window_size
+extern unsigned window_size; //_apx_parm_base.window_size
 
+extern int const typeFeatures1_16;
 extern int const typeFeatures1_32;
 extern int const typeFeatures2_48;
 
 struct ApxMapParmBase
 {
-    ApxMapParmBase ();
-};
-
-struct ApxMapParm1_32 : ApxMapParmBase
-{
-  //Do not modify variable independently
+    //common window parm
     float band_width;
     unsigned cell_size;
     unsigned cell_num;
     unsigned windowThreshold;
-    unsigned window_size;  //cell_size * cell_num
-    unsigned window_delta; //
+    unsigned windowSize;  //cell_size * cell_num
+    unsigned windowDelta; //
     unsigned sup;
     unsigned med;
     unsigned inf; 
+    //--script common
     unsigned scpt_step;
     unsigned scpt_bit;
+    unsigned scpt_size;
+    unsigned scpt_num;
+    unsigned scpt_int_step;
+    unsigned abort_score;
+    ApxMapParmBase (float, 
+                    unsigned, unsigned, unsigned,
+                    unsigned, unsigned, unsigned,
+                    unsigned);
+};
+
+struct ApxMapParm1_16 : ApxMapParmBase
+{
     unsigned scpt_len;
     unsigned scpt_len2;
     int scriptMask;
     int scriptMask2;
     int scptCount[5];
-    unsigned abort_score;
+    ApxMapParm1_16 ();
+};
+
+struct ApxMapParm1_32 : ApxMapParmBase //32mer script
+{
+  //script parm
+  //Do not modify variable independently
+    unsigned scpt_len;
+    unsigned scpt_len2;
+    short scriptMask;
+    int scriptMask2;
+    int scptCount[5];
     ApxMapParm1_32 ();
 };
 
 struct ApxMapParm2_48 : ApxMapParmBase
 {
-  //Do not modify variable independently
-    float band_width;
-    unsigned cell_size;
-    unsigned cell_num;
-    unsigned windowThreshold;
-    unsigned window_size; //cell_size * cell_num
-    unsigned window_delta;
-    unsigned sup;
-    unsigned med;
-    unsigned inf; 
-    unsigned scpt_step;
-    unsigned scpt_bit; 
-    unsigned scpt_num;
-    unsigned scpt_int_step;
-    unsigned abort_score;
     ApxMapParm2_48();
 };
-
-extern ApxMapParmBase _apx_parm_base;
-extern ApxMapParm1_32 _apx_parm1_32;
-extern ApxMapParm2_48 _apx_parm2_48;
 
 struct FeaturesDynamic
 {
   int fs_type; //features type
+  String<short> fs1_16;
   String<short> fs1_32;
   String<int96> fs2_48;
-  ApxMapParm1_32* apx_parm1_32;
-  ApxMapParm2_48* apx_parm2_48;
+  ApxMapParm1_16 * apx_parm1_16;
+  ApxMapParm1_32 * apx_parm1_32;
+  ApxMapParm2_48 * apx_parm2_48;
 
+  int isFs1_16();
   int isFs1_32();
   int isFs2_48();
+  void setFs1_16();
   void setFs1_32();
   void setFs2_48();
   void setFeatureType(int);
   int init(int type);
+  unsigned length();
   FeaturesDynamic();
   FeaturesDynamic(int type);
 };
