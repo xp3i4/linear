@@ -181,7 +181,9 @@ void print_cords_apf(CordsSetType & cords,
                    << get_cord_x(cords[k][j]) << " " 
                    << d2 << " " 
                    << d1 << " " 
-                   << j << " \n";
+                   << j << " "
+                   << get_cord_x (cords[k][j]) - get_cord_y(cords[k][j]) << "\n";
+
                 cordCount++;
                 fflag = 0;
             }
