@@ -1120,7 +1120,7 @@ bool extendWindow(FeaturesDynamic & f1,
                   FeaturesDynamic & f2, 
                   String<uint64_t> & cords, 
                   uint64_t read_str,  //extend window between [read_str, read_end) of the read
-                  uint64_t read_end, 
+                  uint64_t read_end,  //read_str & read_end are on the forward strand 
                   uint64_t read_len,
                   float & score, 
                   uint64_t & strand)
@@ -1129,19 +1129,11 @@ bool extendWindow(FeaturesDynamic & f1,
     0:get_cord_y(cords[length(cords) - 2]) + getFeatureWindowDelta(f1);
     unsigned len = length(cords) - 1;
     uint64_t new_cord;
-    uint64_t read_str2 = read_str;
-    uint64_t read_end2 = read_end;
-    if (get_cord_strand(back(cords)))
-    {
-        read_str2 = read_len - read_end - 1;
-        read_end2 = read_len - read_str - 1;
-    }
     while (pre_cord_y < get_cord_y(back(cords)))
     {
         new_cord = previousWindow(f1, f2, back(cords), score);
-        if (new_cord && 
-            get_cord_y(new_cord) > pre_cord_y && 
-            get_cord_y(new_cord) > read_str2)
+        uint64_t nyf = get_cord_strand(new_cord) ? read_len - 1 - get_cord_y(new_cord) : get_cord_y(new_cord);
+        if (new_cord && get_cord_y(new_cord) > pre_cord_y && nyf >= read_str)
         {
             appendValue(cords, new_cord);
         }
@@ -1157,7 +1149,8 @@ bool extendWindow(FeaturesDynamic & f1,
     while (true)
     {
         new_cord = nextWindow(f1, f2, back(cords), score);
-        if (new_cord && get_cord_y(new_cord) < read_end2)
+        uint64_t nyf = get_cord_strand(new_cord) ? read_len - 1 - get_cord_y(new_cord) : get_cord_y(new_cord);
+        if (new_cord && nyf + window_size < read_end)
         {
             appendValue(cords, new_cord);
         }
@@ -1219,6 +1212,7 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
 
 /*
  * nextCord for double strand sequence
+ * readstr <= nextcody < read_end
  */
  bool nextCord(typename Iterator<String<uint64_t> >::Type & it, 
                typename Iterator<String<uint64_t> >::Type const & hitEnd, 
@@ -1227,6 +1221,8 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
                unsigned & preCordStart,
                String<uint64_t> & cord,
                float const & thd_min_block_len,
+               uint64_t read_str,   //y bound; on the forward strand
+               uint64_t read_end,
                unsigned readLen,
                unsigned thd_cord_size
                )
@@ -1256,7 +1252,9 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
                 distThd = f1[strand].apx_parm2_48->windowThreshold;
             }
             //dout << "distthd" << dist << distThd << "\n";
-            if(dist < distThd && get_cord_y(new_cord) + thd_cord_size < uint64_t(readLen))
+            uint64_t nyf = (get_cord_strand(new_cord)) ? readLen - 1 - get_cord_y(new_cord) : get_cord_y(new_cord);
+            if(dist < distThd && get_cord_y(new_cord) + thd_cord_size < uint64_t(readLen) &&
+               nyf >= read_str && nyf + window_size < read_end)
             {
                 appendValue(cord, new_cord);
                 ++it;
@@ -1313,7 +1311,7 @@ bool path_dst(typename Iterator<String<uint64_t> >::Type hitBegin,
             uint64_t genomeId = get_cord_id(back(cords));
             extendWindow(f1[strand], f2[genomeId], cords, read_str, read_end, read_len, score, strand);
         }
-        while (nextCord(it, hitEnd, f1, f2, preBlockPtr, cords, thd_min_block_len, read_len, thd_cord_size));
+        while (nextCord(it, hitEnd, f1, f2, preBlockPtr, cords, thd_min_block_len, read_str, read_end, read_len, thd_cord_size));
         set_cord_end (back(cords));
         return endCord(cords, preBlockPtr, thd_min_block_len);   
     }
@@ -1594,7 +1592,7 @@ uint64_t getDHitList(String<uint64_t> & hit, String<int64_t> & list, Anchors & a
             {
                 unsigned sb = ((list[k] >> 20) & mask);
                 unsigned sc = list[k] & mask;
-                //dout << "sbsc<<<< " << (list[0] >> 40) << (list[k] >> 40) << "\n";
+                dout << "sbsc<<<< " << (list[0] >> 40) << (list[k] >> 40) << "\n";
                 for (unsigned n = sb; n < sc; n++)
                 {
                 dout << "sbsc" << sb << sc << n << get_cord_y(anchors.set[n]) << get_cord_x(anchors.set[n])  - const_anchor_zero << get_cord_strand(anchors[n]) << "\n";
@@ -1759,7 +1757,7 @@ UPair getUPForwardy(UPair str_end, uint64_t readLen)
    gaps use cord structure to record y coordinate for simplicity. 
    But the x and strand bits are not defined.
    So Do Not use any functions related to x and strand for gaps 
- * 2. Any y of gaps are in direction of forward strand.
+ * 2. Any y of gaps are are on the forward strand.
  */
 //Collect gaps in coordinates y
 int gather_gaps_y_ (String<uint64_t> & cords, 
@@ -1784,6 +1782,12 @@ int gather_gaps_y_ (String<uint64_t> & cords,
                       readLen - get_cord_y(j.second) - 1 : get_cord_y(j.first);
         return y1 < y2; 
     });
+    //<<debug
+    for (int i = 0; i < length(str_ends); i++)
+    {
+        dout << "str_ends" << get_cord_y (str_ends[i].first) << get_cord_y(str_ends[i].second) << "\n";
+    }
+    //>>debug
     uint64_t f_cover = 0;
     uint64_t cordy1 = 0;
     uint64_t cordy2 = 0;
@@ -1807,8 +1811,8 @@ int gather_gaps_y_ (String<uint64_t> & cords,
         if (y1.second > y2.second)  
         {
             //skip y2
-            //since y1.first < y2.first (y.first has been sorted)
-            //then region of y2 is all covered by y1;
+            //y1.first < y2.first (sorted)
+            //=> y2 is all covered by y1;
             f_cover = 1;
         }
         else
@@ -1822,10 +1826,10 @@ int gather_gaps_y_ (String<uint64_t> & cords,
             f_cover = 0; 
         }
     }
-    if (readLen - y2.second > thd_gap_size) //be sure y2 = back(str_ends)
+    uint64_t max_y_end = (f_cover) ? y1.second : y2.second;
+    if (readLen - max_y_end > thd_gap_size) //be sure y2 = back(str_ends)
     {
-        cordy1 = y2.second;
-        appendValue(gaps, UPair(cordy1, cord_end));
+        appendValue(gaps, UPair(max_y_end, cord_end));
                 dout << "y1u2" << cordy1 << cordy2 << "\n";
     }
     return 0;
