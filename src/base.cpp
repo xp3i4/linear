@@ -26,7 +26,7 @@ Options::Options():
         sensitivity(1),
         thread(16),
         index_t(1),
-        feature_t(2),
+        feature_t(2), //apx2_48 by defalut
         gap_len(0),
         apx_chain_flag(1),
         aln_flag(0),

@@ -255,7 +255,7 @@ void print_cords(String<uint64_t> & cords, CharString header)
         }
     }
 }
-//Used as gap condition
+//Gap condition
 int isCordsConsecutive_(uint64_t & cord1, uint64_t cord2, uint64_t thd_cord_gap)
 {
     uint64_t x1 = get_cord_x (cord1);

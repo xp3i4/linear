@@ -10,26 +10,89 @@ typedef std::array<int, 3> int96;
 typedef int96 FeatureType;
 typedef std::pair<uint64_t, uint64_t> UPair;
 
-extern const unsigned window_size; //16*12
+extern unsigned window_size; //_apx_parm_base.window_size
 
+extern int const typeFeatures1_16;
 extern int const typeFeatures1_32;
 extern int const typeFeatures2_48;
+
+struct ApxMapParmBase
+{
+    //common window parm
+    float band_width;
+    unsigned cell_size;
+    unsigned cell_num;
+    unsigned windowThreshold;
+    unsigned windowSize;  //cell_size * cell_num
+    unsigned windowDelta; //
+    unsigned sup;
+    unsigned med;
+    unsigned inf; 
+    //--script common
+    unsigned scpt_step;
+    unsigned scpt_bit;
+    unsigned scpt_size;
+    unsigned scpt_num;
+    unsigned scpt_int_step;
+    unsigned abort_score;
+    ApxMapParmBase (float, 
+                    unsigned, unsigned, unsigned,
+                    unsigned, unsigned, unsigned,
+                    unsigned);
+};
+
+struct ApxMapParm1_16 : ApxMapParmBase
+{
+    unsigned scpt_len;
+    unsigned scpt_len2;
+    int scriptMask;
+    int scriptMask2;
+    int scptCount[5];
+    ApxMapParm1_16 ();
+};
+
+struct ApxMapParm1_32 : ApxMapParmBase //32mer script
+{
+  //script parm
+  //Do not modify variable independently
+    unsigned scpt_len;
+    unsigned scpt_len2;
+    short scriptMask;
+    int scriptMask2;
+    int scptCount[5];
+    ApxMapParm1_32 ();
+};
+
+struct ApxMapParm2_48 : ApxMapParmBase
+{
+    ApxMapParm2_48();
+};
+
 struct FeaturesDynamic
 {
   int fs_type; //features type
+  String<short> fs1_16;
   String<short> fs1_32;
   String<int96> fs2_48;
+  ApxMapParm1_16 * apx_parm1_16;
+  ApxMapParm1_32 * apx_parm1_32;
+  ApxMapParm2_48 * apx_parm2_48;
 
+  int isFs1_16();
   int isFs1_32();
   int isFs2_48();
+  void setFs1_16();
   void setFs1_32();
   void setFs2_48();
   void setFeatureType(int);
-  FeaturesDynamic(int type = typeFeatures2_48);
+  int init(int type);
+  unsigned length();
+  FeaturesDynamic();
+  FeaturesDynamic(int type);
 };
 
-unsigned get_windowThreshold(FeaturesDynamic &);
-unsigned get_windowThreshold(StringSet<FeaturesDynamic> &);
+unsigned getWindowThreshold(FeaturesDynamic &);
+unsigned getWindowThreshold(StringSet<FeaturesDynamic> &);
 
 int printScript(FeatureType & val, CharString);
 

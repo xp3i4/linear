@@ -168,14 +168,7 @@ void Mapper::loadOptions(Options & options)
     {
         index_dynamic.setDIndex();
     }
-    if (options.feature_t == 1)
-    {
-        feature_type = typeFeatures1_32; 
-    }
-    else if (options.feature_t == 2)
-    {
-        feature_type = typeFeatures2_48;
-    }
+    feature_type = options.feature_t;
     of_type = OF_NEW;
     f_map = 0;
     gap_len_min = options.gap_len;
@@ -440,8 +433,8 @@ int map_(IndexDynamic & index,
     resize(clipsTmp, ChunkSize);
     resize(bam_records_tmp, ChunkSize);
     resize(f1, 2);
-    f1[0].fs_type = f2[0].fs_type;
-    f1[1].fs_type = f2[0].fs_type;
+    f1[0].init(f2[0].fs_type);
+    f1[1].init(f2[0].fs_type);
     unsigned c = 0;
     
     String<uint64_t> g_hs;
@@ -465,7 +458,6 @@ int map_(IndexDynamic & index,
             if (fm_handler_.isMapGap(f_map))
             {
                 mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], g_hs, g_anchor, clipsTmp[c], apx_gaps, f1, f2, gap_len_min, window_size, thd_err_rate);
-
             }
             if (fm_handler_.isAlign(f_map))
             {
