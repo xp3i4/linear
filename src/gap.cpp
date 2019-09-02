@@ -852,7 +852,6 @@ int get_best_chains_(String<uint64_t> & anchor,
     {
         return 0;
     }
-    std::cout << ":chains <<<<<<<<\n ";
     int thd_chain_depth = 20;
     int new_score = 0;
     int max_new_score = 0;
@@ -867,14 +866,12 @@ int get_best_chains_(String<uint64_t> & anchor,
     chains[0].p2anchor = chain_end;
     for (int i = 0; i < anchor_end; i++) 
     {
-        dout << "chanchors" << g_hs_anchor_getY(anchor[i]) << g_hs_anchor_getAnchor(anchor[i]) << g_hs_anchor_get_strand(anchor[i]) << "\n";
         int j_str = std::max (0, i - thd_chain_depth);
         max_j = i;
         max_new_score = -1;
         for (int j = j_str; j < i; j++)
         {
              new_score = score_metric.getScore(anchor[j], anchor[i]);
-             dout << "chains score" << i << j << new_score << g_hs_anchor_getY(anchor[i]) << g_hs_anchor_getY(anchor[j]) << g_hs_anchor_getAnchor(anchor[i]) << g_hs_anchor_getAnchor(anchor[j]) << "\n";
              if (new_score >= max_new_score)
              {
                 max_j = j;
@@ -887,11 +884,9 @@ int get_best_chains_(String<uint64_t> & anchor,
             chains[i].score = chains[max_j].score + max_new_score ;
             chains[i].len = chains[max_j].len + 1;
 
-            dout << "chains append" << i << max_j << max_new_score << chains[i].score << "\n";
         }
         else
         {
-            dout << "chains zero" << i << "\n";
             chains[i].p2anchor = chain_end;
             chains[i].score = chain_end_score;
             chains[i].len = 1;
@@ -919,12 +914,10 @@ int apxCreateTilesFromAnchors_ (String<uint64_t> & anchor,
     int64_t centroid_y = 0;
     int kcount = 0;
     int prej = prek;
-    std::cout << "apxctfa " << prek << " " << k << "\n";
     for (int j = prek; j < k; j++)
     {
         uint64_t x = g_hs_anchor_getX(anchor[j]);
         uint64_t y = g_hs_anchor_getY(anchor[j]);
-        dout << "apxct1" << j << k << x << y << prex + thD_tile_size << prey + thD_tile_size << "\n";
         if ((x > prex + thD_tile_size || y > prey + thD_tile_size) || j == k - 1)
         {
             if (j == prej) //only when k == prek + 1
@@ -943,7 +936,6 @@ int apxCreateTilesFromAnchors_ (String<uint64_t> & anchor,
                                             centroid_x - tmp_shift,
                                             centroid_y - tmp_shift,
                                             g_hs_anchor_get_strand(anchor[prek]));
-            g_print_tile(tmp_tile, "apxt");
             unsigned score = 
             _get_tile_f_tri_(tmp_tile, new_tile, f1, f2, thd_fscore, thD_tile_size);
             if (kcount >= thd_pattern_in_window && score < thd_fscore)
@@ -1005,9 +997,6 @@ int createTilesFromAnchors1_(String<uint64_t> & anchor,
     int prek = 0;
     for (int k = 0; k < anchor_end + 1; k++)
     {
-        //<<debug
-        dout << "sv2anchorx" << g_hs_anchor_get_strand (anchor[k]) << g_hs_anchor_getY(anchor[k]) <<g_hs_anchor_getAnchor(anchor[k]) << "\n";
-        //>>debug
         //TODO: handle thd_min_segment, anchor 
         int64_t d = std::abs((int64_t)g_hs_anchor_getY(anchor[k]) - (int64_t)g_hs_anchor_getY(anchor[prek]));
         if (g_hs_anchor_getAnchor(anchor[k]) - g_hs_anchor_getAnchor(anchor[prek]) > 
@@ -1057,8 +1046,6 @@ int createTilesFromAnchors2_(String<uint64_t> & anchor,
     {
         return 0;
     }
-    print_cord(gap_str, "ctfa2");
-    print_cord(gap_end, "ctfa22");
     //String<uint64_t> tmp_tiles;
     String<uint64_t> chains;
     String<ChainsRecord> chains_record;
@@ -1074,7 +1061,6 @@ int createTilesFromAnchors2_(String<uint64_t> & anchor,
         int max_len = 0;
         for (int j = 0; j < anchor_end; j++)
         {
-            dout << "maxsit" << max_score << "\n";
             if (chains_record[j].score > max_score)
             {
                 max_str = j;
@@ -1092,7 +1078,6 @@ int createTilesFromAnchors2_(String<uint64_t> & anchor,
                 {
                     appendValue (chains, anchor[j]);
                     chains_record[j].score = delete_score; 
-                    std::cout << "chainsj " << j << " " << chains_record[j].p2anchor << " " << g_hs_anchor_getY(anchor[j]) << " " << g_hs_anchor_getX(anchor[j]) << " " << g_hs_anchor_getAnchor(anchor[j]) << " " << max_score << "\n";
                 }
                 else
                 {
@@ -1102,14 +1087,12 @@ int createTilesFromAnchors2_(String<uint64_t> & anchor,
             if (!empty(chains))
             {
                 apxCreateTilesFromAnchors_(chains, tiles, f1, f2, gap_str, 0, length(chains), thD_tile_size, thd_pattern_in_window);
-                g_print_tiles_ (tiles, "cta2");
             }
         } 
         if (max_str != chain_end)
         {
             chains_record[max_str].score = delete_score; 
         }
-        std::cout << "chains bestn " << i << "\n";
     }   
 }
 
@@ -1374,7 +1357,6 @@ int g_create_anchors_ (String<uint64_t> & g_hs,
 {
     uint64_t mask = (1ULL << (2 * shape_len + g_hs_bit3)) - 1;
     std::sort (begin(g_hs), begin(g_hs) + g_hs_end, [mask](uint64_t & a, uint64_t & b){return (a & mask) < (b & mask);});
-    dout << "mi3" << g_hs_end << anchor_lower << anchor_upper << "\n";
     int p1 = 0, p2 = 0;
     for (int k = 1; k < g_hs_end; k++)
     {    
@@ -1439,13 +1421,7 @@ int map_interval(String<Dna5> & seq1, //genome
     g_hs_end = g_mapHs_kmer_(seq2, g_hs, gr_str, gr_end, g_hs_end, 8, 1, 1);
 
     g_create_anchors_(g_hs, g_hs_anchor, g_hs_end, g_hs_anchor_end, 8, cord_lower, cord_upper, rvcp_const);
-    //<<debug
-    for (int i = 0; i < g_hs_anchor_end; i++)
-    {
-        dout << "mi2anchor" << g_hs_anchor_get_strand (g_hs_anchor[i]) << g_hs_anchor_getY(g_hs_anchor[i]) << g_hs_anchor_getX(g_hs_anchor[i]) << "\n";
-    }
-    //>>debug
-    g_print_tiles_(g_hs_tile, "mi20x");
+
     int f = map_g_anchor (g_hs_anchor, g_hs_tile, f1, f2, 
                          gap_str, gap_end,
                          g_hs_anchor_end, 
