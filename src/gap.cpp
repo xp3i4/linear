@@ -1146,8 +1146,10 @@ int createTilesFromAnchors2_(String<uint64_t> & anchor,
     int thd_abort_tiles = 10;
 
     //step 1. 
+    //sort to chain anchors o(nlg(n))
     //createTilesFromAnchors1_(anchor, tiles, f1, f2, gap_str, gap_end, anchor_end, thD_tile_size, thD_err_rate, thd_pattern_in_window, thd_anchor_density, thd_min_segment);
 
+    //dp to chain anchors o(mn) ~ o(n)
     createTilesFromAnchors2_(anchor, tiles, f1, f2, gap_str, gap_end, anchor_end, thD_tile_size, thD_err_rate, thd_pattern_in_window);
 
     //step 2. merge check: if different segments in tiles can be megered; if cant then do nothing
@@ -3428,12 +3430,6 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             _DefaultHit.unsetBlockEnd(gap_str);
             _DefaultHit.unsetBlockEnd(gap_end);
             dout << "mgclosed" << get_cord_y(gap_str) << get_cord_y(gap_end) << "\n";
-            //<<debug
-            if (get_cord_x(gap_str) != 2456000)
-            {
-                //continue;
-            }
-            //>>debug
             mapGap_(seqs, read, comstr, 
                     gap_str, gap_end, 
                     g_hs, g_anchor, 

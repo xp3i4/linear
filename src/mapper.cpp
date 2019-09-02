@@ -458,7 +458,6 @@ int map_(IndexDynamic & index,
             if (fm_handler_.isMapGap(f_map))
             {
                 mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], g_hs, g_anchor, clipsTmp[c], apx_gaps, f1, f2, gap_len_min, window_size, thd_err_rate);
-
             }
             if (fm_handler_.isAlign(f_map))
             {
