@@ -1169,7 +1169,9 @@ int createTilesFromAnchors2_(String<uint64_t> & anchor,
  */
 
     uint64_t cord_str = gap_str;
-    uint64_t cord_end = shift_cord(gap_end, -thD_tile_size, -thD_tile_size);
+    int64_t shift_x = std::min(int64_t(get_cord_x(gap_end) - get_cord_x(gap_str)), int64_t(thD_tile_size));
+    int64_t shift_y = std::min(int64_t(get_cord_y(gap_end) - get_cord_y(gap_str)), int64_t(thD_tile_size));
+    uint64_t cord_end = shift_cord(gap_end, -shift_x, -shift_y);
     //uint64_t cord_end = gap_end;
     if (empty(tiles))
     {
@@ -3000,8 +3002,8 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         int direction1 = g_map_rght;
         int direction2 = g_map_left;
 
-        g_cmpll.min(shift_x, x2 - x1) << int64_t(length(ref) - 1 - get_cord_x(gap_end));
-        g_cmpll.min(shift_y, (x2 - x1) * (1 + thD_err_rate)) << int64_t(length(read) - 1 - get_cord_y(gap_end));
+        g_cmpll.min(shift_x, x2 - x1) << int64_t(length(ref) - 1 - get_cord_x(gap_str));
+        g_cmpll.min(shift_y, (x2 - x1) * (1 + thD_err_rate)) << int64_t(length(read) - 1 - get_cord_y(gap_str));
         uint64_t gap_str1 = gap_str;
         uint64_t gap_end1 = shift_cord (gap_str, shift_x, shift_y);
         mapExtend_ (seqs, read, comstr, 
@@ -3043,8 +3045,8 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
              get_cord_x(gap_end) - get_cord_x(gap_str) > (length(g_hs)) ||
              get_cord_y(gap_end) > length(read) - 1 ||
              get_cord_y(gap_str) > length(read) - 1 ||
-             get_cord_x(gap_end) > length(seqs[0]) - 1 ||
-             get_cord_x(gap_str) > length(seqs[0]) - 1)
+             get_cord_x(gap_end) > length(ref) - 1 ||
+             get_cord_x(gap_str) > length(ref) - 1)
     {
         //return 1;
         //todo
@@ -3208,7 +3210,9 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
         int direction;
         if (_DefaultCord.isBlockEnd(cords_str[i - 1]))  //clip first cord
         {
-            uint64_t gap_end = shift_cord(cords_str[i], block_size, block_size);
+            shift_x = std::min (int64_t(length(seqs[sid]) - 1 - get_cord_x(cords_str[i])),  block_size);
+            shift_y = std::min (int64_t(length(read) - 1 - get_cord_y(cords_str[i])), block_size);
+            uint64_t gap_end = shift_cord(cords_str[i], shift_x, shift_y);
             uint64_t gap_str;
             if (get_cord_y(gap_end) > thd_cord_gap) 
             {            
@@ -3316,7 +3320,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             if (length(read) - 1 - get_cord_y(gap_str) > thd_cord_gap)
             {
                 shift_x = std::min(thd_max_extend_x, 
-                                  length(seqs[sid]) - get_cord_x(gap_str));
+                                  length(seqs[sid]) - get_cord_x(gap_str) - 1);
                 shift_y = std::min(thd_max_extend_y, 
                                    length(read) - get_cord_y(gap_str) - 1);
                 shift_x = std::min(shift_x, shift_y * thd_extend_xy);
@@ -3365,6 +3369,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                     int64_t anchor_base = get_cord_x(gap_str) - get_cord_y(gap_end);
                     int64_t anchor_lower = anchor_base - 100;
                     int64_t anchor_upper = anchor_base + 100; 
+
                     mapExtend_ (seqs, read, comstr, 
                                 gap_str, gap_end, 
                                 anchor_lower, anchor_upper,
