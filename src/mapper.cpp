@@ -347,10 +347,12 @@ int print_mapper_results(Mapper & mapper)
     close_mapper_of(mapper);
 
     ///.gvf
+    /*
     std::string file2 = mapper.getOutputPrefix() + ".gvf";
     open_mapper_of (mapper, file2);
     print_clips_gvf(mapper);
     close_mapper_of(mapper);
+    */
 
     ///.sam
     std::string file3 = mapper.getOutputPrefix() + ".sam";
@@ -469,20 +471,19 @@ int map_(IndexDynamic & index,
     } 
     #pragma omp for ordered
     for (unsigned j = 0; j < threads; j++)
-        #pragma omp ordered
+    #pragma omp ordered
+    {
+        append(cords_str, cordsTmp);
+        append(cords_end, cordsTmp2);
+        if (fm_handler_.isMapGap(f_map))
         {
-            append(cords_str, cordsTmp);
-            append(cords_end, cordsTmp2);
-            if (fm_handler_.isMapGap(f_map))
-            {
-                append(clips, clipsTmp);
-            }
-            if (fm_handler_.isAlign(f_map))
-            {
-                append(bam_records, bam_records_tmp);
-            }
+            append(clips, clipsTmp);
         }
-    
+        if (fm_handler_.isAlign(f_map))
+        {
+            append(bam_records, bam_records_tmp);
+        }
+    }
 }
     return 0;
 }

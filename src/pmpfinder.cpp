@@ -185,7 +185,6 @@ ApxMapParm1_16::ApxMapParm1_16():
 }
 
 ApxMapParm1_32::ApxMapParm1_32():
-
     ApxMapParmBase(0.25, 16, 12, 36, 16, 4, 32, 1000),
     //----scprit parm----
     scpt_len(5), //const 
@@ -198,11 +197,10 @@ ApxMapParm1_32::ApxMapParm1_32():
 }
 
 ApxMapParm2_48::ApxMapParm2_48():
-    ApxMapParmBase(0.25, 16, 12, 72, 16, 4, 48, 1000)
+    ApxMapParmBase(0.25, 16, 6, 36, 16, 4, 48, 1000)
 {
     window_size = windowSize;
 }
-
 unsigned getFeatureWindowDelta(FeaturesDynamic & fs)
 {
     if (fs.isFs1_32())
