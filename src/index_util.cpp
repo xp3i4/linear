@@ -1722,7 +1722,7 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
 
     if (index.isDIndex())
     {
-        int64_t thd_min_step = 4;
+        int64_t thd_min_step = 8;
         int64_t thd_max_step = 10;
         int64_t thd_omit_block = 50; 
         unsigned thd_shape_len = 21;

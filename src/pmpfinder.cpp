@@ -902,7 +902,7 @@ uint64_t previousWindow(FeaturesDynamic & f1, //read
         return 0;    
     else 
     {
-        if ( x_suf - x_min > parm->med)
+        if (x_suf - x_min > parm->med)
         {
             new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_suf - parm->med)),  _DefaultCord.cell2Cord(x_suf - x_min - parm->med + y), strand);
         }
@@ -1422,20 +1422,23 @@ unsigned getDIndexMatchAll (DIndex & index,
                 {
                     int64_t val = index.getHs()[i];
                     int64_t cordy = k;
+                    uint64_t id = get_cord_id(val);
+                    uint64_t strand = FORWARD_STRAND;
+                    uint64_t cordx = get_cord_x(val);
                     if (get_cord_strand(val) ^ shape.strand)
                     {
                         cordy = length(read) - 1 - cordy;
-                        //!TODO::when val < cordy:  map reads to itself
-                        //val - cody out of bounds.
-                        val |= _DefaultHitBase.flag2;
+                        strand = REVERSE_STRAND;
                     }
                     //NOTE: make sure data structure of anchor is same to cord
-                    if (get_cord_x(val) > cordy)
+                    //!TODO::when val < cordy:  map reads to itself
+                    //val - cordy out of bounds.
+                    if (cordx > cordy)
                     {
+                        uint64_t new_anchor = make_anchor(id, cordx, cordy, strand);
                         //todo::may out of boundary
-                        //dout << "gdima" << cordy << get_cord_x(val) << "\n";
-                        val = shift_cord (val, -cordy, cordy - get_cord_y(val));
-                        appendValue(set, val);
+                        //val = shift_cord (val, -cordy, cordy - get_cord_y(val));
+                        appendValue(set, new_anchor);
                     }
                 }
                 xpre = shape.XValue;
