@@ -3,6 +3,7 @@
 #include <fstream>
 #include <ctime>
 #include "cords.h"
+#include "index_util.h"
 #include "pmpfinder.h"
 #include "gap.h"
 #include "align_interface.h"
@@ -163,11 +164,6 @@ int check_cigar(StringSet<String<Dna5> > & genomes,
     dout << "c_s" << float(covs_s) / length(read) << "\n";
 }
 /*
-int test_clip_anchors()
-{
-
-}
-*/
 int check_index1(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned threads)
 {
     HIndex hindex = index.hindex;
@@ -218,10 +214,10 @@ int check_index1(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned
     return 0;
 
 }
+*/
 
 /* test Dynamic index2 (direct index)
 
-*/
 int check_index2(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned threads)
 {
     int64_t thd_min_step = 0;
@@ -271,4 +267,34 @@ int check_index2(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned
     }
     return 0;
 
+}
+*/
+/*
+int count_1mer_freq(String<Dna5> & seq, std::vector<std::array<int, 3> > & freqs, int script_size)
+{
+    for (int i = 0; i < length(seq); i++)
+    {
+        freqs.push_back ();
+    }
+    return 0;
+}
+*/
+
+int check_apx_feature(StringSet<String<Dna5> > & seqs, unsigned threads)
+{
+    if (empty(seqs))
+    {
+        return 0;
+    }
+    StringSet<FeaturesDynamic > f1;
+    /*
+    createFeatures(begin(seqs[0]), end(seqs[0]), f1[0]); //serial create freature
+    std::vector<std::array<int, 3> > & freqs
+    count_1mer_freq(seq[0], freqs, script_size);
+    */
+    for (int i = 0; i < length(seqs[0]); i++)
+    {
+
+
+    }
 }

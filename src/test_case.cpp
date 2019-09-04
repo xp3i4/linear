@@ -28,8 +28,10 @@ int main(int argc, const char ** argv)
     Mapper mapper(options);
     omp_set_num_threads(mapper.thread());
     std::cerr << "running test1\n";
-    check_index1 (mapper.getGenomes(), mapper.index(), mapper.thread());
+    //check_index1 (mapper.getGenomes(), mapper.index(), mapper.thread());
     //check_index2 (mapper.getGenomes(), mapper.index(), mapper.thread());
+    check_apx_feature(mapper.getGenomes(), mapper.thread());
+
 
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;
     return 0;

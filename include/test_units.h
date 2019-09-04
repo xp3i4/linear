@@ -13,5 +13,7 @@ int check_cigar(StringSet<String<Dna5> > & genomes,
 
 int check_index1(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned threads);
 int check_index2(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned threads);
+int check_apx_feature(StringSet<String<Dna5> > & seqs, unsigned threads);
+
 
 #endif
