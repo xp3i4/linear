@@ -26,7 +26,7 @@ int process2(Mapper & mapper, Options & options, int p1)
     filter_options.aln_flag = 0;
     filter_options.sam_flag = 0;
     filter_options.apx_chain_flag = 0;
-    filter_options.index_t = 2;
+    filter_options.index_t = 1;
     filter_options.feature_t = 1;
     mapper.loadOptions (filter_options);
 
@@ -35,6 +35,18 @@ int process2(Mapper & mapper, Options & options, int p1)
     mapper.createIndex(0, length(mapper.getGenomes()), false); 
     createFeatures(mapper.getGenomes(), f2, mapper.getFeatureType(), mapper.thread());
     filter (mapper, f2, buckets, p1);
+    //<<ddebug
+    for (int i = 0; i < length(buckets); i++)
+    {
+
+        std::cout << "\nbuckets " << " ";
+        for (int j = 0; j < length(buckets[i]); j++)
+        {
+            std::cout << buckets[i][j] << " " ;
+        }
+    }
+    return 0;
+    //>>debug
 
     //clear filer index
     mapper.clearIndex();
@@ -69,18 +81,18 @@ int main(int argc, char const ** argv)
         return res == seqan::ArgumentParser::PARSE_ERROR;
     Mapper mapper(options);
     uint thd_g_size = 300 << 20; //300M bases 
-    /*
-    if (lengthSum(mapper.getGenomes ()) > thd_g_size)
-    {
+    //if (lengthSum(mapper.getGenomes ()) > thd_g_size)
+    //{
+        int p1 = 0;
         process2 (mapper, options, p1);
+        /*
     }
     else
     {
-        */
-    int p1 = 0;
+        int p1 = 0; //temp var for test config
         process1 (mapper, options, p1);
-    //}
-    //process2 (options, options.p1);
+    }
+    */
     std::cerr << "Time in sum[s] " << sysTime() - time << "      \n";
     return 0;
 }

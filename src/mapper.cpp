@@ -600,25 +600,134 @@ int map(Mapper & mapper,
     return 0;
 }
 
-//Shortcut called within filter function
+//Shortcut called within filter function to marked the genome requiring map
+//@bucket[i] == 1:the the read should map to the ith genome; otherwise not
 void append_genome_bucket(StringSet<String<short> > & buckets, 
-                          StringSet<String<uint64_t> > & cordss, 
+                          StringSet<String<uint64_t> > & cords, 
                           unsigned gnmu)
 {
     String<short> new_bucket;
     resize (new_bucket, gnmu, 0);
-    for (auto & cords : cordss)
+    for (uint i = 0; i < length(cords); i++)
     {
-        for (auto & val : new_bucket)
+        appendValue(buckets, new_bucket);
+        for (uint j = 1; j < length(cords[i]); j++)
         {
-            val = 0;
+            back(buckets)[get_cord_id(cords[i][j])] = 1;
         }
-        for (uint i = 1; i < length(cords); i++)
+        //<<debug
+        uint cstr = 0;
+        if (length(cords[i]) > 2)
         {
-            new_bucket[get_cord_id(cords[i])] = 1;
+            cstr = get_cord_id (cords[i][1]);
+            std::cout << "cstr " << i << " " << cstr << " " << buckets[i][cstr]<< "\n";
+        }
+        //>>debug
+    }
+}
+
+int filter_(IndexDynamic & index,
+            StringSet<FeaturesDynamic > & f2,
+            StringSet<String<Dna5> > & reads,
+            MapParm & mapParm,
+            StringSet<String<uint64_t> > & cords_str,
+            StringSet<String<uint64_t> > & cords_end,
+            StringSet<String<uint64_t> > & clips,
+            StringSet<String<Dna5> > & seqs,
+            StringSet<String<BamAlignmentRecordLink> >& bam_records,
+            uint f_map,   //control flags
+            uint gap_len_min,
+            uint threads,
+            int p1)
+{
+    float senThr = mapParm.senThr / window_size;  //map for 2 roun if cords cover len <
+    float cordThr = 0.3 / window_size; //cords cover length < are aborted
+    uint thd_min_read_len = 200;
+    //todo::tune the cordThr try to merge cords of blocks 
+    MapParm complexParm = mapParm;
+    complexParm.alpha = complexParm.alpha2;
+    complexParm.listN = complexParm.listN2;
+    String<uint64_t> gap_len;
+    String<uint64_t> red_len;
+    resize (gap_len, threads, 0);
+    resize (red_len, threads, 0);
+    float thd_err_rate = 0.2;
+    int f_chain = 1; 
+    if (fm_handler_.isApxChain(f_map))
+    {
+        f_chain = 1;
+    }
+    else
+    {
+        f_chain = 0;
+    }
+    dout << "fchain" << f_chain << (f_map & 8) << "\n";
+#pragma omp parallel
+{
+    unsigned size2 = length(reads) / threads;
+    unsigned ChunkSize = size2;
+    String<Dna5> comStr;
+    Anchors anchors;
+    String<uint64_t> crhit;
+    StringSet<String<uint64_t> > cordsTmp;  //cords_str
+    StringSet<String<uint64_t> > cordsTmp2; //cords_end
+    StringSet<FeaturesDynamic> f1;
+    StringSet<String<uint64_t> > clipsTmp;
+    StringSet<String<BamAlignmentRecordLink> > bam_records_tmp;
+    unsigned thd_id = omp_get_thread_num();
+    if (thd_id < length(reads) - size2 * threads)
+    {
+        ChunkSize = size2 + 1;
+    }
+    resize(cordsTmp, ChunkSize);
+    resize(cordsTmp2, ChunkSize);
+    resize(clipsTmp, ChunkSize);
+    resize(bam_records_tmp, ChunkSize);
+    resize(f1, 2);
+    f1[0].init(f2[0].fs_type);
+    f1[1].init(f2[0].fs_type);
+    unsigned c = 0;
+    
+    String<uint64_t> g_hs;
+    String<uint64_t> g_anchor;
+    String<UPair> apx_gaps; 
+    resize (g_hs, 1ULL << 20);
+    resize (g_anchor, 1ULL<<20);
+    #pragma omp for
+    for (unsigned j = 0; j < length(reads); j++)
+    {
+        dout << "readid" << j << "\n";
+        double t1 = sysTime ();
+        red_len[thd_id] += length(reads[j]);
+        float cordLenThr = length(reads[j]) * cordThr;
+        if (length(reads[j]) > thd_min_read_len)
+        {
+            _compltRvseStr(reads[j], comStr);
+            createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
+            createFeatures(begin(comStr), end(comStr), f1[1]);
+            apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordLenThr, f_chain);
+            //filter_(index, reads[j], anchors, MapParm, crhit, buckets, cord)
+
+        }
+        c += 1;
+    } 
+    #pragma omp for ordered
+    for (unsigned j = 0; j < threads; j++)
+    #pragma omp ordered
+    {
+        append(cords_str, cordsTmp);
+        append(cords_end, cordsTmp2);
+        if (fm_handler_.isMapGap(f_map))
+        {
+            append(clips, clipsTmp);
+        }
+        if (fm_handler_.isAlign(f_map))
+        {
+            append(bam_records, bam_records_tmp);
         }
     }
-    appendValue (buckets, new_bucket);
+}
+    return 0;
 }
 
 /*
@@ -653,7 +762,7 @@ int filter(Mapper & mapper, StringSet<FeaturesDynamic> f2, StringSet<String<shor
             }
             catch (Exception const & e)
             {
-
+                //none;
             }
             //serr.print_message("", 50, 2, std::cerr); 
             serr.print_message("=>Map::Filtering genomes ", 0, 0, std::cerr);
@@ -664,7 +773,7 @@ int filter(Mapper & mapper, StringSet<FeaturesDynamic> f2, StringSet<String<shor
             serr.print_message(unsigned(length(mapper.getReads())), 0, 2, std::cerr);
             time1 = sysTime() - time1;
             double time2 = sysTime();
-            map_(mapper.index(), 
+            filter_(mapper.index(), 
                  f2, 
                  mapper.getReads(), 
                  mapper.mapParm(), 
@@ -682,6 +791,7 @@ int filter(Mapper & mapper, StringSet<FeaturesDynamic> f2, StringSet<String<shor
             serr.print_message("=>Recording geonme buckets", 0, 2, std::cerr);
             //std::cerr << std::flush;
             append_genome_bucket(buckets, mapper.getCords(), length(mapper.getGenomes()));
+
             clear (mapper.getCords());
             clear (mapper.getCords2());
             clear (mapper.getClips());
