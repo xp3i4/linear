@@ -309,6 +309,7 @@ int print_cords_sam(Mapper & mapper)
                     mapper.getGenomesId(),
                     mapper.getReadsId(),
                     mapper.getGenomes(),
+                    mapper.getReads(),
                     mapper.getCordSize(),
                     mapper.getOf(),
                     thd_large_X
