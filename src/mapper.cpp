@@ -160,14 +160,9 @@ void Mapper::loadOptions(Options & options)
         }
     }
     _thread = options.thread;
-    if (options.index_t == 1)
-    {
-        index_dynamic.setHIndex();
-    }
-    else if (options.index_t == 2)
-    {
-        index_dynamic.setDIndex();
-    }
+    //-------index---------
+    index_dynamic.setIndexType (options.index_t);
+    //-------feature-------
     feature_type = options.feature_t;
     of_type = OF_NEW;
     f_map = 0;
@@ -551,7 +546,7 @@ int map(Mapper & mapper,
             serr.print_message(unsigned(length(mapper.getReads())), 0, 2, std::cerr);
             time1 = sysTime() - time1;
             double time2 = sysTime();
-            map_(mapper.index(), 
+            map_(mapper.getIndex(), 
                  f2, 
                  mapper.getReads(), 
                  mapper.mapParm(), 
@@ -773,7 +768,7 @@ int filter(Mapper & mapper, StringSet<FeaturesDynamic> f2, StringSet<String<shor
             serr.print_message(unsigned(length(mapper.getReads())), 0, 2, std::cerr);
             time1 = sysTime() - time1;
             double time2 = sysTime();
-            filter_(mapper.index(), 
+            filter_(mapper.getIndex(), 
                  f2, 
                  mapper.getReads(), 
                  mapper.mapParm(), 

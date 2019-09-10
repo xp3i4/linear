@@ -119,19 +119,18 @@ const unsigned blocklimit = 32;
 /*=====================================================
 =            Ehanced open addressing index            =
 =======================================================
-This is the simplified version of optimized 25-mer index 
-deriverd from  the original genric index.
-This version index is specifically optimized for the use 
-of Approximate mapping. 
-Interface is not fully wrappered due to concerns regarding
-performance issue. 
+This is the optimized version of 25-mer index deriverd 
+from  the original index.
+This version index is specifically optimized for calling 
+Approximate mapping. 
 Sufficient benchmarks are required before wrapping.  
-Please do not use it for other purpose!
+Do not use it for any other purpose!
 */
 //Structt Hs: String<uint64_t>
 //Types of node in Hs: 1.head node and 2.body node
 //Head: Headflag[1] = 0|sortFlag[1]|N/A[2]|Pointer[20]| xvalue[40]
 //Body: bodyflag[1] = 1|N/A[2]|yvalue[20] |typeCode[1]|sa[40]
+const unsigned XValueBit = 40;
 HsBase::HsBase(bool cerr):
         bit(XValueBit),
         bodyYBit(_BodyValue_bits), // 41
@@ -217,7 +216,7 @@ XString::XString(uint64_t const & seqlen)
 {
     _fullSize(seqlen);
 }
- uint64_t XString::_fullSize(uint64_t const & seqlen, float const & alpha)
+uint64_t XString::_fullSize(uint64_t const & seqlen, float const & alpha)
 {
     uint64_t len = 1ULL; 
     while ((len) < seqlen * alpha)
@@ -228,77 +227,84 @@ XString::XString(uint64_t const & seqlen)
         xstring[k].val1 = 0;
     return len;
 }
- void XString::clear()
+void XString::clear()
 {
     seqan::clear(xstring);
     shrinkToFit(xstring);
 }
-
- bool Hs::isHead(uint64_t const & val, uint64_t const & flag)
+bool Hs::isHead(uint64_t const & val, uint64_t const & flag)
 {
     return (val & flag) ^ flag;
 }
- void Hs::setHsHead(uint64_t & head, uint64_t const & ptr, uint64_t const & xval, uint64_t const & bit, uint64_t const & mask)
+void Hs::setHsHead(uint64_t & head, uint64_t const & ptr, uint64_t const & xval, uint64_t const & bit, uint64_t const & mask)
 {
     head = ((ptr << bit) + xval) & mask;
 }
- uint64_t Hs::makeHsHead(uint64_t const & ptr, uint64_t const & xval, uint64_t const & bit, uint64_t const & mask)
+uint64_t Hs::makeHsHead(uint64_t const & ptr, uint64_t const & xval, uint64_t const & bit, uint64_t const & mask)
 {
     return ((ptr << bit) + xval) & mask;
 }
- uint64_t Hs::MinusX(uint64_t const & value1, uint64_t const & value2, uint64_t const & mask)
+uint64_t Hs::MinusX(uint64_t const & value1, uint64_t const & value2, uint64_t const & mask)
 {
     return ((value1 - value2) & mask);
 }
- uint64_t Hs::getHeadX(uint64_t const & value, uint64_t const & mask)
+uint64_t Hs::getHeadX(uint64_t const & value, uint64_t const & mask)
 {
     return value & mask;
 }  
- uint64_t Hs::getHeadPtr(uint64_t const & val, uint64_t const & bit, uint64_t const & mask)
+uint64_t Hs::getHeadid(uint64_t const & value, uint64_t const & mask)
+{
+    return _getSA_i1(getHeadX(value, mask));
+}
+uint64_t Hs::getHeadx(uint64_t const & value, uint64_t const & mask)
+{
+    return _getSA_i2(getHeadX(value, mask));
+}
+uint64_t Hs::getHeadPtr(uint64_t const & val, uint64_t const & bit, uint64_t const & mask)
 {
     return (val >> bit) & mask;
 }
- void Hs::setHsBody(uint64_t & val, uint64_t const & yval, uint64_t const & id, uint64_t const & pos, uint64_t const & typeFlag)
+void Hs::setHsBody(uint64_t & val, uint64_t const & yval, uint64_t const & id, uint64_t const & pos, uint64_t const & typeFlag)
 {
     val = ((yval << _BodyValue_bits)|typeFlag) + (id << _BaseNum_bits) + (pos);
     
 }
- uint64_t Hs::makeHsBody(uint64_t const & yval, uint64_t const & id, uint64_t const & pos, uint64_t const & typeFlag)
+uint64_t Hs::makeHsBody(uint64_t const & yval, uint64_t const & id, uint64_t const & pos, uint64_t const & typeFlag)
 {
     return ((yval << _BodyValue_bits)|typeFlag) + (id << _BaseNum_bits) + (pos);
     
 }
- uint64_t Hs::getHsBodyY(uint64_t const & val, uint64_t const & bit, uint64_t const & mask)
+uint64_t Hs::getHsBodyY(uint64_t const & val, uint64_t const & bit, uint64_t const & mask)
 {
     return (val >> bit) & mask;
 }
- void Hs::setHsHeadPtr(uint64_t & val, uint64_t const & ptr,  uint64_t const & bit, uint64_t const & mask)
+void Hs::setHsHeadPtr(uint64_t & val, uint64_t const & ptr,  uint64_t const & bit, uint64_t const & mask)
 {
     val = (val & mask) + (ptr << bit);
 }
- uint64_t Hs::getHsBodyS(uint64_t const & val, uint64_t const & mask )
+uint64_t Hs::getHsBodyS(uint64_t const & val, uint64_t const & mask )
 {
     return val & mask;
 }
- bool Hs::isBody(uint64_t const & val, uint64_t const & flag)
+bool Hs::isBody(uint64_t const & val, uint64_t const & flag)
 {
     return val & flag;
 }
- bool Hs::isBodyYEqual(uint64_t const & hval, uint64_t const & yval, uint64_t const & bit, uint64_t const & flag)
+bool Hs::isBodyYEqual(uint64_t const & hval, uint64_t const & yval, uint64_t const & bit, uint64_t const & flag)
 {
     return ((hval >> bit) ^ yval) == flag;
 }
- void Hs::setHsBodyReverseStrand(uint64_t & val)
+void Hs::setHsBodyReverseStrand(uint64_t & val)
 {
     val |= _DefaultHsBase.bodyCodeFlag;
 }
- bool Hs::isHsBodyReverseStrand(uint64_t & val)
-{
-    return val & (_DefaultHsBase.bodyCodeFlag);
-}
- void Hs::setHsBodyY(uint64_t & val, uint64_t y, uint64_t const & bit, uint64_t const & mask)
+void Hs::setHsBodyY(uint64_t & val, uint64_t y, uint64_t const & bit, uint64_t const & mask)
 {
     val = (val & (~(mask << bit))) | (y << bit);
+}
+uint64_t Hs::getHsBodyStrand(uint64_t & val)
+{
+    return (val >> _DefaultHsBase.bodyCodeBit) & 1ULL;
 }
 
 Hs _DefaultHs;
@@ -677,16 +683,14 @@ void HIndex::clear()
  * creating index only collecting mini hash value [minindex]
  * state::warnning. for seq contains 'N', error. since the k in openmp doesn't change correctly
  */
- bool _createHsArray(StringSet<String<Dna5> > & seq, 
+ uint64_t __createHsArray(StringSet<String<Dna5> > & seq, 
                      String<uint64_t> & hs, 
                      LShape & shape, 
                      unsigned gstr,
                      unsigned gend,
                      unsigned threads,
-                     unsigned thd_step, 
-                     bool efficient = true)
+                     unsigned thd_step)
 {
-    double time = sysTime();
     uint64_t hsRealEnd = 0;
     resize (hs, lengthSum(seq) * 2 / thd_step + 1000);
     std::vector<int64_t> hsRealSize(threads, 0);
@@ -723,9 +727,10 @@ void HIndex::clear()
             }
  
             hashInit(tshape, begin(seq[j]) + start);
+            dout << "start" << start << seqChunkSize[thd_id] << "\n";
             for (uint64_t k = start; k < start + seqChunkSize[thd_id]; k++)
             {
-
+                //std::cerr << k << "\n";
                 if(ordValue(*(begin(seq[j]) + k + tshape.span - 1)) == 4)
                 {
                     k += hashInit(tshape, begin(seq[j]) + k);
@@ -736,13 +741,10 @@ void HIndex::clear()
                     }
                 }
                 hashNext(tshape, begin(seq[j]) + k);
-                //if (++ct_step != step)
                 if (k % thd_step == 0)
                 {
                     if (tshape.XValue ^ preX)
                     {
-                        //if (ptr != 2)
-                        //    printf("[debug]::ptr\n");
                         _DefaultHs.setHsHead(hs[hsStart + thd_count - ptr], ptr, preX);
                         _DefaultHs.setHsBody(hs[hsStart + ++thd_count], tshape.YValue, j, k); 
                         if (tshape.strand)
@@ -754,10 +756,6 @@ void HIndex::clear()
                         ptr = 2;
                     }
                 }
-               // else 
-               // {
-               //     ct_step = 0;
-               // }
             }
             _DefaultHs.setHsHead(hs[hsStart + thd_count - ptr], ptr, tshape.XValue);
             hsRealSize[thd_id] = thd_count;
@@ -781,14 +779,28 @@ void HIndex::clear()
         hsRealEnd += thd_count;
     }
     resize (hs, hsRealEnd + 1);
+    _DefaultHs.setHsHead(hs[hsRealEnd], 0, 0);
     std::cout << "hs_size " << length(hs) << "\n";
+    return hsRealEnd;
+}
+
+bool _createHsArray(StringSet<String<Dna5> > & seq, 
+                    String<uint64_t> & hs, 
+                    LShape & shape, 
+                    unsigned gstr,
+                    unsigned gend,
+                    unsigned threads,
+                    unsigned thd_step, 
+                    bool efficient = true)
+{
+    double time = sysTime();
+    uint64_t hsRealEnd = __createHsArray(seq, hs, shape, gstr, gend, threads, thd_step);
     if (efficient)
     {
         clear(seq);
         shrinkToFit(seq);   
     }
-    _DefaultHs.setHsHead(hs[hsRealEnd], 0, 0);
-    std::cerr << "--Index::Initiate             Elapsed Time[s] " << sysTime() - time << " " << std::endl;
+    std::cerr << "--Index::Initiate             Elapsed Time[s] " << sysTime() - time << "\n";
     std::cerr << "=>Index::SortHash                                                   \r";
     time = sysTime();
     _hsSort(begin(hs), begin(hs) + hsRealEnd, shape.weight, threads);
@@ -1131,7 +1143,7 @@ uint64_t getXDir(XString const & xstr, uint64_t const & xval, uint64_t const & y
 /*  
  * serial sort ysa 
  */
- bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir, uint64_t thd_blocklimit)
+bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir, uint64_t thd_blocklimit)
 {
 //-k
     uint64_t k = _DefaultHs.getHeadPtr(hs[0]);
@@ -1258,9 +1270,10 @@ uint64_t getXDir(XString const & xstr, uint64_t const & xval, uint64_t const & y
  * parallel sort ysa
  * this function is for index only collecting minihash value [minindex]
  */
- bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir, unsigned threads, uint64_t thd_blocklimit)
+bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir, unsigned threads, uint64_t thd_blocklimit)
 {
 
+    std::cerr << "=>Index::SortYSA                                                  \r";
     uint64_t k = _DefaultHs.getHeadPtr(hs[0]);
     uint64_t preX = _DefaultHs.getHeadX(hs[0]);
     uint64_t ptr = k;
@@ -1269,7 +1282,6 @@ uint64_t getXDir(XString const & xstr, uint64_t const & xval, uint64_t const & y
     double time = sysTime();
     uint64_t countx = 0;
     std::vector<uint64_t> thd_hsStart(threads + 1, 0);
-    std::cerr << "=>Index::SortYSA                                                  \r";
     while(_DefaultHs.getHeadPtr(hs[k]))
     {
         ptr = _DefaultHs.getHeadPtr(hs[k]);
@@ -1432,6 +1444,8 @@ bool createHIndex(StringSet<String<Dna5> > & seq, HIndex & index, unsigned gstr,
 
 int const typeDIx = 1;
 int const typeHIx = 2;
+int const typeMIx = 4;
+int const typeFIx = 8;
 
 unsigned dshape_len = 21; //!!WARN::only odd number, even is not allowed
 DIndex::DIndex():
@@ -1549,8 +1563,7 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
                  int64_t thd_omit_block,
                  unsigned gstr,
                  unsigned gend,
-                 unsigned threads
-                )
+                 unsigned threads)
 {
     serr.print_message("=>Index::initing ", 0, 2, std::cerr);
     double t = sysTime();
@@ -1675,6 +1688,125 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
     return 0;
 }
 
+int _createDIndexFromHs(String<uint64_t> & hs, DIndex & index, int64_t thd_omit_block, unsigned threads)
+{
+    serr.print_message("=>Index::creating MD index          ", 0, 2, std::cerr);
+    double t = sysTime();
+    String<int> & dir = index.getDir();
+    String<int64_t> & d_hs = index.getHs();
+    resize (dir, index.fullSize(), 0);
+    double t2 = sysTime();
+    //dout << "idx2" << length(dir) << t_shape.weight << thd_min_step << thd_max_step << thd_omit_block<< "\n";
+    //dout << threads << "threads\n"; 
+    String<int64_t> t_blocks;
+    //assign task region within the @hs to each threads
+    int64_t t_str = 0;
+    for (int i = 0; i < threads; i++)
+    {
+        while (t_str < length(hs) && !_DefaultHs.isHead(hs[t_str]))
+        {
+            t_str++;
+        }
+        dout << "t_str" << t_str << "\n";
+        appendValue(t_blocks, t_str); 
+        t_str += length(hs) / threads;
+    }
+    appendValue (t_blocks, length(hs));
+    //init @dir
+    #pragma omp parallel
+    {
+        unsigned t_id = omp_get_thread_num();
+        int64_t t_str = t_blocks[t_id];
+        int64_t t_end = t_blocks[t_id + 1];
+        uint64_t xval;
+        for (int64_t i = t_str; i < t_end; i++)
+        {
+            if (_DefaultHs.isHead(hs[i]))
+            {
+                xval = _DefaultHs.getHeadx(hs[i]);
+            }
+            else{
+                atomicInc(dir[xval]);
+            }
+        }
+    }
+    int64_t sum = 0;
+    for (int64_t i = 0; i < length(dir); i++)
+    {
+        if (dir[i] > thd_omit_block)
+        {
+            dir[i] = 0;
+        }
+        sum += dir[i];
+        dir[i] = sum - dir[i];
+    }
+    dout << "dt" << sum << back(dir) << "\n";
+    int64_t max_seq_num = 1LL << 20 - 1; //ids in cords occupies 20 bit
+    int64_t EmptyVal = create_cord(max_seq_num, 0, 0, 0); 
+    //make sure genomeid >= length(seqs) and cord y be 0! y points to next empty.
+    resize (d_hs, sum, EmptyVal);
+    serr.print_message("--Index::inite   ", 0, 1, std::cerr);
+    serr.print_message("=>Index::hashing", 0, 2, std::cerr);
+
+    #pragma omp parallel
+    {   
+        unsigned t_id = omp_get_thread_num();
+        int64_t t_str = t_blocks[t_id];
+        int64_t t_end = t_blocks[t_id + 1];
+        int64_t j_str;
+        uint64_t xval;
+        for (int64_t j = t_str; j < t_end; j++)
+        {
+            if (_DefaultHs.isHead(hs[j]))
+            {
+                j_str = j;
+                xval = _DefaultHs.getHeadx(hs[j]);
+            }
+            else if (dir[xval + 1] - dir[xval]) //too large blocks > thd_omit_block should (has been) be ommited in the @dir
+            {
+                int64_t slot_str = dir[xval];
+                int64_t k = slot_str + get_cord_y(atomic_inc_cord_y(d_hs[slot_str])) - 1;
+                int64_t new_cord = create_cord(_DefaultHs.getHeadid(hs[j]), _DefaultHs.getHeadx(hs[j]), 
+                                       0, _DefaultHs.getHsBodyStrand(hs[j])); //be sure new_cord_y == 0 
+                if (k == slot_str) 
+                {   //atomic creating the first cord which cotains shared pointer
+                    new_cord -= EmptyVal;
+                    atomicAdd(d_hs[k], new_cord); //original hs[k] = EmptyVal + pointer
+                }
+                else
+                {
+                    d_hs[k] = new_cord;
+                }
+            }
+            else {/*NONE*/}
+        }
+    }
+    std::cout << "createDIndex " << sysTime() - t << " " << sysTime() - t2 << "\n";
+    serr.print_message("Index::hash        ", 2, 1, std::cerr);
+    serr.print_message("End createing index ", 2, 0, std::cerr);
+    serr.print_message(sysTime() - t, 2, 1, std::cerr);
+    return 0;
+}
+
+int createMDIndex(StringSet<String<Dna5> > & seqs,
+                  IndexDynamic & index, 
+                  unsigned gstr, unsigned gend, 
+                  int64_t thd_omit_block, unsigned threads, unsigned thd_step)
+{
+    __createHsArray(seqs, index.hindex.ysa, index.hindex.getShape(),  gstr, gend, threads, thd_step);
+    _createDIndexFromHs(index.hindex.ysa, index.dindex, thd_omit_block, threads);
+}
+
+int _createMHIndex(String<uint64_t> & hs, 
+                   LShape & shape,
+                   uint64_t g_hs_str, //[@g_hs_str, @g_hs_end) in @hs that belongs to the genome.
+                   uint64_t g_hs_end,
+                   unsigned threads)
+{
+    _hsSort(begin(hs) + g_hs_str, begin(hs) + g_hs_end, shape.weight, threads);
+    return 0;
+}
+
 int64_t queryHsStr(DIndex & index, int64_t xval)
 {
     return index.getDir()[xval];
@@ -1686,22 +1818,67 @@ int64_t queryHsEnd(DIndex & index, int64_t xval)
 
 int IndexDynamic::isHIndex()
 {
-    return typeIx == typeHIx;
+    return typeIx & typeHIx;
 }
-
 int IndexDynamic::isDIndex()
 {
-    return typeIx == typeDIx;
+    return typeIx & typeDIx;
 }
-
+int IndexDynamic::isMIndex()
+{
+    return typeIx & typeMIx;
+}
 void IndexDynamic::setHIndex()
 {
-    typeIx = typeHIx;
+    typeIx &= ~typeDIx;
+    typeIx |=  typeHIx;
 }
-
 void IndexDynamic::setDIndex()
 {
-    typeIx = typeDIx;
+    typeIx &= ~typeHIx;
+    typeIx |=  typeDIx;
+}
+void IndexDynamic::setMIndex()
+{
+    typeIx &= ~typeFIx;
+    typeIx |=  typeMIx;
+}
+void IndexDynamic::setMDIndex()
+{
+    setMIndex();
+    setDIndex();
+}
+void IndexDynamic::setMHIndex()
+{
+    setMIndex();
+    setHIndex();
+}
+void IndexDynamic::setFIndex()
+{
+    typeIx &= ~typeMIx;
+    typeIx |=  typeFIx;
+}
+void IndexDynamic::setFDIndex()
+{
+    setFIndex();
+    setDIndex();
+}
+void IndexDynamic::setFHIndex()
+{
+    setFIndex();
+    setHIndex();
+}
+void IndexDynamic::setIndexType(int ix_type)
+{
+    if (ix_type == typeHIx)     {setHIndex();}
+    else if (ix_type == typeDIx){setDIndex();}
+    else if (ix_type == typeMIx){setMIndex();}
+    else if (ix_type == typeFIx){setFIndex();}
+    else if (ix_type == typeHIx + typeMIx){setMHIndex();}
+    else if (ix_type == typeDIx + typeMIx){setMDIndex();}
+    else if (ix_type == typeHIx + typeFIx){setFHIndex();}
+    else if (ix_type == typeDIx + typeFIx){setFDIndex();}
+    else {setHIndex();}
 }
 void IndexDynamic::clearIndex()
 {
@@ -1714,54 +1891,67 @@ void IndexDynamic::clearIndex()
         dindex.clear();
     }
 }
-IndexDynamic::IndexDynamic(StringSet<String<Dna5> > & seqs):hindex()
+IndexDynamic::IndexDynamic(StringSet<String<Dna5> > & seqs) : dindex(), hindex(), typeIx(typeHIx)
 {}
 
 bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned gstr, unsigned gend, unsigned threads, bool efficient)
 {
+    dout << "idx" << index.typeIx << "\n";
+    if (index.isMIndex())    
+    {
+        unsigned thd_shape_len = 23;
+        index.dindex.getShape().init_shape_parm(thd_shape_len);
+        index.hindex.getShape().init_shape_parm(thd_shape_len);
+        if (index.isDIndex())
+        {
+    dout << "idx" << index.typeIx << "\n";
+            int64_t thd_omit_block = 50; 
+            int64_t thd_step = 10;
 
-    if (index.isDIndex())
-    {
-        int64_t thd_min_step = 8;
-        int64_t thd_max_step = 10;
-        int64_t thd_omit_block = 50; 
-        unsigned thd_shape_len = 21;
-        index.hindex.shape.init_shape_parm(thd_shape_len);
-        std::cout << "cidx\n";
-        //TODO::parm wrapping 
-        return createDIndex(seqs, index.dindex, 
-                            thd_min_step, 
-                            thd_max_step, 
-                            thd_omit_block,
-                            gstr, gend,
-                            threads);
-//       return createDIndex_serial(seqs, index.dindex, 4, 10);
-    }
-    else if (index.isHIndex())
-    {
-        //chr1: step=5, shape_len=25, block_limt =32|  0.077% > 32(block size) 
-        //chr1, 5,  21, 32 | 0.7% > 32 0.22% > 64
-        //chr1, 10, 21, 32 | 0.49% > 32  0.16% > 64
-        unsigned thd_step = 10;
-        unsigned thd_shape_len = 25; //WARN only odd number is allowed due to double strand hash
-        uint64_t thd_blocklimit = 32;
-        float alpha = 1.6;
-        index.hindex.shape.init_shape_parm(thd_shape_len / 2 * 2 + 1);
-        dout << "span" << index.hindex.shape.span << "\n";
-        index.hindex.alpha = alpha;
-        return createHIndex(seqs, index.hindex, 
-                            gstr, gend, 
-                            threads, thd_step, thd_blocklimit, efficient);
-    }
-    /*
-    else if (index.isMHIndex()) //Hindex part of Mix of DIndex and HIndex, super! 
-    {
+            createMDIndex(seqs, index, gstr, gend, thd_omit_block, threads, thd_step);
+        }
+        else if (index.isHIndex())
+        {
 
+        }
+        else{/*NONE*/}
     }
-    else if (index.isMDIndex()) //DIndex part of Mix of DIndex and HIndex, !
+    else
     {
-
+        if (index.isDIndex())
+        {
+            int64_t thd_min_step = 8;
+            int64_t thd_max_step = 10;
+            int64_t thd_omit_block = 50; 
+            unsigned thd_shape_len = 21;
+            index.dindex.getShape().init_shape_parm(thd_shape_len);
+            std::cout << "cidx" << index.typeIx << "\n";
+            //TODO::parm wrapping 
+            return createDIndex(seqs, index.dindex, 
+                                thd_min_step, 
+                                thd_max_step, 
+                                thd_omit_block,
+                                gstr, gend,
+                                threads);
+            //return createDIndex_serial(seqs, index.dindex, 4, 10);
+        }
+        else if (index.isHIndex())
+        {
+            //chr1: step=5, shape_len=25, block_limt =32|  0.077% > 32(block size) 
+            //chr1, 5,  21, 32 | 0.7% > 32 0.22% > 64
+            //chr1, 10, 21, 32 | 0.49% > 32  0.16% > 64
+            unsigned thd_step = 10;
+            unsigned thd_shape_len = 25; //WARN only odd number is allowed due to double strand hash
+            uint64_t thd_blocklimit = 32;
+            float alpha = 1.6;
+            index.hindex.shape.init_shape_parm(thd_shape_len / 2 * 2 + 1);
+            dout << "span" << index.hindex.shape.span << "\n";
+            index.hindex.alpha = alpha;
+            return createHIndex(seqs, index.hindex, 
+                                gstr, gend, 
+                                threads, thd_step, thd_blocklimit, efficient);
+        }
+        else {/*NONE*/}
     }
-    */
 }
 

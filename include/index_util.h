@@ -80,7 +80,6 @@ int64_t queryHsEnd(DIndex & index, int64_t xval);
 //Types of node in Hs: 1.head node and 2.body node
 //Head: Headflag[1] = 0|sortFlag[1]|N/A[2]|Pointer[20]| xvalue[40]
 //Body: bodyflag[1] = 1|N/A[2]|yvalue[20] |typeCode[1]|sa[40]
-static const unsigned XValueBit = 40;
 
 struct HsBase
 {
@@ -121,6 +120,10 @@ struct Hs
                    uint64_t const & typeFlag = _DefaultHsBase.typeMask);
     uint64_t getHeadX(uint64_t const &, 
                       uint64_t const & = _DefaultHsBase.mask);
+    uint64_t getHeadid(uint64_t const &, 
+                       uint64_t const & = _DefaultHsBase.mask);
+    uint64_t getHeadx(uint64_t const &, 
+                      uint64_t const & = _DefaultHsBase.mask);
     uint64_t getHeadPtr(uint64_t const &, 
                         uint64_t const & = _DefaultHsBase.pointerBit, 
                         uint64_t const & = _DefaultHsBase.pointerMask);
@@ -141,8 +144,8 @@ struct Hs
                     uint64_t const & bit = _DefaultHsBase.bodyYBit,
                     uint64_t const & flag = _DefaultHsBase.typeFlag2);
     void setHsBodyReverseStrand(uint64_t & val);
-    bool isHsBodyReverseStrand(uint64_t & val);
     void setHsBodyY(uint64_t & val, uint64_t y, uint64_t const & bit = _DefaultHsBase.bodyYBit, uint64_t const & mask = _DefaultHsBase.bodyYMask);
+    uint64_t getHsBodyStrand(uint64_t & val);
     
 };
 extern Hs _DefaultHs;
@@ -203,6 +206,8 @@ bool createHIndex(StringSet<String<Dna5> > & seq,
 
 extern int const typeDIx;
 extern int const typeHIx;
+extern int const typeMIx;
+extern int const typeFIx;
 struct IndexDynamic 
 {
     HIndex hindex;
@@ -210,8 +215,16 @@ struct IndexDynamic
     int typeIx;
     int isHIndex();
     int isDIndex();
+    int isMIndex();
     void setHIndex();
     void setDIndex();
+    void setMIndex();   //mapper index
+    void setMHIndex();  //mapper::HIndx
+    void setMDIndex();  //mapper::DIndex
+    void setFIndex();   //filter index
+    void setFDIndex();  //filter::Dindex
+    void setFHIndex();  //filter::HIndex;
+    void setIndexType(int);
     void clearIndex();
     IndexDynamic(StringSet<String<Dna5> > &);
 };

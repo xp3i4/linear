@@ -38,17 +38,17 @@ public:
     StringSet<String<Dna5> > & getReads() {return record.seq1;}             
     StringSet<String<Dna5> > & getGenomes() {return record.seq2;}             
     MapParm & mapParm() {return parm;}
-    IndexDynamic & index() {return index_dynamic;}
+    IndexDynamic & getIndex() {return index_dynamic;}
     StringSet<String<uint64_t> > & getCords() {return cordSet;}             
     StringSet<String<uint64_t> > & getCords2() {return cordSet2;}            
     
     void printCords(std::ostream & );
     void printCordsRaw();
     void printCordsRaw2();
-    int print_vcf();
-    int createIndex(unsigned, unsigned, bool = false);
-    unsigned sens(){return parm.sensitivity;}
-    unsigned & thread(){return _thread;}
+    int  print_vcf();
+    int  createIndex(unsigned, unsigned, bool = false);
+    uint sens(){return parm.sensitivity;}
+    uint & thread(){return _thread;}
     StringSet<CharString> & getReadsId(){return record.id1;}
     StringSet<CharString> & getGenomesId(){return record.id2;}
     StringSet<String<uint64_t> > & getClips(){return clip_set;}
@@ -56,7 +56,7 @@ public:
     std::ofstream & getOf() {return of;}
     std::string & getOutputPrefix(){return outputPrefix;}
     StringSet<String<BamAlignmentRecordLink> > & getBamRecords() {return bam_records;}
-    int getFeatureType();
+    int  getFeatureType();
     void setOfApp();
     void setOfNew();
     bool isOfNew();
@@ -66,7 +66,7 @@ public:
     uint & getMapFlag(){return f_map;}
     uint & getPrintFlag(){return f_print;}
     uint getGapLenMin () {return gap_len_min;}
-    int getCordSize() {return cord_size;}
+    int  getCordSize() {return cord_size;}
     void loadGenomes();
     void clearIndex();
 

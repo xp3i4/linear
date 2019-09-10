@@ -26,12 +26,13 @@ int process2(Mapper & mapper, Options & options, int p1)
     filter_options.aln_flag = 0;
     filter_options.sam_flag = 0;
     filter_options.apx_chain_flag = 0;
-    filter_options.index_t = 1;
+    filter_options.index_t = typeDIx;
     filter_options.feature_t = 1;
     mapper.loadOptions (filter_options);
 
     //filter chr bucket 
     omp_set_num_threads(mapper.thread());
+    mapper.getIndex().setMIndex(); //enable filter index && disable mapper index (DIndex for filter by default)
     mapper.createIndex(0, length(mapper.getGenomes()), false); 
     createFeatures(mapper.getGenomes(), f2, mapper.getFeatureType(), mapper.thread());
     filter (mapper, f2, buckets, p1);
@@ -45,14 +46,16 @@ int process2(Mapper & mapper, Options & options, int p1)
             std::cout << buckets[i][j] << " " ;
         }
     }
+    dout << "indextype" << mapper.getIndex().typeIx << "\n";
     return 0;
     //>>debug
 
     //clear filer index
-    mapper.clearIndex();
+    //mapper.clearIndex();
 
     //map for each chr bucket
     mapper.loadOptions(options);
+    mapper.getIndex().setFIndex(); //disable filter index && enable mapper index
     for (unsigned i = 0; i < length(mapper.getGenomes()); i++)
     {
         dout << "mgs" << i << "\n";
