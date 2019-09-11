@@ -712,7 +712,7 @@ void cords2BamLink(String<uint64_t> & cords_str,
             cord1_str = cords_str[i];
             cord1_end = cords_end[i];
             cord2_str = cords_end[i];
-            back(bam_link_records).seq = infix (read, r_beginPos, get_cord_y(cord1_end));
+            //back(bam_link_records).seq = infix (read, r_beginPos, get_cord_y(cord1_end));
             f_new = 1; //next cord[i + 1] will start a new recordd
         }
         else
@@ -736,26 +736,38 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
                    StringSet<String<BamAlignmentRecordLink> > & bam_link_records,
                    StringSet<String<Dna5> > & reads,
                    int thd_cord_size,
-                   uint64_t thd_large_X)
+                   uint64_t thd_large_X,
+                   unsigned threads)
 {
-    if (empty(bam_link_records))
+    #pragma omp parallel
     {
-        resize (bam_link_records, length(cords_str));
-    }
-    for (int i = 0; i < length(cords_str); i++)
-    {
-        if (empty(cords_end) || empty(cords_end[i]))
+        StringSet<String<BamAlignmentRecordLink> >  bam_link_records_tmp;
+        String<BamAlignmentRecordLink> emptyRecords;
+        int ii = 0; //parallel 0-based i for each thread
+        #pragma omp for
+        for (int i = 0; i < length(cords_str); i++)
         {
-            String<uint64_t> tmp_end; 
-            for (int j = 0; j < length(cords_str[i]); j++)
+            appendValue(bam_link_records_tmp, emptyRecords);
+            if (empty(cords_end) || empty(cords_end[i]))
             {
-                appendValue(tmp_end, shift_cord(cords_str[i][j], thd_cord_size, thd_cord_size));
+                String<uint64_t> tmp_end; 
+                for (int j = 0; j < length(cords_str[i]); j++)
+                {
+                    appendValue(tmp_end, shift_cord(cords_str[i][j], thd_cord_size, thd_cord_size));
+                }
+                cords2BamLink (cords_str[i], tmp_end, bam_link_records_tmp[ii], reads[i], thd_large_X);
             }
-            cords2BamLink (cords_str[i], tmp_end, bam_link_records[i], reads[i], thd_large_X);
+            else
+            {
+                cords2BamLink (cords_str[i], cords_end[i], bam_link_records_tmp[ii], reads[i], thd_large_X);
+            }
+            ii++;
         }
-        else
+        #pragma omp for ordered
+        for (unsigned i = 0; i < threads; i++)
+        #pragma omp ordered
         {
-            cords2BamLink (cords_str[i], cords_end[i], bam_link_records[i], reads[i], thd_large_X);
+            append(bam_link_records, bam_link_records_tmp);
         }
     }
 }
@@ -804,9 +816,10 @@ void print_cords_sam
      StringSet<String<Dna5> > & reads,
      int thd_cord_size,
      std::ofstream & of,
-     uint64_t thd_large_X)
+     uint64_t thd_large_X,
+     unsigned threads)
 {
-    cords2BamLink (cordset_str, cordset_end, bam_records, reads, thd_cord_size, thd_large_X);
-    shrink_cords_cigar(bam_records);
+    cords2BamLink (cordset_str, cordset_end, bam_records, reads, thd_cord_size, thd_large_X, threads);
+    //shrink_cords_cigar(bam_records);
     print_align_sam (genms, genmsId, readsId, bam_records, of);
 }   
