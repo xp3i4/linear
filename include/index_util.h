@@ -120,10 +120,6 @@ struct Hs
                    uint64_t const & typeFlag = _DefaultHsBase.typeMask);
     uint64_t getHeadX(uint64_t const &, 
                       uint64_t const & = _DefaultHsBase.mask);
-    uint64_t getHeadid(uint64_t const &, 
-                       uint64_t const & = _DefaultHsBase.mask);
-    uint64_t getHeadx(uint64_t const &, 
-                      uint64_t const & = _DefaultHsBase.mask);
     uint64_t getHeadPtr(uint64_t const &, 
                         uint64_t const & = _DefaultHsBase.pointerBit, 
                         uint64_t const & = _DefaultHsBase.pointerMask);
@@ -146,6 +142,7 @@ struct Hs
     void setHsBodyReverseStrand(uint64_t & val);
     void setHsBodyY(uint64_t & val, uint64_t y, uint64_t const & bit = _DefaultHsBase.bodyYBit, uint64_t const & mask = _DefaultHsBase.bodyYMask);
     uint64_t getHsBodyStrand(uint64_t & val);
+    uint64_t getLength(String<uint64_t> & ); //length equals num of head of ptr != 0 and body excludes the addition info empty Head nodes ptr==0 at the end of the array.
     
 };
 extern Hs _DefaultHs;
@@ -174,10 +171,11 @@ class HIndex
 public:
 
     String<HType1>     ysa;
+    String<HType1>     ysa_str_end;
     XString            xstr;
     LShape             shape;
     double             alpha;    
-    uint64_t emptyDir;
+    uint64_t           emptyDir;
 
     HIndex();
     HIndex(unsigned shape_len, float index_alpha);

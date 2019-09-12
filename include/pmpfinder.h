@@ -150,6 +150,17 @@ uint64_t apxMap (IndexDynamic & index,
                  String<uint64_t> & cords, 
                  float cordLenThr,
                  int f_chain);
+uint64_t filterGenomes (IndexDynamic & index,
+                 String<Dna5> & read,
+                 Anchors & anchors,
+                 MapParm & mapParm,
+                 String<uint64_t> & hit, 
+                 StringSet<FeaturesDynamic> & f1,
+                 StringSet<FeaturesDynamic> & f2,
+                 String<UPair> & apx_gaps,
+                 String<uint64_t> & cords, 
+                 float cordLenThr,
+                 int f_chain);
 int gather_blocks_ (String<uint64_t> & cords, 
                     String<UPair> & str_ends,   //result [] closed 
                     String<UPair> & str_ends_p, //result pointer [,) right open

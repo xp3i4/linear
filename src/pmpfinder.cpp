@@ -1529,7 +1529,7 @@ uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read
     ak2=anchors[0];
     uint64_t mask = (1ULL << 20) - 1;
     uint64_t min_y = ~0ULL, max_y = 0;
-    dout << "anchorlen " << anchors.end() - anchors.begin() << "\n";
+    //dout << "anchorlen " << anchors.end() - anchors.begin() << "\n";
     for (unsigned k = 1; k < anchors.length(); k++)
     {
         int64_t anc_y = get_cord_y(anchors[k]);
@@ -1933,13 +1933,6 @@ uint64_t apxMap (IndexDynamic & index,
                  float cordLenThr,
                  int f_chain)
 {
-    //<<debug
-    //mapParm.delta = 200;
-    //mapParm.alpha = 5;
-    //mapParm.kmerStep = 500;
-    //>>debug
-
-
     int64_t thd_cord_size = getFeatureWindowSize(f1); 
     int64_t thd_large_gap = 1000;     // make sure thd_large_gap <= thd_combine_blocks
     int64_t thd_chain_blocks_lower = -100;
@@ -2009,6 +2002,26 @@ uint64_t apxMap (IndexDynamic & index,
         }
     }
     return 0;
+}
+
+uint64_t filterGenomes (IndexDynamic & index,
+                 String<Dna5> & read,
+                 Anchors & anchors,
+                 MapParm & mapParm,
+                 String<uint64_t> & hit, 
+                 StringSet<FeaturesDynamic> & f1,
+                 StringSet<FeaturesDynamic> & f2,
+                 String<UPair> & apx_gaps,
+                 String<uint64_t> & cords, 
+                 float cordLenThr,
+                 int f_chain)
+{
+   int thd_best_n = 999; //unlimited best hit;
+    MapParm mapParm1 = mapParm;
+    MapParm mapParm2 = mapParm;
+    mapParm2.alpha = mapParm2.alpha2;
+    mapParm2.listN = mapParm2.listN2;
+    apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, 0, length(read), cordLenThr, thd_best_n);
 }
 
 /*===================================================

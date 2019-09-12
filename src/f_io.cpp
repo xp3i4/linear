@@ -102,6 +102,7 @@ void print_cords_apf(CordsSetType & cords,
     char main_icon_strand = '+', icon_strand = '+';
     int fflag = 0;
     
+    std::stringstream stream; // #include <sstream> for this
     for (unsigned k = 0; k < length(cords); k++)
     {
         if (!empty(cords[k]))
@@ -147,9 +148,9 @@ void print_cords_apf(CordsSetType & cords,
                     }
                     if (k > 0)
                     {
-                        of << "\n";
+                        stream << "\n";
                     } 
-                    of << "@> "
+                    stream << "@> "
                        << readsId[k] << " " 
                        << length(reads[k]) << " "
                        << get_cord_y(cords[k][j]) << " " 
@@ -164,7 +165,7 @@ void print_cords_apf(CordsSetType & cords,
                 }
                 ///>print the coordinates
                 icon_strand = (get_cord_strand(cords[k][j]))?'-':'+';
-                CharString mark = "| ";
+                std::string mark = "| ";
                 if (icon_strand != main_icon_strand)
                 {
                     mark = (icon_strand == '+') ? "|**+++++++++++ " :"|**----------- ";
@@ -176,19 +177,20 @@ void print_cords_apf(CordsSetType & cords,
                     d1 = int64_t(get_cord_x(cords[k][j]) - get_cord_x(cords[k][j - 1]));
                     d2 = int64_t(get_cord_y(cords[k][j]) - get_cord_y(cords[k][j - 1]));
                 }
-                of << mark  
-                   << get_cord_y(cords[k][j]) << " " 
-                   << get_cord_x(cords[k][j]) << " " 
-                   << d2 << " " 
-                   << d1 << " " 
-                   << j << " "
-                   << get_cord_x (cords[k][j]) - get_cord_y(cords[k][j]) << "\n";
-
+                stream << mark  
+                       << get_cord_y(cords[k][j]) << " " 
+                    //<< get_cord_x(cords[k][j]) << " " 
+                    //<< d2 << " " 
+                    //<< d1 << " " 
+                    << get_cord_x (cords[k][j]) - get_cord_y(cords[k][j]) << "\n";
+                //of << stream.str();
+                //of << buffer;
                 cordCount++;
                 fflag = 0;
             }
         }
-    }
+    } 
+    of << stream.str();
 }
 
 /*=================================================

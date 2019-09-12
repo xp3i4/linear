@@ -48,7 +48,7 @@ public:
     int  print_vcf();
     int  createIndex(unsigned, unsigned, bool = false);
     uint sens(){return parm.sensitivity;}
-    uint & thread(){return _thread;}
+    uint & getThreads(){return _thread;}
     StringSet<CharString> & getReadsId(){return record.id1;}
     StringSet<CharString> & getGenomesId(){return record.id2;}
     StringSet<String<uint64_t> > & getClips(){return clip_set;}
@@ -75,10 +75,12 @@ public:
 int map(Mapper & mapper, 
         StringSet<FeaturesDynamic> & f2, 
         StringSet<String<short> > & buckets, 
+        String<Position<SeqFileIn>::Type> & fin_pos,
         int gid, 
         int f_buckets_enabled,
-        int p1);
+        int p1,
+        bool f_io_append = false);
 
-int filter(Mapper & mapper, StringSet<FeaturesDynamic> f2, StringSet<String<short> > & buckets, int p1);
+int filter(Mapper & mapper, StringSet<FeaturesDynamic> f2, StringSet<String<short> > & buckets, String<Position<SeqFileIn>::Type> & fin_pos, int p1);
 
 #endif

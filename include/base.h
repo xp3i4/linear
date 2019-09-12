@@ -57,8 +57,6 @@ struct Options{
     Options();
     std::string getOutputPath() const;
 }; 
-//read reads starting from fin with corresponding bucket id within [@rstr, @rend)
-int readRecords_buckets (StringSet<CharString> & ids, StringSet<String<Dna5> > & reads, StringSet<String<short> >& buckets, SeqFileIn & fin, uint rstr, uint rend, uint bucketId);
 
 std::pair<uint, uint> 
 loadRecords(StringSet<String<Dna5> > & seqs, 

@@ -130,6 +130,8 @@ Do not use it for any other purpose!
 //Types of node in Hs: 1.head node and 2.body node
 //Head: Headflag[1] = 0|sortFlag[1]|N/A[2]|Pointer[20]| xvalue[40]
 //Body: bodyflag[1] = 1|N/A[2]|yvalue[20] |typeCode[1]|sa[40]
+//WARN::ptr==0 only when it's at the end of the arry which are for additional 
+//infos and exclued from the normal head and body nodes.
 const unsigned XValueBit = 40;
 HsBase::HsBase(bool cerr):
         bit(XValueBit),
@@ -221,6 +223,7 @@ uint64_t XString::_fullSize(uint64_t const & seqlen, float const & alpha)
     uint64_t len = 1ULL; 
     while ((len) < seqlen * alpha)
         len <<=1;
+    std::cout << "seql" << len << "\n";
     resize(xstring, len);
     mask = len - 1;
     for (uint64_t k = 0; k < len; k++)
@@ -252,14 +255,6 @@ uint64_t Hs::getHeadX(uint64_t const & value, uint64_t const & mask)
 {
     return value & mask;
 }  
-uint64_t Hs::getHeadid(uint64_t const & value, uint64_t const & mask)
-{
-    return _getSA_i1(getHeadX(value, mask));
-}
-uint64_t Hs::getHeadx(uint64_t const & value, uint64_t const & mask)
-{
-    return _getSA_i2(getHeadX(value, mask));
-}
 uint64_t Hs::getHeadPtr(uint64_t const & val, uint64_t const & bit, uint64_t const & mask)
 {
     return (val >> bit) & mask;
@@ -305,6 +300,13 @@ void Hs::setHsBodyY(uint64_t & val, uint64_t y, uint64_t const & bit, uint64_t c
 uint64_t Hs::getHsBodyStrand(uint64_t & val)
 {
     return (val >> _DefaultHsBase.bodyCodeBit) & 1ULL;
+}
+uint64_t Hs::getLength(String<uint64_t> & hs)
+{
+    uint64_t real_len = length(hs);
+    while (real_len > 0 && (isHead(hs[real_len - 1]) && !getHeadPtr(hs[real_len - 1])))
+    {real_len--;}
+    return real_len;
 }
 
 Hs _DefaultHs;
@@ -727,7 +729,7 @@ void HIndex::clear()
             }
  
             hashInit(tshape, begin(seq[j]) + start);
-            dout << "start" << start << seqChunkSize[thd_id] << "\n";
+            //dout << "start" << start << seqChunkSize[thd_id] << "\n";
             for (uint64_t k = start; k < start + seqChunkSize[thd_id]; k++)
             {
                 //std::cerr << k << "\n";
@@ -1035,40 +1037,27 @@ uint64_t getXDir(XString const & xstr, uint64_t const & xval, uint64_t const & y
     return 0;
 }
 
- uint64_t getXDir(HIndex const & index, uint64_t const & xval, uint64_t const & yval)
+uint64_t getXDir(HIndex const & index, uint64_t const & xval, uint64_t const & yval)
 {
     uint64_t val, delta = 0;
     uint64_t h1 = _DefaultXNodeFunc.hash(xval) & index.xstr.mask;
-    //unsigned count = 0;
-    //_setHeadNode(val, val);
-//!!!!! need to modify;
     val = (xval << 2) + _DefaultXNodeBase.xHead;
     while (index.xstr.xstring[h1].val1)
     {
-     //   ++count;
-        //switch (index.xstr.xstring[h1].val1 ^ val) 
         switch(_DefaultXNodeFunc.collision(index.xstr.xstring[h1].val1, val))
         {
             case 0:
-                //std::cerr << "case1\n";
-                //return _DefaultXNodeFunc.makeReturnVal(index.xstr.xstring[h1]);
                 return index.xstr.xstring[h1].val2;
             case 2:
-//!!!!! need to modify;
                 val = (yval << 42) + (xval << 2) + _DefaultXNodeBase.xHead;
                 h1 = _DefaultXNodeFunc.hash((yval << 40) + xval) & index.xstr.mask;
                 delta = 0;
-                //std::cerr << "case2\n" ;
                 break;
-            //case 3:
-            //    return ( ^ shape.yvalue)?index.xstr[h1].val2:_DefaultXNodeBase._Empty_Dir_;
             default:
-                //std::cerr << "case4\n" ;
                 h1 = (h1 + delta + 1) & index.xstr.mask;
                 delta++;
         }
     }
-    //std::cout << count << "\n";
     return index.emptyDir;
 }
 
@@ -1266,31 +1255,29 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
     return true;
 }
 
-/*
- * parallel sort ysa
- * this function is for index only collecting minihash value [minindex]
+/* parallel sort ysa
+ * this function is to create index of minihash value (xval), yval is omitted![minindex]
+ * create ysa within [@hs_str, hs_end) of @hs
+ * WARN::be sure @hs[hs_str] and @hs[hs_end] are Hs::headNode type
  */
-bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir, unsigned threads, uint64_t thd_blocklimit)
+bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t hs_str, uint64_t hs_end, uint64_t & indexEmptyDir, unsigned threads, uint64_t thd_blocklimit, int f_shrink_hs)
 {
-
     std::cerr << "=>Index::SortYSA                                                  \r";
-    uint64_t k = _DefaultHs.getHeadPtr(hs[0]);
-    uint64_t preX = _DefaultHs.getHeadX(hs[0]);
-    uint64_t ptr = k;
-    uint64_t block_size = ptr;
-    uint64_t countMove = 0, prek = 0;
     double time = sysTime();
-    uint64_t countx = 0;
-    std::vector<uint64_t> thd_hsStart(threads + 1, 0);
-    while(_DefaultHs.getHeadPtr(hs[k]))
+    uint64_t ptr  = _DefaultHs.getHeadPtr(hs[hs_str]);
+    uint64_t preX = _DefaultHs.getHeadX  (hs[hs_str]);
+    uint64_t prek = hs_str;
+    uint64_t k     = hs_str + ptr;
+    uint64_t block_size = ptr;
+    uint64_t countMove = 0;
+
+    while(k < hs_end && _DefaultHs.getHeadPtr(hs[k]))
     {
         ptr = _DefaultHs.getHeadPtr(hs[k]);
         if (preX != _DefaultHs.getHeadX(hs[k]))
         {
-            
             hs[k - countMove] = hs[k];
             _DefaultHs.setHsHeadPtr(hs[prek], block_size);
-            //printf("[debug]::block %d\n", block_size);
             prek = k - countMove;
             block_size = ptr;
             preX = _DefaultHs.getHeadX(hs[k]);
@@ -1304,27 +1291,39 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
         {
             hs[j - countMove]= hs[j];       
         }
-        ++countx;
         k += ptr;
     }
-    _DefaultHs.setHsHeadPtr(hs[prek], block_size);
-    _DefaultHs.setHsHead(hs[k - countMove], 0, 0);
-    _DefaultHs.setHsHead(hs[k - countMove + 1], 0, 0);
+    uint64_t hs_str_modified;
+    uint64_t hs_end_modified;
+    if (countMove > 2) //for most cases, countMove > 2
+    {
+        hs_str_modified = hs_str;
+        hs_end_modified = k -countMove;
+        _DefaultHs.setHsHeadPtr(hs[prek], block_size);
+        _DefaultHs.setHsHead(hs[k - countMove], 0, 0); 
+        _DefaultHs.setHsHead(hs[k - countMove + 1], 0, 0); 
+        indexEmptyDir = k - countMove;
+    }
+    else //abort the last block, it nearly have no impact on large genomes
+    {
+        hs_str_modified = hs_str;
+        hs_end_modified = prek;
+        _DefaultHs.setHsHead(hs[prek], 0, 0);
+        _DefaultHs.setHsHead(hs[prek + 1], 0, 0); 
+        indexEmptyDir = prek; 
+    }
 
-    thd_hsStart[threads] = prek + 1;
-    resize(hs, k + 2 - countMove);
-    shrinkToFit(hs);
-    indexEmptyDir = k - countMove ;
-    k=0;
-    preX = _DefaultHs.getHeadX(hs[0]);
-    ptr = 0;
-    block_size = 0;
+    if (f_shrink_hs)
+    {
+        resize(hs, k + 2 - countMove);
+        shrinkToFit(hs);
+    }
 
     #pragma omp parallel
     {
         uint64_t ptr = 0;
         #pragma omp for
-        for (uint64_t k = 0; k < length(hs) - 2; k++)
+        for (uint64_t k = hs_str_modified; k < hs_end_modified; k++)
         { 
             if(_DefaultHs.isHead(hs[k]))
             {
@@ -1332,15 +1331,14 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
                 _sort_YSA_Block(begin(hs) + k + 1, begin(hs) + k + ptr);
             }   
         }
-    
     }
+
     std::cerr << "  Index::SortYSA              Elapsed Time[s] " << sysTime() - time << std::endl;
     std::cerr << "=>Index::resize xstr                                            \r" ;
-    ptr = 0; k = 0;
+    k = hs_str_modified;
     uint64_t count = 0; 
-    
     time = sysTime();
-    while(_DefaultHs.getHeadPtr(hs[k]))
+    while(_DefaultHs.getHeadPtr(hs[k]) && k < hs_end_modified)
     {
         ptr = _DefaultHs.getHeadPtr(hs[k]);
         if (ptr < thd_blocklimit)
@@ -1361,41 +1359,35 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
         k += ptr;
     }
     xstr._fullSize(count);
-    ptr = 0; k = 0;
     std::cerr << "  Index::resize xstr          Elapsed Time[s] " << sysTime() - time << std::endl;
     std::cerr << "=>Index::request dir                                                  \r";
     time = sysTime();
 
     #pragma omp parallel 
     {
-        //uint64_t thd_id = omp_get_thread_num();
         uint64_t ptr = 0;
-
-    #pragma omp for 
-        for (uint64_t m = 0; m < length(hs); m++)
+        #pragma omp for 
+        for (uint64_t i = hs_str_modified; i < hs_end_modified; i++)
         {
 
-            if (_DefaultHs.isHead(hs[m]) && _DefaultHs.getHeadPtr(hs[m]))
+            if (_DefaultHs.isHead(hs[i]) && _DefaultHs.getHeadPtr(hs[i]))
             {
-                ptr = _DefaultHs.getHeadPtr(hs[m]);
-                //std::cout << "thd_blocklimit " << ptr << "\n";
+                ptr = _DefaultHs.getHeadPtr(hs[i]);
                 if (ptr < thd_blocklimit)
                 {
-                    for (unsigned j = m + 1; j < m + ptr; j++)
+                    for (unsigned j = i + 1; j < i + ptr; j++)
                     {
                         _DefaultHs.setHsBodyY(hs[j], 0);
                     }
-                    requestXNode_noCollision_Atomic(xstr, _DefaultHs.getHeadX(hs[m]), 
-                           m + 1, _DefaultXNodeBase.xHead, _DefaultXNodeBase.returnDir);   
+                    requestXNode_noCollision_Atomic(xstr, _DefaultHs.getHeadX(hs[i]), 
+                           i + 1, _DefaultXNodeBase.xHead, _DefaultXNodeBase.returnDir);   
                 }
                 else
                 {
-                    uint64_t xval = _DefaultHs.getHeadX(hs[m]);
-                    //printf ("[debug]::hash %" PRIu64 " %d\n", xval, ptr);
-                    
+                    uint64_t xval = _DefaultHs.getHeadX(hs[i]);
                     requestXNode_noCollision(xstr, xval, 
                         ~1, _DefaultXNodeBase.virtualHead, _DefaultXNodeBase.returnDir);
-                    for (unsigned j = m + 1; j < m + ptr; j++)
+                    for (unsigned j = i + 1; j < i + ptr; j++)
                     {
                         if(_DefaultHs.getHsBodyY(hs[j] ^ hs[j - 1]))
                         {
@@ -1411,6 +1403,11 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
     std::cerr << "  Index::request dir          Elapsed Time[s] " << sysTime() - time << std::endl;
     (void) threads;
     return true;
+}
+
+bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir, unsigned threads, uint64_t thd_blocklimit, int f_shrink_hs = 1)
+{
+    return _createYSA(hs, xstr, 0, _DefaultHs.getLength(hs), indexEmptyDir, threads, thd_blocklimit, f_shrink_hs);
 }
 
 /*
@@ -1683,15 +1680,15 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
     }
     std::cout << "createDIndex " << sysTime() - t << " " << sysTime() - t2 << "\n";
     serr.print_message("Index::hash        ", 2, 1, std::cerr);
-    serr.print_message("End createing index ", 2, 0, std::cerr);
+    serr.print_message("End creating index ", 2, 0, std::cerr);
     serr.print_message(sysTime() - t, 2, 1, std::cerr);
     return 0;
 }
 
-int _createDIndexFromHs(String<uint64_t> & hs, DIndex & index, int64_t thd_omit_block, unsigned threads)
+/*----------  MDindex  ----------*/
+
+int _createDIndexFromHs(String<uint64_t> & hs, String<uint64_t> & hs_str_end, DIndex & index, int64_t thd_omit_block, unsigned threads)
 {
-    serr.print_message("=>Index::creating MD index          ", 0, 2, std::cerr);
-    double t = sysTime();
     String<int> & dir = index.getDir();
     String<int64_t> & d_hs = index.getHs();
     resize (dir, index.fullSize(), 0);
@@ -1703,15 +1700,15 @@ int _createDIndexFromHs(String<uint64_t> & hs, DIndex & index, int64_t thd_omit_
     int64_t t_str = 0;
     for (int i = 0; i < threads; i++)
     {
-        while (t_str < length(hs) && !_DefaultHs.isHead(hs[t_str]))
+        while (t_str < _DefaultHs.getLength(hs) && !_DefaultHs.isHead(hs[t_str]))
         {
             t_str++;
         }
-        dout << "t_str" << t_str << "\n";
+        dout << "t_str" << t_str << _DefaultHs.getLength(hs) << length(hs) << "\n";
         appendValue(t_blocks, t_str); 
-        t_str += length(hs) / threads;
+        t_str += _DefaultHs.getLength(hs) / threads;
     }
-    appendValue (t_blocks, length(hs));
+    appendValue (t_blocks, _DefaultHs.getLength(hs));
     //init @dir
     #pragma omp parallel
     {
@@ -1719,16 +1716,28 @@ int _createDIndexFromHs(String<uint64_t> & hs, DIndex & index, int64_t thd_omit_
         int64_t t_str = t_blocks[t_id];
         int64_t t_end = t_blocks[t_id + 1];
         uint64_t xval;
+        uint64_t pre_g_id = (t_str == 0) ? ~0 : _getSA_i1(_DefaultHs.getHsBodyS(hs[t_str - 1]));
         for (int64_t i = t_str; i < t_end; i++)
         {
             if (_DefaultHs.isHead(hs[i]))
             {
-                xval = _DefaultHs.getHeadx(hs[i]);
+                xval = _DefaultHs.getHeadX(hs[i]);
+                uint64_t current_g_id = _getSA_i1(_DefaultHs.getHsBodyS(hs[i + 1]));
+                if (current_g_id != pre_g_id)
+                {
+                    dout << "ci" << current_g_id << i << "\n";
+                    hs_str_end[current_g_id] = i;
+                    pre_g_id = current_g_id; 
+                }
             }
             else{
                 atomicInc(dir[xval]);
             }
         }
+    }
+    if (!empty(hs_str_end))
+    {
+        back(hs_str_end) = _DefaultHs.getLength(hs);
     }
     int64_t sum = 0;
     for (int64_t i = 0; i < length(dir); i++)
@@ -1746,7 +1755,7 @@ int _createDIndexFromHs(String<uint64_t> & hs, DIndex & index, int64_t thd_omit_
     //make sure genomeid >= length(seqs) and cord y be 0! y points to next empty.
     resize (d_hs, sum, EmptyVal);
     serr.print_message("--Index::inite   ", 0, 1, std::cerr);
-    serr.print_message("=>Index::hashing", 0, 2, std::cerr);
+    serr.print_message("=>Index::creating dindex", 0, 2, std::cerr);
 
     #pragma omp parallel
     {   
@@ -1760,14 +1769,15 @@ int _createDIndexFromHs(String<uint64_t> & hs, DIndex & index, int64_t thd_omit_
             if (_DefaultHs.isHead(hs[j]))
             {
                 j_str = j;
-                xval = _DefaultHs.getHeadx(hs[j]);
+                xval = _DefaultHs.getHeadX(hs[j]);
             }
             else if (dir[xval + 1] - dir[xval]) //too large blocks > thd_omit_block should (has been) be ommited in the @dir
             {
                 int64_t slot_str = dir[xval];
                 int64_t k = slot_str + get_cord_y(atomic_inc_cord_y(d_hs[slot_str])) - 1;
-                int64_t new_cord = create_cord(_DefaultHs.getHeadid(hs[j]), _DefaultHs.getHeadx(hs[j]), 
-                                       0, _DefaultHs.getHsBodyStrand(hs[j])); //be sure new_cord_y == 0 
+                int64_t new_cord = create_cord(_getSA_i1(_DefaultHs.getHsBodyS(hs[j])), 
+                                               _getSA_i2(_DefaultHs.getHsBodyS(hs[j])), 0, 
+                                               _DefaultHs.getHsBodyStrand(hs[j])); //be sure new_cord_y == 0 
                 if (k == slot_str) 
                 {   //atomic creating the first cord which cotains shared pointer
                     new_cord -= EmptyVal;
@@ -1781,10 +1791,7 @@ int _createDIndexFromHs(String<uint64_t> & hs, DIndex & index, int64_t thd_omit_
             else {/*NONE*/}
         }
     }
-    std::cout << "createDIndex " << sysTime() - t << " " << sysTime() - t2 << "\n";
-    serr.print_message("Index::hash        ", 2, 1, std::cerr);
-    serr.print_message("End createing index ", 2, 0, std::cerr);
-    serr.print_message(sysTime() - t, 2, 1, std::cerr);
+
     return 0;
 }
 
@@ -1793,19 +1800,43 @@ int createMDIndex(StringSet<String<Dna5> > & seqs,
                   unsigned gstr, unsigned gend, 
                   int64_t thd_omit_block, unsigned threads, unsigned thd_step)
 {
-    __createHsArray(seqs, index.hindex.ysa, index.hindex.getShape(),  gstr, gend, threads, thd_step);
-    _createDIndexFromHs(index.hindex.ysa, index.dindex, thd_omit_block, threads);
+    //t = sysTime();
+    double t = sysTime();
+    serr.print_message("=>Index::creating MD index          ", 0, 2, std::cerr);
+    resize (index.hindex.ysa_str_end, length(seqs) + 1, 0);
+    _createDIndexFromHs(index.hindex.ysa, index.hindex.ysa_str_end, index.dindex, thd_omit_block, threads);
+    serr.print_message("Index::hash        ", 2, 1, std::cerr);
+    serr.print_message("End creating index ", 2, 0, std::cerr);
+    serr.print_message(sysTime() - t, 2, 1, std::cerr);
 }
 
-int _createMHIndex(String<uint64_t> & hs, 
-                   LShape & shape,
-                   uint64_t g_hs_str, //[@g_hs_str, @g_hs_end) in @hs that belongs to the genome.
-                   uint64_t g_hs_end,
-                   unsigned threads)
+/*----------  MHindx  ----------*/
+
+int _createHIndexFromHs(String<uint64_t> & hs, 
+                        XString & xstr,
+                        LShape & shape,
+                        uint64_t & indexEmptyDir,
+                        uint64_t g_hs_str, //[@g_hs_str, @g_hs_end) in @hs that belongs to the genome.
+                        uint64_t g_hs_end,
+                        uint64_t thd_blocklimit,
+                        unsigned threads)
 {
+    dout << "chssort" << g_hs_str << length(hs) << g_hs_end << "\n";
     _hsSort(begin(hs) + g_hs_str, begin(hs) + g_hs_end, shape.weight, threads);
+    _createYSA(hs, xstr, g_hs_str, g_hs_end, indexEmptyDir, threads, thd_blocklimit, false);
     return 0;
 }
+
+int createMHIndex(IndexDynamic & index, uint64_t g_str, uint64_t g_end, 
+                  uint64_t thd_blocklimit, unsigned threads)
+{
+    HIndex & hindex = index.hindex;
+    dout << "css1" << g_str << g_end << hindex.ysa_str_end[g_str] << hindex.ysa_str_end[g_end] << "\n";
+    _createHIndexFromHs(hindex.ysa, hindex.xstr, hindex.getShape(), hindex.emptyDir,
+                        hindex.ysa_str_end[g_str], hindex.ysa_str_end[g_end], thd_blocklimit, threads);
+}
+
+/*----------  DynamicIndex   ----------*/
 
 int64_t queryHsStr(DIndex & index, int64_t xval)
 {
@@ -1815,7 +1846,6 @@ int64_t queryHsEnd(DIndex & index, int64_t xval)
 {
     return index.getDir()[xval + 1];
 }
-
 int IndexDynamic::isHIndex()
 {
     return typeIx & typeHIx;
@@ -1894,25 +1924,40 @@ void IndexDynamic::clearIndex()
 IndexDynamic::IndexDynamic(StringSet<String<Dna5> > & seqs) : dindex(), hindex(), typeIx(typeHIx)
 {}
 
+int createMHsArray(StringSet<String<Dna5> > & seqs, IndexDynamic & index, uint64_t gstr, uint64_t gend, unsigned threads, uint64_t thd_step, bool f_recreate)
+{
+    if (empty(index.hindex.ysa) || f_recreate) 
+    {
+        double t = sysTime();
+        serr.print_message("=>Index::creating hash array          ", 0, 2, std::cerr);
+        __createHsArray(seqs, index.hindex.ysa, index.hindex.getShape(),  gstr, gend, threads, thd_step);
+        serr.print_message("End creating hash array              ", 2, 0, std::cerr);
+        serr.print_message(sysTime() - t, 2, 1, std::cerr);   
+    }
+    return 0;
+}
+
 bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned gstr, unsigned gend, unsigned threads, bool efficient)
 {
     dout << "idx" << index.typeIx << "\n";
     if (index.isMIndex())    
     {
         unsigned thd_shape_len = 23;
+        int64_t thd_step = 10;
         index.dindex.getShape().init_shape_parm(thd_shape_len);
         index.hindex.getShape().init_shape_parm(thd_shape_len);
         if (index.isDIndex())
         {
-    dout << "idx" << index.typeIx << "\n";
             int64_t thd_omit_block = 50; 
-            int64_t thd_step = 10;
-
-            createMDIndex(seqs, index, gstr, gend, thd_omit_block, threads, thd_step);
+            createMHsArray(seqs, index, gstr, gend, threads, thd_step, true);
+            createMDIndex (seqs, index, gstr, gend, thd_omit_block, threads, thd_step);
         }
         else if (index.isHIndex())
         {
-
+            dout << "idx2" << index.typeIx << "\n";
+            uint64_t thd_blocklimit = 32;
+            createMHsArray(seqs, index, gstr, gend, threads, thd_step, false);
+            createMHIndex (index, gstr, gend, thd_blocklimit, threads);
         }
         else{/*NONE*/}
     }
@@ -1927,12 +1972,8 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
             index.dindex.getShape().init_shape_parm(thd_shape_len);
             std::cout << "cidx" << index.typeIx << "\n";
             //TODO::parm wrapping 
-            return createDIndex(seqs, index.dindex, 
-                                thd_min_step, 
-                                thd_max_step, 
-                                thd_omit_block,
-                                gstr, gend,
-                                threads);
+            return createDIndex(seqs, index.dindex, thd_min_step, thd_max_step, thd_omit_block,
+                                gstr, gend, threads);
             //return createDIndex_serial(seqs, index.dindex, 4, 10);
         }
         else if (index.isHIndex())

@@ -132,9 +132,9 @@ template <typename TDna, typename TSpec>
 int map(Mapper<TDna, TSpec> & mapper)
 {
     //printStatus();
-    omp_set_num_threads(mapper.thread());
+    omp_set_num_threads(mapper.getThreads());
     StringSet<String<int> > f2;
-    createFeatures(mapper.genomes(), f2, mapper.thread());
+    createFeatures(mapper.genomes(), f2, mapper.getThreads());
     
     mapper.createIndex(false); // this function will destroy genomes string during the creation to reduce memory footprint
     SeqFileIn rFile(toCString(mapper.readPath()));
@@ -143,7 +143,7 @@ int map(Mapper<TDna, TSpec> & mapper)
     readRecords(mapper.readsId(), mapper.reads(), rFile);//, blockSize);
     std::cerr << ">end reading " <<sysTime() - time << "[s]" << std::endl;
     std::cerr << ">mapping " << length(mapper.reads()) << " reads to reference genomes"<< std::endl;
-    rawMap_dst2_MF<TDna, TSpec>(mapper.index(), f2, mapper.reads(), mapper.mapParm(), mapper.cords(), mapper.thread());
+    rawMap_dst2_MF<TDna, TSpec>(mapper.index(), f2, mapper.reads(), mapper.mapParm(), mapper.cords(), mapper.getThreads());
     mapper.printCordsRaw2();
     return 0;
     //std::cerr << length(mapper.cords()) << " " << length(mapper.reads()) << " \n";
@@ -241,9 +241,9 @@ int g_test(Mapper & mapper)
     unsigned window_size = 192;
     unsigned g_start = 4000; // gap start and end
     unsigned g_end = 5000;
-    omp_set_num_threads(mapper.thread());
+    omp_set_num_threads(mapper.getThreads());
     StringSet<String<int> > f2;
-    createFeatures(mapper.genomes(), f2, mapper.thread());
+    createFeatures(mapper.genomes(), f2, mapper.getThreads());
     mapper.createIndex(); 
     SeqFileIn rfile (toCString(mapper.readPath()));
     readRecords(mapper.readsId(), mapper.reads(), rfile);
@@ -256,7 +256,7 @@ int g_test(Mapper & mapper)
     {
         appendValue(reads[0], mapper.reads()[0][k]);
     }
-    rawMap_dst2_MF<TDna, TSpec>(mapper.index(), f2, reads, mapper.mapParm(), mapper.cords(), mapper.thread());
+    rawMap_dst2_MF<TDna, TSpec>(mapper.index(), f2, reads, mapper.mapParm(), mapper.cords(), mapper.getThreads());
     mapGaps (mapper.genomes(), reads[0], mapper.cords()[0], window_size, window_size);
     mapper.printCordsRaw2();
     std::cerr << "[]::g_test " << sysTime () - time << "\n";

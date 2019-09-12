@@ -125,31 +125,6 @@ std::ifstream::pos_type _filesize(const char* filename)
     return in.tellg(); 
 }
 
-int readRecords_buckets (StringSet<CharString> & ids, StringSet<String<Dna5> > & reads, StringSet<String<short> >& buckets, SeqFileIn & fin, uint rstr, uint rend, uint bucketId)
-{
-    int start = length(reads);
-    CharString tmp_id;
-    String<Dna5> tmp_read;
-
-    for (int i = rstr; i < rend; i++)
-    {
-        if (!atEnd(fin))
-        {
-            readRecord (tmp_id, tmp_read, fin);
-            if (buckets[i][bucketId]) //only when true
-            {
-                appendValue (ids, tmp_id);
-                appendValue (reads, tmp_read);
-            }
-        }
-        else
-        {
-            break;
-        }
-    }
-    return 0;
-}
-
 /*
  *[]::load all records in one genome file
  */

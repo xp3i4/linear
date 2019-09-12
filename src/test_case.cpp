@@ -26,11 +26,11 @@ int main(int argc, const char ** argv)
         return res == seqan::ArgumentParser::PARSE_ERROR;
 
     Mapper mapper(options);
-    omp_set_num_threads(mapper.thread());
+    omp_set_num_threads(mapper.getThreads());
     std::cerr << "running test1\n";
-    //check_index1 (mapper.getGenomes(), mapper.index(), mapper.thread());
-    //check_index2 (mapper.getGenomes(), mapper.index(), mapper.thread());
-    check_apx_feature(mapper.getGenomes(), mapper.thread());
+    //check_index1 (mapper.getGenomes(), mapper.index(), mapper.getThreads());
+    //check_index2 (mapper.getGenomes(), mapper.index(), mapper.getThreads());
+    check_apx_feature(mapper.getGenomes(), mapper.getThreads());
 
 
     std::cerr << "Time in sum[s] " << sysTime() - time << std::endl;

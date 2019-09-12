@@ -307,7 +307,8 @@ int print_cords_sam(Mapper & mapper)
                     mapper.getReads(),
                     mapper.getCordSize(),
                     mapper.getOf(),
-                    thd_large_X
+                    thd_large_X,
+                    mapper.getThreads()
         );
     return 0;
 }
@@ -339,7 +340,7 @@ int print_mapper_results(Mapper & mapper)
     ///.apf
     std::string file1 = mapper.getOutputPrefix() + ".apf";
     open_mapper_of (mapper, file1);
-    print_cords_apf(mapper);
+    //print_cords_apf(mapper);
     close_mapper_of(mapper);
 
     ///.gvf
@@ -367,6 +368,50 @@ int print_mapper_results(Mapper & mapper)
     close_mapper_of(mapper);
 
     mapper.setOfApp(); //set of_type to std::ios::app;
+    return 0;
+}
+//read records from fin_pos and buckckets
+int readRecords4FinPosbuckets(StringSet<CharString> & ids, StringSet<String<Dna5> > & reads, 
+                      StringSet<String<short> >& buckets, 
+                      String<Position<SeqFileIn>::Type> & fin_pos,
+                      SeqFileIn & fin, uint rstr, uint rend, uint bucketId)
+{
+    CharString tmp_id;
+    String<Dna5> tmp_read;
+    for (int i = rstr; i < rend & !atEnd(fin); i++)
+    {
+        std::cout << "finp2 " << fin_pos[i] << " " << seqan::position(fin) << "\n";
+        readRecord  (tmp_id, tmp_read, fin);
+        if (buckets[i][bucketId]) //ith read and bucketid genome 
+        {
+            //setPosition (fin, fin_pos[i]);
+            appendValue (ids, tmp_id);
+            appendValue (reads, tmp_read);
+        }
+    }     
+    return 0;
+}
+
+int readRecords2FinPosBuckets(StringSet<CharString> & ids, StringSet<String<Dna5> > & reads, 
+                      StringSet<String<short> >& buckets, 
+                      String<Position<SeqFileIn>::Type> & fin_pos, SeqFileIn & fin, 
+                      uint rstr, uint rend)
+{
+    CharString tmp_id;
+    String<Dna5> tmp_read;
+    if (empty(fin_pos)) 
+    {
+        appendValue(fin_pos, Position<SeqFileIn>::Type(0));
+    }
+    for (int i = rstr; i < rend && !atEnd(fin); i++)
+    {
+        readRecord (tmp_id, tmp_read, fin);
+        appendValue(ids, tmp_id);
+        appendValue(reads, tmp_read);
+        appendValue(fin_pos, seqan::position(fin));
+        std::cout << "finp " << seqan::position(fin) << "\n";
+    }
+        std::cout << "finp " << seqan::position(fin) << "\n";
     return 0;
 }
 
@@ -485,14 +530,19 @@ int map_(IndexDynamic & index,
 }
 
 /**
- * Map control interface
+ * Map main 
+ * Stream all reads records in reads files specified by @path 
+ * !!CRITICAL::this function is required to stream the read records of each read file (@path) 
+   in the same way the function filter() did. Otherwise the @buckets can't work properly.
  */
 int map(Mapper & mapper, 
         StringSet<FeaturesDynamic> & f2, 
         StringSet<String<short> > & buckets, 
+        String<Position<SeqFileIn>::Type> & fin_pos,
         int gid, 
         int f_buckets_enabled,
-        int p1)
+        int p1,
+        bool f_io_append)
 {
     //std::cout << "mapf " << mapper.getFeatureType() << "\n";
     unsigned blockSize = 50000;
@@ -513,7 +563,10 @@ int map(Mapper & mapper,
         outputPrefix = getFileName(outputPrefix, ".", 0);
         dout << "outputPrefix " << outputPrefix << "\n";
         mapper.getOutputPrefix() = outputPrefix;
-        mapper.setOfNew();
+        if (f_io_append){
+            mapper.setOfApp();
+        }
+        else {mapper.setOfNew();}
         unsigned k = 1;
         while (!atEnd(rFile))
         {
@@ -524,8 +577,9 @@ int map(Mapper & mapper,
             {
                 if (f_buckets_enabled)
                 {
-                    dout << "rstr" << rstr << "\n";
-                    readRecords_buckets(mapper.getReadsId(), mapper.getReads(), buckets, rFile, rstr, rstr + blockSize, gid);
+                    dout << "rstr" << rstr << length(buckets) << length(fin_pos) << "\n";
+                    readRecords4FinPosbuckets(mapper.getReadsId(), mapper.getReads(), buckets, fin_pos, rFile, 
+                        rstr, rstr + blockSize, gid);
                     rstr += blockSize;
                 }
                 else
@@ -557,12 +611,14 @@ int map(Mapper & mapper,
                  mapper.getBamRecords(),
                  mapper.getMapFlag(),
                  mapper.getGapLenMin(),
-                 mapper.thread(), 
+                 mapper.getThreads(), 
                  p1);
             time2 = sysTime() - time2;
-            std::cerr <<  "--Map::file " << path << " block "<< k << " Size " << length(mapper.getReads()) << " Elapsed Time[s]: file_I/O " << time1 << " map "<< time2 << "\n";
+            double time3 = sysTime();
             serr.print_message("=>Write results to disk", 0, 2, std::cerr);
+
             print_mapper_results(mapper);
+
             clear (mapper.getCords());
             clear (mapper.getCords2());
             clear (mapper.getClips());
@@ -571,6 +627,8 @@ int map(Mapper & mapper,
             clear (mapper.getReadsId());
             clear (mapper.getClips());
             clear (mapper.getBamRecords());
+            time3 = sysTime() - time3;
+            std::cerr <<  "--Map::file " << path << " block "<< k << " Size " << length(mapper.getReads()) << " Elapsed Time[s]: file_I/O " << time1 + time3 << " map "<< time2 << "\n";
             k++;
         }      
         std::string file1 = mapper.getOutputPrefix() + ".apf";
@@ -596,7 +654,7 @@ int map(Mapper & mapper,
 }
 
 //Shortcut called within filter function to marked the genome requiring map
-//@bucket[i] == 1:the the read should map to the ith genome; otherwise not
+//@bucket[i][j] == 1:the the ith read should map to the jth genome; otherwise not
 void append_genome_bucket(StringSet<String<short> > & buckets, 
                           StringSet<String<uint64_t> > & cords, 
                           unsigned gnmu)
@@ -610,14 +668,6 @@ void append_genome_bucket(StringSet<String<short> > & buckets,
         {
             back(buckets)[get_cord_id(cords[i][j])] = 1;
         }
-        //<<debug
-        uint cstr = 0;
-        if (length(cords[i]) > 2)
-        {
-            cstr = get_cord_id (cords[i][1]);
-            std::cout << "cstr " << i << " " << cstr << " " << buckets[i][cstr]<< "\n";
-        }
-        //>>debug
     }
 }
 
@@ -629,7 +679,7 @@ int filter_(IndexDynamic & index,
             StringSet<String<uint64_t> > & cords_end,
             StringSet<String<uint64_t> > & clips,
             StringSet<String<Dna5> > & seqs,
-            StringSet<String<BamAlignmentRecordLink> >& bam_records,
+            StringSet<String<BamAlignmentRecordLink> > & bam_records,
             uint f_map,   //control flags
             uint gap_len_min,
             uint threads,
@@ -640,23 +690,12 @@ int filter_(IndexDynamic & index,
     uint thd_min_read_len = 200;
     //todo::tune the cordThr try to merge cords of blocks 
     MapParm complexParm = mapParm;
-    complexParm.alpha = complexParm.alpha2;
-    complexParm.listN = complexParm.listN2;
     String<uint64_t> gap_len;
     String<uint64_t> red_len;
     resize (gap_len, threads, 0);
     resize (red_len, threads, 0);
     float thd_err_rate = 0.2;
     int f_chain = 1; 
-    if (fm_handler_.isApxChain(f_map))
-    {
-        f_chain = 1;
-    }
-    else
-    {
-        f_chain = 0;
-    }
-    dout << "fchain" << f_chain << (f_map & 8) << "\n";
 #pragma omp parallel
 {
     unsigned size2 = length(reads) / threads;
@@ -667,8 +706,6 @@ int filter_(IndexDynamic & index,
     StringSet<String<uint64_t> > cordsTmp;  //cords_str
     StringSet<String<uint64_t> > cordsTmp2; //cords_end
     StringSet<FeaturesDynamic> f1;
-    StringSet<String<uint64_t> > clipsTmp;
-    StringSet<String<BamAlignmentRecordLink> > bam_records_tmp;
     unsigned thd_id = omp_get_thread_num();
     if (thd_id < length(reads) - size2 * threads)
     {
@@ -676,22 +713,15 @@ int filter_(IndexDynamic & index,
     }
     resize(cordsTmp, ChunkSize);
     resize(cordsTmp2, ChunkSize);
-    resize(clipsTmp, ChunkSize);
-    resize(bam_records_tmp, ChunkSize);
     resize(f1, 2);
     f1[0].init(f2[0].fs_type);
     f1[1].init(f2[0].fs_type);
     unsigned c = 0;
-    
-    String<uint64_t> g_hs;
-    String<uint64_t> g_anchor;
+
     String<UPair> apx_gaps; 
-    resize (g_hs, 1ULL << 20);
-    resize (g_anchor, 1ULL<<20);
     #pragma omp for
     for (unsigned j = 0; j < length(reads); j++)
     {
-        dout << "readid" << j << "\n";
         double t1 = sysTime ();
         red_len[thd_id] += length(reads[j]);
         float cordLenThr = length(reads[j]) * cordThr;
@@ -701,8 +731,7 @@ int filter_(IndexDynamic & index,
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
             createFeatures(begin(comStr), end(comStr), f1[1]);
             apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordLenThr, f_chain);
-            //filter_(index, reads[j], anchors, MapParm, crhit, buckets, cord)
-
+            //filterGenomes(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordLenThr, f_chain);
         }
         c += 1;
     } 
@@ -712,14 +741,6 @@ int filter_(IndexDynamic & index,
     {
         append(cords_str, cordsTmp);
         append(cords_end, cordsTmp2);
-        if (fm_handler_.isMapGap(f_map))
-        {
-            append(clips, clipsTmp);
-        }
-        if (fm_handler_.isAlign(f_map))
-        {
-            append(bam_records, bam_records_tmp);
-        }
     }
 }
     return 0;
@@ -728,10 +749,14 @@ int filter_(IndexDynamic & index,
 /*
  * Filter control interface
  */
-int filter(Mapper & mapper, StringSet<FeaturesDynamic> f2, StringSet<String<short> > & buckets, int p1)
+int filter(Mapper & mapper, 
+          StringSet<FeaturesDynamic> f2, 
+          StringSet<String<short> > & buckets, 
+          String<Position<SeqFileIn>::Type> & fin_pos, int p1)
 {
     unsigned blockSize = 50000;
     SeqFileIn rFile;
+    uint rstr = 0;
     for (auto path : mapper.getRPaths())
     {
         if(!open(rFile, toCString(path)))
@@ -749,23 +774,26 @@ int filter(Mapper & mapper, StringSet<FeaturesDynamic> f2, StringSet<String<shor
         while (!atEnd(rFile))
         {
             double time1 = sysTime();
-            serr.print_message("=>Map::file_I/O", 0, 0, std::cerr);
+            serr.print_message("=>Filter::I/O::reading records", 0, 0, std::cerr);
             serr.print_message(k, 0, 2, std::cerr);
             try
             {
-                readRecords(mapper.getReadsId(), mapper.getReads(), rFile, blockSize);
+                //readRecords_buckets(mapper.getReadsId(), mapper.getReads(), rFile, blockSize);
+                readRecords2FinPosBuckets(mapper.getReadsId(), mapper.getReads(), buckets, fin_pos, rFile, 
+                    rstr, rstr + blockSize);
+
             }
             catch (Exception const & e)
             {
                 //none;
             }
             //serr.print_message("", 50, 2, std::cerr); 
-            serr.print_message("=>Map::Filtering genomes ", 0, 0, std::cerr);
-            serr.print_message(path, 0, 0, std::cerr);
+            serr.print_message ("=>Filiter::filtering genomes ", 0, 0, std::cerr);
+            serr.print_message (path, 0, 0, std::cerr);
             serr.print_message (" block ", 0, 0, std::cerr);
-            serr.print_message(k, 0, 0, std::cerr);
-            serr.print_message(" Size ", 0, 0, std::cerr);
-            serr.print_message(unsigned(length(mapper.getReads())), 0, 2, std::cerr);
+            serr.print_message (k, 0, 0, std::cerr);
+            serr.print_message (" Size ", 0, 0, std::cerr);
+            serr.print_message (unsigned(length(mapper.getReads())), 0, 2, std::cerr);
             time1 = sysTime() - time1;
             double time2 = sysTime();
             filter_(mapper.getIndex(), 
@@ -779,14 +807,14 @@ int filter(Mapper & mapper, StringSet<FeaturesDynamic> f2, StringSet<String<shor
                  mapper.getBamRecords(),
                  mapper.getMapFlag(),
                  mapper.getGapLenMin(),
-                 mapper.thread(), 
+                 mapper.getThreads(), 
                  p1);
             time2 = sysTime() - time2;
             std::cerr <<  "--Filter::genomes " << path << " block "<< k << " Size " << length(mapper.getReads()) << " Elapsed Time[s]: file_I/O " << time1 << " filter "<< time2 << "\n";
             serr.print_message("=>Recording geonme buckets", 0, 2, std::cerr);
             //std::cerr << std::flush;
             append_genome_bucket(buckets, mapper.getCords(), length(mapper.getGenomes()));
-
+            dout << "lb" << length(buckets) << "\n";
             clear (mapper.getCords());
             clear (mapper.getCords2());
             clear (mapper.getClips());
