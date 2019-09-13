@@ -54,9 +54,10 @@ int process2(Mapper & mapper, Options & options, int p1)
     //mapper.clearIndex();
 
     //map for each chr bucket
+    
     mapper.loadOptions(options);
     mapper.getIndex().setMHIndex(); //disable filter index && enable mapper index
-    bool f_io_append = false; //flag if result append to or open as new 
+    bool f_io_append = false;       //flag if result append to or open as new 
     for (unsigned i = 0; i < length(mapper.getGenomes()); i++)
     {
         dout << "mgs" << i << "\n";
@@ -71,6 +72,11 @@ int process2(Mapper & mapper, Options & options, int p1)
         std::cerr << "\n";
     }
     return 0;
+}
+
+int process3(Mapper & mapper, Options & options, int p1)
+{
+
 }
 
 int main(int argc, char const ** argv)

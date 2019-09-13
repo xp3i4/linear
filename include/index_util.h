@@ -170,8 +170,9 @@ class HIndex
 {
 public:
 
-    String<HType1>     ysa;
-    String<HType1>     ysa_str_end;
+    String<HType1>                          ysa;
+    String<HType1>                          ysa_str_end;
+    String<std::pair<uint64_t, uint64_t> >  ysa_sorted_records;
     XString            xstr;
     LShape             shape;
     double             alpha;    
@@ -180,6 +181,8 @@ public:
     HIndex();
     HIndex(unsigned shape_len, float index_alpha);
     bool isEmptyDir(uint64_t);
+    bool ifYsaSorted(uint64_t g_str, uint64_t g_end);
+    bool insertYsaSortedRecord(uint64_t g_str, uint64_t g_end);
     void clear();
     LShape & getShape();
 }; 

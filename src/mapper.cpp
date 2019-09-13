@@ -380,7 +380,6 @@ int readRecords4FinPosbuckets(StringSet<CharString> & ids, StringSet<String<Dna5
     String<Dna5> tmp_read;
     for (int i = rstr; i < rend & !atEnd(fin); i++)
     {
-        std::cout << "finp2 " << fin_pos[i] << " " << seqan::position(fin) << "\n";
         readRecord  (tmp_id, tmp_read, fin);
         if (buckets[i][bucketId]) //ith read and bucketid genome 
         {
@@ -409,9 +408,7 @@ int readRecords2FinPosBuckets(StringSet<CharString> & ids, StringSet<String<Dna5
         appendValue(ids, tmp_id);
         appendValue(reads, tmp_read);
         appendValue(fin_pos, seqan::position(fin));
-        std::cout << "finp " << seqan::position(fin) << "\n";
     }
-        std::cout << "finp " << seqan::position(fin) << "\n";
     return 0;
 }
 
@@ -757,8 +754,10 @@ int filter(Mapper & mapper,
     unsigned blockSize = 50000;
     SeqFileIn rFile;
     uint rstr = 0;
-    for (auto path : mapper.getRPaths())
+    //for (auto path : mapper.getRPaths())
+    for (int i = 0; i < length(mapper.getRPaths()); i++)
     {
+        auto & path = mapper.getRPaths()[i];
         if(!open(rFile, toCString(path)))
         {
             serr.print_message("\033[1;31mError:\033[0m can't open read file ", 2, 0, std::cerr);
@@ -767,7 +766,7 @@ int filter(Mapper & mapper,
         }
         std::string outputPrefix = getFileName(path, "/", ~0);
         outputPrefix = getFileName(outputPrefix, ".", 0);
-        dout << "outputPrefix " << outputPrefix << "\n";
+        dout << "outputPrefix " << outputPrefix << length(mapper.getRPaths()) << "\n";
         mapper.getOutputPrefix() = outputPrefix;
         mapper.setOfNew();
         unsigned k = 1;
@@ -785,6 +784,7 @@ int filter(Mapper & mapper,
             }
             catch (Exception const & e)
             {
+                std::cerr << "\033[1;31mError:\033[0m can't read records " << e.what () << "\n";
                 //none;
             }
             //serr.print_message("", 50, 2, std::cerr); 
@@ -810,10 +810,11 @@ int filter(Mapper & mapper,
                  mapper.getThreads(), 
                  p1);
             time2 = sysTime() - time2;
-            std::cerr <<  "--Filter::genomes " << path << " block "<< k << " Size " << length(mapper.getReads()) << " Elapsed Time[s]: file_I/O " << time1 << " filter "<< time2 << "\n";
+            double time3 = sysTime();
             serr.print_message("=>Recording geonme buckets", 0, 2, std::cerr);
             //std::cerr << std::flush;
             append_genome_bucket(buckets, mapper.getCords(), length(mapper.getGenomes()));
+            std::cerr <<  "--Filter::genomes " << path << " block "<< k << " Size " << length(mapper.getReads()) << " Elapsed Time[s]: file_I/O " << time1 << " filter "<< time2 << " append buckets " << sysTime() - time3  << "\n";
             dout << "lb" << length(buckets) << "\n";
             clear (mapper.getCords());
             clear (mapper.getCords2());
@@ -825,6 +826,7 @@ int filter(Mapper & mapper,
             clear (mapper.getBamRecords());
             k++;
         }      
+        close(rFile);
     }
     return 0;
 }

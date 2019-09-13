@@ -154,67 +154,68 @@ std::pair<uint, uint> loadRecords(StringSet<String<Dna5> > & seqs,
     dotstatus[2] = "... ";
     unsigned len_sum = 0;
     int error = 0;
-#pragma omp parallel
-{
-    #pragma omp sections
+    #pragma omp parallel
     {
-        #pragma omp section
+        #pragma omp sections
         {
-            //unsigned preSeqCount = 0;
-            String <char> probar;
-            float prepercent = 0, percent = 0, showpercent = 0, v = 0.87 ;
-            unsigned k = 1;
-            while (!flag)
+            #pragma omp section
             {
-                prepercent = percent;
-                percent = currentFileSize / fileSize * 100;
-                percent = (percent > 100)?prepercent:percent;
-                showpercent += v;
-                showpercent = (showpercent > percent)?percent:showpercent;
-                
-                std::cerr << "                                                            \r";
-                if (seqCount > 2)
+                //unsigned preSeqCount = 0;
+                String <char> probar;
+                float prepercent = 0, percent = 0, showpercent = 0, v = 0.87 ;
+                unsigned k = 1;
+                while (!flag)
                 {
-                    std::cerr << "=>Read genomes" << dotstatus[(k - 1)/10 %3] << "            " << seqCount << "/" << std::setprecision(2) << std::fixed << showpercent << "%\r";
+                    prepercent = percent;
+                    percent = currentFileSize / fileSize * 100;
+                    percent = (percent > 100)?prepercent:percent;
+                    showpercent += v;
+                    showpercent = (showpercent > percent)?percent:showpercent;
+                    
+                    std::cerr << "                                                            \r";
+                    if (seqCount > 2)
+                    {
+                        std::cerr << "=>Read genomes" << dotstatus[(k - 1)/10 %3] << "            " 
+                        << seqCount << "/" << std::setprecision(2) << std::fixed << showpercent << "%\r";
+                    }
+                    else
+                    {
+                        std::cerr << "=>Read genomes" << dotstatus[(k - 1)/10 %3] << "\r";
+                    }
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    k++;
                 }
-                else
-                {
-                    std::cerr << "=>Read genomes" << dotstatus[(k - 1)/10 %3] << "\r";
-                }
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                k++;
             }
-        }
-        #pragma omp section
-        {
-            PMRecord::RecId tmp_id;
-            PMRecord::RecSeq tmp_seq;
-            while (!atEnd(gFile))
+            #pragma omp section
             {
-                clear (tmp_id);
-                clear (tmp_seq);
-                try
+                PMRecord::RecId tmp_id;
+                PMRecord::RecSeq tmp_seq;
+                while (!atEnd(gFile))
                 {
-                    readRecord (tmp_id, tmp_seq, gFile);
+                    clear (tmp_id);
+                    clear (tmp_seq);
+                    try
+                    {
+                        readRecord (tmp_id, tmp_seq, gFile);
+                    }
+                    catch (Exception const & e)
+                    {
+                        std::string msg1 = "File: " + path + " ";
+                        serr.print_message (msg1, 2, 0, std::cerr);
+                        serr.print_message ("[", 20, 0, std::cerr);
+                        serr.print_message("\033[1;31mError:\033[0m can't read records in file]", 0, 1, std::cerr);
+                        error = 1;
+                    }
+                    currentFileSize += length(tmp_seq);
+                    appendValue (ids, tmp_id);
+                    appendValue (seqs, tmp_seq);
+                    len_sum += length(tmp_seq);
+                    ++seqCount;
                 }
-                catch (Exception const & e)
-                {
-                    std::string msg1 = "File: " + path + " ";
-                    serr.print_message (msg1, 2, 0, std::cerr);
-                    serr.print_message ("[", 20, 0, std::cerr);
-                    serr.print_message("\033[1;31mError:\033[0m can't read records in file]", 0, 1, std::cerr);
-                    error = 1;
-                }
-                currentFileSize += length(tmp_seq);
-                appendValue (ids, tmp_id);
-                appendValue (seqs, tmp_seq);
-                len_sum += length(tmp_seq);
-                ++seqCount;
+                flag = true;
             }
-            flag = true;
         }
     }
-}
     if (error)
     {
         res = std::make_pair(uint(~0), uint(~0));
@@ -476,6 +477,7 @@ void ostreamWapper::print_message(double data,
     std::string str = strs.str();
     print_message(str, start, end_type, os);
 }
+
 void ostreamWapper::print_message(unsigned data, 
                                   size_t start, 
                                   int end_type, 

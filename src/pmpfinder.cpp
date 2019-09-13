@@ -1529,7 +1529,11 @@ uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read
     ak2=anchors[0];
     uint64_t mask = (1ULL << 20) - 1;
     uint64_t min_y = ~0ULL, max_y = 0;
-    //dout << "anchorlen " << anchors.end() - anchors.begin() << "\n";
+    //<<debug 
+    std::stringstream str;
+    str << "anchorlen " << anchors.end() - anchors.begin();
+    std::cout << str.str()<< "\n";
+    //>>debug
     for (unsigned k = 1; k < anchors.length(); k++)
     {
         int64_t anc_y = get_cord_y(anchors[k]);

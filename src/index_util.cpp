@@ -335,6 +335,35 @@ void HIndex::clear()
     shrinkToFit(ysa);
     xstr.clear();
 }
+/* Chenck if region in ysa contianing genomes from @g_str to @g_end [@g_str, g_end) 
+   have been already sorted;
+ * New records are required always append at the end of @ysa_sort_records. So the function checks starting from 
+   the end of the @ysa_sort_records to check the latestd record that is ovelapped with [@g_str, g_end).
+ * Return true only if [@g_str, g_end) is exactly in the @ysa_sorted_records !
+ */
+bool HIndex::ifYsaSorted(uint64_t g_str, uint64_t g_end)
+{
+    for (int i = length(ysa_sorted_records) - 1; i >= 0; i--)
+    {
+        if (std::max(g_str, ysa_sorted_records[i].first) < std::min(g_end, ysa_sorted_records[i].second)) //overlap
+        {
+            return (g_str != ysa_sorted_records[i].first || g_end != ysa_sorted_records[i].second) ?
+                    false : true;
+        }
+    }
+    return false;
+}
+
+bool HIndex::insertYsaSortedRecord(uint64_t g_str, uint64_t g_end)
+{
+    bool f_return = ifYsaSorted(g_str, g_end);
+    if (!f_return)
+    {
+        appendValue (ysa_sorted_records, std::pair<uint64_t, uint64_t> (g_str, g_end));
+    }
+    return f_return;
+}
+
 /*
  * serial sort hs
  * bucket[]+
@@ -1260,7 +1289,7 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
  * create ysa within [@hs_str, hs_end) of @hs
  * WARN::be sure @hs[hs_str] and @hs[hs_end] are Hs::headNode type
  */
-bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t hs_str, uint64_t hs_end, uint64_t & indexEmptyDir, unsigned threads, uint64_t thd_blocklimit, int f_shrink_hs)
+bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t hs_str, uint64_t hs_end, uint64_t & indexEmptyDir, bool f_shrink_hs, bool f_ysa_sorted, unsigned threads, uint64_t thd_blocklimit)
 {
     std::cerr << "=>Index::SortYSA                                                  \r";
     double time = sysTime();
@@ -1338,12 +1367,14 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t hs_str, uint64_t
     k = hs_str_modified;
     uint64_t count = 0; 
     time = sysTime();
+    float c1 = 0, c2 = 0;
     while(_DefaultHs.getHeadPtr(hs[k]) && k < hs_end_modified)
     {
         ptr = _DefaultHs.getHeadPtr(hs[k]);
         if (ptr < thd_blocklimit)
         {
             ++count;
+            c1+=ptr;
         }
         else
         {   
@@ -1355,6 +1386,7 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t hs_str, uint64_t
                 }
             }
             ++count;
+            c2+=ptr;
         }
         k += ptr;
     }
@@ -1362,6 +1394,7 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t hs_str, uint64_t
     std::cerr << "  Index::resize xstr          Elapsed Time[s] " << sysTime() - time << std::endl;
     std::cerr << "=>Index::request dir                                                  \r";
     time = sysTime();
+    std::cout << "lbks " << c1 / (c1 + c2) << "\n";
 
     #pragma omp parallel 
     {
@@ -1405,9 +1438,9 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t hs_str, uint64_t
     return true;
 }
 
-bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir, unsigned threads, uint64_t thd_blocklimit, int f_shrink_hs = 1)
+bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir, unsigned threads, uint64_t thd_blocklimit)
 {
-    return _createYSA(hs, xstr, 0, _DefaultHs.getLength(hs), indexEmptyDir, threads, thd_blocklimit, f_shrink_hs);
+    return _createYSA(hs, xstr, 0, _DefaultHs.getLength(hs), indexEmptyDir, true, false, threads, thd_blocklimit);
 }
 
 /*
@@ -1818,22 +1851,23 @@ int _createHIndexFromHs(String<uint64_t> & hs,
                         uint64_t & indexEmptyDir,
                         uint64_t g_hs_str, //[@g_hs_str, @g_hs_end) in @hs that belongs to the genome.
                         uint64_t g_hs_end,
+                        bool     f_ysa_sorted, //flag indicating if ysa has already been sorted
                         uint64_t thd_blocklimit,
                         unsigned threads)
 {
     dout << "chssort" << g_hs_str << length(hs) << g_hs_end << "\n";
     _hsSort(begin(hs) + g_hs_str, begin(hs) + g_hs_end, shape.weight, threads);
-    _createYSA(hs, xstr, g_hs_str, g_hs_end, indexEmptyDir, threads, thd_blocklimit, false);
+    _createYSA(hs, xstr, g_hs_str, g_hs_end, indexEmptyDir, false, f_ysa_sorted, threads, thd_blocklimit);
     return 0;
 }
 
-int createMHIndex(IndexDynamic & index, uint64_t g_str, uint64_t g_end, 
-                  uint64_t thd_blocklimit, unsigned threads)
+int createMHIndex(IndexDynamic & index, uint64_t g_str, uint64_t g_end, uint64_t thd_blocklimit, unsigned threads)
 {
     HIndex & hindex = index.hindex;
-    dout << "css1" << g_str << g_end << hindex.ysa_str_end[g_str] << hindex.ysa_str_end[g_end] << "\n";
+    bool f_ysa_sorted = hindex.insertYsaSortedRecord(g_str, g_end);
+    dout << "css1" << g_str << g_end << f_ysa_sorted << "\n";
     _createHIndexFromHs(hindex.ysa, hindex.xstr, hindex.getShape(), hindex.emptyDir,
-                        hindex.ysa_str_end[g_str], hindex.ysa_str_end[g_end], thd_blocklimit, threads);
+                        hindex.ysa_str_end[g_str], hindex.ysa_str_end[g_end], f_ysa_sorted, thd_blocklimit, threads);
 }
 
 /*----------  DynamicIndex   ----------*/
@@ -1910,6 +1944,7 @@ void IndexDynamic::setIndexType(int ix_type)
     else if (ix_type == typeDIx + typeFIx){setFDIndex();}
     else {setHIndex();}
 }
+
 void IndexDynamic::clearIndex()
 {
     if (isHIndex())
@@ -1978,9 +2013,10 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
         }
         else if (index.isHIndex())
         {
-            //chr1: step=5, shape_len=25, block_limt =32|  0.077% > 32(block size) 
-            //chr1, 5,  21, 32 | 0.7% > 32 0.22% > 64
-            //chr1, 10, 21, 32 | 0.49% > 32  0.16% > 64
+            //chr1: step=5, shape_len=25 | 0.077% blocks > 32 (thd_block_limit), 5.7% > kmers in these blocks
+            //chr1: 5,  21 | 0.70% > 32 |0.22% > 64 
+            //chr1: 10, 21 | 0.49% > 32 |0.16% > 64 4.8% kmers in...
+            //grch37 1-22,x,y : 10, 25, 32| 1.3% > 32, 27.02% kmers in|0.6% > 64, 23.6%  
             unsigned thd_step = 10;
             unsigned thd_shape_len = 25; //WARN only odd number is allowed due to double strand hash
             uint64_t thd_blocklimit = 32;
