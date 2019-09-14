@@ -66,7 +66,8 @@ int print_align_sam (StringSet<String<Dna5> > & genms,
                      StringSet<CharString> & genmsId,
                      StringSet<CharString> & readsId,
                      StringSet<String<BamAlignmentRecordLink> > & bam_records,
-                     std::ofstream & of
+                     std::ofstream & of,
+                     int f_header //if print header
                      );
 
 void addNextBamLink(String<BamAlignmentRecordLink> & bam_records,
@@ -105,5 +106,6 @@ void print_cords_sam (StringSet<String<uint64_t> > & cordset_str,
                       int thd_cord_size,
                       std::ofstream & of,
                       uint64_t thd_large_X,
-                      unsigned threads);
+                      unsigned threads,
+                      int f_header);
 #endif

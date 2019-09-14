@@ -283,7 +283,8 @@ int print_align_sam (Mapper & mapper)
                      mapper.getGenomesId(),
                      mapper.getReadsId(),
                      mapper.getBamRecords(),
-                     mapper.getOf()
+                     mapper.getOf(),
+                     mapper.isOfNew()
                      );
     return 0;
 }
@@ -297,7 +298,7 @@ int print_clips_gvf(Mapper & mapper)
 }
 int print_cords_sam(Mapper & mapper)
 {
-    uint64_t thd_large_X = 80;
+    uint64_t thd_large_X = 80; //cigar containing X > this will be clipped into 2 records
     print_cords_sam(mapper.getCords(),
                     mapper.getCords2(),
                     mapper.getBamRecords(),
@@ -308,7 +309,8 @@ int print_cords_sam(Mapper & mapper)
                     mapper.getCordSize(),
                     mapper.getOf(),
                     thd_large_X,
-                    mapper.getThreads()
+                    mapper.getThreads(),
+                    mapper.isOfNew()
         );
     return 0;
 }

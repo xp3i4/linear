@@ -546,16 +546,15 @@ int print_align_sam (StringSet<String<Dna5> > & genms,
                      StringSet<CharString> & genmsId,
                      StringSet<CharString> & readsId,
                      StringSet<String<BamAlignmentRecordLink> > & bam_records,
-                     std::ofstream & of
+                     std::ofstream & of,
+                     int f_header
                      )
 {
-    print_align_sam_header_(genmsId, 
-                            genms,
-                            of);
-    print_align_sam_record_(bam_records,
-                            genmsId,
-                            readsId,
-                            of); 
+    if (f_header)
+    {
+        print_align_sam_header_(genmsId, genms, of);
+    }
+    print_align_sam_record_(bam_records, genmsId, readsId, of); 
     return 0;
 }
 
@@ -819,9 +818,10 @@ void print_cords_sam
      int thd_cord_size,
      std::ofstream & of,
      uint64_t thd_large_X,
-     unsigned threads)
+     unsigned threads,
+     int f_header)
 {
     cords2BamLink (cordset_str, cordset_end, bam_records, reads, thd_cord_size, thd_large_X, threads);
     //shrink_cords_cigar(bam_records);
-    print_align_sam (genms, genmsId, readsId, bam_records, of);
+    print_align_sam (genms, genmsId, readsId, bam_records, of, f_header);
 }   

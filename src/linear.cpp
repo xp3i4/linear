@@ -92,6 +92,7 @@ int main(int argc, char const ** argv)
         return res == seqan::ArgumentParser::PARSE_ERROR;
     Mapper mapper(options);
     uint thd_g_size = 300 << 20; //300M bases 
+    /*
     if (lengthSum(mapper.getGenomes ()) > thd_g_size)
     {
         int p1 = 0;
@@ -99,9 +100,10 @@ int main(int argc, char const ** argv)
     }
     else
     {
+        */
         int p1 = 0; //temp var for test config
         process1 (mapper, options, p1);
-    }
+    //}
     std::cerr << "Time in sum[s] " << sysTime() - time << "      \n";
     return 0;
 }
