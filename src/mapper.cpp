@@ -342,7 +342,7 @@ int print_mapper_results(Mapper & mapper)
     ///.apf
     std::string file1 = mapper.getOutputPrefix() + ".apf";
     open_mapper_of (mapper, file1);
-    //print_cords_apf(mapper);
+    print_cords_apf(mapper);
     close_mapper_of(mapper);
 
     ///.gvf

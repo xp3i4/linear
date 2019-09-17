@@ -179,9 +179,9 @@ void print_cords_apf(CordsSetType & cords,
                 }
                 stream << mark  
                        << get_cord_y(cords[k][j]) << " " 
-                    //<< get_cord_x(cords[k][j]) << " " 
-                    //<< d2 << " " 
-                    //<< d1 << " " 
+                    << get_cord_x(cords[k][j]) << " " 
+                    << d2 << " " 
+                    << d1 << " " 
                     << get_cord_x (cords[k][j]) - get_cord_y(cords[k][j]) << "\n";
                 //of << stream.str();
                 //of << buffer;
