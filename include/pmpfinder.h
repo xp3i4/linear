@@ -164,7 +164,7 @@ int getBestChains(String<uint64_t> & anchor,
                   int (*getScore) (uint64_t const &, uint64_t const &));
 
 int createChainsFromAnchors(StringSet<String<uint64_t> > &, String<uint64_t> &, int, ChainScoreMetric &);
-
+ 
 uint64_t apxMap (IndexDynamic & index,
                  String<Dna5> & read,
                  Anchors & anchors,

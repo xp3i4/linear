@@ -1438,8 +1438,8 @@ int createChainsFromAnchors(StringSet<String<uint64_t> > & chains, String<uint64
         }
     }   
 }
-/*
-int getApxChainScore(uint64_t const & anchor1, uint64_t const anchor2)
+
+int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
 {
     int dy = get_cord_y(anchor1) - get_cord_y(anchor2);
     if (dy < 0)
@@ -1448,7 +1448,7 @@ int getApxChainScore(uint64_t const & anchor1, uint64_t const anchor2)
     }
 
     int thd_min_dy = 50;
-    int da = std::abs(int64_t(g_hs_anchor_getAnchor(anchor2) - g_hs_anchor_getAnchor(anchor1)));
+    int da = std::abs(int64_t(get_cord_x(anchor2) - get_cord_x(anchor1)));
     int d_err =  (100 * da) / std::max(dy, thd_min_dy); // 1/100 = 0.01
     //d_err
     if (d_err < 10)
@@ -1479,17 +1479,23 @@ int getApxChainScore(uint64_t const & anchor1, uint64_t const anchor2)
     }
     return 100 - dy - d_err ;    
 }
-int createApxHitsFromAnchors(String<uint64_t> & hits, Anchors & anchors)
+int createApxHitsFromAnchors(String<uint64_t> & hits, String<uint64_t> & anchors)
 {
-    ChainScoreMetric chn_score(50, & getApxChainScore);
+    ChainScoreMetric chn_score(50, &getApxChainScore);
     std::sort(begin(anchors), end(anchors), 
         [](uint64_t & a, uint64_t & b){
             return _DefaultCord.get_hit_x(a) < _DefaultCord.get_hit_x(b);
         });
-    createChainsFromAnchors(chains, anchors.set, anchor_end, chn_score);
+    StringSet<String<uint64_t> > chains;
+    createChainsFromAnchors(chains, anchors, length(anchors), chn_score); 
+    for (int i = 0; i < length(chains); i++)
+    {
+        append(hits, chains[i]);
+        _DefaultHit.setBlockEnd(back(hits));
+    }
     return 0;
 }
-*/
+
 
 void Hit::setBlockStart(uint64_t & val, uint64_t const & flag)
 {
@@ -1764,9 +1770,11 @@ uint64_t getDHitList(String<uint64_t> & hit, String<int64_t> & list, Anchors & a
             {
                 unsigned sb = ((list[k] >> 20) & mask);
                 unsigned sc = list[k] & mask;
+    dout << "hits<<<<<<<<<<<\n";
                 for (unsigned n = sb; n < sc; n++)
                 {
                     appendValue(hit, anchors[n]);
+                    dout << "hits" << get_cord_y(anchors[n]) << get_cord_x(anchors[n]) - get_cord_y(anchors[n]) << "\n";
                 }   
                 if (!empty(hit))
                 {
@@ -1805,19 +1813,27 @@ uint64_t mnMapReadList(IndexDynamic & index,
                        uint64_t read_str,
                        uint64_t read_end,
                        MapParm & mapParm,
-                       String<uint64_t> & hit,
+                       String<uint64_t> & hits,
                        int thd_best_n)
 {
+    int f_sort = 1;
     if (index.isHIndex())
     {  
         getHIndexMatchAll(index.hindex, read, anchors.set, read_str, read_end, mapParm);    
-        getDAnchorMatchList(anchors, read_str, read_end, mapParm, hit, thd_best_n);
     }   
     else if (index.isDIndex())
     {
         getDIndexMatchAll(index.dindex, read, anchors.set, read_str, read_end, mapParm);    
-        getDAnchorMatchList(anchors, read_str, read_end, mapParm, hit, thd_best_n);
     }
+    if (f_sort == 1)
+    {
+        getDAnchorMatchList(anchors, read_str, read_end, mapParm, hits, thd_best_n);
+    }
+    else if (f_sort == 2)
+    {
+        createApxHitsFromAnchors(hits, anchors.set);
+    }
+    //createApxHitsFromAnchors();
     return 0;
 }
 
@@ -2093,6 +2109,7 @@ uint64_t apxMap_ (IndexDynamic & index,
 {
     //todo::wrapper the thds
     clear (hit);
+    //clear (anchors);
     anchors.init(1);
     mnMapReadList(index, read, anchors, read_str, read_end, mapParm, hit, thd_best_n);
     path_dst(begin(hit), end(hit), f1, f2, cords, read_str, read_end, length(read), cordLenThr);
