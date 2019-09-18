@@ -771,131 +771,6 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
     return UMAX;
 }
 
-//Chainning Score metric wrapper: including a score function with corresponding parms.
-struct ChainScoreMetric 
-{
-    int thd_abort_score;
-    int getAbortScore();
-    int getScore(uint64_t const & anchor1, uint64_t const & anchor2);
-    ChainScoreMetric();
-}chn_score1;
-int ChainScoreMetric::getAbortScore()
-{
-    return thd_abort_score;
-}
-ChainScoreMetric::ChainScoreMetric():
-    thd_abort_score(50)  //ATTENTION::related to the the getScore;
-{}
-
-//ATTENTION::the Adjust @thd_abort_score if the function is changed
-int ChainScoreMetric::getScore(uint64_t const & anchor1, uint64_t const & anchor2)
-{
-    int dy = g_hs_anchor_getY(anchor1) - g_hs_anchor_getY(anchor2);
-    if (dy < 0)
-    {
-        return -10000;
-    }
-
-    int thd_min_dy = 50;
-    int da = std::abs(int64_t(g_hs_anchor_getAnchor(anchor2) - g_hs_anchor_getAnchor(anchor1)));
-    int d_err =  (100 * da) / std::max(dy, thd_min_dy); // 1/100 = 0.01
-    //d_err
-    if (d_err < 10)
-    {
-        d_err = 0;
-    }
-    else if (d_err < 15)
-    {
-        d_err = 10 + 2 * d_err ;
-    }
-    else 
-    {
-        d_err =  d_err * d_err / 10 + 40;
-    }
-
-    //d_y
-    if (dy < 50)
-    {
-        dy = 0;
-    }
-    else if (dy < 100)
-    {
-        dy = dy - 30;
-    }
-    else
-    {
-        dy = dy * dy / 200 + 20;
-    }
-
-    return 100 - dy - d_err ;
-}
-
-struct ChainsRecord
-{
-    int score;
-    int len;
-    int p2anchor;
-};
-
-//@chain_score[i] := chain len up to i [32] | chain score up to i [32bits]; the len upper toe the last one in the chain == 0
-//@CHAIN_LEN_CONST to add the chain len by 1 in the @chain_score[i]
-typedef int (*ScoreFunc) (uint64_t const &, uint64_t const &);
-int get_best_chains_(String<uint64_t> & anchor,
-                     String<ChainsRecord> & chains,
-                     uint64_t gap_str,
-                     int anchor_end,
-                     ChainScoreMetric & score_metric,
-                     int const & thD_tile_size,
-                     int const & thD_err_rate)
-{
-    if (anchor_end == 0)
-    {
-        return 0;
-    }
-    int thd_chain_depth = 20;
-    int new_score = 0;
-    int max_new_score = 0;
-    int max_j = 0;
-    std::sort(begin(anchor), begin(anchor) + anchor_end, [](uint64_t & a, uint64_t & b){return g_hs_anchor_getX(a) > g_hs_anchor_getX(b);});
-    int const chain_end_score = 0;
-    int const chain_end = -1;
-    //ChainsRecord c0 (chain_end_score, 0, chain_end);
-    //appendValue(chains, c0);
-    chains[0].score = chain_end_score;  
-    chains[0].len = 1;
-    chains[0].p2anchor = chain_end;
-    for (int i = 0; i < anchor_end; i++) 
-    {
-        int j_str = std::max (0, i - thd_chain_depth);
-        max_j = i;
-        max_new_score = -1;
-        for (int j = j_str; j < i; j++)
-        {
-             new_score = score_metric.getScore(anchor[j], anchor[i]);
-             if (new_score >= max_new_score)
-             {
-                max_j = j;
-                max_new_score = new_score;
-             }
-        }
-        if (max_new_score > 0)
-        {
-            chains[i].p2anchor = max_j;
-            chains[i].score = chains[max_j].score + max_new_score ;
-            chains[i].len = chains[max_j].len + 1;
-
-        }
-        else
-        {
-            chains[i].p2anchor = chain_end;
-            chains[i].score = chain_end_score;
-            chains[i].len = 1;
-        }
-    }
-
-    return 0;
-}
-
 int apxCreateTilesFromAnchors_ (String<uint64_t> & anchor, 
                                 String<uint64_t> & tiles, 
                                 StringSet<FeaturesDynamic> & f1,
@@ -1025,6 +900,49 @@ int createTilesFromAnchors1_(String<uint64_t> & anchor,
     }
 }
 
+
+//ATTENTION::the Adjust @thd_abort_score if the function is changed
+int getGapChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
+{
+    int dy = g_hs_anchor_getY(anchor1) - g_hs_anchor_getY(anchor2);
+    if (dy < 0)
+    {
+        return -10000;
+    }
+
+    int thd_min_dy = 50;
+    int da = std::abs(int64_t(g_hs_anchor_getAnchor(anchor2) - g_hs_anchor_getAnchor(anchor1)));
+    int d_err =  (100 * da) / std::max(dy, thd_min_dy); // 1/100 = 0.01
+    //d_err
+    if (d_err < 10)
+    {
+        d_err = 0;
+    }
+    else if (d_err < 15)
+    {
+        d_err = 10 + 2 * d_err ;
+    }
+    else 
+    {
+        d_err =  d_err * d_err / 10 + 40;
+    }
+
+    //d_y
+    if (dy < 50)
+    {
+        dy = 0;
+    }
+    else if (dy < 100)
+    {
+        dy = dy - 30;
+    }
+    else
+    {
+        dy = dy * dy / 200 + 20;
+    }
+    return 100 - dy - d_err ;
+}
+
 int createTilesFromAnchors2_(String<uint64_t> & anchor, 
                              String<uint64_t> & tiles,
                              StringSet<FeaturesDynamic> & f1,
@@ -1036,64 +954,16 @@ int createTilesFromAnchors2_(String<uint64_t> & anchor,
                              int const & thD_err_rate,
                              int const & thd_pattern_in_window)
 {
-    //<<debug
-    //if (get_cord_x(gap_str) != 1184680)
-    //{
-    //    return 0;
-    //}
-    //>>debug
-    if (anchor_end < 2)
+    StringSet<String<uint64_t> > chains;
+    ChainScoreMetric chn_score1(50, &getGapChainScore);
+    std::sort(begin(anchor), begin(anchor) + anchor_end, 
+        [](uint64_t & a, uint64_t & b){return g_hs_anchor_getX(a) > g_hs_anchor_getX(b);});
+    createChainsFromAnchors (chains, anchor, anchor_end, chn_score1);
+    for (auto & chain : chains)
     {
-        return 0;
+        apxCreateTilesFromAnchors_(chain, tiles, f1, f2, gap_str, 0, length(chain), thD_tile_size, thd_pattern_in_window);
     }
-    //String<uint64_t> tmp_tiles;
-    String<uint64_t> chains;
-    String<ChainsRecord> chains_record;
-    resize (chains_record, anchor_end);
-    get_best_chains_(anchor, chains_record, gap_str, anchor_end, chn_score1, thD_tile_size, thD_err_rate);
-    int delete_score = -1000;
-    int bestn = 5;
-    int const chain_end = -1;
-    for (int i = 0; i < bestn; i++) 
-    {
-        int max_score = -1;
-        int max_str = chain_end;
-        int max_len = 0;
-        for (int j = 0; j < anchor_end; j++)
-        {
-            if (chains_record[j].score > max_score)
-            {
-                max_str = j;
-                max_score = chains_record[j].score;
-                max_len = chains_record[j].len;
-            }
-        }
-        //dout << "maxlen" << max_len << max_score << max_str << chains_record[max_str].score << "\n";
-        if (max_len > 1 && max_score / max_len > chn_score1.getAbortScore())
-        {
-            clear (chains);
-            for (int j = max_str; j != chain_end; j = chains_record[j].p2anchor)
-            {
-                if (chains_record[j].score != delete_score)
-                {
-                    appendValue (chains, anchor[j]);
-                    chains_record[j].score = delete_score; 
-                }
-                else
-                {
-                    break;
-                }
-            }
-            if (!empty(chains))
-            {
-                apxCreateTilesFromAnchors_(chains, tiles, f1, f2, gap_str, 0, length(chains), thD_tile_size, thd_pattern_in_window);
-            }
-        } 
-        if (max_str != chain_end)
-        {
-            chains_record[max_str].score = delete_score; 
-        }
-    }   
+    return 0;
 }
 
 /**

@@ -128,7 +128,7 @@ int createFeatures(StringSet<String<Dna5> > &,
                    StringSet<FeaturesDynamic > &, int, unsigned); //parallel
 int createFeatures(StringSet<String<Dna5> > &, 
                    StringSet<FeaturesDynamic > &, int); //serial
-
+/*
 uint64_t mnMapReadList(LIndex  & index,
                        String<Dna5> & read,
                        Anchors & anchors,
@@ -139,6 +139,32 @@ uint64_t mnMapReadList(IndexDynamic & index,
                        Anchors & anchors,
                        MapParm & mapParm,
                        String<uint64_t> & hit);
+                       */
+
+//Chainning Score metric wrapper: including a score function with corresponding parms.
+struct ChainScoreMetric 
+{
+    int thd_abort_score;
+
+    int (*getScore) (uint64_t const &, uint64_t const &);
+    int getAbortScore();
+    ChainScoreMetric();
+    ChainScoreMetric(int abort_score, int (*scoreFunc) (uint64_t const &, uint64_t const &));
+};
+
+struct ChainsRecord
+{
+    int score;
+    int len;
+    int p2anchor;
+};
+int getBestChains(String<uint64_t> & anchor,
+                  String<ChainsRecord> & chains,
+                  int anchor_end,
+                  int (*getScore) (uint64_t const &, uint64_t const &));
+
+int createChainsFromAnchors(StringSet<String<uint64_t> > &, String<uint64_t> &, int, ChainScoreMetric &);
+
 uint64_t apxMap (IndexDynamic & index,
                  String<Dna5> & read,
                  Anchors & anchors,

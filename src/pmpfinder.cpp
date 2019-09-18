@@ -1102,14 +1102,17 @@ uint64_t nextWindow(FeaturesDynamic & f1,
     {
         if ( x_min - x_pre > parm->med)
         {
-            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_pre + parm->med)),  _DefaultCord.cell2Cord(x_pre + parm->med - x_min + y), strand);
+            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_pre + parm->med)),  
+                _DefaultCord.cell2Cord(x_pre + parm->med - x_min + y), strand);
         }
         else
         {
-            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
+            new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), 
+                _DefaultCord.cell2Cord(y), strand);
         }
     }
     score += min;
+    std::cout << "nw1 " << get_cord_y(new_cord) << " " << get_cord_x(new_cord) << " " << min << "\n";
     return new_cord;
 }
 
@@ -1291,8 +1294,7 @@ bool path_dst(typename Iterator<String<uint64_t> >::Type hitBegin,
               uint64_t read_str,
               uint64_t read_end,
               uint64_t read_len,
-              float const & thd_min_block_len
-              )
+              float const & thd_min_block_len)
 {
     unsigned thd_cord_size = getFeatureWindowSize(f1);
     typename Iterator<String<uint64_t> >::Type it = hitBegin;
@@ -1315,9 +1317,180 @@ bool path_dst(typename Iterator<String<uint64_t> >::Type hitBegin,
     return false;
 }
 
-/*=============================================
-=            Mapping and anchoring            =
-=============================================*/
+/*==================================================
+=          @Section::Mapping and anchoring         =
+===================================================*/
+
+/*__________________________________________________
+  ---------- @sub::Generic chain funcs  ----------*/
+
+//Chainning Score metric wrapper: including a score function with corresponding parms.
+ChainScoreMetric::ChainScoreMetric(int abort_socre, 
+        int(*scoreFunc)(uint64_t const &, uint64_t const &)) 
+        : thd_abort_score(abort_socre), getScore(scoreFunc)
+        {};
+int ChainScoreMetric::getAbortScore(){return thd_abort_score;}
+
+//@chain_score[i] := chain len up to i [32] | chain score up to i [32bits]; the len upper toe the last one in the chain == 0
+//@CHAIN_LEN_CONST to add the chain len by 1 in the @chain_score[i]
+int getBestChains(String<uint64_t> & anchors,
+                  String<ChainsRecord> & chains,
+                  int anchor_end,
+                  int (*scoreFunc) (uint64_t const &, uint64_t const &))
+{
+    if (anchor_end == 0)
+    {
+        return 0;
+    }
+    int thd_chain_depth = 20;
+    int new_score = 0;
+    int max_new_score = 0;
+    int max_j = 0;
+    int const chain_end_score = 0;
+    int const chain_end = -1;
+    //ChainsRecord c0 (chain_end_score, 0, chain_end);
+    //appendValue(chains, c0);
+    chains[0].score = chain_end_score;  
+    chains[0].len = 1;
+    chains[0].p2anchor = chain_end;
+    for (int i = 0; i < anchor_end; i++) 
+    {
+        int j_str = std::max (0, i - thd_chain_depth);
+        max_j = i;
+        max_new_score = -1;
+        for (int j = j_str; j < i; j++)
+        {
+             new_score = scoreFunc(anchors[j], anchors[i]);
+             if (new_score >= max_new_score)
+             {
+                max_j = j;
+                max_new_score = new_score;
+             }
+        }
+        if (max_new_score > 0)
+        {
+            chains[i].p2anchor = max_j;
+            chains[i].score = chains[max_j].score + max_new_score ;
+            chains[i].len = chains[max_j].len + 1;
+
+        }
+        else
+        {
+            chains[i].p2anchor = chain_end;
+            chains[i].score = chain_end_score;
+            chains[i].len = 1;
+        }
+    }
+    return 0;
+}
+
+int createChainsFromAnchors(StringSet<String<uint64_t> > & chains, String<uint64_t> & anchors, int anchor_end, ChainScoreMetric & chn_score1)
+{
+    if (anchor_end < 2)
+    {
+        return 0;
+    }
+    String<uint64_t> chain;
+    String<ChainsRecord> chains_record;
+    resize (chains_record, anchor_end);
+    getBestChains(anchors, chains_record, anchor_end, chn_score1.getScore);
+    int delete_score = -1000;
+    int bestn = 5;
+    int const chain_end = -1;
+    for (int i = 0; i < bestn; i++) 
+    {
+        int max_score = -1;
+        int max_str = chain_end;
+        int max_len = 0;
+        for (int j = 0; j < anchor_end; j++)
+        {
+            if (chains_record[j].score > max_score)
+            {
+                max_str = j;
+                max_score = chains_record[j].score;
+                max_len = chains_record[j].len;
+            }
+        }
+        //dout << "maxlen" << max_len << max_score << max_str << chains_record[max_str].score << "\n";
+        if (max_len > 1 && max_score / max_len > chn_score1.getAbortScore())
+        {
+            clear(chain);
+            for (int j = max_str; j != chain_end; j = chains_record[j].p2anchor)
+            {
+                if (chains_record[j].score != delete_score)
+                {
+                    appendValue (chain, anchors[j]);
+                    chains_record[j].score = delete_score; 
+                }
+                else
+                {
+                    break;
+                }
+            }
+            if (!empty(chain))
+            {
+                appendValue(chains, chain);
+            }
+        } 
+        if (max_str != chain_end)
+        {
+            chains_record[max_str].score = delete_score; 
+        }
+    }   
+}
+/*
+int getApxChainScore(uint64_t const & anchor1, uint64_t const anchor2)
+{
+    int dy = get_cord_y(anchor1) - get_cord_y(anchor2);
+    if (dy < 0)
+    {
+        return -10000;
+    }
+
+    int thd_min_dy = 50;
+    int da = std::abs(int64_t(g_hs_anchor_getAnchor(anchor2) - g_hs_anchor_getAnchor(anchor1)));
+    int d_err =  (100 * da) / std::max(dy, thd_min_dy); // 1/100 = 0.01
+    //d_err
+    if (d_err < 10)
+    {
+        d_err = 0;
+    }
+    else if (d_err < 15)
+    {
+        d_err = 10 + 2 * d_err ;
+    }
+    else 
+    {
+        d_err =  d_err * d_err / 10 + 40;
+    }
+
+    //d_y
+    if (dy < 50)
+    {
+        dy = 0;
+    }
+    else if (dy < 100)
+    {
+        dy = dy - 30;
+    }
+    else
+    {
+        dy = dy * dy / 200 + 20;
+    }
+    return 100 - dy - d_err ;    
+}
+int createApxHitsFromAnchors(String<uint64_t> & hits, Anchors & anchors)
+{
+    ChainScoreMetric chn_score(50, & getApxChainScore);
+    std::sort(begin(anchors), end(anchors), 
+        [](uint64_t & a, uint64_t & b){
+            return _DefaultCord.get_hit_x(a) < _DefaultCord.get_hit_x(b);
+        });
+    createChainsFromAnchors(chains, anchors.set, anchor_end, chn_score);
+    return 0;
+}
+*/
+
 void Hit::setBlockStart(uint64_t & val, uint64_t const & flag)
 {
     val |= flag;

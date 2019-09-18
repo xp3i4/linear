@@ -107,10 +107,6 @@ struct Anchors{
     void init(int length);
     void init();
     void setAnchor(unsigned p, AnchorType pos1,  AnchorType pos2);
-    AnchorType getPos1(unsigned p) const;
-    AnchorType getPos2(unsigned p) const;
-    AnchorType deltaPos1(unsigned p1, unsigned p2);
-    AnchorType deltaPos2(unsigned p1, unsigned p2);
     void sort(Iter begin, Iter end);
     void sortPos2(Iter begin, Iter end);
     void appendValue(AnchorType val);

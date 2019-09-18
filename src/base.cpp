@@ -299,25 +299,6 @@ PMRecord::PMRecord(Options & options)
     set[p] = (pos1 << AnchorBase::bit) + pos2;
 }
 
- Anchors::AnchorType Anchors::getPos1(unsigned p) const 
-{
-    return set[p] >> AnchorBase::bit;
-}
-
- Anchors::AnchorType Anchors::getPos2(unsigned p) const
-{
-    return set[p] & AnchorBase::mask;
-}
-
- Anchors::AnchorType Anchors::deltaPos1(unsigned p1, unsigned p2)
-{
-    return (set[p1] >> AnchorBase::bit) - (set[p2] >> AnchorBase::bit);
-}
-
- Anchors::AnchorType Anchors::deltaPos2(unsigned p1, unsigned p2)
-{
-    return AnchorBase::mask & (set[p1] - set[p2]);
-}
  Anchors::Iter Anchors::begin()
 {
     return seqan::begin(set);
@@ -334,7 +315,7 @@ PMRecord::PMRecord(Options & options)
     AnchorBase::AnchorType mask = AnchorBase::mask;
     std::sort(sortBegin, sortEnd,
     [& mask](AnchorBase::AnchorType & a, 
-                AnchorBase::AnchorType & b)
+             AnchorBase::AnchorType & b)
     {
         return (a & mask) < (b & mask);
     }) ;
@@ -355,21 +336,21 @@ unsigned Anchors::length()
 void MapParm::print()
 {
     std::cerr << "blockSize " << blockSize << std::endl
-            << "alpha " << alpha << std::endl
-            << "alpha2 " << alpha2 << "\n"
-            << "listN " << listN << "\n"
-            << "listN2 " << listN2 << "\n"
-            << "senThr " << senThr << "\n"
-            << "delta " << delta << std::endl
-            << "threshold " << threshold << std::endl
-            << "kmerStep " << kmerStep << std::endl
-            << "shapeLen " << shapeLen << std::endl
-            //<<  "sensitivity " << sensitivity << "\n"
-            << "anchorDeltaThr " << anchorDeltaThr << "\n"
-            << "minReadLen " << minReadLen << "\n"
-            << "anchorLenThr" << anchorLenThr << "\n"
-            << "rcThr " << rcThr << "\n"
-            << "cordThr" << cordThr << "\n";
+              << "alpha " << alpha << std::endl
+              << "alpha2 " << alpha2 << "\n"
+              << "listN " << listN << "\n"
+              << "listN2 " << listN2 << "\n"
+              << "senThr " << senThr << "\n"
+              << "delta " << delta << std::endl
+              << "threshold " << threshold << std::endl
+              << "kmerStep " << kmerStep << std::endl
+              << "shapeLen " << shapeLen << std::endl
+              //<<  "sensitivity " << sensitivity << "\n"
+              << "anchorDeltaThr " << anchorDeltaThr << "\n"
+              << "minReadLen " << minReadLen << "\n"
+              << "anchorLenThr" << anchorLenThr << "\n"
+              << "rcThr " << rcThr << "\n"
+              << "cordThr" << cordThr << "\n";
 }
 
 static const String<Dna5> _complt = "tgcan";

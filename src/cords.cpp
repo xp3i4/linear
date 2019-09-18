@@ -75,6 +75,12 @@ uint64_t Cord::hit2Cord_dstr(uint64_t const & hit,
     return (hit + ((hit & mask) << bit)  - (const_anchor_zero << bit)) & mask2;
 }
 
+uint64_t Cord::get_hit_x(uint64_t const & hit, unsigned const & bit, 
+  uint64_t const & mask1, uint64_t const & mask2) const
+{ 
+  return ((hit >> bit) + (hit & mask1) - const_anchor_zero) & mask2;
+}
+
 uint64_t Cord::cord2Cell(uint64_t const & cord, 
                 unsigned const & bit) const
 {
