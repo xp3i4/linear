@@ -1112,7 +1112,6 @@ uint64_t nextWindow(FeaturesDynamic & f1,
         }
     }
     score += min;
-    std::cout << "nw1 " << get_cord_y(new_cord) << " " << get_cord_x(new_cord) << " " << min << "\n";
     return new_cord;
 }
 
@@ -1342,24 +1341,14 @@ int getBestChains(String<uint64_t>     & anchors,
     {
         return 0;
     }
-    //<<debug
-    /*
-    dout << "stc<<<<<<<<<<<<<<<<<<<<<<<\n";
-    for (auto tmp:anchors)
-    {
-        uint64_t tmp_cord = _DefaultCord.hit2Cord_dstr(tmp);
-        dout << "stc" << get_cord_strand(tmp) <<  get_cord_x(tmp_cord) << "\n";
-    }
-    */
-    //>>debug
+
     int thd_chain_depth = 20;
     int new_score = 0;
     int new_max_score = 0;
     int max_j = 0;
     int const chain_end_score = 0;
     int const chain_end = -1;
-    //ChainsRecord c0 (chain_end_score, 0, chain_end);
-    //appendValue(chains, c0);
+
     chains[0].score = chain_end_score;  
     chains[0].len = 1;
     chains[0].p2anchor = chain_end;
@@ -1371,13 +1360,7 @@ int getBestChains(String<uint64_t>     & anchors,
         for (int j = j_str; j < i; j++)
         {
             new_score = scoreFunc(anchors[j], anchors[i]);
-            //<<debug
-                //<< debug
-    uint64_t tmp_cord1 = _DefaultCord.hit2Cord_dstr(anchors[j]);
-    uint64_t tmp_cord2 = _DefaultCord.hit2Cord_dstr(anchors[i]);
-    dout << "apsss"  << j << i << new_score << get_cord_strand(tmp_cord1) << get_cord_y(tmp_cord1) << get_cord_x(tmp_cord1) << get_cord_strand(tmp_cord2) << get_cord_y(tmp_cord2) << get_cord_x(tmp_cord2) << max_j << new_max_score<< "\n";
-    //>>debug
-            //>>debug
+
             if (new_score > 0 && new_score + chains[j].score >= new_max_score)
             {
                 max_j = j;
@@ -1386,7 +1369,6 @@ int getBestChains(String<uint64_t>     & anchors,
         }
         if (new_max_score > 0)
         {
-            dout << "apsss_max" << max_j << i << get_cord_y(anchors[i]) << new_max_score << "1507\n";
             chains[i].p2anchor = max_j;
             chains[i].score = new_max_score ;
             chains[i].len = chains[max_j].len + 1;
@@ -1428,7 +1410,6 @@ int createChainsFromAnchors(StringSet<String<uint64_t> > & chains, String<uint64
                 max_len   = chains_record[j].len;
             }
         }
-        dout << "maxlen2" << max_len << max_score << max_str << chains_record[max_str].score << "\n";
         if (max_len > 1 && max_score / max_len > chn_score1.getAbortScore())
         {
             clear(chain);
@@ -1436,7 +1417,6 @@ int createChainsFromAnchors(StringSet<String<uint64_t> > & chains, String<uint64
             {
                 if (chains_record[j].score != delete_score)
                 {
-                    dout << "maxlen2" << get_cord_y(anchors[j]) << "\n";
                     appendValue (chain, anchors[j]);
                     chains_record[j].score = delete_score; 
                 }
@@ -1466,25 +1446,19 @@ int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
     }
     int64_t thd_min_dy = 50;
     int64_t da = std::abs(int64_t(_DefaultHit.getAnchor(anchor2) - _DefaultHit.getAnchor(anchor1)));
-    //<< debug
-    uint64_t tmp_cord1 = _DefaultCord.hit2Cord_dstr(anchor1);
-    uint64_t tmp_cord2 = _DefaultCord.hit2Cord_dstr(anchor2);
-    dout << "aps" << da << get_cord_strand(tmp_cord1) << get_cord_y(tmp_cord1) << get_cord_x(tmp_cord1) << get_cord_strand(tmp_cord2) << get_cord_y(tmp_cord2) << get_cord_x(tmp_cord2) << "\n";
-    //>>debug
     int64_t d_err =  (100 * da) / std::max(dy, thd_min_dy); // 1/100 = 0.01
-    //dout << "aps_score x" << dy << d_err << da << get_cord_y(tmp_cord1) << get_cord_y(tmp_cord2) << "\n";
+
+    //d_err
     if (d_err < 10)         {d_err = 0;}
     else if (d_err < 25)    {d_err = 10 + 2 * d_err ;}
     else if (d_err < 100)   {d_err = d_err * d_err / 10 + 40;}
     else                    {d_err = 10000;}
-
     //d_y
     dy /= 15;
     if (dy < 150)            {dy = dy / 5;}
     else if (dy < 100)      {dy = dy - 30;}
     else if (dy < 10000)    {dy = dy * dy / 200 + 20;}
     else                    {dy = 10000;}
-    dout << "aps_score" << 100 - dy - d_err << dy << d_err << da << get_cord_y(tmp_cord1) << get_cord_y(tmp_cord2) << "\n";
     return 100 - dy - d_err ;    
 }
 
@@ -1788,11 +1762,9 @@ uint64_t getDHitList(String<uint64_t> & hit, String<int64_t> & list, Anchors & a
             {
                 unsigned sb = ((list[k] >> 20) & mask);
                 unsigned sc = list[k] & mask;
-    dout << "hits<<<<<<<<<<<\n";
                 for (unsigned n = sb; n < sc; n++)
                 {
                     appendValue(hit, anchors[n]);
-                    dout << "hits" << get_cord_y(anchors[n]) << get_cord_x(anchors[n]) - get_cord_y(anchors[n]) << "\n";
                 }   
                 if (!empty(hit))
                 {
@@ -1846,18 +1818,11 @@ uint64_t mnMapReadList(IndexDynamic & index,
     if (f_sort == 1)
     {
         getDAnchorMatchList(anchors, read_str, read_end, mapParm, hits, thd_best_n);
-        print_cords(hits, "hits2");
     }
     else if (f_sort == 2)
     {
         erase (anchors.set, 0);
-        for (auto & anchor : anchors.set)
-        {
-            uint64_t hit = _DefaultCord.hit2Cord_dstr(anchor);
-            dout << "anchors" << get_cord_y(hit) << get_cord_x(hit) << "\n";
-        }
         createApxHitsFromAnchors(hits, anchors.set);
-        print_cords(hits, "hits1");
     }
     return 0;
 }
@@ -2179,7 +2144,6 @@ uint64_t apxMap (IndexDynamic & index,
         uint64_t str_y = 0;                  //stry y of interval between two consecutive blocks
         for (int i = 0; i < length(apx_gaps); i++) //check large gap and re map the gaps
         {
-            dout << "apxc\n";
             UPair y = getUPForwardy (apx_gaps[i], length(read));
             uint64_t y1 = y.first;
             uint64_t y2 = y.second;
