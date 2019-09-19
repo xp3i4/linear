@@ -78,10 +78,10 @@ struct Cord
                uint64_t const & mask = _DefaultCordBase.mask,
                uint64_t const & mask2 = _DefaultCordBase.valueMask_dstr
               ) const;
-    uint64_t get_hit_x(uint64_t const & hit, 
+    uint64_t get_hit_strx(uint64_t const & hit, 
                unsigned const & bit = _DefaultCordBase.bit, 
                uint64_t const & mask = _DefaultCordBase.mask,
-               uint64_t const & mask2 = _DefaultCordBase.valueMask
+               uint64_t const & mask2 = _DefaultCordBase.valueMask_dstr
               ) const;
     uint64_t cord2Cell(uint64_t const & cord, 
                 unsigned const & bit = _DefaultCordBase.cell_bit) const;

@@ -1480,7 +1480,7 @@ int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
 
     //d_y
     dy /= 15;
-    if (dy < 150)            {dy = dy / 5;}
+    if (dy < 150)           {dy = dy / 5;}
     else if (dy < 100)      {dy = dy - 30;}
     else if (dy < 10000)    {dy = dy * dy / 200 + 20;}
     else                    {dy = 10000;}
@@ -1493,9 +1493,9 @@ int createApxHitsFromAnchors(String<uint64_t> & hits, String<uint64_t> & anchors
     ChainScoreMetric chn_score(45, &getApxChainScore);
     std::sort(begin(anchors), end(anchors), 
         [](uint64_t & a, uint64_t & b){
-            //return _DefaultCord.get_hit_x(a) < _DefaultCord.get_hit_x(b);
+            return _DefaultCord.get_hit_strx(a) > _DefaultCord.get_hit_strx(b);
             //<<debug
-            return get_cord_x(_DefaultCord.hit2Cord_dstr(a)) > get_cord_x(_DefaultCord.hit2Cord_dstr(b));
+            //return get_cord_x(_DefaultCord.hit2Cord_dstr(a)) > get_cord_x(_DefaultCord.hit2Cord_dstr(b));
             //>>debug
         });
     StringSet<String<uint64_t> > chains;
