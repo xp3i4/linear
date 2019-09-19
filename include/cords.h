@@ -125,6 +125,7 @@ struct Hit
     void setBlockStrand(uint64_t &, uint64_t const &, uint64_t const & = _DefaultHitBase.flag2);
     bool isBlockEnd(uint64_t &, uint64_t const & = _DefaultHitBase.flag);
     unsigned getStrand(uint64_t const &, uint64_t const & = _DefaultHitBase.flag2);
+    uint64_t getAnchor(uint64_t const &);
 };
 extern Hit _DefaultHit;
 

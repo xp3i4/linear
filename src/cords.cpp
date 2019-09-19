@@ -144,14 +144,14 @@ uint64_t Cord::makeBlockEndVal(uint64_t val, uint64_t const & flag)
 //todo::re wrapper !!!
 uint64_t get_cord_x (uint64_t val) 
 {
-  return (val >> 20) & ((1ULL << 30) - 1);
+    return (val >> 20) & ((1ULL << 30) - 1);
 }
 uint64_t get_cord_y (uint64_t val) {return _DefaultCord.getCordY(val);}
 uint64_t get_cord_strand (uint64_t val) {return _DefaultCord.getCordStrand(val);}
 //TODO::re wrapper 
 uint64_t get_cord_id (uint64_t val) 
 {
-  return (val >> 50 ) & ((1ULL << 10 ) - 1);
+    return (val >> 50 ) & ((1ULL << 10 ) - 1);
 }
 uint64_t shift_cord(uint64_t const & val, int64_t x, int64_t y)
 {
@@ -247,7 +247,7 @@ uint64_t is_cord_block_end (uint64_t cord)
 void print_cords(String<uint64_t> & cords, CharString header)
 {
     std::cout << header << "_cords_header \n";
-    for (uint i = 1; i < length(cords); i++)
+    for (uint i = 0; i < length(cords); i++)
     {
         std::cout << header << " " 
                   << get_cord_y (cords[i]) << " "  
