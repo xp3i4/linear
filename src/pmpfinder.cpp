@@ -1178,7 +1178,6 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
         return false;
     }
     else{
-
         appendValue(cord, *(it));
         //appendValue(cord, _DefaultCord.hit2Cord_dstr(*(it)));
         ++it;
@@ -1389,6 +1388,68 @@ int getBestChains(String<uint64_t>     & anchors,
     return 0;
 }
 
+/*
+ * This is the Duplication of func getBestChains() for ChainBlock using the same algorithm.
+ * Note::So synchronsize with the getBesctChains().
+ * For the sake of efficiency, we just use this simple duplicate version instead of 
+ * complicate interface including the template or virtual function
+ *
+int getBestChains2(String<uint64_t> & hits,
+                   String<UPair> & str_ends,
+                   String<UPair> & str_ends_p,
+                   String<int> & hits_block_score,
+                   String<ChainsRecord> & chains,
+                   int (*scoreFunc) (uint64_t const &, uint64_t const &))
+{
+    if (anchor_end == 0)
+    {
+        return 0;
+    }
+
+    int thd_chain_depth = 20;
+    int new_score = 0;
+    int new_max_score = 0;
+    int max_j = 0;
+    int const chain_end_score = 0;
+    int const chain_end = -1;
+    //ChainsRecord c0 (chain_end_score, 0, chain_end);
+    //appendValue(chains, c0);
+    chains[0].score = chain_end_score;  
+    chains[0].len = 1;
+    chains[0].p2anchor = chain_end;
+    for (int i = 0; i < length(hits); i++) 
+    {
+        int j_str = std::max (0, i - thd_chain_depth);
+        max_j = i;
+        new_max_score = -1;
+        for (int j = j_str; j < i; j++)
+        {
+            //new_score = scoreFunc (blocks[j].getEnd(), blocks.[i].getStr());
+            new_score = scoreFunc (str_ends[j].second], str_ends[i]].first);
+            if (new_score > 0 && new_score + hits_block_score[i] + chains[j].score >= new_max_score)
+            {
+                max_j = j;
+                new_max_score = new_score + hits_block_score[i] + chains[j].score;
+            }
+        }
+        if (new_max_score > 0)
+        {
+            //dout << "apsss_max" << max_j << i << get_cord_y(anchors[i]) << new_max_score << "1507\n";
+            chains[i].p2anchor = max_j;
+            chains[i].score = new_max_score ;
+            chains[i].len = chains[max_j].len + 1;
+        }
+        else
+        {
+            chains[i].p2anchor = chain_end;
+            chains[i].score = chain_end_score;
+            chains[i].len = 1;
+        }
+    }
+    return 0;
+}
+*/
+
 int createChainsFromAnchors(StringSet<String<uint64_t> > & chains, String<uint64_t> & anchors, int anchor_end, ChainScoreMetric & chn_score1)
 {
     if (anchor_end < 2)
@@ -1445,6 +1506,308 @@ int createChainsFromAnchors(StringSet<String<uint64_t> > & chains, String<uint64
     }   
 }
 
+/*
+int createChainsFromAnchors2(String<uint64_t> > & hits, String<uint64_t> & str_ends, String<uint64_t> & str_ends_p, ChainScoreMetric & chn_score1)
+{
+    if (anchor_end < 2)
+    {
+        return 0;
+    }
+    String<ChainsRecord> chains_record;
+    resize (chains_record, length_end);
+    getBestChains(hits, str_ends, str_ends_p, chains_record, anchor_end, chn_score1.getScore);
+    int delete_score = -1000;
+    int bestn = 5;
+    int const chain_end = -1;
+    for (int i = 0; i < bestn; i++) 
+    {
+        int max_score = -1;
+        int max_str = chain_end;
+        int max_len = 0;
+        for (int j = 0; j < anchor_end; j++)
+        {
+            if (chains_record[j].score > max_score)
+            {
+                max_str   = j;
+                max_score= chains_record[j].score;
+                max_len   = chains_record[j].len;
+            }
+        }
+        //dout << "maxlen2" << max_len << max_score << max_str << chains_record[max_str].score << "\n";
+        if (max_len > 1 && max_score / max_len > chn_score1.getAbortScore())
+        {
+            for (int j = max_str; j != chain_end; j = chains_record[j].p2anchor)
+            {
+                if (chains_record[j].score != delete_score)
+                {
+                    for (int k = str_ends_p[j].first; k < str_ends_p[j].second; k++)
+                    {
+                        appendValue(hits_tmp, hits[str_ends_p[k]]);
+                    }
+                    chains_record[j].score = delete_score; 
+                }
+                else
+                {
+                    break;
+                }
+            }
+        } 
+        if (max_str != chain_end)
+        {
+            chains_record[max_str].score = delete_score; 
+        }
+    }   
+}
+*/
+/*__________________________________________________
+  ---------- @sub::apx chain additionals ----------*/
+/*
+ * Shortcut of gathering start and end pos of each block of consecutive cords 
+ * NOTE::str and end coordniates of each block is shifted by @thd_cord_size / 2 based on the cord coordinates 
+ * NOTE::block is different to block of cords.
+    1. Block of cords also includes inv cords.
+    2. Here block refers to cords of continuous x and y
+   inv end will call set_cord_end if @f_set_end is true
+ */
+int gather_blocks_ (String<uint64_t> & cords, 
+                    String<UPair> & str_ends, //result [] closed 
+                    String<UPair> & str_ends_p, //result pointer [,) right open
+                    uint64_t readLen,
+                    uint64_t thd_large_gap,
+                    uint64_t thd_cord_size,
+                    int f_set_end) //is set_cord_end for each block 
+{
+    //small gaps processed in the gap module
+    clear(str_ends);
+    if (length(cords) < 2)
+    {
+        return 0;
+    }
+    uint64_t d_shift_max = thd_cord_size / 2;
+    uint64_t d_shift = d_shift_max; //NOTE::str end is shifted by this value
+    unsigned p_str = 1;
+
+    for (unsigned i = 2; i < length(cords); i++)
+    {
+        if (is_cord_block_end(cords[i - 1])||
+           !isCordsConsecutive_(cords[i - 1], cords[i], thd_large_gap))
+        {
+            d_shift = std::min (readLen - get_cord_y(cords[p_str]) - 1, d_shift_max);
+            uint64_t b_str = shift_cord (cords[p_str], d_shift, d_shift);
+            d_shift = std::min (readLen - get_cord_y(cords[i - 1]) - 1, d_shift_max);
+            uint64_t b_end = shift_cord (cords[i - 1], d_shift, d_shift);
+            appendValue (str_ends, UPair(b_str, b_end));
+            appendValue (str_ends_p, UPair(p_str, i));
+            if (f_set_end)
+            {
+                set_cord_end (cords[i - 1]);
+            }
+            p_str = i;
+        }
+    }
+    //if (get_cord_y(cords[p_str] - back(cords))) //cords[]_y != back()_y
+    //{
+        d_shift = std::min (readLen - get_cord_y(back(cords)) - 1, d_shift_max);
+        uint64_t b_str = shift_cord (cords[p_str], d_shift, d_shift);
+        d_shift = std::min (readLen - get_cord_y(back(cords)) - 1, d_shift_max);
+        uint64_t b_end = shift_cord (back(cords), d_shift, d_shift);
+        appendValue (str_ends, UPair(b_str, b_end));
+        appendValue (str_ends_p, UPair(p_str, length(cords)));
+    //}
+
+    return 0; 
+}
+/*
+ * shortcut function
+ * Drop too short blocks in cords 
+ */
+int clean_blocks_ (String<uint64_t> & cords, int64_t thd_drop_len) 
+{
+    uint p = 1;
+    int64_t len = 0;
+    for (uint i = 1; i < length(cords); i++)
+    {
+        len++;
+        if (p != i){cords[p] = cords[i];}
+
+        if (is_cord_block_end (cords[i])){
+            if (len < thd_drop_len) {p -= len;}
+            len = 0;
+        }
+        p++;
+    }
+    resize (cords, p);
+}
+
+//shortcut to convert cords pair to y pair (stry, endy) on the forward strand (y projection)
+UPair getUPForwardy(UPair str_end, uint64_t readLen)
+{
+    if (get_cord_strand(str_end.first))
+    {
+        return UPair(readLen - get_cord_y(str_end.second) - 1,
+                     readLen - get_cord_y(str_end.first) - 1);
+    }
+    else
+    {
+        return UPair(get_cord_y(str_end.first),
+                     get_cord_y(str_end.second));
+    }
+}
+/*
+ * WARN::1.
+   gaps use cord structure to record y coordinate for simplicity. 
+   But the x and strand bits are not defined.
+   So Do Not use any functions related to x and strand for gaps 
+ * 2. Any y of gaps is on the forward strand.
+ */
+//Collect gaps in coordinates y
+int gather_gaps_y_ (String<uint64_t> & cords, 
+                    String<UPair> & str_ends,
+                    String<UPair> & gaps,
+                    uint64_t readLen,
+                    uint64_t thd_gap_size)
+{
+    uint64_t cord_frt = shift_cord(0, 0, 0); //cord at front 
+    uint64_t cord_end = shift_cord(0, 0, readLen - 1); //..end
+    if (empty(str_ends))
+    {
+        appendValue (gaps, UPair(cord_frt, cord_end));
+        return 0;
+    }
+    std::sort (begin(str_ends), end(str_ends), [& cords, &readLen](UPair & i, UPair & j)
+    {
+        uint64_t y1 = get_cord_strand(i.first) ? 
+                      readLen - get_cord_y(i.second) - 1 : get_cord_y(i.first);
+        uint64_t y2 = get_cord_strand(j.first) ? 
+                      readLen - get_cord_y(j.second) - 1 : get_cord_y(j.first);
+        return y1 < y2; 
+    });
+
+    uint64_t f_cover = 0;
+    uint64_t cordy1 = 0;
+    uint64_t cordy2 = 0;
+    UPair y1 = getUPForwardy (str_ends[0], readLen);
+    UPair y2 = y1;
+    if (y1.first > thd_gap_size) //check str[0]
+    {
+        cordy2 = y1.first;
+        appendValue(gaps, UPair(cord_frt, cordy2));
+    }
+    for (unsigned i = 1; i < length(str_ends); i++)
+    {
+        if (!f_cover)
+        {
+            y1 = getUPForwardy(str_ends[i - 1], readLen);
+            cordy1 = get_cord_y(str_ends[i - 1].second);
+        }
+        cordy2 = get_cord_y(str_ends[i].first);
+        y2 = getUPForwardy(str_ends[i], readLen);
+        if (y1.second > y2.second)  
+        {
+            //skip y2
+            //y1.first < y2.first (sorted)
+            //=> y2 is all covered by y1;
+            f_cover = 1;
+        }
+        else
+        {
+            if (y2.first > y1.second &&  //NOTE::uint don't eliminate the first condition
+                y2.first - y1.second > thd_gap_size) 
+            {
+                appendValue (gaps, UPair(cordy1, cordy2));
+            }
+            f_cover = 0; 
+        }
+    }
+    uint64_t max_y_end = (f_cover) ? y1.second : y2.second;
+    if (readLen - max_y_end > thd_gap_size) //be sure y2 = back(str_ends)
+    {
+        appendValue(gaps, UPair(max_y_end, cord_end));
+    }
+    return 0;
+}
+
+/*
+ * Chainable block: y1_end < y2_str, x1_end < x2_str
+ * Slightly different on different stands
+ * @str_end1.first @str_end1.second required to have same strand
+ * @str_end2.first @str_end2.second required to have same strand
+ * x are required sorted before call the func: x1_first < x2_first
+ */
+int _isChainable(UPair str_end1, UPair str_end2,
+                 int64_t readLen,
+                 int64_t thd_chain_blocks_lower,
+                 int64_t thd_chain_blocks_upper)
+{
+    int64_t dx = get_cord_x(str_end2.first) - get_cord_x(str_end1.second);
+    if (get_cord_strand (str_end1.first ^ str_end2.first))
+    {
+        int64_t dy1 = get_cord_y(str_end2.first) - (readLen - 1 - get_cord_y(str_end1.first));
+        int64_t dy2 = readLen - 1 - get_cord_y(str_end2.second) - get_cord_y(str_end1.second);
+        //dout << "_isChainable" << dy1 << dy2 << "\n";
+        return ((dy1 > thd_chain_blocks_lower && dy1 < thd_chain_blocks_upper) ||
+                (dy2 > thd_chain_blocks_lower && dy2 < thd_chain_blocks_upper)) &&
+                (dx  > thd_chain_blocks_lower && dx < thd_chain_blocks_upper);
+    }
+    else
+    {
+        int64_t dy = get_cord_y(str_end2.first - str_end1.second); 
+        return dy > thd_chain_blocks_lower && dy < thd_chain_blocks_upper &&
+               dx > thd_chain_blocks_lower && dx < thd_chain_blocks_upper;
+    }
+}
+/**
+ * sort cords and combine two blocks if they are not overlapped 
+ * NOTE::cords of the same block are required to have the same strand
+ */
+int chain_blocks_ (String<uint64_t> & cords,
+                   String<UPair> & str_ends_p,
+                   uint64_t readLen,
+                   int64_t thd_chain_blocks_lower,
+                   int64_t thd_chain_blocks_upper)
+{
+    if (empty(cords) || empty(str_ends_p))
+    {
+        return 0;
+    }
+    std::sort (begin(str_ends_p), end(str_ends_p), [& cords](UPair & i, UPair & j){
+        return get_cord_x(cords[i.first]) < get_cord_x(cords[j.first]);
+    });
+    String<uint64_t> tmp_cords;
+    resize (tmp_cords, length(cords));
+    unsigned k = 1;
+    tmp_cords[0] = cords[0];
+    uint64_t cord1 = cords[str_ends_p[0].first];
+    uint64_t cord2 = cords[str_ends_p[0].second - 1];
+    //UPair y1 = getUPForwardy (UPair(cord1, cord2), readLen);
+    //UPair y2 = y1;
+    UPair c1 = UPair(cord1, cord2);
+    UPair c2 = UPair(cord1, cord2);
+    for (unsigned i = 0; i < length(str_ends_p); i++)
+    {
+        if (i > 0) //skip combine in the first block
+        {
+            //print_cord(cord1, "cb1");
+            //print_cord(cord2, "cb2");
+            c2 = UPair(cords[str_ends_p[i].first], cords[str_ends_p[i].second - 1]);
+            if (_isChainable(c1, c2, readLen, thd_chain_blocks_lower, thd_chain_blocks_upper))
+            {
+                _DefaultHit.unsetBlockEnd(tmp_cords[k - 1]);
+            }
+        }
+        for (unsigned j = str_ends_p[i].first; j < str_ends_p[i].second; j++)
+        {
+            tmp_cords[k] = cords[j];
+            k++;
+        }
+        set_cord_end (tmp_cords[k - 1]);
+        //y1 = y2;
+        c1 = c2;
+    }
+    cords = tmp_cords;
+    //return 0;
+}
+
 int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
 {
     int64_t dy = get_cord_y(anchor1) - get_cord_y(anchor2);
@@ -1495,88 +1858,18 @@ int createApxHitsFromAnchors(String<uint64_t> & hits, String<uint64_t> & anchors
         }
         _DefaultHit.setBlockEnd(back(hits));
     }
-
     //dout << "anchorlen" << length(anchors) << length(hits) << "\n";
     //print_cords(hits, "hits");
     return 0;
 }
 
-void Hit::setBlockStart(uint64_t & val, uint64_t const & flag)
+int createApxHitsFromAnchors2(String<uint64_t> & hits,  String<UPair> str_ends, String<UPair> str_ends_p)
 {
-    val |= flag;
+    
 }
 
-void Hit::setBlockBody(uint64_t & val, uint64_t const & flag)
-{
-    val &= (~flag);
-}
-
- bool Hit::isBlockStart(uint64_t & val, uint64_t const & flag)
-{
-    return val & flag;
-}
-
- void Hit::setBlockEnd(uint64_t & val, uint64_t const & flag)
-{
-    val |= flag;
-}
-
- void Hit::unsetBlockEnd(uint64_t & val, uint64_t const & flag)
-{
-    val &= ~flag;
-}
-
- void Hit::setBlockStrand(uint64_t & val, uint64_t const & strand, uint64_t const & flag)
-{
-    if (strand)
-        val |= flag;
-    else
-        val &= ~flag;
-}
-
- bool Hit::isBlockEnd(uint64_t & val, uint64_t const & flag)
-{
-    return val & flag;
-}
-
- unsigned Hit::getStrand(uint64_t const & val, uint64_t const & flag)
-{
-    return (val & flag)?1:0;
-}
-
-uint64_t Hit::getAnchor(uint64_t const & val)
-{
-    return (val >> 20 & ((1ULL << 42) - 1) & (~(1ULL << 41)));
-}
-
-void _printHit(unsigned j, unsigned id1, unsigned id2, String<uint64_t> & hit, unsigned len)
-{
-    unsigned end;
-    for (unsigned k = 0; k < length(hit); k++)
-    {
-        if (_DefaultHit.isBlockEnd(hit[k]))
-            end = 1;
-        else
-            end = 0;
-        printf("[printhit] %d %d %d %d %d\n", j, id1, id2, len, end);
-    }
-}
-
-void _printHit(String<uint64_t>  & hit, CharString header)
-{
-    for (unsigned k = 0; k < length(hit); k++)
-    {
-        std::cout << "[P]::_printHit() " 
-              << get_cord_id(_DefaultCord.hit2Cord(hit[k])) << " " 
-              << get_cord_x(_DefaultCord.hit2Cord(hit[k])) << " " 
-              << get_cord_y(hit[k]) << "\n";
-        if (_DefaultHit.isBlockEnd(hit[k]))
-        {
-            std::cout << "[P]::_printHit() end\n";
-
-        }
-    }
-}
+/*________________________________________________
+ ----------  streaming index features  ----------*/
 
 unsigned getDIndexMatchAll (DIndex & index,
                             String<Dna5> & read,
@@ -1785,10 +2078,7 @@ uint64_t getDHitList(String<uint64_t> & hits, String<int64_t> & list, Anchors & 
                     appendValue(hits, _DefaultCord.hit2Cord_dstr(anchors[n]));
                     //appendValue(hits, anchors[n]);
                 }   
-                if (!empty(hits))
-                {
-                    _DefaultHit.setBlockEnd(back(hits));
-                }
+                _DefaultHit.setBlockEnd(back(hits));
                 ++record_num;
             }
             else
@@ -1813,6 +2103,95 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
     return getDHitList(hit, list, anchors, mapParm, thd_best_n);
 }
 
+int preFilterChains_(String<uint64_t> & hits, String<UPair> & str_ends, String<UPair> & str_ends_p)
+{
+    //first round remove covers 
+    int f_omit = 0;
+    int i_move = 0;
+    for (int i = 1; i < length(str_ends); i++)
+    {
+        int f_omit = 0;
+        uint64_t stry2 = get_cord_y(hits[str_ends_p[i].first]);
+        uint64_t endy2 = get_cord_y(hits[str_ends_p[i].second - 1]);
+        for (int j = 0; j < i - i_move; j++)
+        {
+            uint64_t stry1 = get_cord_y(hits[str_ends_p[j].first]);
+            uint64_t endy1 = get_cord_y(hits[str_ends_p[j].second - 1]);
+            if (stry1 <= stry2 && endy1 >= endy2) //this block is covered 
+            {
+                i_move++;
+                f_omit = 1;
+                break; 
+            }
+        }
+        if (!f_omit && i_move != 0)
+        {
+            str_ends_p[i - i_move] = str_ends_p[i];
+        }
+    }
+    resize (str_ends_p, length(str_ends_p) - i_move);
+    int it = 1;
+    for (int i = 0; i < length(str_ends_p); i++)
+    {
+        for (int j = str_ends_p[i].first; j < str_ends_p[i].second; j++)
+        {
+            hits[it++] = hits[j];
+        }
+    }
+    resize (hits, it);
+    //second round : break overlaps
+    i_move = 0;
+    String<UPair> str_ends_p_tmp;
+    String<uint64_t> ystrs;
+    String<uint64_t> ycuts;
+    resize (ystrs, length(str_ends_p));
+    resize (ycuts, 2 * length(str_ends_p));
+    uint64_t const mask = 1ULL << 62; //a large enough constant
+    for (int i = 0; i < length(str_ends_p); i++) //init ycuts
+    {
+        ycuts[2 * i] = str_ends_p[i].first;
+        ycuts[2 * i + 1] = (str_ends_p[i].second - 1) | mask;  //mask to distinguish the .first and .second
+    }
+    for (int i = 0; i < length(ystrs); i++) //init
+    {
+        ystrs[i] = str_ends_p[i].first;
+    }
+    std::sort(begin(ycuts), end(ycuts), [&hits, &mask](uint64_t & a, uint64_t & b){
+        return get_cord_y(hits[a & (~mask)]) < get_cord_y(hits[b & (~mask)]);  //& erase mask sign when sort
+    });
+    for (int i = 0; i < length(ycuts); i++)
+    {
+        uint64_t cuty = get_cord_y(hits[ycuts[i]]);
+        for (int j = 0; j < length(ystrs) && cuty >= get_cord_y(hits[ystrs[j]]); j++)
+        {
+            for (int k = ystrs[j]; k < str_ends_p[j].second; k++)
+            {
+                if (get_cord_y(hits[k]) >= cuty)
+                {
+                    uint64_t lowery = ystrs[j];
+                    uint64_t uppery = (ycuts[i] & mask) ? (k + 1) : (k);
+                    if (lowery != uppery)
+                    {
+                        appendValue (str_ends_p_tmp, UPair(lowery, uppery));
+                        ystrs[j] = uppery;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    str_ends_p = str_ends_p_tmp;
+    std::sort (begin(str_ends_p), end(str_ends_p), [](UPair & a, UPair & b){return a.second < b.second;});
+    for (auto & ptr : str_ends_p)
+    {
+        _DefaultHit.setBlockEnd(hits[ptr.second - 1]);
+    }
+    resize (hits, it);
+    print_cords(hits, "hits22");
+
+    return 0;
+}
+
 /*
  * Map [read_str, read_end) of the read
  */  
@@ -1825,7 +2204,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
                        String<uint64_t> & hits,
                        int thd_best_n)
 {
-    int f_sort = 2;
+    int f_sort = 1;
     if (index.isHIndex())
     {  
         getHIndexMatchAll(index.hindex, read, anchors.set, read_str, read_end, mapParm);    
@@ -1851,261 +2230,25 @@ uint64_t mnMapReadList(IndexDynamic & index,
         createApxHitsFromAnchors(hits, anchors.set);
         print_cords(hits, "hits1");
     }
+
+    String<UPair> str_ends;
+    String<UPair> str_ends_p;
+    uint64_t thd_large_gap = 1000; 
+    gather_blocks_ (hits, str_ends, str_ends_p, length(read), thd_large_gap, 0, 1);
+    //preFilterChains_ (hits, str_ends, str_ends_p);
+    //<<debug
+    for (int i = 0; i < length(str_ends); i++)
+    {
+        print_cord(str_ends[i].first, "blocks_gaps");
+        print_cord(str_ends[i].second, "blockks_gaps");
+    }
+    //>>debug
+    //chain_blocks_ (hits, str_ends_p, length(read), thd_chain_blocks_lower, thd_chain_blocks_upper);
+    //createChainsFromAnchors2
+    print_cords(hits, "hitsc");
+    //clean_blocks_ (cords, thd_drop_len);
+
     return 0;
-}
-
-/*----------  Chain & Wrapper   ----------*/
-/*
- * Shortcut of gathering start and end pos of each block of consecutive cords 
- * NOTE::str and end coordniates of each block is shifted by @thd_cord_size / 2 based on the cord coordinates 
- * NOTE::block is different to block of cords.
-    1. Block of cords also includes inv cords.
-    2. Here block refers to cords of continuous x and y
-   inv end will call set_cord_end if @f_set_end is true
- */
-int gather_blocks_ (String<uint64_t> & cords, 
-                    String<UPair> & str_ends, //result [] closed 
-                    String<UPair> & str_ends_p, //result pointer [,) right open
-                    uint64_t readLen,
-                    uint64_t thd_large_gap,
-                    uint64_t thd_cord_size,
-                    int f_set_end) //is set_cord_end for each block 
-{
-    //small gaps processed in the gap module
-    clear(str_ends);
-    if (length(cords) < 2)
-    {
-        return 0;
-    }
-    uint64_t d_shift_max = thd_cord_size / 2;
-    uint64_t d_shift = d_shift_max; //NOTE::str end is shifted by this value
-    unsigned p_str = 1;
-
-    for (unsigned i = 2; i < length(cords); i++)
-    {
-        if (is_cord_block_end(cords[i - 1])||
-           !isCordsConsecutive_(cords[i - 1], cords[i], thd_large_gap))
-        {
-            d_shift = std::min (readLen - get_cord_y(cords[p_str]) - 1, d_shift_max);
-            uint64_t b_str = shift_cord (cords[p_str], d_shift, d_shift);
-            d_shift = std::min (readLen - get_cord_y(cords[i - 1]) - 1, d_shift_max);
-            uint64_t b_end = shift_cord (cords[i - 1], d_shift, d_shift);
-            appendValue (str_ends, UPair(b_str, b_end));
-            appendValue (str_ends_p, UPair(p_str, i));
-            if (f_set_end)
-            {
-                set_cord_end (cords[i - 1]);
-            }
-            p_str = i;
-        }
-    }
-    //if (get_cord_y(cords[p_str] - back(cords))) //cords[]_y != back()_y
-    //{
-        d_shift = std::min (readLen - get_cord_y(back(cords)) - 1, d_shift_max);
-        uint64_t b_str = shift_cord (cords[p_str], d_shift, d_shift);
-        d_shift = std::min (readLen - get_cord_y(back(cords)) - 1, d_shift_max);
-        uint64_t b_end = shift_cord (back(cords), d_shift, d_shift);
-        appendValue (str_ends, UPair(b_str, b_end));
-        appendValue (str_ends_p, UPair(p_str, length(cords)));
-    //}
-
-    return 0; 
-}
-/*
- * shortcut function
- * Drop too short blocks in cords 
- */
-int clean_blocks_ (String<uint64_t> & cords, int64_t thd_drop_len) 
-{
-    uint p = 1;
-    int64_t len = 0;
-    for (uint i = 1; i < length(cords); i++)
-    {
-        len++;
-        if (p != i)
-        {
-            cords[p] = cords[i];
-        }
-        if (is_cord_block_end (cords[i]))
-        {
-            if (len < thd_drop_len)
-            {
-                p -= len;
-            }
-            len = 0;
-        }
-        p++;
-    }
-    resize (cords, p);
-}
-
-//shortcut to convert cords pair to y pair (stry, endy) on the forward strand (y projection)
-UPair getUPForwardy(UPair str_end, uint64_t readLen)
-{
-    if (get_cord_strand(str_end.first))
-    {
-        return UPair(readLen - get_cord_y(str_end.second) - 1,
-                     readLen - get_cord_y(str_end.first) - 1);
-    }
-    else
-    {
-        return UPair(get_cord_y(str_end.first),
-                     get_cord_y(str_end.second));
-    }
-}
-/*
- * WARN::1.
-   gaps use cord structure to record y coordinate for simplicity. 
-   But the x and strand bits are not defined.
-   So Do Not use any functions related to x and strand for gaps 
- * 2. Any y of gaps are are on the forward strand.
- */
-//Collect gaps in coordinates y
-int gather_gaps_y_ (String<uint64_t> & cords, 
-                    String<UPair> & str_ends,
-                    String<UPair> & gaps,
-                    uint64_t readLen,
-                    uint64_t thd_gap_size)
-{
-    uint64_t cord_frt = shift_cord(0, 0, 0); //cord at front 
-    uint64_t cord_end = shift_cord(0, 0, readLen - 1); //..end
-    if (empty(str_ends))
-    {
-        appendValue (gaps, UPair(cord_frt, cord_end));
-        return 0;
-    }
-    std::sort (begin(str_ends), end(str_ends), [& cords, &readLen](UPair & i, UPair & j)
-    {
-        uint64_t y1 = get_cord_strand(i.first) ? 
-                      readLen - get_cord_y(i.second) - 1 : get_cord_y(i.first);
-        uint64_t y2 = get_cord_strand(j.first) ? 
-                      readLen - get_cord_y(j.second) - 1 : get_cord_y(j.first);
-        return y1 < y2; 
-    });
-
-    uint64_t f_cover = 0;
-    uint64_t cordy1 = 0;
-    uint64_t cordy2 = 0;
-    UPair y1 = getUPForwardy (str_ends[0], readLen);
-    UPair y2 = y1;
-    if (y1.first > thd_gap_size) //check str[0]
-    {
-        cordy2 = y1.first;
-        appendValue(gaps, UPair(cord_frt, cordy2));
-    }
-    for (unsigned i = 1; i < length(str_ends); i++)
-    {
-        if (!f_cover)
-        {
-            y1 = getUPForwardy(str_ends[i - 1], readLen);
-            cordy1 = get_cord_y(str_ends[i - 1].second);
-        }
-        cordy2 = get_cord_y(str_ends[i].first);
-        y2 = getUPForwardy(str_ends[i], readLen);
-        if (y1.second > y2.second)  
-        {
-            //skip y2
-            //y1.first < y2.first (sorted)
-            //=> y2 is all covered by y1;
-            f_cover = 1;
-        }
-        else
-        {
-            if (y2.first > y1.second &&  //NOTE::uint don't eliminate the first condition
-                y2.first - y1.second > thd_gap_size) 
-            {
-                appendValue (gaps, UPair(cordy1, cordy2));
-            }
-            f_cover = 0; 
-        }
-    }
-    uint64_t max_y_end = (f_cover) ? y1.second : y2.second;
-    if (readLen - max_y_end > thd_gap_size) //be sure y2 = back(str_ends)
-    {
-        appendValue(gaps, UPair(max_y_end, cord_end));
-    }
-    return 0;
-}
-
-/*
- * Chainable block: y1_end < y2_str, x1_end < x2_str
- * Slightly different on different stands
- * @str_end1.first @str_end1.second required to have same strand
- * @str_end2.first @str_end2.second required to have same strand
- * x are required sorted before call the func: x1_first < x2_first
- */
-int _isChainable(UPair str_end1, UPair str_end2,
-                 int64_t readLen,
-                 int64_t thd_chain_blocks_lower,
-                 int64_t thd_chain_blocks_upper)
-{
-    int64_t dx = get_cord_x(str_end2.first) - get_cord_x(str_end1.second);
-    if (get_cord_strand (str_end1.first ^ str_end2.first))
-    {
-        int64_t dy1 = get_cord_y(str_end2.first) - (readLen - 1 - get_cord_y(str_end1.first));
-        int64_t dy2 = readLen - 1 - get_cord_y(str_end2.second) - get_cord_y(str_end1.second);
-        //dout << "_isChainable" << dy1 << dy2 << "\n";
-        return ((dy1 > thd_chain_blocks_lower && dy1 < thd_chain_blocks_upper) ||
-                (dy2 > thd_chain_blocks_lower && dy2 < thd_chain_blocks_upper)) &&
-                (dx  > thd_chain_blocks_lower && dx < thd_chain_blocks_upper);
-    }
-    else
-    {
-        int64_t dy = get_cord_y(str_end2.first - str_end1.second); 
-        return dy > thd_chain_blocks_lower && dy < thd_chain_blocks_upper &&
-               dx > thd_chain_blocks_lower && dx < thd_chain_blocks_upper;
-    }
-}
-/**
- * sort cords and combine two blocks if they are not overlapped 
- * NOTE::cords of the same block are required to have the same strand
- */
-int chain_blocks_ (String<uint64_t> & cords,
-                   String<UPair> & str_ends_p,
-                   uint64_t readLen,
-                   int64_t thd_chain_blocks_lower,
-                   int64_t thd_chain_blocks_upper)
-{
-    if (empty(cords) || empty(str_ends_p))
-    {
-        return 0;
-    }
-    std::sort (begin(str_ends_p), end(str_ends_p), [& cords](UPair & i, UPair & j){
-        return get_cord_x(cords[i.first]) < get_cord_x(cords[j.first]);
-    });
-    String<uint64_t> tmp_cords;
-    resize (tmp_cords, length(cords));
-    unsigned k = 1;
-    tmp_cords[0] = cords[0];
-    uint64_t cord1 = cords[str_ends_p[0].first];
-    uint64_t cord2 = cords[str_ends_p[0].second - 1];
-    //UPair y1 = getUPForwardy (UPair(cord1, cord2), readLen);
-    //UPair y2 = y1;
-    UPair c1 = UPair(cord1, cord2);
-    UPair c2 = UPair(cord1, cord2);
-    for (unsigned i = 0; i < length(str_ends_p); i++)
-    {
-        if (i > 0) //skip combine in the first block
-        {
-            //print_cord(cord1, "cb1");
-            //print_cord(cord2, "cb2");
-            c2 = UPair(cords[str_ends_p[i].first], cords[str_ends_p[i].second - 1]);
-            if (_isChainable(c1, c2, readLen, thd_chain_blocks_lower, thd_chain_blocks_upper))
-            {
-                _DefaultHit.unsetBlockEnd(tmp_cords[k - 1]);
-            }
-        }
-        for (unsigned j = str_ends_p[i].first; j < str_ends_p[i].second; j++)
-        {
-            tmp_cords[k] = cords[j];
-            k++;
-        }
-        set_cord_end (tmp_cords[k - 1]);
-        //y1 = y2;
-        c1 = c2;
-    }
-    cords = tmp_cords;
-    //return 0;
 }
 
 /*
@@ -2128,8 +2271,9 @@ uint64_t apxMap_ (IndexDynamic & index,
     clear (hit);
     //clear (anchors);
     anchors.init(1);
+    initHits(hit);
     mnMapReadList(index, read, anchors, read_str, read_end, mapParm, hit, thd_best_n);
-    path_dst(begin(hit), end(hit), f1, f2, cords, read_str, read_end, length(read), cordLenThr);
+    path_dst(begin(hit) + 1, end(hit), f1, f2, cords, read_str, read_end, length(read), cordLenThr);
 }
 
 uint64_t apxMap (IndexDynamic & index,
@@ -2147,7 +2291,7 @@ uint64_t apxMap (IndexDynamic & index,
     int64_t thd_cord_size = getFeatureWindowSize(f1); 
     int64_t thd_large_gap = 1000;     // make sure thd_large_gap <= thd_combine_blocks
     int64_t thd_chain_blocks_lower = -100;
-    int64_t thd_chain_blocks_upper = 10000; //two blocks of cords will be combined to one if 1.they can be combined 2. they are close enough (< this)
+    int64_t thd_chain_blocks_upper = 10000; //two blocks of cords will be combined to one if they can be combined and close enough (< this)
     int64_t thd_drop_len = 2;
     thd_drop_len = std::min (thd_drop_len, int64_t(length(read) * 0.05 / thd_cord_size)); //drop blocks length < this
     int thd_best_n = 999; //unlimited best hit;
