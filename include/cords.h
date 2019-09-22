@@ -99,6 +99,8 @@ struct Cord
     uint64_t makeBlockEndVal(uint64_t, uint64_t const & = _DefaultCordBase.flagEnd);
 };
 extern Cord _DefaultCord; 
+int initCords (String<uint64_t> &);
+int initHits (String<uint64_t> &);
 /**
  *   struct hit:
  *   extend the structure Cord;
