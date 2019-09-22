@@ -2234,7 +2234,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
     String<UPair> str_ends;
     String<UPair> str_ends_p;
     uint64_t thd_large_gap = 1000; 
-    gather_blocks_ (hits, str_ends, str_ends_p, length(read), thd_large_gap, 0, 1);
+    gather_blocks_ (hits, str_ends, str_ends_p, length(read), thd_large_gap, 0, 0);
     //preFilterChains_ (hits, str_ends, str_ends_p);
     //<<debug
     for (int i = 0; i < length(str_ends); i++)
