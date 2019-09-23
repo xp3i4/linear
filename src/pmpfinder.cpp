@@ -1320,6 +1320,8 @@ int ChainScoreMetric::getAbortScore()
     return thd_abort_score;
 }
 
+int const chain_end_score = 0;
+int const chain_end = -1;
 int getBestChains(String<uint64_t>     & anchors,
                   String<ChainsRecord> & chains,
                   int anchor_end,
@@ -1380,9 +1382,11 @@ int traceBackChains(String<ChainElementType> & elements,  StringSet<String<Chain
     String<ChainElementType> chain;
     String<uint64_t> chain_score;
     int delete_score = -1000;
-    int const chain_end = -1;
-    for (int i = 0; i < bestn; i++) 
+    int search_times = 8;
+    for (int i = 0; i < search_times && length(chains) <= bestn; i++) 
     {
+        bool f_done = true;
+        int max_2nd_score = -1;
         int max_score = -1;
         int max_str = chain_end;
         int max_len = 0;
@@ -1390,27 +1394,42 @@ int traceBackChains(String<ChainElementType> & elements,  StringSet<String<Chain
         {
             if (chain_records[j].score > max_score)
             {
+                max_2nd_score = max_score;
                 max_str   = j;
                 max_score= chain_records[j].score;
                 max_len   = chain_records[j].len;
+                f_done = false;
             }
         }
-        //dout << "maxlen2" << max_len << max_score << max_str << chain_records[max_str].score << "\n";
+        if (f_done)
+        {
+            break;
+        }
         if (max_len > 1 && max_score / max_len > _chain_abort_score)
         {
-            clear(chain);
-            clear(chain_score);
             for (int j = max_str; j != chain_end; j = chain_records[j].p2anchor)
             {
                 if (chain_records[j].score != delete_score)
                 {
-                    dout << "maxlen2" << i << j << chain_records[j].score2 << "\n";
                     appendValue (chain, elements[j]);
                     appendValue (chain_score, chain_records[j].score2);
                     chain_records[j].score = delete_score; 
                 }
                 else
                 {
+                    int infix_chain_score = chain_records[j].score2; //infix of the chain has been seleted out, so update the score of the suffix chain.
+
+                    if (max_score - infix_chain_score < max_2nd_score)
+                    {
+                        for (int k = max_str; k != j; k = chain_records[k].p2anchor)  
+                        {
+                            chain_records[k].score = chain_records[k].score2 - infix_chain_score;
+                        } 
+
+                        clear (chain); 
+                        clear (chain_score);
+                    }
+
                     break;
                 }
             }
@@ -1418,6 +1437,8 @@ int traceBackChains(String<ChainElementType> & elements,  StringSet<String<Chain
             {
                 appendValue(chains, chain);
                 append(chains_score, chain_score);
+                clear(chain);
+                clear(chain_score);
             }
         } 
         if (max_str != chain_end)
@@ -1433,11 +1454,16 @@ int createChainsFromAnchors(StringSet<String<uint64_t> > & chains, String<int> &
     {
         return 0;
     }
-    int topn = 5;
+    int bestn = 5;
     String<ChainsRecord> chain_records;
     resize (chain_records, anchor_end);
+    double t1 = sysTime();
     getBestChains (anchors, chain_records, anchor_end, chn_score1.getScore);
-    traceBackChains(anchors, chains, chain_records, chains_score, chn_score1.getAbortScore(), topn);
+    t1 = sysTime() - t1;
+    double t2 = sysTime();
+    traceBackChains(anchors, chains, chain_records, chains_score, chn_score1.getAbortScore(), bestn);
+    t2 = sysTime() - t2;
+    dout << "sys" << t1 / t2 << "\n";
 }
 
 /*
@@ -2162,7 +2188,7 @@ int preFilterChains_(String<uint64_t> & hits, String<int>  & hits_score, String<
     String<uint64_t> ycuts;
     resize (ystrs, length(str_ends_p));
     resize (ycuts, 2 * length(str_ends_p));
-    uint64_t const mask = 1ULL << 62; //a large enough constant
+    uint64_t const mask = 1ULL << 62; //a constant large enough
     for (int i = 0; i < length(str_ends_p); i++) //init ycuts
     {
         ycuts[2 * i] = str_ends_p[i].first;
@@ -2250,6 +2276,12 @@ uint64_t mnMapReadList(IndexDynamic & index,
     String<UPair> str_ends_p;
     String<int>   str_ends_p_score;
     //gather_blocks_ (hits, str_ends, str_ends_p, length(read), thd_large_gap, 0, 0);
+    //<<debug
+    for (int i = 0; i < length(hits_score); i++)
+    {
+        dout << "cs" << hits_score[i] << "\n";
+    }
+    //>>debug
     //preFilterChains_ (hits, hits_score, str_ends, str_ends_p, str_ends_p_score);
 
     print_cords(hits, "hitsc0");
