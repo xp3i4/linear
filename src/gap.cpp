@@ -958,8 +958,8 @@ int createTilesFromAnchors2_(String<uint64_t> & anchor,
     ChainScoreMetric chn_score1(50, &getGapChainScore);
     std::sort(begin(anchor), begin(anchor) + anchor_end, 
         [](uint64_t & a, uint64_t & b){return g_hs_anchor_getX(a) > g_hs_anchor_getX(b);});
-    String<ChainsRecord> chain_records;
-    createChainsFromAnchors (chains, chain_records, anchor, anchor_end, chn_score1);
+    String<int> chain_score;
+    createChainsFromAnchors (chains, chain_score , anchor, anchor_end, chn_score1);
     for (auto & chain : chains)
     {
         apxCreateTilesFromAnchors_(chain, tiles, f1, f2, gap_str, 0, length(chain), thD_tile_size, thd_pattern_in_window);

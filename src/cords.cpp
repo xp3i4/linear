@@ -293,6 +293,12 @@ int initHits (String<uint64_t> & hits)
 {
     return initCords(hits);
 }
+int initHitsScore (String<int> & hit_score)
+{
+    clear (hit_score);
+    appendValue(hit_score, 0);
+    return length(hit_score);
+}
 
 /*----------  Hits shortcuts  ----------*/
 

@@ -154,8 +154,8 @@ struct ChainScoreMetric
 
 struct ChainsRecord
 {
-    int score; //chain score = sum of score2 of all records in the score
-    int score2; // this record score
+    int score; //chain score 
+    int score2; //copy of score 
     int len;
     int p2anchor;
 };
@@ -164,7 +164,7 @@ int getBestChains(String<uint64_t> & anchor,
                   int anchor_end,
                   int (*getScore) (uint64_t const &, uint64_t const &));
 
-int createChainsFromAnchors(StringSet<String<uint64_t> > &, String<ChainsRecord> &, String<uint64_t> &, int, ChainScoreMetric &);
+int createChainsFromAnchors(StringSet<String<uint64_t> > &, String<int> &, String<uint64_t> &, int, ChainScoreMetric &);
  
 uint64_t apxMap (IndexDynamic & index,
                  String<Dna5> & read,

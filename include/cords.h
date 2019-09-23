@@ -101,6 +101,7 @@ struct Cord
 extern Cord _DefaultCord; 
 int initCords (String<uint64_t> &);
 int initHits (String<uint64_t> &);
+int initHitsScore (String<int> & hit_score);
 /**
  *   struct hit:
  *   extend the structure Cord;
