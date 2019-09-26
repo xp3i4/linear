@@ -3164,7 +3164,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             direction = g_map_closed;
             _DefaultHit.unsetBlockEnd(gap_str);
             _DefaultHit.unsetBlockEnd(gap_end);
-
+            
             mapGap_(seqs, read, comstr, 
                     gap_str, gap_end, 
                     g_hs, g_anchor, 
