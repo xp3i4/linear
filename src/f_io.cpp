@@ -584,12 +584,12 @@ int ifCreateNew_(uint64_t cord1_str, uint64_t cord1_end, uint64_t cord2_str, uin
     uint64_t y21 = get_cord_y(cord2_str);
     (void) cord2_end;
     int flag = is_cord_block_end (cord1_str) ||  
-                             (x11 > x21) || 
-                             (y11 > y21) ||
-                (x12 > x21 && y12 < y21) ||
-                (x12 < x21 && y12 > x21) ||
+                                 (x11 > x21) || 
+                                 (y11 > y21) ||
+                    (x12 > x21 && y12 < y21) ||
+                    (x12 < x21 && y12 > x21) ||
                 (int64_t(x21 - x12) > int64_t(thd_large_X) && int64_t(y21 - y12) > int64_t(thd_large_X)) ||
-                get_cord_strand (cord1_str ^ cord2_str);
+                    get_cord_strand (cord1_str ^ cord2_str);
     return flag;
 }
 /*
@@ -619,7 +619,10 @@ void createRectangleCigarPair (uint64_t cord1, uint64_t cord2,
 }
 
 /*
- * NOTE::@cords are required to satisi the conditons declared at function of ifCreateNew_()
+ * Find cigar from cord1_str to cord2_str
+ * NOTE::@cords are required to satisfy the conditons declared at function of ifCreateNew_()
+ * NOTE::Don't change the return value, since it's (internal) called by others.
+ * Checking cord2_str > cord1_str before calling is required
  */
 uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar starts 
                       uint64_t cord1_str, 
@@ -644,7 +647,20 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
     {
         return ~0; //return error
     }
+    /*
+    uint64_t cigar_cord1 = cord1_str;
+    uint64_t cigar_cord2 = shift_cord(cord1_end, int64_t(std::min(x12, x21) - x12), int64_t(std::min(y12, y21) - y12)); 
+    uint64_t cigar_cord3 = cord2_str;
+    createRectangleCigarPair(cigar_cord1, cigar_cord2, cigar1, cigar2, 0);
+    if (cigar1.count) appendCigar(cigar, cigar1);
+    if (cigar2.count) appendCigar(cigar, cigar2);
+    createRectangleCigarPair(cigar_cord2, cigar_cord3, cigar1, cigar2, 1);
+    if (cigar1.count) appendCigar(cigar, cigar1);
+    if (cigar2.count) appendCigar(cigar, cigar2);
 
+    next_cigar_str = cord2_str; 
+    return next_cigar_str;
+    */
     uint64_t mstrx = get_cord_x(cigar_str); //match ('M'='X' + '=') start
     uint64_t mstry = get_cord_y(cigar_str); 
     uint64_t dx = x21 - mstrx;
@@ -654,21 +670,27 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
     if (m_len <= e_upper)
     {
         createRectangleCigarPair(cord1_str, cord2_str, cigar1, cigar2, 0); //'='
-        appendCigar (cigar, cigar1);
-        appendCigar (cigar, cigar2);
+        if (cigar1.count) appendCigar(cigar, cigar1);
+        if (cigar2.count) appendCigar(cigar, cigar2);
+        //appendCigar (cigar, cigar1);
+        //appendCigar (cigar, cigar2);
         next_cigar_str = cord2_str;
     }
     else
     {
         createRectangleCigarPair(cord1_str, cord1_end, cigar1, cigar2, 0); //'='
-        appendCigar (cigar, cigar1);
-        appendCigar (cigar, cigar2);
+        if (cigar1.count) appendCigar(cigar, cigar1);
+        if (cigar2.count) appendCigar(cigar, cigar2);
+        //appendCigar (cigar, cigar1);
+        //appendCigar (cigar, cigar2);
         createRectangleCigarPair(cord1_end, cord2_str, cigar1, cigar2, 1); //'X'
-        appendCigar (cigar, cigar1);
-        appendCigar (cigar, cigar2);
+        if (cigar1.count) appendCigar(cigar, cigar1);
+        if (cigar2.count) appendCigar(cigar, cigar2);
+        //appendCigar (cigar, cigar1);
+        //appendCigar (cigar, cigar2);
         next_cigar_str = cord2_str;
-
     }
+    
     //dout << "next_cigar_str" << get_cord_y(next_cigar_str) << get_cord_y(cord2_str) << "\n";
     return next_cigar_str;
 }
@@ -821,6 +843,7 @@ void print_cords_sam
      unsigned threads,
      int f_header)
 {
+    //thd_large_X = 500;
     cords2BamLink (cordset_str, cordset_end, bam_records, reads, thd_cord_size, thd_large_X, threads);
     //shrink_cords_cigar(bam_records);
     print_align_sam (genms, genmsId, readsId, bam_records, of, f_header);
