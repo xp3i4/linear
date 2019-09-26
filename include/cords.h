@@ -102,6 +102,9 @@ extern Cord _DefaultCord;
 int initCords (String<uint64_t> &);
 int initHits (String<uint64_t> &);
 int initHitsScore (String<int> & hit_score);
+int isHitsEmpty(String<uint64_t> & hits);
+Iterator<String<uint64_t> >::Type beginHits (String<uint64_t> & hits);
+Iterator<String<uint64_t> >::Type endHits(String<uint64_t> & hits);
 /**
  *   struct hit:
  *   extend the structure Cord;

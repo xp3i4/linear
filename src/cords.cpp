@@ -7,7 +7,7 @@ using namespace seqan;
 uint64_t const_anchor_zero = (1ULL << 20); // make sure y in cord < this  
 uint64_t FORWARD_STRAND = 0;
 uint64_t REVERSE_STRAND = 1; 
-
+ 
 CordBase::CordBase():
         bit(20),
         flagEnd(1ULL << 60),
@@ -281,6 +281,7 @@ uint64_t make_anchor(uint64_t id, uint64_t x, uint64_t y, uint64_t strand)
 {
     return create_cord (id, x - y + const_anchor_zero, y, strand);
 }
+/*----------  For simplicity hits and cords are not fully wrapped, use them with caution  ----------*/
 
 int initCords (String<uint64_t> & cords)
 {
@@ -298,6 +299,18 @@ int initHitsScore (String<int> & hit_score)
     clear (hit_score);
     appendValue(hit_score, 0);
     return length(hit_score);
+}
+int isHitsEmpty(String<uint64_t> & hits)
+{
+    return length(hits) < 2;
+}
+Iterator<String<uint64_t> >::Type beginHits (String<uint64_t> & hits)
+{
+    return begin(hits) + 1;
+}
+Iterator<String<uint64_t> >::Type endHits(String<uint64_t> & hits)
+{
+    return end(hits);
 }
 
 /*----------  Hits shortcuts  ----------*/
