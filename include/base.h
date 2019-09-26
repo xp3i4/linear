@@ -182,6 +182,7 @@ void _compltRvseStr(String<Dna5> & str, String<Dna5> & res);
 
 struct Dout //debug cout utility
 {
+    std::ostringstream buffer;
     Dout & operator << (int);
     Dout & operator << (unsigned);
     Dout & operator << (int64_t);
@@ -189,7 +190,6 @@ struct Dout //debug cout utility
     Dout & operator << (CharString);
     Dout & operator << (String<int64_t> &);
     Dout & operator << (double);
-
 };
 extern Dout dout;
 
