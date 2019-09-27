@@ -1572,6 +1572,153 @@ int createChainsFromHitBlocks(StringSet<String<UPair> > & chains, String<uint64_
     traceBackChains(str_ends_p, chains, chain_records, chains_score, chn_score1.getAbortScore(), bestn);
 }
 
+int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
+{
+    int64_t dy = get_cord_y(anchor1) - get_cord_y(anchor2);
+    if (dy < 10)
+    {
+        //dy < 0 : y should in descending order
+        //0 <= dy < 10 : too close anchors are excluded;
+        return -10000;
+    }
+    int64_t thd_min_dy = 50;
+    int64_t da = std::abs(int64_t(_DefaultHit.getAnchor(anchor2) - _DefaultHit.getAnchor(anchor1)));
+    //<< debug
+    //uint64_t tmp_cord1 = _DefaultCord.hit2Cord_dstr(anchor1);
+    //uint64_t tmp_cord2 = _DefaultCord.hit2Cord_dstr(anchor2);
+    //dout << "aps" << da << get_cord_strand(tmp_cord1) << get_cord_y(tmp_cord1) << get_cord_x(tmp_cord1) << get_cord_strand(tmp_cord2) << get_cord_y(tmp_cord2) << get_cord_x(tmp_cord2) << "\n";
+    //>>debug
+    int64_t d_err =  (100 * da) / std::max(dy, thd_min_dy); // 1/100 = 0.01
+    //dout << "aps_score x" << dy << d_err << da << get_cord_y(tmp_cord1) << get_cord_y(tmp_cord2) << "\n";
+    if (d_err < 10)         {d_err = 0;}
+    else if (d_err < 25)    {d_err = 10 + 2 * d_err ;}
+    else if (d_err < 100)   {d_err = d_err * d_err / 10 + 40;}
+    else                    {d_err = 10000;}
+
+    //d_y
+    dy /= 15;
+    if (dy < 150)           {dy = dy / 5;}
+    else if (dy < 100)      {dy = dy - 30;}
+    else if (dy < 10000)    {dy = dy * dy / 200 + 20;}
+    else                    {dy = 10000;}
+    //dout << "aps_score" << 100 - dy - d_err << dy << d_err << da << get_cord_y(tmp_cord1) << get_cord_y(tmp_cord2) << "\n";
+    return 100 - dy - d_err ;    
+}
+
+int createApxHitsFromAnchors(String<uint64_t> & hits,  String<int> & chains_score, String<uint64_t> & anchors)
+{
+    int thd_drop_score = 45; //<<TODO, change the score!
+    ChainScoreMetric chn_score(thd_drop_score, &getApxChainScore);
+    std::sort(begin(anchors), end(anchors), 
+        [](uint64_t & a, uint64_t & b){
+            //return _DefaultCord.get_hit_strx(a) > _DefaultCord.get_hit_strx(b);
+            return get_cord_x(_DefaultCord.hit2Cord_dstr(a)) > get_cord_x(_DefaultCord.hit2Cord_dstr(b));
+        });
+    dout << "canchors<<<<<\n";
+    //<<degbu
+    for (int i = 0; i < length(anchors); i++)
+    {
+        print_cord(_DefaultCord.hit2Cord_dstr(anchors[i]), "canchors");
+    } 
+    //>>debug
+    StringSet<String<uint64_t> > chains;
+    createChainsFromAnchors(chains, chains_score, anchors, length(anchors), chn_score); 
+    for (auto & chain : chains)
+    {
+        for (auto & hit : chain) 
+        {
+            appendValue (hits, _DefaultCord.hit2Cord_dstr(hit));
+            //appendValue(hits, hit);
+        }
+        _DefaultHit.setBlockEnd(back(hits));
+    }
+    return 0;
+}
+/*
+ * Warn:: x
+ */
+int getApxChainScore2(uint64_t const & cord1, uint64_t const & cord2)
+{
+    print_cord(cord1, "ga0");
+    print_cord(cord2, "ga0");
+    int64_t dy = get_cord_y(cord1) - get_cord_y(cord2);
+    int64_t dx = get_cord_x(cord1) - get_cord_x(cord2);
+    if (dy < 0)
+    {
+        return -10000;
+    }
+    int64_t thd_min_dy = 300;
+    int64_t da = std::abs(int64_t(dx - dy));
+    int64_t d_err =  (100 * da) / std::max({dy, thd_min_dy, std::abs(dx)}); // 1/100 = 0.01
+    dout << "ga2" << dy << d_err <<  da << std::abs(dx) << "\n";
+    if      (d_err < 10)    {d_err = 0;}                 //10%
+    else if (d_err < 25)    {d_err = 10 + d_err;}        //25%
+    else if (d_err < 100)   {d_err = 35 + d_err / 2;}
+    else                    {d_err = 10000;}
+    //d_y
+    dy /= 15;
+    if      (dy < 150)      {dy = dy / 5;}              //gapy_len =  15 * 150
+    else if (dy < 100)      {dy = dy - 30;}
+    else if (dy < 10000)    {dy = dy * dy / 200 + 20;}
+    else                    {dy = 10000;}
+    dout << "ga1" << dy << d_err << "\n";
+    return 100 - dy - d_err ;    
+}
+
+int createApxHitsFromHitBlocks(String<uint64_t> & hits, String<UPair> & str_ends_p, String<int> & str_ends_p_score)
+{
+    if (length(str_ends_p) < 2) return 0;
+
+    int thd_drop_score;
+    ChainScoreMetric chn_score(thd_drop_score, &getApxChainScore2);
+    String <unsigned> ptr;
+    String<UPair> str_ends_p_tmp;
+    String<int> str_ends_p_score_tmp;
+    StringSet<String<UPair> > chains;
+    String<uint64_t> hits_tmp;
+    //step 1. sort str_ends_p and str_ends_p_score in denscending of corresponding x of hits[str_end_p]; ptr is tmp pointer array
+    for (int i = 0; i < length(str_ends_p); i++)
+    {
+        appendValue(ptr, i);
+    }
+    std::sort (begin(ptr), end(ptr), [& hits, & str_ends_p](unsigned & a, unsigned & b){
+        return get_cord_x(hits[str_ends_p[a].first]) > get_cord_x(hits[str_ends_p[b].first]);
+    });
+    resize(str_ends_p_tmp, length(str_ends_p));
+    resize(str_ends_p_score_tmp, length(str_ends_p_score));
+    for (int i = 0; i < length(str_ends_p); i++)
+    {
+        str_ends_p_tmp[i] = str_ends_p[ptr[i]];
+        str_ends_p_score_tmp[i] = str_ends_p_score[ptr[i]];
+    }
+    //<< debug
+    /*
+    for (int i = 0; i < length(str_ends_p_tmp); i++)
+    {
+        dout << "sstr" << str_ends_p[i].first << str_ends_p[i].second << str_ends_p_score[i] << "\n"; 
+    }
+    */
+    //>> debug
+    createChainsFromHitBlocks(chains, hits, str_ends_p_tmp, str_ends_p_score_tmp, chn_score);
+    for (int i = 0; i < length(chains); i++)
+    {
+        for (int j = 0; j < length(chains[i]); j++)
+        {
+            for (int k = chains[i][j].first; k < chains[i][j].second; k++)
+            {
+                appendValue(hits_tmp, hits[k]);
+                _DefaultHit.unsetBlockEnd(back(hits_tmp));
+                dout << "bkend" << hits[k] << k << "\n";
+            }
+        }
+        _DefaultHit.setBlockEnd(back(hits_tmp));
+    }
+    print_cords(hits, "hits_tm");
+    print_cords(hits_tmp, "hits_tm2");
+    hits = hits_tmp;
+    return 0;
+}
+
 /*__________________________________________________
   ---------- @sub::apx chain additionals ----------*/
 /*
@@ -1823,153 +1970,6 @@ int chain_blocks_ (String<uint64_t> & cords,
     cords = tmp_cords;
 
     //return 0;
-}
-
-int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
-{
-    int64_t dy = get_cord_y(anchor1) - get_cord_y(anchor2);
-    if (dy < 10)
-    {
-        //dy < 0 : y should in descending order
-        //0 <= dy < 10 : too close anchors are excluded;
-        return -10000;
-    }
-    int64_t thd_min_dy = 50;
-    int64_t da = std::abs(int64_t(_DefaultHit.getAnchor(anchor2) - _DefaultHit.getAnchor(anchor1)));
-    //<< debug
-    //uint64_t tmp_cord1 = _DefaultCord.hit2Cord_dstr(anchor1);
-    //uint64_t tmp_cord2 = _DefaultCord.hit2Cord_dstr(anchor2);
-    //dout << "aps" << da << get_cord_strand(tmp_cord1) << get_cord_y(tmp_cord1) << get_cord_x(tmp_cord1) << get_cord_strand(tmp_cord2) << get_cord_y(tmp_cord2) << get_cord_x(tmp_cord2) << "\n";
-    //>>debug
-    int64_t d_err =  (100 * da) / std::max(dy, thd_min_dy); // 1/100 = 0.01
-    //dout << "aps_score x" << dy << d_err << da << get_cord_y(tmp_cord1) << get_cord_y(tmp_cord2) << "\n";
-    if (d_err < 10)         {d_err = 0;}
-    else if (d_err < 25)    {d_err = 10 + 2 * d_err ;}
-    else if (d_err < 100)   {d_err = d_err * d_err / 10 + 40;}
-    else                    {d_err = 10000;}
-
-    //d_y
-    dy /= 15;
-    if (dy < 150)           {dy = dy / 5;}
-    else if (dy < 100)      {dy = dy - 30;}
-    else if (dy < 10000)    {dy = dy * dy / 200 + 20;}
-    else                    {dy = 10000;}
-    //dout << "aps_score" << 100 - dy - d_err << dy << d_err << da << get_cord_y(tmp_cord1) << get_cord_y(tmp_cord2) << "\n";
-    return 100 - dy - d_err ;    
-}
-
-int createApxHitsFromAnchors(String<uint64_t> & hits,  String<int> & chains_score, String<uint64_t> & anchors)
-{
-    int thd_drop_score = 45; //<<TODO, change the score!
-    ChainScoreMetric chn_score(thd_drop_score, &getApxChainScore);
-    std::sort(begin(anchors), end(anchors), 
-        [](uint64_t & a, uint64_t & b){
-            //return _DefaultCord.get_hit_strx(a) > _DefaultCord.get_hit_strx(b);
-            return get_cord_x(_DefaultCord.hit2Cord_dstr(a)) > get_cord_x(_DefaultCord.hit2Cord_dstr(b));
-        });
-    dout << "canchors<<<<<\n";
-    //<<degbu
-    for (int i = 0; i < length(anchors); i++)
-    {
-        print_cord(_DefaultCord.hit2Cord_dstr(anchors[i]), "canchors");
-    } 
-    //>>debug
-    StringSet<String<uint64_t> > chains;
-    createChainsFromAnchors(chains, chains_score, anchors, length(anchors), chn_score); 
-    for (auto & chain : chains)
-    {
-        for (auto & hit : chain) 
-        {
-            appendValue (hits, _DefaultCord.hit2Cord_dstr(hit));
-            //appendValue(hits, hit);
-        }
-        _DefaultHit.setBlockEnd(back(hits));
-    }
-    return 0;
-}
-/*
- * Warn:: x
- */
-int getApxChainScore2(uint64_t const & cord1, uint64_t const & cord2)
-{
-    print_cord(cord1, "ga0");
-    print_cord(cord2, "ga0");
-    int64_t dy = get_cord_y(cord1) - get_cord_y(cord2);
-    int64_t dx = get_cord_x(cord1) - get_cord_x(cord2);
-    if (dy < 0)
-    {
-        return -10000;
-    }
-    int64_t thd_min_dy = 300;
-    int64_t da = std::abs(int64_t(dx - dy));
-    int64_t d_err =  (100 * da) / std::max({dy, thd_min_dy, std::abs(dx)}); // 1/100 = 0.01
-    dout << "ga2" << dy << d_err <<  da << std::abs(dx) << "\n";
-    if      (d_err < 10)    {d_err = 0;}                 //10%
-    else if (d_err < 25)    {d_err = 10 + d_err;}        //25%
-    else if (d_err < 100)   {d_err = 35 + d_err / 2;}
-    else                    {d_err = 10000;}
-    //d_y
-    dy /= 15;
-    if      (dy < 150)      {dy = dy / 5;}              //gapy_len =  15 * 150
-    else if (dy < 100)      {dy = dy - 30;}
-    else if (dy < 10000)    {dy = dy * dy / 200 + 20;}
-    else                    {dy = 10000;}
-    dout << "ga1" << dy << d_err << "\n";
-    return 100 - dy - d_err ;    
-}
-
-int createApxHitsFromHitBlocks(String<uint64_t> & hits, String<UPair> & str_ends_p, String<int> & str_ends_p_score)
-{
-    if (length(str_ends_p) < 2) return 0;
-
-    int thd_drop_score;
-    ChainScoreMetric chn_score(thd_drop_score, &getApxChainScore2);
-    String <unsigned> ptr;
-    String<UPair> str_ends_p_tmp;
-    String<int> str_ends_p_score_tmp;
-    StringSet<String<UPair> > chains;
-    String<uint64_t> hits_tmp;
-    //step 1. sort str_ends_p and str_ends_p_score in denscending of corresponding x of hits[str_end_p]; ptr is tmp pointer array
-    for (int i = 0; i < length(str_ends_p); i++)
-    {
-        appendValue(ptr, i);
-    }
-    std::sort (begin(ptr), end(ptr), [& hits, & str_ends_p](unsigned & a, unsigned & b){
-        return get_cord_x(hits[str_ends_p[a].first]) > get_cord_x(hits[str_ends_p[b].first]);
-    });
-    resize(str_ends_p_tmp, length(str_ends_p));
-    resize(str_ends_p_score_tmp, length(str_ends_p_score));
-    for (int i = 0; i < length(str_ends_p); i++)
-    {
-        str_ends_p_tmp[i] = str_ends_p[ptr[i]];
-        str_ends_p_score_tmp[i] = str_ends_p_score[ptr[i]];
-    }
-    //<< debug
-    /*
-    for (int i = 0; i < length(str_ends_p_tmp); i++)
-    {
-        dout << "sstr" << str_ends_p[i].first << str_ends_p[i].second << str_ends_p_score[i] << "\n"; 
-    }
-    */
-    //>> debug
-    createChainsFromHitBlocks(chains, hits, str_ends_p_tmp, str_ends_p_score_tmp, chn_score);
-    for (int i = 0; i < length(chains); i++)
-    {
-        for (int j = 0; j < length(chains[i]); j++)
-        {
-            for (int k = chains[i][j].first; k < chains[i][j].second; k++)
-            {
-                appendValue(hits_tmp, hits[k]);
-                _DefaultHit.unsetBlockEnd(back(hits_tmp));
-                dout << "bkend" << hits[k] << k << "\n";
-            }
-        }
-        _DefaultHit.setBlockEnd(back(hits_tmp));
-    }
-    print_cords(hits, "hits_tm");
-    print_cords(hits_tmp, "hits_tm2");
-    hits = hits_tmp;
-    return 0;
 }
 
 /*________________________________________________
