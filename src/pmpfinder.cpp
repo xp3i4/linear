@@ -1345,6 +1345,9 @@ int const chain_end_score = 0;
 int const chain_end = -1;
 /*
  * Warn:: anchors are required to sort by x in descending order.
+   Don't manipulate the anchors by direct comparation, insertion in this function !
+   The @anchors is a abstract class (not defined), which can be cords, gaps, or hit.
+   It can only be handled by the corresponding @scoreFunc, which defines the @anchors.
  */ 
 int getBestChains(String<uint64_t>     & anchors, //todo:: anchor1 anchor2 of different strand not finished 
                   String<ChainsRecord> & chains,
@@ -1370,7 +1373,7 @@ int getBestChains(String<uint64_t>     & anchors, //todo:: anchor1 anchor2 of di
     for (int i = 0; i < anchor_end; i++) 
     {
         //dout << "gbcy" << get_cord_y(anchors[i]) << "\n";
-
+        print_cord(_DefaultCord.hit2Cord_dstr(anchors[i]), "gbc1");
         int j_str = std::max (0, i - thd_chain_depth);
         max_j = i;
         new_max_score = -1;
@@ -1383,13 +1386,11 @@ int getBestChains(String<uint64_t>     & anchors, //todo:: anchor1 anchor2 of di
                 new_max_score = new_score + chains[j].score;
             }
             //<<debug
-            /*
             uint64_t cord1 = _DefaultCord.hit2Cord_dstr (anchors[i]);
             uint64_t cord2 = _DefaultCord.hit2Cord_dstr (anchors[j]);
-            dout << "newscore" << i << j << new_score << new_max_score << "\n";
+            dout << "newscore" << i << j << get_cord_y(cord1) << get_cord_y(cord2) << new_score << new_max_score << "\n";
             print_cord(cord1, "newscore1");
             print_cord(cord2, "newscore2");
-            */
             //>>debug
         }
         if (new_max_score > 0)
@@ -1435,10 +1436,11 @@ int traceBackChains(String<ChainElementType> & elements,  StringSet<String<Chain
                 f_done = false;
             }
         }
-        if (f_done)
+        if (f_done || max_score == 0)
         {
             break;
         }
+                dout << "maxtrace" << max_len << max_score << "\n";
         if (max_len > 1 && max_score / max_len > _chain_abort_score)
         {
             for (int j = max_str; j != chain_end; j = chain_records[j].p2anchor)
@@ -1826,8 +1828,10 @@ int chain_blocks_ (String<uint64_t> & cords,
 int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
 {
     int64_t dy = get_cord_y(anchor1) - get_cord_y(anchor2);
-    if (dy < 0)
+    if (dy < 10)
     {
+        //dy < 0 : y should in descending order
+        //0 <= dy < 10 : too close anchors are excluded;
         return -10000;
     }
     int64_t thd_min_dy = 50;
@@ -1863,6 +1867,13 @@ int createApxHitsFromAnchors(String<uint64_t> & hits,  String<int> & chains_scor
             //return _DefaultCord.get_hit_strx(a) > _DefaultCord.get_hit_strx(b);
             return get_cord_x(_DefaultCord.hit2Cord_dstr(a)) > get_cord_x(_DefaultCord.hit2Cord_dstr(b));
         });
+    dout << "canchors<<<<<\n";
+    //<<degbu
+    for (int i = 0; i < length(anchors); i++)
+    {
+        print_cord(_DefaultCord.hit2Cord_dstr(anchors[i]), "canchors");
+    } 
+    //>>debug
     StringSet<String<uint64_t> > chains;
     createChainsFromAnchors(chains, chains_score, anchors, length(anchors), chn_score); 
     for (auto & chain : chains)
@@ -2189,7 +2200,7 @@ uint64_t getDHitList(String<uint64_t> & hits, String<int64_t> & list, Anchors & 
             }
         }
         
-        //print_cords (hit, "gdialx");
+        print_cords (hits, "gdialx");
         return (list[0] >> 40);   
     }
     else
