@@ -1441,7 +1441,7 @@ int traceBackChains(String<ChainElementType> & elements,  StringSet<String<Chain
             break;
         }
                 dout << "maxtrace" << max_len << max_score << "\n";
-        if (max_len > 1 && max_score / max_len > _chain_abort_score)
+        if (max_len > 1 && max_score / (max_len - 1) > _chain_abort_score) //max_len is the number of anchors, ..-1 is the number of connection(interval) between anchors
         {
             for (int j = max_str; j != chain_end; j = chain_records[j].p2anchor)
             {
@@ -1484,94 +1484,6 @@ int traceBackChains(String<ChainElementType> & elements,  StringSet<String<Chain
     }  
 }
 
-int createChainsFromAnchors(StringSet<String<uint64_t> > & chains, String<int> & chains_score, String<uint64_t> & anchors, int anchor_end, ChainScoreMetric & chn_score1)
-{
-    if (anchor_end < 2)
-    {
-        return 0;
-    }
-    int bestn = 5;
-    String<ChainsRecord> chain_records;
-    resize (chain_records, anchor_end);
-    double t1 = sysTime();
-    getBestChains (anchors, chain_records, anchor_end, chn_score1.getScore);
-    t1 = sysTime() - t1;
-    double t2 = sysTime();
-    traceBackChains(anchors, chains, chain_records, chains_score, chn_score1.getAbortScore(), bestn);
-    t2 = sysTime() - t2;
-    dout << "sys" << t1 / t2 << "\n";
-}
-
-/*
- * This is the copy version of getBestChains() for ChainBlock using the same algorithm.
- * Note::So synchronsize with the getBesctChains().
- * For efficiency when profiling, just duplicate the func instead of using template or virtual function
- */
-int getBestChains2(String<uint64_t> & hits,
-                   String<UPair> & str_ends_p,
-                   String<int>   & str_ends_p_score,
-                   String<ChainsRecord> & chain_records,
-                   int (*scoreFunc) (uint64_t const &, uint64_t const &))
-{
-    dout << "gb1" << length(str_ends_p) << "\n";
-    int thd_chain_depth = 20;
-    int new_score = 0;
-    int new_max_score = 0;
-    int max_j = 0;
-    int const chain_end_score = 0;
-    int const chain_end = -1;
-
-    chain_records[0].score = chain_end_score;  
-    chain_records[0].len = 1;
-    chain_records[0].p2anchor = chain_end;
-    for (int i = 0; i < length(str_ends_p); i++) 
-    {
-        std::cout << "gba1" << str_ends_p[i].first << " " << str_ends_p[i].second << "\n";
-        int j_str = std::max (0, i - thd_chain_depth);
-        max_j = i;
-        new_max_score = -1;
-        dout << "gb2" << j_str << i << "\n";
-        for (int j = j_str; j < i; j++)
-        {
-            new_score = scoreFunc (hits[str_ends_p[j].first], hits[str_ends_p[i].second - 1]);
-            dout << "gb3" << i << j << new_score << "\n";
-            if (new_score > 0 && new_score + str_ends_p_score[i] + chain_records[j].score >= new_max_score)
-            {
-                max_j = j;
-                new_max_score = new_score + str_ends_p_score[i] + chain_records[j].score;
-                dout << "gb4" << i << j << new_max_score << "\n";
-            }
-        }
-        if (new_max_score > 0)
-        {
-            chain_records[i].p2anchor = max_j;
-            chain_records[i].score = new_max_score ;
-            chain_records[i].len = chain_records[max_j].len + 1;
-            dout << "gb5" << i << max_j << new_max_score << "\n";
-        }
-        else
-        {
-            chain_records[i].p2anchor = chain_end;
-            chain_records[i].score = chain_end_score;
-            chain_records[i].len = 1;
-        }
-    }
-    return 0;
-}
-
-int createChainsFromHitBlocks(StringSet<String<UPair> > & chains, String<uint64_t> & hits, String<UPair> & str_ends_p, String<int> & str_ends_p_score, ChainScoreMetric & chn_score1)
-{
-    if (length(str_ends_p) < 2) {
-        return 0;
-    }
-    String<ChainsRecord> chain_records;
-    String<int> chains_score;
-    resize (chain_records, length(str_ends_p));
-    getBestChains2(hits, str_ends_p, str_ends_p_score, chain_records, chn_score1.getScore);
-    int bestn = 3;
-    traceBackChains(str_ends_p, chains, chain_records, chains_score, chn_score1.getAbortScore(), bestn);
-}
-
 int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
 {
     int64_t dy = get_cord_y(anchor1) - get_cord_y(anchor2);
@@ -1605,6 +1517,24 @@ int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
     return 100 - dy - d_err ;    
 }
 
+int createChainsFromAnchors(StringSet<String<uint64_t> > & chains, String<int> & chains_score, String<uint64_t> & anchors, int anchor_end, ChainScoreMetric & chn_score1)
+{
+    if (anchor_end < 2)
+    {
+        return 0;
+    }
+    int bestn = 5;
+    String<ChainsRecord> chain_records;
+    resize (chain_records, anchor_end);
+    double t1 = sysTime();
+    getBestChains (anchors, chain_records, anchor_end, chn_score1.getScore);
+    t1 = sysTime() - t1;
+    double t2 = sysTime();
+    traceBackChains(anchors, chains, chain_records, chains_score, chn_score1.getAbortScore(), bestn);
+    t2 = sysTime() - t2;
+    dout << "sys" << t1 / t2 << "\n";
+}
+
 int createApxHitsFromAnchors(String<uint64_t> & hits,  String<int> & chains_score, String<uint64_t> & anchors)
 {
     int thd_drop_score = 45; //<<TODO, change the score!
@@ -1634,6 +1564,77 @@ int createApxHitsFromAnchors(String<uint64_t> & hits,  String<int> & chains_scor
     }
     return 0;
 }
+
+/*
+ * This is the copy version of getBestChains() for ChainBlock using the same algorithm.
+ * Note::So synchronsize with the getBesctChains().
+ * For efficiency when profiling, just duplicate the func instead of using template or virtual function
+ */
+int getBestChains2(String<uint64_t> & hits,
+                   String<UPair> & str_ends_p,
+                   String<int>   & str_ends_p_score,
+                   String<ChainsRecord> & chain_records,
+                   int (*scoreFunc) (uint64_t const &, uint64_t const &))
+{
+    dout << "gb1" << length(str_ends_p) << "\n";
+    int thd_chain_depth = 20;
+    int new_score = 0;
+    int new_max_score = 0;
+    int max_j = 0;
+    int const chain_end_score = 0;
+    int const chain_end = -1;
+
+    chain_records[0].score = str_ends_p_score[0];  
+    chain_records[0].len = str_ends_p[0].second - str_ends_p[0].first;
+    chain_records[0].p2anchor = chain_end;
+    for (int i = 0; i < length(str_ends_p); i++) 
+    {
+        std::cout << "gba1" << str_ends_p[i].first << " " << str_ends_p[i].second << "\n";
+        int j_str = std::max (0, i - thd_chain_depth);
+        max_j = i;
+        new_max_score = -1;
+        dout << "gb2" << j_str << i << "\n";
+        for (int j = j_str; j < i; j++)
+        {
+            new_score = scoreFunc (hits[str_ends_p[j].first], hits[str_ends_p[i].second - 1]) + str_ends_p_score[i];
+            dout << "gb3" << i << j << get_cord_y(hits[str_ends_p[i].second - 1]) <<  get_cord_y(hits[str_ends_p[j].first]) <<  new_score << chain_records[j].score << "\n";
+            if (new_score > 0 && new_score + chain_records[j].score >= new_max_score)
+            {
+                max_j = j;
+                new_max_score = new_score + chain_records[j].score;
+                dout << "gb4" << i << j << new_max_score << "\n";
+            }
+        }
+        if (new_max_score > 0)
+        {
+            chain_records[i].p2anchor = max_j;
+            chain_records[i].score = new_max_score ;
+            chain_records[i].len = str_ends_p[i].second - str_ends_p[i].first + chain_records[max_j].len;
+            dout << "gb5" << i << max_j << new_max_score << "\n";
+        }
+        else
+        {
+            chain_records[i].p2anchor = chain_end;
+            chain_records[i].score = str_ends_p_score[i];
+            chain_records[i].len = str_ends_p[i].second - str_ends_p[i].first;
+        }
+    }
+    return 0;
+}
+
+int createChainsFromHitBlocks(StringSet<String<UPair> > & chains, String<uint64_t> & hits, String<UPair> & str_ends_p, String<int> & str_ends_p_score, ChainScoreMetric & chn_score1)
+{
+    if (length(str_ends_p) < 2) {
+        return 0;
+    }
+    String<ChainsRecord> chain_records;
+    String<int> chains_score;
+    resize (chain_records, length(str_ends_p));
+    getBestChains2(hits, str_ends_p, str_ends_p_score, chain_records, chn_score1.getScore);
+    int bestn = 3;
+    traceBackChains(str_ends_p, chains, chain_records, chains_score, chn_score1.getAbortScore(), bestn);
+}
+
 /*
  * Warn:: x
  */
@@ -1643,9 +1644,9 @@ int getApxChainScore2(uint64_t const & cord1, uint64_t const & cord2)
     print_cord(cord2, "ga0");
     int64_t dy = get_cord_y(cord1) - get_cord_y(cord2);
     int64_t dx = get_cord_x(cord1) - get_cord_x(cord2);
-    if (dy < 0)
+    if (dx < 0 || dy < 0)
     {
-        return -10000;
+        return INT_MIN;
     }
     int64_t thd_min_dy = 300;
     int64_t da = std::abs(int64_t(dx - dy));
@@ -1656,11 +1657,8 @@ int getApxChainScore2(uint64_t const & cord1, uint64_t const & cord2)
     else if (d_err < 100)   {d_err = 35 + d_err / 2;}
     else                    {d_err = 10000;}
     //d_y
-    dy /= 15;
-    if      (dy < 150)      {dy = dy / 5;}              //gapy_len =  15 * 150
-    else if (dy < 100)      {dy = dy - 30;}
-    else if (dy < 10000)    {dy = dy * dy / 200 + 20;}
-    else                    {dy = 10000;}
+    dy /= 150;    
+
     dout << "ga1" << dy << d_err << "\n";
     return 100 - dy - d_err ;    
 }
@@ -1691,15 +1689,8 @@ int createApxHitsFromHitBlocks(String<uint64_t> & hits, String<UPair> & str_ends
         str_ends_p_tmp[i] = str_ends_p[ptr[i]];
         str_ends_p_score_tmp[i] = str_ends_p_score[ptr[i]];
     }
-    //<< debug
-    /*
-    for (int i = 0; i < length(str_ends_p_tmp); i++)
-    {
-        dout << "sstr" << str_ends_p[i].first << str_ends_p[i].second << str_ends_p_score[i] << "\n"; 
-    }
-    */
-    //>> debug
     createChainsFromHitBlocks(chains, hits, str_ends_p_tmp, str_ends_p_score_tmp, chn_score);
+    dout << "cah" << length(chains) << "\n";
     for (int i = 0; i < length(chains); i++)
     {
         for (int j = 0; j < length(chains[i]); j++)
