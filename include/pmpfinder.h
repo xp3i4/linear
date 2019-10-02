@@ -23,6 +23,7 @@ struct ApxMapParmBase
     unsigned cell_size;
     unsigned cell_num;
     unsigned windowThreshold;
+    unsigned windowThresholdReject;
     unsigned windowSize;  //cell_size * cell_num
     unsigned windowDelta; //
     unsigned sup;
@@ -38,7 +39,7 @@ struct ApxMapParmBase
     ApxMapParmBase (float, 
                     unsigned, unsigned, unsigned,
                     unsigned, unsigned, unsigned,
-                    unsigned);
+                    unsigned, unsigned);
 };
 
 struct ApxMapParm1_16 : ApxMapParmBase
@@ -93,6 +94,10 @@ struct FeaturesDynamic
 
 unsigned getWindowThreshold(FeaturesDynamic &);
 unsigned getWindowThreshold(StringSet<FeaturesDynamic> &);
+unsigned getWindowThresholdReject(FeaturesDynamic &);
+unsigned getWindowThresholdReject(StringSet<FeaturesDynamic> &);
+unsigned getFeatureWindowSize(FeaturesDynamic & fs);
+unsigned getFeatureWindowSize(StringSet<FeaturesDynamic> & fss);
 
 int printScript(FeatureType & val, CharString);
 
@@ -154,7 +159,8 @@ struct ChainScoreMetric
 
 struct ChainsRecord
 {
-    int score;
+    int score; //chain score 
+    int score2; //copy of score 
     int len;
     int p2anchor;
 };
@@ -163,7 +169,7 @@ int getBestChains(String<uint64_t> & anchor,
                   int anchor_end,
                   int (*getScore) (uint64_t const &, uint64_t const &));
 
-int createChainsFromAnchors(StringSet<String<uint64_t> > &, String<uint64_t> &, int, ChainScoreMetric &);
+int createChainsFromAnchors(StringSet<String<uint64_t> > &, String<int> &, String<uint64_t> &, int, ChainScoreMetric &);
  
 uint64_t apxMap (IndexDynamic & index,
                  String<Dna5> & read,

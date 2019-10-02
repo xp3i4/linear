@@ -431,8 +431,10 @@ int map_(IndexDynamic & index,
          int p1
         )
 {
-    float senThr = mapParm.senThr / window_size;  //map for 2 roun if cords cover len <
-    float cordThr = 0.3 / window_size; //cords cover length < are aborted
+    unsigned feature_window_size = getFeatureWindowSize(f2);
+    dout << "fe" << feature_window_size << "\n";
+    float senThr = mapParm.senThr / feature_window_size;  //map for 2 roun if cords cover len <
+    float cordThr = 0.3 / feature_window_size; //cords cover length < are aborted
     uint thd_min_read_len = 200;
     //todo::tune the cordThr try to merge cords of blocks 
     MapParm complexParm = mapParm;
@@ -487,7 +489,7 @@ int map_(IndexDynamic & index,
     #pragma omp for
     for (unsigned j = 0; j < length(reads); j++)
     {
-        dout << "readid" << j << "\n";
+        dout << "readid" << j << "\n\n";
         double t1 = sysTime ();
         red_len[thd_id] += length(reads[j]);
         float cordLenThr = length(reads[j]) * cordThr;
@@ -499,7 +501,7 @@ int map_(IndexDynamic & index,
             apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordLenThr, f_chain);
             if (fm_handler_.isMapGap(f_map))
             {
-                mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], g_hs, g_anchor, clipsTmp[c], apx_gaps, f1, f2, gap_len_min, window_size, thd_err_rate);
+                mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], g_hs, g_anchor, clipsTmp[c], apx_gaps, f1, f2, gap_len_min, feature_window_size, thd_err_rate);
             }
             if (fm_handler_.isAlign(f_map))
             {

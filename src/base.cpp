@@ -15,7 +15,8 @@ const unsigned base_kmer_step_  = 1000;
 const uint64_t base_llt_max_    = ~0;
 
 unsigned const UMAX = (1 << 30) - 1;
-int64_t const LLMAX = (1LL << 62) - 1; //(1ULL << 63) - 1 is integer overflow on some compilers
+uint64_t const ULLMAX = (1ULL << 62 - 1);
+int64_t const LLMAX = (1LL << 62) - 1; //(1ULL << 63) - 1 integer overflow on some compilers
 int64_t const LLMIN = -LLMAX;
 
 
@@ -376,47 +377,45 @@ static const String<Dna5> _complt = "tgcan";
 Dout dout;
 Dout & Dout::operator << (int n)
 {
-    std::cout << n << " "; 
+    buffer << n << " "; 
     return *this;
 }
 Dout & Dout::operator << (unsigned n)
 {
-    std::cout << n << " "; 
+    buffer << n << " "; 
     return *this;
 }
 Dout & Dout::operator << (int64_t n)
 {
-    std::cout << n << " "; 
+    buffer << n << " "; 
     return *this;
 }
 Dout & Dout::operator << (uint64_t n)
 {
-    std::cout << n << " "; 
+    buffer << n << " "; 
     return *this;
 }
 Dout & Dout::operator << (CharString n)
 {
+    buffer << n << " ";
     if (n == "\n")
     {
-        std::cout << n;
-    }
-    else
-    {
-        std::cout << n << " "; 
+        std::cout << buffer.str();
+        buffer.str("");
     }
     return *this;
 }
-Dout & Dout::operator << (String<int64_t> & n)
+Dout & Dout::operator << (String<int64_t> & ns)
+{
+    for (auto n : ns)
     {
-    for (uint i = 0; i < length(n); i++)
-    {
-        std::cout << n[i] << " ";
+        buffer << n << " ";
     }
     return * this;
 }
 Dout & Dout::operator << (double n)
 {
-    std::cout << n << " " ;
+    buffer << n << " " ;
     return * this;
 }
 

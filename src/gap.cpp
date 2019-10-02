@@ -958,7 +958,8 @@ int createTilesFromAnchors2_(String<uint64_t> & anchor,
     ChainScoreMetric chn_score1(50, &getGapChainScore);
     std::sort(begin(anchor), begin(anchor) + anchor_end, 
         [](uint64_t & a, uint64_t & b){return g_hs_anchor_getX(a) > g_hs_anchor_getX(b);});
-    createChainsFromAnchors (chains, anchor, anchor_end, chn_score1);
+    String<int> chain_score;
+    createChainsFromAnchors (chains, chain_score , anchor, anchor_end, chn_score1);
     for (auto & chain : chains)
     {
         apxCreateTilesFromAnchors_(chain, tiles, f1, f2, gap_str, 0, length(chain), thD_tile_size, thd_pattern_in_window);
@@ -3163,7 +3164,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             direction = g_map_closed;
             _DefaultHit.unsetBlockEnd(gap_str);
             _DefaultHit.unsetBlockEnd(gap_end);
-
+            
             mapGap_(seqs, read, comstr, 
                     gap_str, gap_end, 
                     g_hs, g_anchor, 

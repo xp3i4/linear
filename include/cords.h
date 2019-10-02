@@ -13,6 +13,7 @@ using namespace seqan;
 extern uint64_t const_anchor_zero;
 extern uint64_t FORWARD_STRAND;
 extern uint64_t REVERSE_STRAND; 
+extern uint64_t INFI_CORD;
 
 /*
  * Cord(C): coordinate of base;
@@ -78,10 +79,10 @@ struct Cord
                uint64_t const & mask = _DefaultCordBase.mask,
                uint64_t const & mask2 = _DefaultCordBase.valueMask_dstr
               ) const;
-    uint64_t get_hit_x(uint64_t const & hit, 
+    uint64_t get_hit_strx(uint64_t const & hit, 
                unsigned const & bit = _DefaultCordBase.bit, 
                uint64_t const & mask = _DefaultCordBase.mask,
-               uint64_t const & mask2 = _DefaultCordBase.valueMask
+               uint64_t const & mask2 = _DefaultCordBase.valueMask_dstr
               ) const;
     uint64_t cord2Cell(uint64_t const & cord, 
                 unsigned const & bit = _DefaultCordBase.cell_bit) const;
@@ -99,6 +100,14 @@ struct Cord
     uint64_t makeBlockEndVal(uint64_t, uint64_t const & = _DefaultCordBase.flagEnd);
 };
 extern Cord _DefaultCord; 
+int initCords (String<uint64_t> &);
+int initHits (String<uint64_t> &);
+int initHitsScore (String<int> & hit_score);
+int isHitsEmpty(String<uint64_t> & hits);
+int isFirstHit(Iterator<String<uint64_t> >::Type & it );
+int isLastHit(Iterator<String<uint64_t> >::Type & it);
+Iterator<String<uint64_t> >::Type beginHits (String<uint64_t> & hits);
+Iterator<String<uint64_t> >::Type endHits(String<uint64_t> & hits);
 /**
  *   struct hit:
  *   extend the structure Cord;

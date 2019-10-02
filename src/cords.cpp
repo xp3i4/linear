@@ -7,7 +7,8 @@ using namespace seqan;
 uint64_t const_anchor_zero = (1ULL << 20); // make sure y in cord < this  
 uint64_t FORWARD_STRAND = 0;
 uint64_t REVERSE_STRAND = 1; 
-
+uint64_t INFI_CORD = shift_cord (0, (1ULL << 40) - 1,  (1ULL << 20) - 1);
+ 
 CordBase::CordBase():
         bit(20),
         flagEnd(1ULL << 60),
@@ -75,10 +76,10 @@ uint64_t Cord::hit2Cord_dstr(uint64_t const & hit,
     return (hit + ((hit & mask) << bit)  - (const_anchor_zero << bit)) & mask2;
 }
 
-uint64_t Cord::get_hit_x(uint64_t const & hit, unsigned const & bit, 
+uint64_t Cord::get_hit_strx(uint64_t const & hit, unsigned const & bit, 
   uint64_t const & mask1, uint64_t const & mask2) const
 { 
-  return ((hit >> bit) + (hit & mask1) - const_anchor_zero) & mask2;
+  return ((hit & mask2 ) >> bit) + (hit & mask1) - const_anchor_zero;
 }
 
 uint64_t Cord::cord2Cell(uint64_t const & cord, 
@@ -249,12 +250,12 @@ void print_cords(String<uint64_t> & cords, CharString header)
     std::cout << header << "_cords_header \n";
     for (uint i = 0; i < length(cords); i++)
     {
-        std::cout << header << " " 
-                  << get_cord_y (cords[i]) << " "  
-                  << get_cord_x(cords[i]) << " "
-                  << get_cord_strand(cords[i]) << " "
+        std::cout << header << " " << i << " "
                   << get_cord_id(cords[i]) << " "
-                  << is_cord_block_end(cords[i]) << "\n";
+                  << get_cord_strand(cords[i]) << " "
+                  << get_cord_x(cords[i])  << " "
+                  << get_cord_y (cords[i]) << " "  
+                  << length(cords) << "\n";
         if (is_cord_block_end(cords[i]))
         {
             std::cout << header << " end\n\n";
@@ -280,4 +281,122 @@ int isCordsConsecutive_(uint64_t & cord1, uint64_t cord2, uint64_t thd_cord_gap)
 uint64_t make_anchor(uint64_t id, uint64_t x, uint64_t y, uint64_t strand)
 {
     return create_cord (id, x - y + const_anchor_zero, y, strand);
+}
+/*----------  For simplicity hits and cords are not fully wrapped, use them with caution  ----------*/
+
+int initCords (String<uint64_t> & cords)
+{
+    clear(cords);
+    appendValue(cords, 0);
+    _DefaultHit.setBlockEnd(cords[0]);
+    return length(cords);
+}
+int initHits (String<uint64_t> & hits)
+{
+    return initCords(hits);
+}
+int initHitsScore (String<int> & hit_score)
+{
+    clear (hit_score);
+    appendValue(hit_score, 0);
+    return length(hit_score);
+}
+int isHitsEmpty(String<uint64_t> & hits)
+{
+    return length(hits) < 2;
+}
+int isFirstHit(Iterator<String<uint64_t> >::Type & it)
+{
+    return _DefaultHit.isBlockEnd(*(it - 1));
+}
+int isLastHit(Iterator<String<uint64_t> >::Type & it)
+{
+    return _DefaultHit.isBlockEnd(*it);
+}
+Iterator<String<uint64_t> >::Type beginHits (String<uint64_t> & hits)
+{
+    return begin(hits) + 1;
+}
+Iterator<String<uint64_t> >::Type endHits(String<uint64_t> & hits)
+{
+    return end(hits);
+}
+
+/*----------  Hits shortcuts  ----------*/
+
+void Hit::setBlockStart(uint64_t & val, uint64_t const & flag)
+{
+    val |= flag;
+}
+
+void Hit::setBlockBody(uint64_t & val, uint64_t const & flag)
+{
+    val &= (~flag);
+}
+
+ bool Hit::isBlockStart(uint64_t & val, uint64_t const & flag)
+{
+    return val & flag;
+}
+
+ void Hit::setBlockEnd(uint64_t & val, uint64_t const & flag)
+{
+    val |= flag;
+}
+
+ void Hit::unsetBlockEnd(uint64_t & val, uint64_t const & flag)
+{
+    val &= ~flag;
+}
+
+ void Hit::setBlockStrand(uint64_t & val, uint64_t const & strand, uint64_t const & flag)
+{
+    if (strand)
+        val |= flag;
+    else
+        val &= ~flag;
+}
+
+ bool Hit::isBlockEnd(uint64_t & val, uint64_t const & flag)
+{
+    return val & flag;
+}
+
+ unsigned Hit::getStrand(uint64_t const & val, uint64_t const & flag)
+{
+    return (val & flag)?1:0;
+}
+
+uint64_t Hit::getAnchor(uint64_t const & val)
+{
+    return (val >> 20 & ((1ULL << 42) - 1) & (~(1ULL << 41)));
+}
+
+void _printHit(unsigned j, unsigned id1, unsigned id2, String<uint64_t> & hit, unsigned len)
+{
+    unsigned end;
+    for (unsigned k = 0; k < length(hit); k++)
+    {
+        if (_DefaultHit.isBlockEnd(hit[k]))
+            end = 1;
+        else
+            end = 0;
+        printf("[printhit] %d %d %d %d %d\n", j, id1, id2, len, end);
+    }
+}
+
+void _printHit(String<uint64_t>  & hit, CharString header)
+{
+    for (unsigned k = 0; k < length(hit); k++)
+    {
+        std::cout << "[P]::_printHit() " 
+              << get_cord_id(_DefaultCord.hit2Cord(hit[k])) << " " 
+              << get_cord_x(_DefaultCord.hit2Cord(hit[k])) << " " 
+              << get_cord_y(hit[k]) << "\n";
+        if (_DefaultHit.isBlockEnd(hit[k]))
+        {
+            std::cout << "[P]::_printHit() end\n";
+
+        }
+    }
 }

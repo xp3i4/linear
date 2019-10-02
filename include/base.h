@@ -16,6 +16,7 @@ extern const unsigned base_threshold_;
 extern const unsigned base_kmer_step_;
 extern const uint64_t base_llt_max_;
 
+extern uint64_t const ULLMAX;
 extern int64_t const LLMAX;
 extern int64_t const LLMIN;
 extern unsigned const UMAX;
@@ -182,6 +183,7 @@ void _compltRvseStr(String<Dna5> & str, String<Dna5> & res);
 
 struct Dout //debug cout utility
 {
+    std::ostringstream buffer;
     Dout & operator << (int);
     Dout & operator << (unsigned);
     Dout & operator << (int64_t);
@@ -189,7 +191,6 @@ struct Dout //debug cout utility
     Dout & operator << (CharString);
     Dout & operator << (String<int64_t> &);
     Dout & operator << (double);
-
 };
 extern Dout dout;
 
