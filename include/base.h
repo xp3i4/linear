@@ -16,6 +16,7 @@ extern const unsigned base_threshold_;
 extern const unsigned base_kmer_step_;
 extern const uint64_t base_llt_max_;
 
+extern uint64_t const ULLMAX;
 extern int64_t const LLMAX;
 extern int64_t const LLMIN;
 extern unsigned const UMAX;

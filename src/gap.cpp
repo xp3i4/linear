@@ -2924,6 +2924,9 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
     }
     else
     {
+        print_cord(gap_str, "gp1");
+        print_cord(gap_end, "gp1");
+
         g_mapHs_(ref, read, comstr,
                  g_hs, g_anchor, tiles_str, f1, f2,
                  gap_str, gap_end,

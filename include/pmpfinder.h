@@ -23,6 +23,7 @@ struct ApxMapParmBase
     unsigned cell_size;
     unsigned cell_num;
     unsigned windowThreshold;
+    unsigned windowThresholdReject;
     unsigned windowSize;  //cell_size * cell_num
     unsigned windowDelta; //
     unsigned sup;
@@ -38,7 +39,7 @@ struct ApxMapParmBase
     ApxMapParmBase (float, 
                     unsigned, unsigned, unsigned,
                     unsigned, unsigned, unsigned,
-                    unsigned);
+                    unsigned, unsigned);
 };
 
 struct ApxMapParm1_16 : ApxMapParmBase
@@ -93,6 +94,10 @@ struct FeaturesDynamic
 
 unsigned getWindowThreshold(FeaturesDynamic &);
 unsigned getWindowThreshold(StringSet<FeaturesDynamic> &);
+unsigned getWindowThresholdReject(FeaturesDynamic &);
+unsigned getWindowThresholdReject(StringSet<FeaturesDynamic> &);
+unsigned getFeatureWindowSize(FeaturesDynamic & fs);
+unsigned getFeatureWindowSize(StringSet<FeaturesDynamic> & fss);
 
 int printScript(FeatureType & val, CharString);
 

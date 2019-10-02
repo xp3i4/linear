@@ -13,6 +13,7 @@ using namespace seqan;
 extern uint64_t const_anchor_zero;
 extern uint64_t FORWARD_STRAND;
 extern uint64_t REVERSE_STRAND; 
+extern uint64_t INFI_CORD;
 
 /*
  * Cord(C): coordinate of base;
@@ -103,6 +104,8 @@ int initCords (String<uint64_t> &);
 int initHits (String<uint64_t> &);
 int initHitsScore (String<int> & hit_score);
 int isHitsEmpty(String<uint64_t> & hits);
+int isFirstHit(Iterator<String<uint64_t> >::Type & it );
+int isLastHit(Iterator<String<uint64_t> >::Type & it);
 Iterator<String<uint64_t> >::Type beginHits (String<uint64_t> & hits);
 Iterator<String<uint64_t> >::Type endHits(String<uint64_t> & hits);
 /**
