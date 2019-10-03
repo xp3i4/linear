@@ -21,12 +21,12 @@ CordBase::CordBase():
         cell_bit(4),
         cell_size(16),
         headFlag((1ULL<<63)),
-        valueMask_dstr(valueMask | flag_strand),
+        valueMask_dstr(valueMask | flag_strand), 
         bit_id (30),
         f_main(1ULL << 63),
         f_recd(1ULL << 62)
 {}
-CordBase _DefaultCordBase;   
+CordBase _DefaultCordBase;  
 Cord _DefaultCord;
 HitBase::HitBase():
         bit(60),

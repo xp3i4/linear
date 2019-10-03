@@ -1722,7 +1722,7 @@ int createApxHitsFromHitBlocks(String<uint64_t> & hits, String<UPair> & str_ends
 /*__________________________________________________
   ---------- @sub::apx chain additionals ----------*/
 /*
- * Shortcut of gathering start and end pos of each block of consecutive cords 
+ * Shortcut of gathering start and end pos for each block of consecutive cords 
  * NOTE::str and end coordniates of each block is shifted by @thd_cord_size / 2 based on the cord coordinates 
  * NOTE::block is different to block of cords.
     1. Block of cords also includes inv cords.
@@ -1765,15 +1765,12 @@ int gather_blocks_ (String<uint64_t> & cords,
             p_str = i;
         }
     }
-    //if (get_cord_y(cords[p_str] - back(cords))) //cords[]_y != back()_y
-    //{
-        d_shift = std::min (read_len - get_cord_y(back(cords)) - 1, d_shift_max);
-        uint64_t b_str = shift_cord (cords[p_str], d_shift, d_shift);
-        d_shift = std::min (read_len - get_cord_y(back(cords)) - 1, d_shift_max);
-        uint64_t b_end = shift_cord (back(cords), d_shift, d_shift);
-        appendValue (str_ends, UPair(b_str, b_end));
-        appendValue (str_ends_p, UPair(p_str, length(cords)));
-    //}
+    d_shift = std::min (read_len - get_cord_y(back(cords)) - 1, d_shift_max);
+    uint64_t b_str = shift_cord (cords[p_str], d_shift, d_shift);
+    d_shift = std::min (read_len - get_cord_y(back(cords)) - 1, d_shift_max);
+    uint64_t b_end = shift_cord (back(cords), d_shift, d_shift);
+    appendValue (str_ends, UPair(b_str, b_end));
+    appendValue (str_ends_p, UPair(p_str, length(cords)));
 
     return 0; 
 }
@@ -1801,7 +1798,7 @@ int clean_blocks_ (String<uint64_t> & cords, uint64_t thd_drop_len)
     return 0;
 }
 
-//shortcut to convert cords pair to y pair (stry, endy) on the forward strand (y projection)
+//shortcut to extract y value of cords and convert them to y value(stry, endy) on the forward strand (y projection)
 UPair getUPForwardy(UPair str_end, uint64_t read_len)
 {
     if (get_cord_strand(str_end.first))
@@ -1971,7 +1968,6 @@ int chain_blocks_ (String<uint64_t> & cords,
 
 /*________________________________________________
  ----------  streaming index features  ----------*/
-
 unsigned getDIndexMatchAll (DIndex & index,
                             String<Dna5> & read,
                             String<uint64_t> & set,
@@ -2193,7 +2189,9 @@ uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read
     getDAnchorList (anchors, list, read_str, read_end, mapParm);
     return getDHitList(hit, list, anchors, mapParm, thd_best_n);
 }
-
+/* Remove chains that's coverd by any other longer chan
+ * Break the chains from the last step into none-overlapperd pieces
+ */
 int preFilterChains_(String<uint64_t> & hits, String<int>  & hits_score, String<UPair> & str_ends, String<UPair> & str_ends_p, String<int> & str_ends_p_score)
 {
     if (length(str_ends_p) < 2){return 0; }
