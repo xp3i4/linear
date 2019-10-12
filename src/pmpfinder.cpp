@@ -121,22 +121,6 @@ inline int64_t ordN_(Dna5 & a)
     return (res == 4) ? 100LL : res;
 }
 
-//Debug util
-int printScript(int64_t & val, CharString header)
-{
-    int sum = 0;
-    std::cout << header << " "; 
-    for (int i = 0; i < 16; i++)
-    {
-
-        int v = (val >> (i << 2) & 15);
-        std::cout << (val >> (i << 2) & 15) << " ";
-        sum += v;
-    }
-    std::cout << " sum=" << sum << "\n";
-    return sum;
-}
-
 /*===================================================
 =            Approximate mapping section            =
 ===================================================*/
@@ -1447,7 +1431,9 @@ int getBestChains(String<uint64_t>     & anchors, //todo:: anchor1 anchor2 of di
     }
     return 0;
 }
-
+/* Back trace function to retrive @chains of @elements from the @chains_record
+ * For any element in the @elements, it will be chained at most once in the most likely(highest score) chain
+ */
 template <class ChainElementType>
 int traceBackChains(String<ChainElementType> & elements,  StringSet<String<ChainElementType> > & chains, String<ChainsRecord> & chain_records, String<int> & chains_score, int _chain_abort_score, int bestn)
 {
@@ -1569,6 +1555,7 @@ int createApxHitsFromAnchors(String<uint64_t> & hits,  String<int> & chains_scor
 {
     int thd_drop_score = 45; //<<TODO, change the score!
     ChainScoreMetric chn_score(thd_drop_score, &getApxChainScore);
+    double t1 = sysTime();
     std::sort(begin(anchors), end(anchors), 
         [](uint64_t & a, uint64_t & b){
             //return _DefaultCord.get_hit_strx(a) > _DefaultCord.get_hit_strx(b);
@@ -1576,6 +1563,7 @@ int createApxHitsFromAnchors(String<uint64_t> & hits,  String<int> & chains_scor
         });
     StringSet<String<uint64_t> > chains;
     createChainsFromAnchors(chains, chains_score, anchors, length(anchors), chn_score); 
+    double t2 = sysTime();
     for (auto & chain : chains)
     {
         for (auto & hit : chain) 
@@ -1585,6 +1573,9 @@ int createApxHitsFromAnchors(String<uint64_t> & hits,  String<int> & chains_scor
         }
         _DefaultHit.setBlockEnd(back(hits));
     }
+    t2 = sysTime() - t2;
+    t1 = sysTime() - t1;
+    dout << "sat2" <<  t2 / t1 << "\n";
     return 0;
 }
 
@@ -2310,6 +2301,8 @@ uint64_t mnMapReadList(IndexDynamic & index,
     initHitsScore(hits_score); //be sure hit_score has the same structure with Hits
     int thd_large_gap = 1000; 
     //alg_type = 1;
+    double t1 = sysTime();
+    double t2;
     if (index.isHIndex())
     {  
         getHIndexMatchAll(index.hindex, read, anchors.set, read_str, read_end, mapParm);    
@@ -2330,11 +2323,13 @@ uint64_t mnMapReadList(IndexDynamic & index,
         String<int>   str_ends_p_score;
         erase (anchors.set, 0);
         createApxHitsFromAnchors(hits, hits_score, anchors.set);
+        t2 = sysTime();
         gather_blocks_ (hits, str_ends, str_ends_p, length(read), thd_large_gap, 0, 0);
         preFilterChains_ (hits, hits_score, str_ends, str_ends_p, str_ends_p_score);
         createApxHitsFromHitBlocks(hits, str_ends_p, str_ends_p_score);
+        t2 = sysTime() - t2;
     }
-
+    dout << "stm" <<t2 / (sysTime() - t1) << "\n";
     return 0;
 }
 

@@ -789,10 +789,12 @@ int apxCreateTilesFromAnchors_ (String<uint64_t> & anchor,
     int64_t centroid_y = 0;
     int kcount = 0;
     int prej = prek;
+    dout << "gc1<<<<<<<<<<<\n";
     for (int j = prek; j < k; j++)
     {
         uint64_t x = g_hs_anchor_getX(anchor[j]);
         uint64_t y = g_hs_anchor_getY(anchor[j]);
+        dout << "gc1" << x << y << "\n";
         if ((x > prex + thD_tile_size || y > prey + thD_tile_size) || j == k - 1)
         {
             if (j == prej) //only when k == prek + 1
@@ -962,7 +964,6 @@ int createTilesFromAnchors2_(String<uint64_t> & anchor,
     createChainsFromAnchors (chains, chain_score , anchor, anchor_end, chn_score1);
     for (auto & chain : chains)
     {
-        print_cords(chain, "gc1");
         apxCreateTilesFromAnchors_(chain, tiles, f1, f2, gap_str, 0, length(chain), thD_tile_size, thd_pattern_in_window);
     }
     return 0;
@@ -1187,8 +1188,7 @@ int map_g_anchor2_ (String<uint64_t> & anchor,
                            parm.thd_overlap_tile,
                            parm.thd_swap_tile,
                            parm.thd_anchor_density,
-                           parm.thd_min_segment
-                           );
+                           parm.thd_min_segment);
 }
 /**
  * Main Function Parm Wrapper 
@@ -1214,8 +1214,7 @@ int map_g_anchor (String<uint64_t> & anchor,
                   int direction,
                   int thD_tile_size,
                   float thD_err_rate,
-                  MapGAnchorParm const & parm
-                  )
+                  MapGAnchorParm const & parm)
 {
     return map_g_anchor2_(anchor, tiles, f1, f2, cord_str, cord_end, anchor_end, revscomp_const, direction, thD_tile_size, thD_err_rate, parm.mapGAnchor2parm_);
 }

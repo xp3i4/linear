@@ -2017,9 +2017,9 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
             //chr1: 5,  21 | 0.70% > 32 |0.22% > 64 
             //chr1: 10, 21 | 0.49% > 32 |0.16% > 64 4.8% kmers in...
             //grch37 1-22,x,y : 10, 25, 32| 1.3% > 32, 27.02% kmers in|0.6% > 64, 23.6%  
-            unsigned thd_step = 10;
-            unsigned thd_shape_len = 25; //WARN only odd number is allowed due to double strand hash
-            uint64_t thd_blocklimit = 32;
+            unsigned thd_step = 8;
+            unsigned thd_shape_len = 21; //WARN only odd number is allowed due to double strand hash
+            uint64_t thd_blocklimit = 64;
             float alpha = 1.6;
             index.hindex.shape.init_shape_parm(thd_shape_len / 2 * 2 + 1);
             dout << "span" << index.hindex.shape.span << "\n";
