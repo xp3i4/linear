@@ -503,6 +503,7 @@ int print_align_sam_header_ (StringSet<CharString> & genomesId,
         of << "@SQ\tSN:" << genomesId[k] << "\tLN:" << length(genomes[k]) << "\n";
     }
     of << "@PG\tPN:" << "Linear\n";
+    return 0;
 }
 
 int print_align_sam_record_(StringSet<String<BamAlignmentRecord > > & records, 
@@ -520,6 +521,7 @@ int print_align_sam_record_(StringSet<String<BamAlignmentRecord > > & records,
             writeSam(of, records[i][j], g_id);
         }
     }
+    return 0;
 }
 int print_align_sam_record_(StringSet<String<BamAlignmentRecordLink> > & records, 
                             StringSet<CharString> & genomesId,
@@ -541,6 +543,7 @@ int print_align_sam_record_(StringSet<String<BamAlignmentRecordLink> > & records
             int dt = writeSam(of, records[i], j, g_id);
         }
     }
+    return 0;
 }
 
 int print_align_sam (StringSet<String<Dna5> > & genms,

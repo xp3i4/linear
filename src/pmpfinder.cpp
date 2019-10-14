@@ -623,6 +623,7 @@ int createFeatures2_48(TIter5 it_str, TIter5 it_end, String<int96> & f, unsigned
         next++;
     }
 }
+return 0;
 }
 
 /*----------  Script encoding wrapper  ----------*/
@@ -702,6 +703,7 @@ int createFeatures(TIter5 it_str, TIter5 it_end, FeaturesDynamic & f)
     {
         createFeatures1_32(it_str, it_end, f.fs1_32, *(f.apx_parm1_32));
     }
+    return 0;
 }
 
 int createFeatures(TIter5 it_str, TIter5 it_end, FeaturesDynamic & f, unsigned threads)
@@ -719,6 +721,7 @@ int createFeatures(TIter5 it_str, TIter5 it_end, FeaturesDynamic & f, unsigned t
     {
         createFeatures1_32(it_str, it_end, f.fs1_32, threads, *(f.apx_parm1_32));
     }
+    return 0;
 }
 
 //serial
@@ -732,6 +735,7 @@ int createFeatures(StringSet<String<Dna5> > & seq,
         f[k].init(feature_type);
         createFeatures(begin(seq[k]), end(seq[k]), f[k]);
     }
+    return 0;
 }
 
 //parallel
@@ -746,6 +750,7 @@ int createFeatures(StringSet<String<Dna5> > & seq,
         f[k].init(feature_type);
         createFeatures(begin(seq[k]), end(seq[k]), f[k], threads);
     }
+    return 0;
 }
 
 /*----------  Dynamic programming of extending path (tiles)  ----------*/
@@ -1504,6 +1509,7 @@ int traceBackChains(String<ChainElementType> & elements,  StringSet<String<Chain
             chain_records[max_str].score = delete_score; 
         }
     }  
+    return 0;
 }
 
 int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
@@ -1549,6 +1555,7 @@ int createChainsFromAnchors(StringSet<String<uint64_t> > & chains, String<int> &
     double t2 = sysTime();
     traceBackChains(anchors, chains, chain_records, chains_score, chn_score1.getAbortScore(), bestn);
     t2 = sysTime() - t2;
+    return 0;
 }
 
 int createApxHitsFromAnchors(String<uint64_t> & hits,  String<int> & chains_score, String<uint64_t> & anchors)
@@ -1641,6 +1648,7 @@ int createChainsFromHitBlocks(StringSet<String<UPair> > & chains, String<uint64_
     getBestChains2(hits, str_ends_p, str_ends_p_score, chain_records, chn_score1.getScore);
     int bestn = 3;
     traceBackChains(str_ends_p, chains, chain_records, chains_score, chn_score1.getAbortScore(), bestn);
+    return 0;
 }
 
 /*
@@ -1953,8 +1961,7 @@ int chain_blocks_ (String<uint64_t> & cords,
         c1 = c2;
     }
     cords = tmp_cords;
-
-    //return 0;
+    return 0;
 }
 
 /*________________________________________________
@@ -2130,8 +2137,8 @@ uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read
             min_y = get_cord_y(anchors[k]);
             max_y = get_cord_y(anchors[k]);
         }
-
     }
+    return 0;
 }
 
 uint64_t getDHitList(String<uint64_t> & hits, String<int64_t> & list, Anchors & anchors, MapParm & mapParm, int thd_best_n)
@@ -2355,6 +2362,7 @@ uint64_t apxMap_ (IndexDynamic & index,
     initHits(hit);
     mnMapReadList(index, read, anchors, read_str, read_end, mapParm, hit, alg_type, thd_best_n);
     path_dst(hit, f1, f2, cords, read_str, read_end, length(read), alg_type, cordLenThr);
+    return 0;
 }
 
 uint64_t apxMap (IndexDynamic & index,
@@ -2462,6 +2470,7 @@ uint64_t filterGenomes (IndexDynamic & index,
     mapParm2.listN = mapParm2.listN2;
     int alg_type = 1;
     apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, 0, length(read), alg_type, cordLenThr, thd_best_n);
+    return 0;
 }
 
 /*===================================================

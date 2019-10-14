@@ -900,6 +900,7 @@ int createTilesFromAnchors1_(String<uint64_t> & anchor,
             anchor_len++;
         }
     }
+    return 0;
 }
 
 
@@ -1430,6 +1431,7 @@ int g_mapHs_(String<Dna5> & seq1, //genome
 
     float thd_da_zero = thD_err_rate; 
     map_interval(seq1, seq2, comstr, g_hs, g_hs_anchor, tiles, f1, f2, gap_str, gap_end, anchor_lower, anchor_upper, direction, thD_tile_size, thD_err_rate, parm1);
+    return 0;
 }
 
 int g_mapHs_(String<Dna5> & seq1, //genome
@@ -1460,6 +1462,7 @@ int g_mapHs_(String<Dna5> & seq1, //genome
              direction, //= g_map_closed
              parm1
              );
+    return 0;
 }
 
 /*----------  Clip function  ----------*/
@@ -2163,6 +2166,7 @@ int c_clip_extend_(uint64_t & clip,
                    parm.thd_merge_drop,
                    clip_direction 
     ); 
+    return 0;
 }
 
 /*
@@ -2444,6 +2448,7 @@ int reform_tiles_(String<Dna5> & seq1,
         }
         return 0;
     }
+    return 0;
 }
 
 /*
@@ -2599,6 +2604,7 @@ int isBlockLinkable(uint64_t cord1,
             return 0;
         }
     }
+    return 0;
 }
 
 /**
@@ -2812,6 +2818,7 @@ int mapExtend_(StringSet<String<Dna5> > & seqs,
                  clips, g_hs, g_anchor, sp_tiles, 
                  gap_str, gap_end, direction, 
                  thd_cord_gap, thD_tile_size, thD_err_rate);
+    return 0;
 }
 
 /*

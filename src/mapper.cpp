@@ -276,6 +276,7 @@ int print_cords_apf(Mapper & mapper)
                     mapper.getReadsId(),
                     mapper.getOf()
                 );
+    return 0;
 }
 int print_align_sam (Mapper & mapper)
 {
@@ -344,7 +345,6 @@ int print_mapper_results(Mapper & mapper)
     open_mapper_of (mapper, file1);
     print_cords_apf(mapper);
     close_mapper_of(mapper);
-
     ///.gvf
     /*
     std::string file2 = mapper.getOutputPrefix() + ".gvf";
