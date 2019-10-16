@@ -637,7 +637,7 @@ void set_tiles_cords_sgns(String<uint64_t> & tiles, uint64_t sgn)
 /**
  * collecting k-mers in 'seq' to 'g_hs'
  */
- int g_mapHs_kmer_(String<Dna5> & seq, 
+int g_mapHs_kmer_(String<Dna5> & seq, 
                    String<uint64_t> & g_hs, 
                    uint64_t start, 
                    uint64_t end, 
@@ -1305,9 +1305,7 @@ int map_interval(String<Dna5> & seq1, //genome
                          thD_err_rate,
                          parm1
                         );
-
     return f;
-
 }
 
 /**
@@ -1479,7 +1477,7 @@ int64_t g_anchor_da_(uint64_t val1, uint64_t val2)
 /**
  * stream seq creating hs
  */
- int c_stream_(String<Dna5> & seq,
+int c_stream_(String<Dna5> & seq,
                String<uint64_t> & g_hs, 
                uint64_t start, 
                uint64_t end, 
@@ -1506,14 +1504,14 @@ int64_t g_anchor_da_(uint64_t val1, uint64_t val2)
     return g_hs_start + i;
 }
 
- void c_2Anchor_(uint64_t & val, uint64_t const & hs1, uint64_t const & hs2)
+void c_2Anchor_(uint64_t & val, uint64_t const & hs1, uint64_t const & hs2)
 {
     ///hs1 genome, hs2 read
     uint64_t x = hs2 & g_hs_mask2; 
     val = (((hs1 - x) & (g_hs_mask2)) << g_hs_anchor_bit1) + x;
 }
 
- void c_2GapAnchor_(uint64_t & val, uint64_t const & hs1, uint64_t const & hs2, uint64_t gap_type)
+void c_2GapAnchor_(uint64_t & val, uint64_t const & hs1, uint64_t const & hs2, uint64_t gap_type)
 {
     ///hs1 genome, hs2 read
     uint64_t x = hs2 & g_hs_mask2; 
@@ -1544,7 +1542,7 @@ short ctzb_4_(uint64_t a)
    production of cords to anchors with the restrictions of
    |candidates_anchor - 'anchor' | < band
  */
- int c_create_anchor_block_ (String<uint64_t> & g_hs, 
+int c_create_anchor_block_ (String<uint64_t> & g_hs, 
                              String<uint64_t> & g_anchor,
                              int p1, 
                              int p2, 
@@ -1688,7 +1686,6 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
                          int thd_accept_score = c_sc_(c_shape_len + 3, (c_shape_len + 3) * 2)
                         )
 {
-
     uint64_t gs_str = get_tile_x(clip_str);
     uint64_t gr_str = get_tile_y(clip_str);
     uint64_t gs_end = get_tile_x(clip_end);
@@ -1876,26 +1873,26 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
 /**
 * kmer of t1 is left to t2
 */
- int c_isGapMatch_(uint64_t & dv, short& t1, short & t2, short & l1, short & l2, short k)
- {
-    if (dv == 0)  
-    {
-        return 1; // match
-    }
-    if (t1 + l1 - k + 1 == 0)
-    {
-        return 2; // mismatch
-    }
-    if (t2 + l1 - k == 0 && t2 != k && l1 != k)
-    {
-        return 3; //del 
-    }
-    if (t1 + l2 - k + 1 == 0)
-    {
-        return 4;  //ins
-    }
-    return 0;
- }
+int c_isGapMatch_(uint64_t & dv, short& t1, short & t2, short & l1, short & l2, short k)
+{
+   if (dv == 0)  
+   {
+       return 1; // match
+   }
+   if (t1 + l1 - k + 1 == 0)
+   {
+       return 2; // mismatch
+   }
+   if (t2 + l1 - k == 0 && t2 != k && l1 != k)
+   {
+       return 3; //del 
+   }
+   if (t1 + l2 - k + 1 == 0)
+   {
+       return 4;  //ins
+   }
+   return 0;
+}
 
 /**
  * Extend the region around the breakpoint and clip it by gapped pattern.
@@ -2127,6 +2124,7 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
             }
         }
     }
+    return 0;
 }
 
 struct ParmClipExtend
@@ -2164,8 +2162,7 @@ int c_clip_extend_(uint64_t & clip,
                    parm.thd_error_level,
                    parm.thd_merge_anchor,
                    parm.thd_merge_drop,
-                   clip_direction 
-    ); 
+                   clip_direction); 
     return 0;
 }
 
@@ -2970,7 +2967,6 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         }
         g_print_tiles_(tiles_str, "gp13");
     }
-
     return 0;
 }
 

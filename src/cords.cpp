@@ -400,3 +400,17 @@ void _printHit(String<uint64_t>  & hit, CharString header)
         }
     }
 }
+
+//return if range [x11, x12) and [x21, x22) has overlap
+bool _isRangeOverLap(uint64_t x11, uint64_t x12, uint64_t x21, uint64_t x22)
+{
+    return std::max(x11, x21) < std::min(x21, x22);
+}
+
+bool _isCordyOverLap(uint64_t cord11, uint64_t cord12, uint64_t cord21, uint64_t cord22, uint64_t read_len)
+{
+    return get_cord_strand(cord11 ^ cord21) ? 
+                _isRangeOverLap(get_cord_y(cord11), get_cord_y(cord12),
+                                read_len - 1 - get_cord_y(cord21), read_len - 1 - get_cord_y(cord22)) :
+                _isRangeOverLap(get_cord_y(cord11), get_cord_y(cord12), get_cord_y(cord21), get_cord_y(cord22));
+}

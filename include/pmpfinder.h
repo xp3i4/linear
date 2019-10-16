@@ -152,9 +152,11 @@ struct ChainScoreMetric
     int thd_abort_score;
 
     int (*getScore) (uint64_t const &, uint64_t const &);
+    int (*getScore2)(uint64_t const &, uint64_t const &, uint64_t const &, uint64_t const &, uint64_t const & read_len);
     int getAbortScore();
     ChainScoreMetric();
     ChainScoreMetric(int abort_score, int (*scoreFunc) (uint64_t const &, uint64_t const &));
+    ChainScoreMetric(int abort_score, int (*scoreFunc)(uint64_t const &, uint64_t const &, uint64_t const &, uint64_t const &, uint64_t const & read_len));
 };
 
 struct ChainsRecord
