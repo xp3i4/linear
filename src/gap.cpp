@@ -674,7 +674,6 @@ int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
                          int p1, 
                          int p2, 
                          int k, 
-                         int g_anchor_end,
                          uint64_t revscomp_const,
                          int64_t anchor_lower,
                          int64_t anchor_upper)
@@ -689,11 +688,11 @@ int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
             int64_t tmp = g_hs_anchor_getStrAnchor(tmp_anchor);
             if (tmp < anchor_upper && tmp >= anchor_lower)
             {
-                g_anchor[g_anchor_end + n++] = tmp_anchor;
+                appendValue(g_anchor, tmp_anchor);
             }
         }   
     }
-    return g_anchor_end + n;
+    return 0;
 }
 
 
@@ -944,24 +943,23 @@ int getGapChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
     return 100 - dy - d_err ;
 }
 
-int createTilesFromAnchors2_(String<uint64_t> & anchor, 
+int createTilesFromAnchors2_(String<uint64_t> & anchors, 
                              String<uint64_t> & tiles,
                              StringSet<FeaturesDynamic> & f1,
                              StringSet<FeaturesDynamic> & f2,
                              uint64_t & gap_str,
                              uint64_t & gap_end,
-                             int anchor_end,
                              int const & thD_tile_size,
                              int const & thD_err_rate,
                              int const & thd_pattern_in_window)
 {
-    StringSet<String<uint64_t> > chains;
     ChainScoreMetric chn_score1(50, &getGapChainScore);
-    std::sort(begin(anchor), begin(anchor) + anchor_end, 
-        [](uint64_t & a, uint64_t & b){return g_hs_anchor_getX(a) > g_hs_anchor_getX(b);});
-    String<int> chain_score;
-    createChainsFromAnchors (chains, chain_score , anchor, anchor_end, chn_score1);
-    for (auto & chain : chains)
+    StringSet<String<uint64_t> > anchors_chains;
+    String<int> anchors_chains_score;
+    chainAnchorsBase(anchors, anchors_chains, anchors_chains_score, chn_score1, 
+        [](uint64_t const & a, uint64_t const & b)
+        {return g_hs_anchor_getX(a) > g_hs_anchor_getX(b);});
+    for (auto & chain : anchors_chains)
     {
         apxCreateTilesFromAnchors_(chain, tiles, f1, f2, gap_str, 0, length(chain), thD_tile_size, thd_pattern_in_window);
     }
@@ -980,7 +978,6 @@ int createTilesFromAnchors2_(String<uint64_t> & anchor,
                    StringSet<FeaturesDynamic> & f2,
                    uint64_t gap_str,
                    uint64_t gap_end,
-                   int anchor_end, 
                    int revscomp_const,
                    int direction,
                    int const & thD_tile_size,
@@ -1001,7 +998,7 @@ int createTilesFromAnchors2_(String<uint64_t> & anchor,
     //createTilesFromAnchors1_(anchor, tiles, f1, f2, gap_str, gap_end, anchor_end, thD_tile_size, thD_err_rate, thd_pattern_in_window, thd_anchor_density, thd_min_segment);
 
     //dp to chain anchors o(mn) ~ o(n)
-    createTilesFromAnchors2_(anchor, tiles, f1, f2, gap_str, gap_end, anchor_end, thD_tile_size, thD_err_rate, thd_pattern_in_window);
+    createTilesFromAnchors2_(anchor, tiles, f1, f2, gap_str, gap_end, thD_tile_size, thD_err_rate, thd_pattern_in_window);
 
     //step 2. merge check: if different segments in tiles can be megered; if cant then do nothing
     String<uint64_t> tmp_tiles = tiles;
@@ -1169,7 +1166,6 @@ int map_g_anchor2_ (String<uint64_t> & anchor,
                     StringSet<FeaturesDynamic> & f2,
                     uint64_t gap_str,
                     uint64_t gap_end,
-                    int anchor_end, 
                     int revscomp_const,
                     int direction,
                     int thD_tile_size, //global parm
@@ -1177,7 +1173,7 @@ int map_g_anchor2_ (String<uint64_t> & anchor,
                     MapGAnchor2Parm_ const & parm)
 {
     return map_g_anchor2_ (anchor, tiles, f1, f2,
-                           gap_str, gap_end, anchor_end, 
+                           gap_str, gap_end, 
                            revscomp_const, direction,
                            thD_tile_size,
                            thD_err_rate,
@@ -1208,20 +1204,18 @@ int map_g_anchor (String<uint64_t> & anchor,
                   StringSet<FeaturesDynamic > & f2,
                   uint64_t cord_str,
                   uint64_t cord_end,
-                  int anchor_end, 
                   int revscomp_const,
                   int direction,
                   int thD_tile_size,
                   float thD_err_rate,
                   MapGAnchorParm const & parm)
 {
-    return map_g_anchor2_(anchor, tiles, f1, f2, cord_str, cord_end, anchor_end, revscomp_const, direction, thD_tile_size, thD_err_rate, parm.mapGAnchor2parm_);
+    return map_g_anchor2_(anchor, tiles, f1, f2, cord_str, cord_end, revscomp_const, direction, thD_tile_size, thD_err_rate, parm.mapGAnchor2parm_);
 }
 
 int g_create_anchors_ (String<uint64_t> & g_hs,
                        String<uint64_t> & g_hs_anchor,
                        int & g_hs_end,
-                       int & g_hs_anchor_end,
                        int shape_len, 
                        int64_t anchor_lower,
                        int64_t anchor_upper,
@@ -1240,7 +1234,7 @@ int g_create_anchors_ (String<uint64_t> & g_hs,
                 p2 = k;
                 break;
             default:      //anchor current block before process next block 
-                g_hs_anchor_end = g_mapHs_setAnchors_(g_hs, g_hs_anchor, p1, p2, k, g_hs_anchor_end, rvcp_const, anchor_lower, anchor_upper);
+                g_mapHs_setAnchors_(g_hs, g_hs_anchor, p1, p2, k, rvcp_const, anchor_lower, anchor_upper);
                 p1 = k;
                 p2 = k; 
         }
@@ -1276,7 +1270,6 @@ int map_interval(String<Dna5> & seq1, //genome
         return 1;
     }
     int g_hs_end = 0;
-    int g_hs_anchor_end = 0;
     uint64_t rvcp_const = length(seq2) - 1;
     uint64_t gs_str = get_cord_x(gap_str);
     uint64_t gs_end = get_cord_x(gap_end);
@@ -1292,18 +1285,15 @@ int map_interval(String<Dna5> & seq1, //genome
     g_hs_end = g_mapHs_kmer_(seq1, g_hs, gs_str, gs_end, g_hs_end, 8, 10, 0);
     g_hs_end = g_mapHs_kmer_(seq2, g_hs, gr_str, gr_end, g_hs_end, 8, 1, 1);
 
-    g_create_anchors_(g_hs, g_hs_anchor, g_hs_end, g_hs_anchor_end, 8, cord_lower, cord_upper, rvcp_const);
+    g_create_anchors_(g_hs, g_hs_anchor, g_hs_end, 8, cord_lower, cord_upper, rvcp_const);
 
-    int f = map_g_anchor (g_hs_anchor, g_hs_tile, f1, f2, 
-                         gap_str, gap_end,
-                         g_hs_anchor_end, 
-                         rvcp_const,
-                         direction,
-                         thD_tile_size,
-                         thD_err_rate,
-                         parm1
-                        );
-    return f;
+    return  map_g_anchor (g_hs_anchor, g_hs_tile, f1, f2, 
+                          gap_str, gap_end,
+                          rvcp_const,
+                          direction,
+                          thD_tile_size,
+                          thD_err_rate,
+                          parm1);
 }
 
 /**
@@ -1422,7 +1412,6 @@ int g_mapHs_(String<Dna5> & seq1, //genome
     clear(g_hs);
     clear(g_hs_anchor);
     resize(g_hs, 1ULL << 20);
-    resize(g_hs_anchor, 1ULL << 20);
 
     float thd_da_zero = thD_err_rate; 
     map_interval(seq1, seq2, comstr, g_hs, g_hs_anchor, tiles, f1, f2, gap_str, gap_end, anchor_lower, anchor_upper, direction, thD_tile_size, thD_err_rate, parm1);
