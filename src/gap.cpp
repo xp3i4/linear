@@ -420,7 +420,7 @@ uint64_t g_hs_anchor_getCord (uint64_t anchor)
     return anchor & g_hs_anchor_mask1;
 }
 
-uint64_t g_hs_anchor_getAnchor (uint64_t anchor) // return @anchor := strand + anchorx
+uint64_t g_hs_anchor_getStrAnchor (uint64_t anchor) // return @anchor := strand + anchorx
 {
     return ((anchor >> g_hs_anchor_bit1) & g_hs_anchor_mask5) - g_hs_anchor_zero;
 }
@@ -476,7 +476,12 @@ int64_t g_hs_getCord(uint64_t & val)
 {
     return int64_t(val & g_hs_mask2);
 }
-
+//given cord1, return g_hs type anchor = strand + anchor:= strand[1]|anchor[30]
+uint64_t g_hs_Cord2StrAnchor(uint64_t cord)
+{
+    uint64_t strand = get_cord_strand(cord);
+    return get_cord_x(cord) - get_cord_y(cord) + (strand << (g_hs_anchor_bit2 - g_hs_anchor_bit1));
+}
 void g_hs_setAnchor_(uint64_t & val, 
                      uint64_t const & hs1, /*genome*/
                      uint64_t const & hs2, /*read*/
@@ -484,21 +489,18 @@ void g_hs_setAnchor_(uint64_t & val,
 {
     uint64_t strand = ((hs1 ^ hs2) >> 30 ) & 1;
     uint64_t x = revscomp_const * strand - _nStrand(strand) * (hs2 & g_hs_mask2); 
-    val = (((hs1 + g_hs_anchor_zero - x) & (g_hs_mask2))<< 20) + 
-          x + (strand << g_hs_anchor_bit2);
+    val = (((hs1 + g_hs_anchor_zero - x) & (g_hs_mask2))<< 20) +  x + (strand << g_hs_anchor_bit2);
 }
 ///get xvalue and type
 uint64_t g_hs_getXT (uint64_t const & val)
 {
     return (val >> 31) & g_hs_mask3;
 }
-
 uint64_t g_hs_getX (uint64_t const & val)
 {
     uint64_t mask = ((1ULL << 30) - 1);
     return ((val >> 33) & mask) ;
 }
-
 uint64_t g_hs_anchor2Tile (uint64_t & anchor)
 {
     uint64_t strand = (anchor >> g_hs_anchor_bit2) & 1;
@@ -510,13 +512,11 @@ uint64_t g_hs_anchor2Tile (uint64_t & anchor)
             ((anchor & g_hs_anchor_mask1)<< 20)) & 
               g_hs_anchor_mask2) & g_hs_anchor_mask1_) + y + (strand << 61);
 }
-
 int64_t tile_distance_x (uint64_t tile1, uint64_t tile2, uint64_t readlen)
 {
     (void)readlen;
     return (int64_t)(get_cord_x(tile2)) - (int64_t)(get_cord_x(tile1));
 }
-
 int64_t tile_distance_y (uint64_t tile1, uint64_t tile2, uint64_t readlen)
 {
     if (get_tile_strand (tile1 ^ tile2))
@@ -686,7 +686,7 @@ int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
         {
             uint64_t tmp_anchor;
             g_hs_setAnchor_(tmp_anchor, g_hs[i], g_hs[j], revscomp_const);
-            int64_t tmp = g_hs_anchor_getAnchor(tmp_anchor);
+            int64_t tmp = g_hs_anchor_getStrAnchor(tmp_anchor);
             if (tmp < anchor_upper && tmp >= anchor_lower)
             {
                 g_anchor[g_anchor_end + n++] = tmp_anchor;
@@ -789,12 +789,10 @@ int apxCreateTilesFromAnchors_ (String<uint64_t> & anchor,
     int64_t centroid_y = 0;
     int kcount = 0;
     int prej = prek;
-    dout << "gc1<<<<<<<<<<<\n";
     for (int j = prek; j < k; j++)
     {
         uint64_t x = g_hs_anchor_getX(anchor[j]);
         uint64_t y = g_hs_anchor_getY(anchor[j]);
-        dout << "gc1" << x << y << "\n";
         if ((x > prex + thD_tile_size || y > prey + thD_tile_size) || j == k - 1)
         {
             if (j == prej) //only when k == prek + 1
@@ -876,7 +874,7 @@ int createTilesFromAnchors1_(String<uint64_t> & anchor,
     {
         //TODO: handle thd_min_segment, anchor 
         int64_t d = std::abs((int64_t)g_hs_anchor_getY(anchor[k]) - (int64_t)g_hs_anchor_getY(anchor[prek]));
-        if (g_hs_anchor_getAnchor(anchor[k]) - g_hs_anchor_getAnchor(anchor[prek]) > 
+        if (g_hs_anchor_getStrAnchor(anchor[k]) - g_hs_anchor_getStrAnchor(anchor[prek]) > 
             thD_err_rate * std::max(thd_min_segment, d))
         {
             int thd_anchor_accpet = thd_anchor_density * 
@@ -914,7 +912,7 @@ int getGapChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
     }
 
     int thd_min_dy = 50;
-    int da = std::abs(int64_t(g_hs_anchor_getAnchor(anchor2) - g_hs_anchor_getAnchor(anchor1)));
+    int da = std::abs(int64_t(g_hs_anchor_getStrAnchor(anchor2) - g_hs_anchor_getStrAnchor(anchor1)));
     int d_err =  (100 * da) / std::max(dy, thd_min_dy); // 1/100 = 0.01
     //d_err
     if (d_err < 10)
@@ -1419,8 +1417,7 @@ int g_mapHs_(String<Dna5> & seq1, //genome
              int thD_tile_size,   //WARNING 192 not allowed to change.
              int64_t thd_dxy_min,
              int direction, //= g_map_closed
-             MapGAnchorParm const & parm1
-             )
+             MapGAnchorParm const & parm1)
 {
     clear(g_hs);
     clear(g_hs_anchor);
@@ -1471,7 +1468,7 @@ int64_t g_anchor_dx_(uint64_t val1, uint64_t val2)
 }
 int64_t g_anchor_da_(uint64_t val1, uint64_t val2)
 {
-    return int64_t (g_hs_anchor_getAnchor(val2) - g_hs_anchor_getAnchor(val1));
+    return int64_t (g_hs_anchor_getStrAnchor(val2) - g_hs_anchor_getStrAnchor(val1));
 }
 
 /**
@@ -2839,10 +2836,8 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
              int thd_cord_remap, 
              float thD_err_rate,
              int64_t thd_dxy_min,
-             MapGAnchorParm const & parm1
-            )
+             MapGAnchorParm const & parm1)
 {
-
 //>>debug
     CmpInt64 g_cmpll;
     float thd_da_zero = thD_err_rate; 
@@ -2879,9 +2874,12 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         g_cmpll.min(shift_y, (x2 - x1) * (1 + thD_err_rate)) << int64_t(length(read) - 1 - get_cord_y(gap_str));
         uint64_t gap_str1 = gap_str;
         uint64_t gap_end1 = shift_cord (gap_str, shift_x, shift_y);
+        uint64_t anchor_base = g_hs_Cord2StrAnchor(gap_str);
+        uint64_t anchor_lower = anchor_base - 101;
+        uint64_t anchor_upper = anchor_base + 101;
         mapExtend_ (seqs, read, comstr, 
                     gap_str1, gap_end1, 
-                    LLMIN, LLMAX,
+                    anchor_lower, anchor_upper,
                     g_hs, g_anchor, 
                     f1, f2,  
                     tiles_str1, tiles_end1, clips1, 
@@ -2893,9 +2891,12 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         g_cmpll.min(shift_y, (x2 - x1) * (1 + thD_err_rate)) << int64_t(get_cord_y(gap_end));
         uint64_t gap_str2 = shift_cord (gap_end, -shift_x, -shift_y);
         uint64_t gap_end2 = gap_end;
+        anchor_base = g_hs_Cord2StrAnchor(gap_end);
+        anchor_lower = anchor_base - 101; 
+        anchor_upper = anchor_base + 101;
         mapExtend_ (seqs, read, comstr, 
                     gap_str2, gap_end2, 
-                    LLMIN, LLMAX,
+                    anchor_lower, anchor_upper,
                     g_hs, g_anchor, 
                     f1, f2,  
                     tiles_str2, tiles_end2, clips2, 
@@ -2926,8 +2927,6 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
     }
     else
     {
-        print_cord(gap_str, "gp1");
-        print_cord(gap_end, "gp1");
         g_mapHs_(ref, read, comstr,
                  g_hs, g_anchor, tiles_str, f1, f2,
                  gap_str, gap_end,
@@ -2935,13 +2934,11 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                  direction,
                  parm1
                 );
-        g_print_tiles_(tiles_str, "gp11");
         reform_tiles(ref, read, comstr, 
                      tiles_str, tiles_end,
                      clips, g_hs, g_anchor, sp_tiles,
                      gap_str, gap_end, direction, 
                      thd_cord_gap, thD_tile_size, thD_err_rate);
-        g_print_tiles_(tiles_str, "gp12");
         //try dup for each sp_tiles element.
         for (int j = 0; j < getClipsLen(sp_tiles); j++)
         {
@@ -2965,7 +2962,6 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                          dup_str, dup_end, dup_direction,
                          thd_cord_gap, thD_tile_size, thD_err_rate);
         }
-        g_print_tiles_(tiles_str, "gp13");
     }
     return 0;
 }
@@ -3135,7 +3131,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                                   thD_tile_size);
                     _updateCordsStrEndValue(cords_str, cords_end, i, tile_str, tile_end, block_size);
                     
-                    int64_t anchor_base = get_cord_x(gap_end) - get_cord_y(gap_end);
+                    int64_t anchor_base = g_hs_Cord2StrAnchor(gap_end);
                     int64_t anchor_lower = anchor_base - 100;
                     int64_t anchor_upper = anchor_base + 100;
                     mapExtend_ (seqs, read, comstr, 
@@ -3236,7 +3232,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                                   );
                     _updateCordsStrEndValue(cords_str, cords_end, i, tile_str, tile_end, block_size);
 
-                    int64_t anchor_base = get_cord_x(gap_str) - get_cord_y(gap_end);
+                    int64_t anchor_base = g_hs_Cord2StrAnchor(gap_str);
                     int64_t anchor_lower = anchor_base - 100;
                     int64_t anchor_upper = anchor_base + 100; 
 
