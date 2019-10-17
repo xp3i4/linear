@@ -966,6 +966,28 @@ int createTilesFromAnchors2_(String<uint64_t> & anchors,
     return 0;
 }
 
+int chainTiles(String<uint64_t> & tiles, uint64_t read_len, uint64_t thd_gap_size)
+{
+    String<UPair> str_ends;
+    String<UPair> str_ends_p;
+    String<int> str_ends_p_score;
+    //gather_blocks_(tiles, str_ends, str_ends_p, read_len, thd_gap_size, 0, 0);
+    preFilterChains2(tiles, str_ends_p);
+    dout << "ctsss\n";
+    //chainBlocksCords(tiles, str_ends_p, read_len);
+    g_print_tiles_(tiles, "ctst");
+    print_cords(tiles, "ctsc");
+
+    for (auto & t : str_ends_p)  
+    {
+        //dout << "cts" << t.first << t.second << "\n";
+        print_cord(t.first, "cts1");
+        print_cord(t.second, "cts2");
+    }
+
+    return 0;
+}
+
 /**
  * ~Methods function of mapGAnchor2_
  * Map gaps of [gap_str, gap_end)
@@ -1132,6 +1154,7 @@ int createTilesFromAnchors2_(String<uint64_t> & anchors,
     {
         resize (tiles, length(tiles) - di);
     }
+    chainTiles(tiles, revscomp_const, thd_gap_size);
     return 0;
 }
 
@@ -3053,7 +3076,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
     MapGAnchorParm parm1(thD_tile_size, thD_err_rate);
 
     clear(apx_gaps);
-    gather_blocks_ (cords_str, str_ends, str_ends_p, length(read), thd_cord_gap, thd_cord_size, 0);
+    gather_blocks_ (cords_str, str_ends, str_ends_p, length(read), thd_cord_gap, thd_cord_size, 0, &is_cord_block_end, &set_cord_end);
     gather_gaps_y_ (cords_str, str_ends, apx_gaps, length(read), thd_cord_gap);
 
     int count = 0;

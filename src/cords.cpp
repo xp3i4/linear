@@ -159,6 +159,7 @@ uint64_t shift_cord(uint64_t const & val, int64_t x, int64_t y)
     return _DefaultCord.shift(val, x, y);
 }
 void set_cord_end (uint64_t & val) {_DefaultCord.setCordEnd(val);} 
+void unset_cord_end (uint64_t & val) {_DefaultHit.unsetBlockEnd(val);}
 void set_cord_id (uint64_t & val, uint64_t id)
 {
     val -= ((get_cord_id(val) - id) << 50);

@@ -166,14 +166,13 @@ struct ChainsRecord
     int len;
     int p2anchor;
 };
-int getBestChains(String<uint64_t> & anchor,
-                  String<ChainsRecord> & chains,
-                  int anchor_end,
+int getBestChains(String<uint64_t> & anchor, String<ChainsRecord> & chains,
                   int (*getScore) (uint64_t const &, uint64_t const &));
 
 int chainAnchorsBase(String<uint64_t> &, StringSet<String<uint64_t> > &, String<int> &, ChainScoreMetric &, 
   bool(*_compreAnchor)(uint64_t const &, uint64_t const &));
 
+int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p, uint64_t read_len, void (*unsetEndFunc)(uint64_t &), void (*setEndFunc)(uint64_t &));
  
 uint64_t apxMap (IndexDynamic & index,
                  String<Dna5> & read,
@@ -203,10 +202,15 @@ int gather_blocks_ (String<uint64_t> & cords,
                     uint64_t readLen,
                     uint64_t thd_large_gap,
                     uint64_t thd_cord_size,
-                    int f_set_end); //will set block end sgn at end of evey detected new noncontinous block
+                    int f_set_end,  //will set block end sgn at end of evey detected new noncontinous block
+                    uint64_t (*isEndFunc)(uint64_t),
+                    void (*setEndFunc)(uint64_t &)); 
 int gather_gaps_y_ (String<uint64_t> & cords, 
                     String<UPair> & str_ends,
                     String<UPair> & gaps,
                     uint64_t readLen,
                     uint64_t thd_gap_size);
+
+int preFilterChains2(String<uint64_t> & hits,  String<UPair> & str_ends_p);
+
 #endif

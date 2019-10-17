@@ -152,6 +152,7 @@ uint64_t new_xy_cord(uint64_t, uint64_t, uint64_t);
 void set_cord_xy (uint64_t & val, uint64_t x, uint64_t y);
 void set_cord_id (uint64_t & val, uint64_t id);
 void set_cord_end (uint64_t &); 
+void unset_cord_end(uint64_t &);
 void set_cord_block_end(uint64_t & val);
 void print_cord(uint64_t, CharString = "");
 void print_cords(String<uint64_t> &, CharString = "");
