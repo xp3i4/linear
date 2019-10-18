@@ -1628,7 +1628,7 @@ int getBestChains2(String<uint64_t> & hits,
             chain_records[i].score = str_ends_p_score[i];
             chain_records[i].len = str_ends_p[i].second - str_ends_p[i].first;
         }
-        dout << "gb2" << str_ends_p[i].first << str_ends_p[i].second << chain_records[i].p2anchor << "\n";
+        //dout << "gb2" << str_ends_p[i].first << str_ends_p[i].second << chain_records[i].p2anchor << "\n";
     }
     return 0;
 }
@@ -1663,7 +1663,7 @@ int chainBlocksBase(StringSet<String<UPair> > & chains, String<uint64_t> & recor
     {
         str_ends_p_tmp[i] = str_ends_p[ptr[i]];
         str_ends_p_score_tmp[i] = str_ends_p_score[ptr[i]];
-        dout << "ptmp" << str_ends_p_tmp[i].first << str_ends_p_tmp[i].second << get_cord_y(records[str_ends_p_tmp[i].first]) << "\n";
+        //dout << "ptmp" << str_ends_p_tmp[i].first << str_ends_p_tmp[i].second << get_cord_y(records[str_ends_p_tmp[i].first]) << "\n";
     }
 
     resize (chain_records, length(str_ends_p_tmp));
@@ -1722,7 +1722,7 @@ int _filterBlocksHits(StringSet<String<UPair> > & chains, String<uint64_t> & hit
         {
             appendValue(hits_tmp, hits[j]);
             _DefaultHit.unsetBlockEnd(back(hits_tmp));
-            dout << "major1" << get_cord_y(hits[j]) << "\n";
+            //dout << "major1" << get_cord_y(hits[j]) << "\n";
         }
         len_current += chains[0][i].second - chains[0][i].first;
         best_chain[i] = chains[0][i];
@@ -1762,7 +1762,7 @@ int _filterBlocksHits(StringSet<String<UPair> > & chains, String<uint64_t> & hit
                     int64_t dx_upper = int64_t(get_cord_x(end_current) - get_cord_x(end_major));
                     f_append = dx_lower <= thd_x_max_delta && dx_upper < thd_x_max_delta  &&
                                !_isCordyOverLap(str_major, end_major, str_current, end_current, read_len);
-                    dout << "major2" << k << get_cord_y(str_major) << get_cord_y(end_major) << get_cord_y(str_current) << get_cord_y(end_current) << dx_lower << dx_upper << f_append << "\n";
+                    //dout << "major2" << k << get_cord_y(str_major) << get_cord_y(end_major) << get_cord_y(str_current) << get_cord_y(end_current) << dx_lower << dx_upper << f_append << "\n";
                 }
             }
             for (int j = 0; j < length(chains[i]) && f_append; j++) //if append then extend the best_chain
@@ -1822,7 +1822,7 @@ int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t
     int64_t thd_max_d = 10000;
     int64_t dx = x11 - x22;
     int64_t dy = y11 - y22;
-    dout << "dxy2" << get_cord_strand(cord11) << get_cord_strand(cord22) << dx << dy << x11 << y11 << y12 << y21 << x22 << y22 << read_len << "\n";
+    //dout << "dxy2" << get_cord_strand(cord11) << get_cord_strand(cord22) << dx << dy << x11 << y11 << y12 << y21 << x22 << y22 << read_len << "\n";
     if (dx < 0 || dy < 0 || dx > thd_max_d || dy > thd_max_d)
     {
         return INT_MIN;
@@ -1839,7 +1839,7 @@ int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t
     return 100 - dy - d_err ;    
 }
 
-int _filterBlocksCords(StringSet<String<UPair> > & chains, String<uint64_t> & hits, uint64_t read_len, 
+int _filterBlocksCords(StringSet<String<UPair> > & chains, String<uint64_t> & hits, uint64_t read_len, uint64_t thd_major_limit, 
         void (*unsetEndFunc)(uint64_t &), void(*setEndFunc)(uint64_t &))
 {
     if (empty(chains))
@@ -1852,7 +1852,7 @@ int _filterBlocksCords(StringSet<String<UPair> > & chains, String<uint64_t> & hi
     String<uint64_t> hits_tmp;
     uint64_t len_current = 0;
     resize(best_chain, length(chains[0]));
-    dout << "mcap\n";
+    //dout << "mcap\n";
     appendValue (hits_tmp, hits[0]);
     for (uint i = 0; i < length(chains[0]); i++)
     {
@@ -1870,11 +1870,10 @@ int _filterBlocksCords(StringSet<String<UPair> > & chains, String<uint64_t> & hi
     //print_cords(hits_tmp, "fccs");
     //process the chains left
     float thd_major_bound = 0.8 * len_current; // len > this * first major len is regarded as optional major chain
-    uint thd_major_limit = 2;
     uint major_n = 1;
     uint64_t thd_x_max_delta = read_len * 2; //max distance allowed any x to the x of the major chain
     bool f_append = false;
-    for (uint i = 1; i < length(chains); i++)
+    for (uint i = 1; i < length(chains) && major_n < thd_major_limit; i++)
     {
         len_current = 0;
         f_append = false;
@@ -1882,7 +1881,7 @@ int _filterBlocksCords(StringSet<String<UPair> > & chains, String<uint64_t> & hi
         {
             len_current += chains[i][j].second - chains[i][j].first; 
         }
-        if (major_n < thd_major_limit && len_current > thd_major_bound) // the 2nd,3th.. optional major chain
+        if (len_current > thd_major_bound) // the 2nd,3th.. optional major chain
         {
             f_append = true;
             ++major_n;
@@ -1902,12 +1901,12 @@ int _filterBlocksCords(StringSet<String<UPair> > & chains, String<uint64_t> & hi
             //_DefaultHit.setBlockEnd(back(hits_tmp));
         }
     }
-    print_cords(hits_tmp, "fccs");
+    //print_cords(hits_tmp, "fccs");
     hits = hits_tmp;  
     return 0;
 }
 
-int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p, uint64_t read_len, 
+int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p, uint64_t read_len, uint64_t thd_major_limit,
         void (*unsetEndFunc)(uint64_t &), void(*setEndFunc)(uint64_t &))
 {
     String<int> str_ends_p_score;
@@ -1921,7 +1920,7 @@ int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p, uint6
     int thd_drop_score = 0;
     ChainScoreMetric chn_score(thd_drop_score, &getApxChainScore3);
     chainBlocksBase(cords_chains, cords, str_ends_p, str_ends_p_score, read_len, chn_score);
-    _filterBlocksCords (cords_chains, cords, read_len, unsetEndFunc, setEndFunc);
+    _filterBlocksCords (cords_chains, cords, read_len, thd_major_limit, unsetEndFunc, setEndFunc);
     return 0;
 }
 
@@ -2152,7 +2151,7 @@ int chainBlocksSimple_ (String<uint64_t> & cords,
     UPair c2 = UPair(cord1, cord2);
     for (unsigned i = 0; i < length(str_ends_p); i++)
     {
-        dout << "str_ends" << str_ends_p[i].first << str_ends_p[i].second << "\n";
+        //dout << "str_ends" << str_ends_p[i].first << str_ends_p[i].second << "\n";
         if (i > 0) //skip combine in the first block
         {
             c2 = UPair(cords[str_ends_p[i].first], cords[str_ends_p[i].second - 1]);
@@ -2187,7 +2186,7 @@ int chainApxCordsBlocks (String<uint64_t> & cords,
     }
     else if (alg_type == 2)
     {
-        chainBlocksCords(cords, str_ends_p, read_len, &unset_cord_end, &set_cord_end);
+        chainBlocksCords(cords, str_ends_p, read_len, 2, &unset_cord_end, &set_cord_end); //2 major chains limit
     }
     return 0;
 }
@@ -2463,7 +2462,7 @@ int preFilterChains1(String<uint64_t> & hits, String<int>  & hits_score, String<
 /* Break the chains from the last step into none-overlapperd pieces
  * Note::Corresponding str_ends is not required, so update str_ends manually according to the @str_ends_p after calling
  */
-int preFilterChains2(String<uint64_t> & hits,  String<UPair> & str_ends_p)
+int preFilterChains2(String<uint64_t> & hits,  String<UPair> & str_ends_p, void (*setEndFunc)(uint64_t &))
 {
     //second round : break any overlaps
     String<UPair> str_ends_p_tmp;
@@ -2512,7 +2511,7 @@ int preFilterChains2(String<uint64_t> & hits,  String<UPair> & str_ends_p)
     std::sort (begin(str_ends_p), end(str_ends_p), [](UPair & a, UPair & b){return a.second < b.second;});
     for (int i = 0; i < length(str_ends_p); i++)
     {
-        _DefaultHit.setBlockEnd(hits[str_ends_p[i].second - 1]);
+        setEndFunc(hits[str_ends_p[i].second - 1]);
     }
 
     return 0;
@@ -2561,7 +2560,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
         t2 = sysTime();
         gather_blocks_ (hits, str_ends, str_ends_p, length(read), thd_large_gap, 0, 0, & is_cord_block_end, & set_cord_end);
         preFilterChains1 (hits, hits_score, str_ends_p);
-        preFilterChains2 (hits, str_ends_p);
+        preFilterChains2 (hits, str_ends_p, &set_cord_end);
         resize (str_ends_p_score, length(str_ends_p));
         for (int i = 0; i < length(str_ends_p); i++)
         {
@@ -2571,7 +2570,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
         chainBlocksHits(hits, str_ends_p, str_ends_p_score, length(read));
         t2 = sysTime() - t2;
     }
-    dout << "stm" <<t2 / (sysTime() - t1) << "\n";
+    //dout << "stm" <<t2 / (sysTime() - t1) << "\n";
     return 0;
 }
 
@@ -2651,9 +2650,9 @@ uint64_t apxMap (IndexDynamic & index,
         clear (str_ends);
         clear (str_ends_p);
         gather_blocks_ (cords, str_ends, str_ends_p, length(read), thd_large_gap, thd_cord_size, 1, & is_cord_block_end, & set_cord_end);
-        print_cords(cords, "cords1");
+        //print_cords(cords, "cords1");
         chainApxCordsBlocks (cords, str_ends_p, length(read), thd_chain_blocks_lower, thd_chain_blocks_upper, alg_type);
-        print_cords(cords, "cords2");
+        //print_cords(cords, "cords2");
         clean_blocks_ (cords, thd_drop_len);
     }
     else

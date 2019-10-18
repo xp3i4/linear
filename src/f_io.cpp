@@ -111,7 +111,7 @@ void print_cords_apf(CordsSetType & cords,
             {
                 if (_DefaultHit.isBlockEnd(cords[k][j-1]))
                 {
-                    dout << "ifoend\n";
+                    //dout << "ifoend\n";
                     unsigned m = j; 
                     int main_strand_count = 0;
                     int block_len = 0;

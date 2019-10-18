@@ -172,7 +172,7 @@ int getBestChains(String<uint64_t> & anchor, String<ChainsRecord> & chains,
 int chainAnchorsBase(String<uint64_t> &, StringSet<String<uint64_t> > &, String<int> &, ChainScoreMetric &, 
   bool(*_compreAnchor)(uint64_t const &, uint64_t const &));
 
-int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p, uint64_t read_len, void (*unsetEndFunc)(uint64_t &), void (*setEndFunc)(uint64_t &));
+int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p, uint64_t read_len, uint64_t thd_major_limit, void (*unsetEndFunc)(uint64_t &), void (*setEndFunc)(uint64_t &));
  
 uint64_t apxMap (IndexDynamic & index,
                  String<Dna5> & read,
@@ -211,6 +211,6 @@ int gather_gaps_y_ (String<uint64_t> & cords,
                     uint64_t readLen,
                     uint64_t thd_gap_size);
 
-int preFilterChains2(String<uint64_t> & hits,  String<UPair> & str_ends_p);
+int preFilterChains2(String<uint64_t> & hits,  String<UPair> & str_ends_p, void (*setEndFunc)(uint64_t &));
 
 #endif

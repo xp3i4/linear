@@ -270,7 +270,7 @@ struct Tile
     {
         val |= bit;
     }
-    bool isTileEnd(uint64_t & val, uint64_t bit = _defaultTileBase.sgnBit_end)
+    uint64_t isTileEnd(uint64_t & val, uint64_t bit = _defaultTileBase.sgnBit_end)
     {
         return val & bit;
     }
@@ -335,7 +335,7 @@ inline bool is_tile_start(uint64_t val)
 {
     return _defaultTile.isTileStart(val);
 }
-inline bool is_tile_end(uint64_t val)
+inline uint64_t is_tile_end(uint64_t val)
 {
     return _defaultTile.isTileEnd(val);
 }
@@ -971,10 +971,10 @@ int chainTiles(String<uint64_t> & tiles, uint64_t read_len, uint64_t thd_gap_siz
     String<UPair> str_ends;
     String<UPair> str_ends_p;
     String<int> str_ends_p_score;
-    //gather_blocks_(tiles, str_ends, str_ends_p, read_len, thd_gap_size, 0, 0);
-    preFilterChains2(tiles, str_ends_p);
+    gather_blocks_(tiles, str_ends, str_ends_p, read_len, thd_gap_size, 0, 0, &is_tile_end, &set_tile_end);
+    preFilterChains2(tiles, str_ends_p, &set_tile_end);
     dout << "ctsss\n";
-    //chainBlocksCords(tiles, str_ends_p, read_len);
+    chainBlocksCords(tiles, str_ends_p, read_len, 1, &remove_tile_sgn_end, &set_tile_end);
     g_print_tiles_(tiles, "ctst");
     print_cords(tiles, "ctsc");
 
@@ -1154,7 +1154,7 @@ int chainTiles(String<uint64_t> & tiles, uint64_t read_len, uint64_t thd_gap_siz
     {
         resize (tiles, length(tiles) - di);
     }
-    chainTiles(tiles, revscomp_const, thd_gap_size);
+    //chainTiles(tiles, revscomp_const, thd_gap_size);
     return 0;
 }
 
