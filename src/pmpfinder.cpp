@@ -1656,7 +1656,7 @@ int chainBlocksBase(StringSet<String<UPair> > & chains, String<uint64_t> & recor
         appendValue(ptr, i);
     }
     std::sort (begin(ptr), end(ptr), [& records, & str_ends_p](unsigned & a, unsigned & b){
-        return get_cord_x(records[str_ends_p[a].first]) > get_cord_x(records[str_ends_p[b].first]);
+        return _DefaultCord.getCordX(records[str_ends_p[a].first]) > _DefaultCord.getCordX(records[str_ends_p[b].first]);
     });
     resize(str_ends_p_tmp, length(str_ends_p));
     resize(str_ends_p_score_tmp, length(str_ends_p_score));
@@ -2138,7 +2138,7 @@ int chainBlocksSimple_ (String<uint64_t> & cords,
         return 0;
     }
     std::sort (begin(str_ends_p), end(str_ends_p), [& cords](UPair & i, UPair & j){
-        return get_cord_x(cords[i.first]) < get_cord_x(cords[j.first]);
+        return _DefaultCord.getCordX(cords[i.first]) < _DefaultCord.getCordX(cords[j.first]);
     });
     String<uint64_t> tmp_cords;
     resize (tmp_cords, length(cords));
@@ -2320,7 +2320,10 @@ unsigned getDIndexMatchAll (DIndex & index,
     return 0;
 }
 
-uint64_t filterDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t shape_len, uint64_t thd_anchor_accept_lens, unsigned thd_anchor_err_bit)
+/*
+ * NOTE::after call this function, the anchor[0] which is for additional infos is just removed.
+ */
+uint64_t filterAnchors(Anchors & anchors, uint64_t shape_len, uint64_t thd_anchor_accept_lens, unsigned thd_anchor_err_bit)
 {    
     if (anchors.length() <= 1)
     {
@@ -2335,40 +2338,38 @@ uint64_t filterDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t s
     ak2=anchors[0];
     uint64_t mask = (1ULL << 20) - 1;
     uint64_t min_y = ~0ULL, max_y = 0;
-
-    for (unsigned k = 1; k < anchors.length(); k++)
+    unsigned ii = 0;
+    for (unsigned i = 1; i < anchors.length(); i++)
     {
-        int64_t anc_y = get_cord_y(anchors[k]);
+        int64_t anc_y = get_cord_y(anchors[i]);
         int64_t dy2 = std::abs(int64_t(anc_y - get_cord_y(ak2)));
-        int f_continuous =  (get_cord_x(anchors[k] - ak2) <  (dy2 >> thd_anchor_err_bit)); 
+        int f_continuous =  (_DefaultCord.getCordX(anchors[i] - ak2) <  (dy2 >> thd_anchor_err_bit)); 
         if (f_continuous)
         {
-            int64_t dy = get_cord_y(anchors.set[k]) - get_cord_y(anchors.set[k - 1]);
+            int64_t dy = get_cord_y(anchors.set[i]) - get_cord_y(anchors.set[i - 1]);
             dy = std::min(std::abs(dy), int64_t(shape_len));
             c_b += dy; 
-            ak2 = anchors[(sb + k) >> 1]; //update the ak to the median 
+            ak2 = anchors[(sb + i) >> 1]; //update the ak to the median 
         }
-        if (!f_continuous || k == anchors.length() - 1) 
+        if (!f_continuous || i == anchors.length() - 1)  
         {
-            if (c_b > thd_anchor_accept_lens)
+            if (c_b > thd_anchor_accept_lens) 
             {
-                appendValue(list, (c_b << 40) + (sb << 20) + k);
+                if (ii != sb - 1)  //anchors[0] is removed 
+                {
+                    for (int j = sb ;j < i; j++)
+                    {
+                        anchors[ii] = anchors[j];
+                        ++ii;
+                    }
+                }
             }
-            sb = k;
-            ak2 = anchors[k];
+            sb = i;
+            ak2 = anchors[i];
             c_b = shape_len;
         }
     }
-    t2 = sysTime() - t2;
-    //<<debug
-    dout << "stmr" << t1 / (t2 + t1) << length(anchors.set) << "\n";
-    int lsum = 0;
-    for (int i = 0; i < length(list); i++)
-    {
-        lsum += (list[i] & mask) - ((list[i] >> 20) & mask);
-    }
-        dout << "list" << lsum << length(list) << "\n";
-    //>>debug
+    resize (anchors.set, ii);
     return 0;
 }
 
@@ -2589,6 +2590,29 @@ int preFilterChains2(String<uint64_t> & hits,  String<UPair> & str_ends_p, void 
     return 0;
 }
 
+//convert anchor to hits by chainning
+int getAnchorHitsChains(Anchors & anchors, String<uint64_t> & hits, uint64_t shape_len, uint64_t read_len, uint64_t thd_anchor_accept_lens, uint64_t thd_large_gap, unsigned thd_anchor_err_bit) 
+{
+    filterAnchors(anchors, shape_len, thd_anchor_accept_lens, thd_anchor_err_bit) ;
+    String<UPair> str_ends;
+    String<UPair> str_ends_p;
+    String<int>   str_ends_p_score;
+    String<int> hits_score; 
+    initHitsScore(hits_score); //be sure hit_score has the same structure with Hits
+    chainAnchorsHits(anchors.set, hits, hits_score);
+    gather_blocks_ (hits, str_ends, str_ends_p, read_len, thd_large_gap, 0, 0, & is_cord_block_end, & set_cord_end);
+    preFilterChains1 (hits, hits_score, str_ends_p);
+    preFilterChains2 (hits, str_ends_p, &set_cord_end);
+    resize (str_ends_p_score, length(str_ends_p));
+    for (int i = 0; i < length(str_ends_p); i++)
+    {
+        //note the hits_score is in denscending order
+        str_ends_p_score[i] = hits_score[str_ends_p[i].first] - hits_score[str_ends_p[i].second - 1];
+    }
+    chainBlocksHits(hits, str_ends_p, str_ends_p_score, read_len);
+    return 0;
+}
+
 /*
  * Map [read_str, read_end) of the read
  */  
@@ -2602,54 +2626,29 @@ uint64_t mnMapReadList(IndexDynamic & index,
                        int alg_type,
                        int thd_best_n)
 {
-
-    String<int> hits_score; 
-    initHitsScore(hits_score); //be sure hit_score has the same structure with Hits
-    int thd_large_gap = 1000; 
     //alg_type = 1;
-    double t1;
-    double t2;
+    uint64_t read_str = get_cord_y(map_str);
+    uint64_t read_end = get_cord_y(map_end);
     if (index.isHIndex())
     {  
-        t1 = sysTime();
         getHIndexMatchAll(index.hindex, read, anchors.set, map_str, map_end, mapParm);    
-        t1 = sysTime() - t1;
     }   
     else if (index.isDIndex())
     {
-        uint64_t read_str = get_cord_y(map_str);
-        uint64_t read_end = get_cord_y(map_end);
         getDIndexMatchAll(index.dindex, read, anchors.set, read_str, read_end, mapParm);    
     }
     if (alg_type == 1)
     {
-        uint64_t read_str = get_cord_y(map_str);
-        uint64_t read_end = get_cord_y(map_end);
-        t2 = sysTime();
         getDAnchorMatchList(anchors, read_str, read_end, mapParm, hits, thd_best_n);
-        t2 = sysTime() - t2;
     }
     else if (alg_type == 2)
     {
-        String<UPair> str_ends;
-        String<UPair> str_ends_p;
-        String<int>   str_ends_p_score;
-        erase (anchors.set, 0);
-        chainAnchorsHits(anchors.set, hits, hits_score);
-        t2 = sysTime();
-        gather_blocks_ (hits, str_ends, str_ends_p, length(read), thd_large_gap, 0, 0, & is_cord_block_end, & set_cord_end);
-        preFilterChains1 (hits, hits_score, str_ends_p);
-        preFilterChains2 (hits, str_ends_p, &set_cord_end);
-        resize (str_ends_p_score, length(str_ends_p));
-        for (int i = 0; i < length(str_ends_p); i++)
-        {
-            //note the hits_score is in denscending order
-            str_ends_p_score[i] = hits_score[str_ends_p[i].first] - hits_score[str_ends_p[i].second - 1];
-        }
-        chainBlocksHits(hits, str_ends_p, str_ends_p_score, length(read));
-        t2 = sysTime() - t2;
+        uint64_t thd_anchor_accept_lens = 0.01 * (read_end - read_str);
+        uint64_t thd_large_gap = 1000; 
+        unsigned thd_anchor_err_bit = 4; //  = 1/2^4 = 0.25
+        getAnchorHitsChains(anchors, hits, mapParm.shapeLen, length(read), thd_anchor_accept_lens, 
+            thd_large_gap, thd_anchor_err_bit);
     }
-    //dout << "stm" <<t1 / (t1 + t2) << "\n";
     return 0;
 }
 
