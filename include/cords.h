@@ -14,6 +14,9 @@ extern uint64_t const_anchor_zero;
 extern uint64_t FORWARD_STRAND;
 extern uint64_t REVERSE_STRAND; 
 extern uint64_t INFI_CORD;
+extern uint64_t MAX_CORD_ID;
+extern uint64_t MAX_CORD_X ;
+extern uint64_t MAX_CORD_Y ;
 
 /*
  * Cord(C): coordinate of base;
