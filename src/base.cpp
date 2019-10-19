@@ -1,5 +1,5 @@
 #include "base.h"
-
+#include "ska_sort.hpp"
 using namespace seqan;
 
 //===================================================================
@@ -310,7 +310,8 @@ PMRecord::PMRecord(Options & options)
 }
  void Anchors::sort(Anchors::Iter sortBegin, Anchors::Iter sortEnd)
 {
-    std::sort(sortBegin, sortEnd);
+    //std::sort(sortBegin, sortEnd);
+    ska_sort(sortBegin, sortEnd);
 }
  void Anchors::sortPos2(Anchors::Iter sortBegin, Anchors::Iter sortEnd){
     AnchorBase::AnchorType mask = AnchorBase::mask;

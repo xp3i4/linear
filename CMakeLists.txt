@@ -8,7 +8,7 @@ project (linear CXX)
 # ----------------------------------------------------------------------------
 # Begin of dependency detection
 # ----------------------------------------------------------------------------
-set(CMAKE_CXX_STANDARD 11)
+#set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/seqan/include/seqan/version.h")
@@ -25,5 +25,6 @@ endif ()
 # ----------------------------------------------------------------------------
 
 include_directories(include)
+include_directories(external_third)
 add_subdirectory(src)
 
