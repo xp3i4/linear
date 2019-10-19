@@ -4,6 +4,7 @@
 #include "shape_extend.h"
 #include "index_util.h"
 #include "pmpfinder.h"
+//#include "ska_sort.hpp"
 
 using namespace seqan;
 using std::cout;
@@ -2311,6 +2312,58 @@ unsigned getDIndexMatchAll (DIndex & index,
     return 0;
 }
 
+uint64_t filterDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t shape_len, uint64_t thd_anchor_accept_lens, unsigned thd_anchor_err_bit)
+{    
+    if (anchors.length() <= 1)
+    {
+        return 0;
+    }
+    uint64_t ak2 = anchors[0]; //2/4, 3/4
+    uint64_t c_b = shape_len, sb = 1, sc = 0;
+    double t1 = sysTime();
+    anchors.sort(anchors.begin(), anchors.end());
+    t1 = sysTime() - t1;
+    double t2 = sysTime();
+    ak2=anchors[0];
+    uint64_t mask = (1ULL << 20) - 1;
+    uint64_t min_y = ~0ULL, max_y = 0;
+
+    for (unsigned k = 1; k < anchors.length(); k++)
+    {
+        int64_t anc_y = get_cord_y(anchors[k]);
+        int64_t dy2 = std::abs(int64_t(anc_y - get_cord_y(ak2)));
+        int f_continuous =  (get_cord_x(anchors[k] - ak2) <  (dy2 >> thd_anchor_err_bit)); 
+        if (f_continuous)
+        {
+            int64_t dy = get_cord_y(anchors.set[k]) - get_cord_y(anchors.set[k - 1]);
+            dy = std::min(std::abs(dy), int64_t(shape_len));
+            c_b += dy; 
+            ak2 = anchors[(sb + k) >> 1]; //update the ak to the median 
+        }
+        if (!f_continuous || k == anchors.length() - 1) 
+        {
+            if (c_b > thd_anchor_accept_lens)
+            {
+                appendValue(list, (c_b << 40) + (sb << 20) + k);
+            }
+            sb = k;
+            ak2 = anchors[k];
+            c_b = shape_len;
+        }
+    }
+    t2 = sysTime() - t2;
+    //<<debug
+    dout << "stmr" << t1 / (t2 + t1) << length(anchors.set) << "\n";
+    int lsum = 0;
+    for (int i = 0; i < length(list); i++)
+    {
+        lsum += (list[i] & mask) - ((list[i] >> 20) & mask);
+    }
+        dout << "list" << lsum << length(list) << "\n";
+    //>>debug
+    return 0;
+}
+
 uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read_str, uint64_t read_end, MapParm & mapParm)
 {
     float thd_err_rate = 0.2;
@@ -2325,7 +2378,10 @@ uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read
     }
     uint64_t ak2 = anchors[0], ak3 = anchors[0]; //2/4, 3/4
     uint64_t c_b = mapParm.shapeLen, sb = 1, sc = 0;
+    double t1 = sysTime();
     anchors.sort(anchors.begin(), anchors.end());
+    t1 = sysTime() - t1;
+    double t2 = sysTime();
     //anchors[0] = anchors[1];
     ak2=anchors[0];
     uint64_t mask = (1ULL << 20) - 1;
@@ -2365,6 +2421,8 @@ uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read
             max_y = get_cord_y(anchors[k]);
         }
     }
+    t2 = sysTime() - t2;
+    dout << "stmr" << t1 / (t2 + t1) << length(anchors.set) << "\n";
     return 0;
 }
 
@@ -2411,8 +2469,14 @@ uint64_t getDHitList(String<uint64_t> & hits, String<int64_t> & list, Anchors & 
 uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read_end, MapParm & mapParm, String<uint64_t> & hit, int thd_best_n)
 {
     String <int64_t> list;
+    double t1 = sysTime();
     getDAnchorList (anchors, list, read_str, read_end, mapParm);
-    return getDHitList(hit, list, anchors, mapParm, thd_best_n);
+    t1 = sysTime() - t1;
+    double t2 = sysTime();
+    getDHitList(hit, list, anchors, mapParm, thd_best_n);
+    t2 = sysTime() - t2;
+    dout << "sst2" << t1 / (t1 + t2) << "\n";
+    return 0;
 }
 /* Remove chains whose y coordinates are coverd by any other longer chain
  * Note::Corresponding str_ends is not required, so update str_ends manually according to the @str_ends_p after calling
@@ -2535,12 +2599,13 @@ uint64_t mnMapReadList(IndexDynamic & index,
     initHitsScore(hits_score); //be sure hit_score has the same structure with Hits
     int thd_large_gap = 1000; 
     //alg_type = 1;
-    double t1 = sysTime();
+    double t1;
     double t2;
     if (index.isHIndex())
     {  
+        t1 = sysTime();
         getHIndexMatchAll(index.hindex, read, anchors.set, read_str, read_end, mapParm);    
-
+        t1 = sysTime() - t1;
     }   
     else if (index.isDIndex())
     {
@@ -2548,7 +2613,9 @@ uint64_t mnMapReadList(IndexDynamic & index,
     }
     if (alg_type == 1)
     {
+        t2 = sysTime();
         getDAnchorMatchList(anchors, read_str, read_end, mapParm, hits, thd_best_n);
+        t2 = sysTime() - t2;
     }
     else if (alg_type == 2)
     {
@@ -2570,7 +2637,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
         chainBlocksHits(hits, str_ends_p, str_ends_p_score, length(read));
         t2 = sysTime() - t2;
     }
-    //dout << "stm" <<t2 / (sysTime() - t1) << "\n";
+    dout << "stm" <<t1 / (t1 + t2) << "\n";
     return 0;
 }
 
@@ -2635,7 +2702,6 @@ uint64_t apxMap (IndexDynamic & index,
         gather_blocks_ (cords, str_ends, str_ends_p, length(read), thd_large_gap, thd_cord_size, 1, &is_cord_block_end, &set_cord_end);
         gather_gaps_y_ (cords, str_ends, apx_gaps, length(read), thd_large_gap);
 
-        
         uint64_t map_d = thd_cord_size >> 1; // cords + to map areas
         uint64_t str_y = 0;                  //stry y of interval between two consecutive blocks
         for (int i = 0; i < length(apx_gaps); i++) //check large gap and re map the gaps
