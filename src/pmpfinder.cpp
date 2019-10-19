@@ -2251,19 +2251,26 @@ unsigned getDIndexMatchAll (DIndex & index,
 }
 /**
  * Search double strand pattern in the index and append to anchors
- * NOTE::@read_str and @read_end must be coordinates of @read rather than its reverse complement
+ * NOTE::y value @map_str and @map_end must be coordinates on forward strand of @read rather than its reverse complement
  */
  unsigned getHIndexMatchAll(LIndex & index,
                            String<Dna5> & read,
                            String<uint64_t> & set,
-                           uint64_t read_str,
-                           uint64_t read_end,
+                           uint64_t map_str,
+                           uint64_t map_end,
                            MapParm & mapParm)
 {   
     int dt = 0;
     LShape shape(index.shape);
     uint64_t xpre = 0;
     hashInit(shape, begin(read));
+    uint64_t read_str = get_cord_y(map_str);
+    uint64_t read_end = get_cord_y(map_end);
+    uint64_t idx_str = _DefaultCord.getCordX(map_str); //NOTE:: id included = id|x
+    uint64_t idx_end = _DefaultCord.getCordX(map_end);
+    print_cord(map_str, "ghi1");
+    print_cord(map_end, "ghi2");
+
     for (unsigned k = read_str; k < read_end; k++)
     {
         hashNexth(shape, begin(read) + k);
@@ -2284,13 +2291,14 @@ unsigned getDIndexMatchAll (DIndex & index,
                 while ((_DefaultHs.getHsBodyY(index.ysa[pos]) == shape.YValue || 
                         _DefaultHs.getHsBodyY(index.ysa[pos]) == 0))
                 {
-                    if (_DefaultHs.getHsBodyS(pre - index.ysa[pos]) > mapParm.kmerStep)
+                    uint64_t idx = _DefaultHs.getHsBodyS(index.ysa[pos]);
+                    if (_DefaultHs.getHsBodyS(pre - index.ysa[pos]) > mapParm.kmerStep &&
+                        idx >= idx_str && idx < idx_end)
                     {
-                        uint64_t id = _getSA_i1(_DefaultHs.getHsBodyS(index.ysa[pos]));
-                        uint64_t x  = _getSA_i2(_DefaultHs.getHsBodyS(index.ysa[pos]));
+                        uint64_t id = _getSA_i1(idx);
+                        uint64_t x  = _getSA_i2(idx);
                         if (((index.ysa[pos] & _DefaultHsBase.bodyCodeFlag) >>_DefaultHsBase.bodyCodeBit) ^ shape.strand)
                         {
-                            
                             uint64_t new_anchor = make_anchor (id, x, length(read) - 1 - k, REVERSE_STRAND);
                             appendValue(set, new_anchor);
                         }
@@ -2587,8 +2595,8 @@ int preFilterChains2(String<uint64_t> & hits,  String<UPair> & str_ends_p, void 
 uint64_t mnMapReadList(IndexDynamic & index,
                        String<Dna5> & read,
                        Anchors & anchors,
-                       uint64_t read_str,
-                       uint64_t read_end,
+                       uint64_t map_str,
+                       uint64_t map_end,
                        MapParm & mapParm,
                        String<uint64_t> & hits,
                        int alg_type,
@@ -2604,15 +2612,19 @@ uint64_t mnMapReadList(IndexDynamic & index,
     if (index.isHIndex())
     {  
         t1 = sysTime();
-        getHIndexMatchAll(index.hindex, read, anchors.set, read_str, read_end, mapParm);    
+        getHIndexMatchAll(index.hindex, read, anchors.set, map_str, map_end, mapParm);    
         t1 = sysTime() - t1;
     }   
     else if (index.isDIndex())
     {
+        uint64_t read_str = get_cord_y(map_str);
+        uint64_t read_end = get_cord_y(map_end);
         getDIndexMatchAll(index.dindex, read, anchors.set, read_str, read_end, mapParm);    
     }
     if (alg_type == 1)
     {
+        uint64_t read_str = get_cord_y(map_str);
+        uint64_t read_end = get_cord_y(map_end);
         t2 = sysTime();
         getDAnchorMatchList(anchors, read_str, read_end, mapParm, hits, thd_best_n);
         t2 = sysTime() - t2;
@@ -2637,7 +2649,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
         chainBlocksHits(hits, str_ends_p, str_ends_p_score, length(read));
         t2 = sysTime() - t2;
     }
-    dout << "stm" <<t1 / (t1 + t2) << "\n";
+    //dout << "stm" <<t1 / (t1 + t2) << "\n";
     return 0;
 }
 
@@ -2652,8 +2664,8 @@ uint64_t apxMap_ (IndexDynamic & index,
                   StringSet<FeaturesDynamic> & f1,
                   StringSet<FeaturesDynamic> & f2,
                   String<uint64_t> & cords, 
-                  uint64_t read_str,
-                  uint64_t read_end,
+                  uint64_t map_str,
+                  uint64_t map_end,
                   int alg_type,
                   float cordLenThr,
                   int thd_best_n) //flag if chain_blocks
@@ -2661,7 +2673,9 @@ uint64_t apxMap_ (IndexDynamic & index,
     clear (hit);
     anchors.init(1);
     initHits(hit);
-    mnMapReadList(index, read, anchors, read_str, read_end, mapParm, hit, alg_type, thd_best_n);
+    mnMapReadList(index, read, anchors, map_str, map_end, mapParm, hit, alg_type, thd_best_n);
+    uint64_t read_str = get_cord_y(map_str);
+    uint64_t read_end = get_cord_y(map_end);
     path_dst(hit, f1, f2, cords, read_str, read_end, length(read), alg_type, cordLenThr);
     return 0;
 }
@@ -2694,7 +2708,10 @@ uint64_t apxMap (IndexDynamic & index,
         mapParm2.listN = mapParm2.listN2;
         thd_best_n = 999; //unlimited best hit;
         int alg_type = 2; //algorithm 1 sort, algorithm 2, dp
-        apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, 0, length(read), alg_type, cordLenThr, thd_best_n);
+        uint64_t map_str = 0ULL;
+        uint64_t map_end = create_cord (MAX_CORD_ID, MAX_CORD_X, length(read), 0);
+        dout << "yend" << get_cord_id(map_str) << get_cord_id(map_end) << get_cord_x(map_str) << " " << get_cord_x(map_end) <<  get_cord_y(map_str) << get_cord_y(map_end) << length(read) << "\n";
+        apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, map_str, map_end, alg_type, cordLenThr, thd_best_n);
                     
         String<UPair> str_ends;
         String<UPair> str_ends_p;
@@ -2710,7 +2727,9 @@ uint64_t apxMap (IndexDynamic & index,
             uint64_t y1 = y.first;
             uint64_t y2 = y.second;   
             thd_best_n = 1; //best hit only
-            apxMap_(index, read, anchors, mapParm2, hit, f1, f2, cords, y1, y2, alg_type, cordLenThr, thd_best_n);
+            map_str =  y1; 
+            map_end =  create_cord(MAX_CORD_ID, MAX_CORD_X, y2, 0);
+            apxMap_(index, read, anchors, mapParm2, hit, f1, f2, cords, map_str, map_end, alg_type, cordLenThr, thd_best_n);
 
         }
         clear (str_ends);
