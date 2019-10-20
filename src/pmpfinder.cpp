@@ -1267,7 +1267,10 @@ bool path_dst_1(typename Iterator<String<uint64_t> >::Type hitBegin,
     set_cord_end (back(cords));
     return false;
 }
-
+/*
+ * NOTE::cord_str == read_str, while cord_end = read_end - window_size in case of forward strand
+ * Do not limit cordx boundary, since duplications can create cords of cordx[i - 1] > cordx[i]
+ */
 int path_dst_2(typename Iterator<String<uint64_t> >::Type hitBegin, 
                typename Iterator<String<uint64_t> >::Type hitEnd, 
                StringSet<FeaturesDynamic> & f1,
@@ -1294,11 +1297,21 @@ int path_dst_2(typename Iterator<String<uint64_t> >::Type hitBegin,
         uint64_t ready_str = get_cord_strand(*itt) ? read_len - read_end     : read_str;  
         uint64_t ready_end = get_cord_strand(*itt) ? read_len - read_str + 1 : read_end; 
         uint64_t cordy_str = (isFirstHit(itt)) ? ready_str : std::max (ready_str, get_cord_y(back(cords)));
-        uint64_t cordy_end = (isLastHit(itt))  ? ready_end : std::min (ready_end, get_cord_y(*(itt + 1)) + window_size);
-        //cordy_str = std::max(ready_str, cordy_str);
-        //cordy_end = std::min(ready_end, cordy_end);
+        //uint64_t cordy_end = (isLastHit(itt))  ? ready_end : std::min (ready_end, get_cord_y(*(itt + 1)) + window_size);
+        uint64_t cordy_end = std::min(read_end, get_cord_y(*(itt + 1)) + window_size);
+        bool f_last = 0;
         appendValue (cords, *itt);
+        if (isLastHit(itt))
+        {
+            f_last = 1;
+            cordy_end = read_end;
+            _DefaultHit.unsetBlockEnd(back(cords));
+        }
         extendWindow(f1[get_cord_strand(*itt)], f2[get_cord_id(*itt)], cords, cordy_str, cordy_end, score);
+        if (f_last)
+        {
+            _DefaultHit.setBlockEnd(back(cords));
+        }
     }
 
     return 0;
@@ -1678,14 +1691,14 @@ int chainBlocksBase(StringSet<String<UPair> > & chains, String<uint64_t> & recor
  * Warn:: x
  * score of chain block [@cord11, @cord12) and block [@cord21, @cord22)
  * @cord21 chain to @cord11
- * x21 are required < x11
+ * x21 < x11 are required
  * @cord*1 and @cord*2 are required to have the same strand
  */
 int getApxChainScore2(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len)
 {
     int64_t thd_max_d = 10000;
     int64_t dy = get_cord_y(cord11) - get_cord_y(cord22);
-    int64_t dx = get_cord_x(cord11) - get_cord_x(cord21);
+    int64_t dx = get_cord_x(cord11) - get_cord_x(cord22);
     if (dx < 0 || dy < 0 || get_cord_strand(cord11 ^ cord22) || dx > thd_max_d || dy > thd_max_d)
     {
         return INT_MIN;
@@ -1799,6 +1812,16 @@ int chainBlocksHits(String<uint64_t> & hits, String<UPair> & str_ends_p, String<
     return 0;
 }
 
+/*
+ * Warn:: x
+ * Last stage of chaining on level cords already extended. 
+ * To chain regular cords and duplications inversions
+ * score of chain cords block [@cord11, @cord12) and block [@cord21, @cord22)
+ * @cord21 chain to @cord11
+ * x21 < x11 are required
+ * @cord*1 and @cord*2 is allowed to have the different strands in case of inversions
+ * @dx is allowed to be < 0 in case of duplications 
+ */
 int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len)
 {
     int64_t y11 = get_cord_y(cord11);
@@ -1824,7 +1847,7 @@ int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t
     int64_t dx = x11 - x22;
     int64_t dy = y11 - y22;
     //dout << "dxy2" << get_cord_strand(cord11) << get_cord_strand(cord22) << dx << dy << x11 << y11 << y12 << y21 << x22 << y22 << read_len << "\n";
-    if (dx < 0 || dy < 0 || dx > thd_max_d || dy > thd_max_d)
+    if (dy < 0 || dx > thd_max_d || dy > thd_max_d)
     {
         return INT_MIN;
     }
@@ -2268,8 +2291,8 @@ unsigned getDIndexMatchAll (DIndex & index,
     uint64_t read_end = get_cord_y(map_end);
     uint64_t idx_str = _DefaultCord.getCordX(map_str); //NOTE:: id included = id|x
     uint64_t idx_end = _DefaultCord.getCordX(map_end);
-    print_cord(map_str, "ghi1");
-    print_cord(map_end, "ghi2");
+    //print_cord(map_str, "ghi1");
+    //print_cord(map_end, "ghi2");
 
     for (unsigned k = read_str; k < read_end; k++)
     {
@@ -2370,6 +2393,7 @@ uint64_t filterAnchors(Anchors & anchors, uint64_t shape_len, uint64_t thd_ancho
         }
     }
     resize (anchors.set, ii);
+    //print_cords(anchors.set, "fancs");
     return 0;
 }
 
@@ -2600,6 +2624,7 @@ int getAnchorHitsChains(Anchors & anchors, String<uint64_t> & hits, uint64_t sha
     String<int> hits_score; 
     initHitsScore(hits_score); //be sure hit_score has the same structure with Hits
     chainAnchorsHits(anchors.set, hits, hits_score);
+    //print_cords(hits, "gac1");
     gather_blocks_ (hits, str_ends, str_ends_p, read_len, thd_large_gap, 0, 0, & is_cord_block_end, & set_cord_end);
     preFilterChains1 (hits, hits_score, str_ends_p);
     preFilterChains2 (hits, str_ends_p, &set_cord_end);
@@ -2610,6 +2635,7 @@ int getAnchorHitsChains(Anchors & anchors, String<uint64_t> & hits, uint64_t sha
         str_ends_p_score[i] = hits_score[str_ends_p[i].first] - hits_score[str_ends_p[i].second - 1];
     }
     chainBlocksHits(hits, str_ends_p, str_ends_p_score, read_len);
+    //print_cords(hits, "gac2");
     return 0;
 }
 
@@ -2676,6 +2702,8 @@ uint64_t apxMap_ (IndexDynamic & index,
     uint64_t read_str = get_cord_y(map_str);
     uint64_t read_end = get_cord_y(map_end);
     path_dst(hit, f1, f2, cords, read_str, read_end, length(read), alg_type, cordLenThr);
+    std::cout << "apx12 \n";
+    //print_cords(cords, "apx");
     return 0;
 }
 

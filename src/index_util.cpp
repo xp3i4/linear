@@ -1711,6 +1711,7 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
             }  
         }
     }
+    dout << "size" << float(length(dir)) * 8 / 1024/1024/1024 << float(length(hs)) /128/1024/1024 << "\n";
     std::cout << "createDIndex " << sysTime() - t << " " << sysTime() - t2 << "\n";
     serr.print_message("Index::hash        ", 2, 1, std::cerr);
     serr.print_message("End creating index ", 2, 0, std::cerr);
