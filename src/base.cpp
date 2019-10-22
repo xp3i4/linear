@@ -513,4 +513,7 @@ CmpInt64 & CmpInt64::operator >> (int64_t n)
     return *this;
 }
 
-
+void sort_ska(Iterator<String<uint64_t> >::Type it_str, Iterator<String<uint64_t> >::Type it_end)
+{
+    ska_sort(it_str, it_end);
+}

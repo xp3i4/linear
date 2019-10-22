@@ -67,7 +67,9 @@ uint64_t Cord::hit2Cord(uint64_t const & hit,
                uint64_t const & mask2
               ) const
 {
-    return (hit + ((hit & mask) << bit) - (const_anchor_zero << bit)) & mask2;
+    uint64_t new_cord = (hit + ((hit & mask) << bit) - (const_anchor_zero << bit)) & mask2;
+    _DefaultHit.unsetLongPattern(new_cord);
+    return new_cord;
 }
 
 uint64_t Cord::hit2Cord_dstr(uint64_t const & hit, 
@@ -76,7 +78,9 @@ uint64_t Cord::hit2Cord_dstr(uint64_t const & hit,
                uint64_t const & mask2
               ) const
 {
-    return (hit + ((hit & mask) << bit)  - (const_anchor_zero << bit)) & mask2;
+    uint64_t new_cord = (hit + ((hit & mask) << bit)  - (const_anchor_zero << bit)) & mask2;
+    _DefaultHit.unsetLongPattern(new_cord);
+    return new_cord;
 }
 
 uint64_t Cord::get_hit_strx(uint64_t const & hit, unsigned const & bit, 
@@ -332,50 +336,53 @@ void Hit::setBlockStart(uint64_t & val, uint64_t const & flag)
 {
     val |= flag;
 }
-
 void Hit::setBlockBody(uint64_t & val, uint64_t const & flag)
 {
     val &= (~flag);
 }
-
- bool Hit::isBlockStart(uint64_t & val, uint64_t const & flag)
+bool Hit::isBlockStart(uint64_t & val, uint64_t const & flag)
 {
     return val & flag;
 }
-
- void Hit::setBlockEnd(uint64_t & val, uint64_t const & flag)
+void Hit::setBlockEnd(uint64_t & val, uint64_t const & flag)
 {
     val |= flag;
 }
-
- void Hit::unsetBlockEnd(uint64_t & val, uint64_t const & flag)
+void Hit::unsetBlockEnd(uint64_t & val, uint64_t const & flag)
 {
     val &= ~flag;
 }
-
- void Hit::setBlockStrand(uint64_t & val, uint64_t const & strand, uint64_t const & flag)
+void Hit::setBlockStrand(uint64_t & val, uint64_t const & strand, uint64_t const & flag)
 {
     if (strand)
         val |= flag;
     else
         val &= ~flag;
 }
-
- bool Hit::isBlockEnd(uint64_t & val, uint64_t const & flag)
+bool Hit::isBlockEnd(uint64_t & val, uint64_t const & flag)
 {
     return val & flag;
 }
-
- unsigned Hit::getStrand(uint64_t const & val, uint64_t const & flag)
+unsigned Hit::getStrand(uint64_t const & val, uint64_t const & flag)
 {
     return (val & flag)?1:0;
 }
-
 uint64_t Hit::getAnchor(uint64_t const & val)
 {
     return (val >> 20 & ((1ULL << 42) - 1) & (~(1ULL << 41)));
 }
-
+void Hit::setLongPattern(uint64_t & val)
+{
+    val |= (1ULL << 62);
+}
+void Hit::unsetLongPattern(uint64_t & val)
+{
+    val &= ~(1ULL << 62);
+}
+uint64_t Hit::isLongPattern(uint64_t & val)
+{
+    return val & (1ULL << 62);
+}
 void _printHit(unsigned j, unsigned id1, unsigned id2, String<uint64_t> & hit, unsigned len)
 {
     unsigned end;

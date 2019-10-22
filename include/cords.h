@@ -112,10 +112,11 @@ int isLastHit(Iterator<String<uint64_t> >::Type & it);
 Iterator<String<uint64_t> >::Type beginHits (String<uint64_t> & hits);
 Iterator<String<uint64_t> >::Type endHits(String<uint64_t> & hits);
 /**
- *   struct hit:
- *   extend the structure Cord;
- *   NA[2]|strand[1]|head[1]|genome pos[40]|read pos[20]
- *   NodeType: 1 Head, 0 Body
+ *  struct hit:
+ *  extend the structure Cord;
+ *  NA[1]|Long pattern[1]|strand[1]|head[1]|genome pos[40]|read pos[20]
+ *  NodeType: 1 Head, 0 Body
+ *  long pattern: the matched pattern is a long pattern
  */
 struct HitBase
 {
@@ -138,6 +139,9 @@ struct Hit
     bool isBlockEnd(uint64_t &, uint64_t const & = _DefaultHitBase.flag);
     unsigned getStrand(uint64_t const &, uint64_t const & = _DefaultHitBase.flag2);
     uint64_t getAnchor(uint64_t const &);
+    void setLongPattern(uint64_t &);
+    void unsetLongPattern(uint64_t &);
+    uint64_t isLongPattern(uint64_t &);
 };
 extern Hit _DefaultHit;
 

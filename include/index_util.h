@@ -61,6 +61,8 @@ public:
     int getShapeLen();
     void clear();
 }; 
+uint64_t shape2DIndexCordy(LShape & shape);
+uint64_t getDIndexCordy(uint64_t index_val);
 int createDIndex(StringSet<String<Dna5> > & seqs, 
                  DIndex & index, 
                  unsigned gstr,

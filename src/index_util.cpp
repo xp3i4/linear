@@ -1583,8 +1583,27 @@ int createDIndex_serial(StringSet<String<Dna5> > & seqs,
     std::cout << "createDIndex " << sysTime() - t << " " << sysTime() - t2 << "\n";
 }
 
+uint64_t const DINDEXY_BITS2 = 5; //shape.YValue bits
+uint64_t const DINDEXY_BITS1 = 20 - DINDEXY_BITS2; //block share pointer bits
+uint64_t const DINDEXY_MASK1 = (1ULL << DINDEXY_BITS1) - 1;
+uint64_t shape2DIndexCordy(LShape & shape)
+{
+    return (shape.YValue & ((1ULL << (DINDEXY_BITS2)) - 1) << DINDEXY_BITS1);
+    //get lower 10 bits of yvalue and left shift 10 bits as the cordy.
+}
+uint64_t getDIndexCordy(uint64_t index_val) 
+{
+    return get_cord_y(index_val) & (~DINDEXY_MASK1);
+}
+uint64_t getDIndexBlockPointer_(int64_t index_val)
+{
+    return get_cord_y(index_val) & (DINDEXY_MASK1);
+}
+
 /**
  * create index on [@gstr, @gend)th genomes 
+ * @hs[i] use cord struct. while it's yvalue is differnt from the cord
+ * y in hs[i]:=10 bits of shape.yvalue[10]|if first in the block: pointer to the last, otherwise 0[10]
  */
 int createDIndex(StringSet<String<Dna5> > & seqs, 
                  DIndex & index, 
@@ -1615,7 +1634,6 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
         #pragma omp parallel
         {
             unsigned t_id = omp_get_thread_num();
-            dout << "idx3 " << t_id << "\n";
             int64_t t_str = t_blocks[t_id];
             int64_t t_end = t_blocks[t_id + 1];
             int64_t preVal = ~0;
@@ -1653,7 +1671,6 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
         dir[i] = sum - dir[i];
     }
     dout << "dt" << sum << back(dir) << "\n";
-    //dout << sysTime() - t4 << "x5\n";
     int64_t EmptyVal = create_cord(length(seqs),0,0,0); 
     //make sure genomeid >= length(seqs) and cord y be 0! y points to next empty.
     resize (hs, sum, EmptyVal);
@@ -1686,15 +1703,17 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
                 if (++count > thd_min_step)
                 {
                     hashNextX (shape, begin(seqs[i]) + j);
+                    //std::cout << "xyval" << shape.YValue;
                     if (preVal != shape.XValue || j - last_j > thd_max_step)
                     {
                         if (dir[shape.XValue + 1] - dir[shape.XValue])
                         {
                             int64_t slot_str = dir[shape.XValue];
-                            int64_t k = slot_str + get_cord_y(atomic_inc_cord_y(hs[slot_str])) - 1;
-                            int64_t new_cord = create_cord(i, j, 0, shape.strand); //be sure new_cord_y == 0 
+                            int64_t k = slot_str + getDIndexBlockPointer_(atomic_inc_cord_y(hs[slot_str])) - 1;
+                            //int64_t new_cord = create_cord(i, j, 0, shape.strand); 
+                            int64_t new_cord = create_cord(i, j, shape2DIndexCordy(shape), shape.strand); //be sure lower bits of new_cord_y for share pointer == 0 
                             if (k == slot_str) 
-                            {           //atomic creation the first cord which cotains shared pointer
+                            {   //atomic creation the first cord which cotains shared pointer
                                 new_cord -= EmptyVal;
                                 atomicAdd(hs[k], new_cord); //original hs[k] = EmptyVal + pointer
                             }
@@ -2003,7 +2022,7 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
         {
             int64_t thd_min_step = 8;
             int64_t thd_max_step = 10;
-            int64_t thd_omit_block = 50; 
+            int64_t thd_omit_block = 200; 
             unsigned thd_shape_len = 21;
             index.dindex.getShape().init_shape_parm(thd_shape_len);
             std::cout << "cidx" << index.typeIx << "\n";

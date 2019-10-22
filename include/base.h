@@ -229,5 +229,6 @@ struct CmpInt64
     CmpInt64 & operator >> (int64_t); //get max of ...
 };
 
+void sort_ska(Iterator<String<uint64_t> >::Type it_str, Iterator<String<uint64_t> >::Type it_end);
 
 #endif
