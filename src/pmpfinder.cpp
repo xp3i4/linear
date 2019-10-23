@@ -1831,13 +1831,15 @@ int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t
     int64_t x11 = get_cord_x(cord11);
     int64_t x22 = get_cord_x(cord22);
 
+    /*
     if (get_cord_strand(cord11))
     {
         int64_t y_tmp = y11;
         y11 = read_len - y12 - 1;
         y12 = read_len - y_tmp - 1;
     }
-    if (get_cord_strand(cord21))
+    */
+    if (get_cord_strand(cord11 ^ cord21))
     {
         int64_t y_tmp = y21;
         y21 = read_len - y22 - 1;
@@ -1847,6 +1849,9 @@ int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t
     int64_t dx = x11 - x22;
     int64_t dy = y11 - y22;
     //dout << "dxy2" << get_cord_strand(cord11) << get_cord_strand(cord22) << dx << dy << x11 << y11 << y12 << y21 << x22 << y22 << read_len << "\n";
+    //print_cord(cord11, "cord11");
+    //print_cord(cord22, "cord22");
+    //dout << "cords1" << dx << dy << thd_max_d << "\n";
     if (dy < 0 || dx > thd_max_d || dy > thd_max_d)
     {
         return INT_MIN;
@@ -1859,7 +1864,7 @@ int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t
     else if (d_err < 100)   {d_err = 35 + d_err / 2;}
     else                    {d_err = 10000;}
     dy /= 150;    
-
+    //dout << "cord_score" << dy << d_err << "\n";
     return 100 - dy - d_err ;    
 }
 
@@ -1942,6 +1947,7 @@ int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p, uint6
         str_ends_p_score[i] = (str_ends_p[i].second - str_ends_p[i].first) << thd_score_bit;
     }
     int thd_drop_score = 0;
+    
     ChainScoreMetric chn_score(thd_drop_score, &getApxChainScore3);
     chainBlocksBase(cords_chains, cords, str_ends_p, str_ends_p_score, read_len, chn_score);
     _filterBlocksCords (cords_chains, cords, read_len, thd_major_limit, unsetEndFunc, setEndFunc);
@@ -2210,6 +2216,7 @@ int chainApxCordsBlocks (String<uint64_t> & cords,
     }
     else if (alg_type == 2)
     {
+//        chainBlocksSimple_(cords, str_ends_p, read_len, thd_chain_blocks_lower, thd_chain_blocks_upper);
         chainBlocksCords(cords, str_ends_p, read_len, 2, &unset_cord_end, &set_cord_end); //2 major chains limit
     }
     return 0;
