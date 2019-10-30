@@ -11,6 +11,7 @@ using namespace seqan;
    (bits overflow otherwise) such that -g_hs_anchor_zero <= x - y < g_hs_anchor_zero
 */
 extern uint64_t const_anchor_zero;
+extern uint64_t const_cordx_max; 
 extern uint64_t FORWARD_STRAND;
 extern uint64_t REVERSE_STRAND; 
 extern uint64_t INFI_CORD;

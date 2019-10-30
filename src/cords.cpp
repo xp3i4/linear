@@ -5,6 +5,7 @@
 using namespace seqan;
 
 uint64_t const_anchor_zero = (1ULL << 20); // make sure y in cord < this  
+uint64_t const_cordx_max = (1ULL << 30) - 1; //cordx <= this
 uint64_t FORWARD_STRAND = 0;
 uint64_t REVERSE_STRAND = 1; 
 uint64_t INFI_CORD = shift_cord (0, (1ULL << 40) - 1,  (1ULL << 20) - 1);

@@ -428,8 +428,7 @@ int map_(IndexDynamic & index,
          uint f_map,   //control flags
          uint gap_len_min,
          uint threads,
-         int p1
-        )
+         int p1)
 {
     unsigned feature_window_size = getFeatureWindowSize(f2);
     dout << "fe" << feature_window_size << "\n";

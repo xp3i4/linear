@@ -212,5 +212,6 @@ int gather_gaps_y_ (String<uint64_t> & cords,
                     uint64_t thd_gap_size);
 
 int preFilterChains2(String<uint64_t> & hits,  String<UPair> & str_ends_p, void (*setEndFunc)(uint64_t &));
+UPair getUPForwardy(UPair str_end, uint64_t read_len);
 
 #endif
