@@ -2388,8 +2388,8 @@ int chainApxCordsBlocks (String<uint64_t> & cords,
     else if (alg_type == 2)
     {
         std::cout << "cbss\n";
-        //chainBlocksSimple_(cords, str_ends_p, read_len, thd_chain_blocks_lower, thd_chain_blocks_upper);
-        chainBlocksCords(cords, str_ends_p, read_len, 2, &unset_cord_end, &set_cord_end); //2 major chains limit
+        chainBlocksSimple_(cords, str_ends_p, read_len, thd_chain_blocks_lower, thd_chain_blocks_upper);
+        //chainBlocksCords(cords, str_ends_p, read_len, 2, &unset_cord_end, &set_cord_end); //2 major chains limit
     }
     return 0;
 }
