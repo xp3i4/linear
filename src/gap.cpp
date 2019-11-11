@@ -3252,20 +3252,9 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             _DefaultHit.unsetBlockEnd(gap_str);
             _DefaultHit.unsetBlockEnd(gap_end);
             
-            mapGap_(seqs, read, comstr, 
-                    gap_str, gap_end, 
-                    g_hs, g_anchor, 
-                    f1, f2, 
-                    tiles_str, 
-                    tiles_end,
-                    clips, 
-                    direction,
-                    thd_cord_gap, 
-                    thD_tile_size,
-                    thd_cord_remap,
-                    thD_err_rate,
-                    thd_dxy_min, 
-                    parm1);
+            mapGap_(seqs, read, comstr, gap_str, gap_end, g_hs, g_anchor, f1, f2, tiles_str, tiles_end,
+                    clips, direction, thd_cord_gap, 
+                    thD_tile_size, thd_cord_remap, thD_err_rate, thd_dxy_min, parm1);
             insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size, thd_max_segs_num);
         }
         if (_DefaultHit.isBlockEnd(cords_str[i]))  ///right clip end cord
@@ -3287,58 +3276,24 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
 
                 if (max_gap_overlap_y > thd_cord_gap)
                 {
-                    mapGap_ (seqs, read, comstr, 
-                             gap_str, gap_end, 
-                             g_hs, g_anchor, 
-                             f1, f2,  
-                             tiles_str, 
-                             tiles_end, 
-                             clips, 
-                             direction,
-                             thd_cord_gap, 
-                             thD_tile_size, 
-                             thd_cord_remap,
-                             thD_err_rate,
-                             thd_dxy_min,
-                             parm1);
+                    mapGap_ (seqs, read, comstr, gap_str, gap_end, g_hs, g_anchor, f1, f2, tiles_str, tiles_end, 
+                             clips, direction, thd_cord_gap, thD_tile_size, thd_cord_remap, thD_err_rate, thd_dxy_min, parm1);
                     insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size, thd_max_segs_num);
                 }
                 else
                 {
-                    
                     uint64_t tile_str = cords_str[i];
                     uint64_t tile_end = shift_cord(cords_str[i], block_size, block_size);
-                    reform_tile_ (seqs[get_cord_id(cords_str[i])],
-                                  read,
-                                  comstr,
-                                  g_hs,
-                                  g_anchor,
-                                  tile_str, 
-                                  tile_end, 
-                                  g_sv_r, 
-                                  thD_tile_size
-                                  );
+                    reform_tile_ (seqs[get_cord_id(cords_str[i])], read, comstr, g_hs, g_anchor, tile_str, tile_end, g_sv_r,thD_tile_size);
                     _updateCordsStrEndValue(cords_str, cords_end, i, tile_str, tile_end, block_size);
 
                     int64_t anchor_base = g_hs_Cord2StrAnchor(gap_str);
                     int64_t anchor_lower = anchor_base - 100;
                     int64_t anchor_upper = anchor_base + 100; 
 
-                    mapExtend_ (seqs, read, comstr, 
-                                gap_str, gap_end, 
-                                anchor_lower, anchor_upper,
-                                g_hs, g_anchor, 
-                                f1, f2,  
-                                tiles_str, 
-                                tiles_end,
-                                clips, 
-                                direction,
-                                thd_cord_gap, 
-                                thD_tile_size,
-                                thd_cord_remap,
-                                thD_err_rate,
-                                thd_dxy_min, 
-                                parm1);
+                    mapExtend_ (seqs, read, comstr, gap_str, gap_end, anchor_lower, anchor_upper, g_hs, g_anchor, 
+                                f1, f2, tiles_str, tiles_end, clips, direction,
+                                thd_cord_gap, thD_tile_size, thd_cord_remap, thD_err_rate, thd_dxy_min, parm1);
                     insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size, thd_max_segs_num);
                 }
             }
