@@ -1399,7 +1399,7 @@ int const chain_end_score = 0;
 int const chain_end = -1;
 
 /*
- * Warn:: anchors are required to sort by x in descending order.
+ * Warn:: anchors are required to be sorted by x in descending order.
    Don't manipulate the anchors by direct comparation, insertion in this function !
    The @anchors is a abstract class (not defined), which can be cords, gaps, or hit.
    It can only be handled by the corresponding @scoreFunc, which defines the @anchors.
@@ -2055,25 +2055,13 @@ int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p, uint6
     String<int> str_ends_p_score;
     StringSet<String<UPair> > cords_chains; 
     resize(str_ends_p_score, length(str_ends_p));
-    uint thd_score_bit = 4; //*16 as average score for each cordd
+    uint thd_score_bit = 4; //*16 as average score for each cord
     std::sort (begin(str_ends_p), end(str_ends_p), [&cords, &read_len](UPair & a, UPair &b){
         uint64_t y1,y2;
-        if (get_cord_strand(cords[a.first]))
-        {
-            y1 = read_len - 1 - get_cord_y(cords[a.second - 1]);
-        }
-        else 
-        {
-            y1 = get_cord_y(cords[a.first]);
-        }
-        if (get_cord_strand(cords[b.first]))
-        {
-            y2 = read_len - 1 -get_cord_y(cords[b.second - 1]);
-        }
-        else
-        {
-            y2 = get_cord_y(cords[b.first]);
-        }
+        y1 = get_cord_strand(cords[a.first]) ? read_len - 1 - get_cord_y(cords[a.second - 1]) :
+            get_cord_y(cords[a.first]);
+        y2 = get_cord_strand(cords[b.first]) ? read_len - 1 - get_cord_y(cords[b.second - 1]) :
+            get_cord_y(cords[b.first]);
         return y1 > y2;
     });
     for (unsigned i = 0; i < length(str_ends_p_score); i++) //init the score as the length of the blocks
@@ -2081,7 +2069,6 @@ int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p, uint6
         str_ends_p_score[i] = (str_ends_p[i].second - str_ends_p[i].first) << thd_score_bit;
         print_cord (cords[str_ends_p[i].first], "pcord1");
         print_cord (cords[str_ends_p[i].second - 1], "pcord2");
- 
     }
     int thd_drop_score = 0;
     
@@ -2938,7 +2925,7 @@ int preFilterChains2(String<uint64_t> & hits,  String<UPair> & str_ends_p, void 
     return 0;
 }
 
-//convert anchor to hits by chainning
+//chain anchors to hits
 int getAnchorHitsChains(Anchors & anchors, String<uint64_t> & hits, uint64_t shape_len, uint64_t read_len, 
     uint64_t thd_anchor_accept_density, uint64_t thd_anchor_accept_min, uint64_t thd_large_gap, unsigned thd_anchor_err_bit, uint64_t thd_max_anchors_num, int64_t thd_anchor_accept_err, unsigned alg_type_filter) 
 {
