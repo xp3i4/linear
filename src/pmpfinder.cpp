@@ -1819,7 +1819,8 @@ int chainBlocksHits(String<uint64_t> & hits, String<UPair> & str_ends_p, String<
 }
 
 /*
- * cord blocks chaining  [+15, 16), [-80, 81), [-82, 83),[+21, 22)
+ * Loosely chaining of cords blocks of different varints
+ * cord blocks chaining  [+15, +16), [-80, -81), [-82, -83),[+21, +22), wher + - as forward and reversed 
  *          o1     o2     o3
     + 15 | + 15 | + 21 s| + 21  y11 
       16 |   16 |   22  |   22  y12
@@ -1832,99 +1833,51 @@ int chainBlocksHits(String<uint64_t> & hits, String<UPair> & str_ends_p, String<
     -----|------|-------|------
     + 21 | + 21 | + 15 s| + 15
       22 |   22 |   16  |   16
-   o1:operation of projecting y to the forward strand
-   o2:sort according start_y of each block on forwardstrand in descending order
-   o3:o1*o3=1, project y to its original strand
+   o1: y to the forward strand
+   o2:sort each block by start_y of on forwardstrand in descending order
+   o3:o1*o3=1, y to original strand
    element marked 's' is the key to sort
    result in column o3 is passed to this function
 
- * Warn:: x
+ *[Warn::red] the fucntion requires cords to be pre-sorted by y rather than x, that is different from the other chaining functions.
  * Last stage of chaining on level cords already extended. 
- * To chain regular cords and duplications inversions
  * score of chain cords block [@cord11, @cord12) and block [@cord21, @cord22)
  * @cord21 chain to @cord11
  * @cord*1 and @cord*2 is allowed to have the different strands in case of inversions
  * @dx is allowed to be < 0 in case of duplications 
+ _____________________
+ * STRATEGY::
+   1.regular cords has the highest priority to be chainned
+   2.variants signals including ins,dup,inv,del has the same priority to be chainned.
+ * Drawbacks: in some cases dup can't be chained, e.g, 
+   ---can't since 9 < 10
+   block1, (10, 10) - (15, 15)
+   block2, (9,  16) - (13, 20)
+   ---can 
+   block1, (10, 10) - (15, 15)
+   block2, (11, 18) - (13, 20) 
  */
-/*
-int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len)
-{
-    int64_t thd_reject_y = -80;
-    int64_t dx, dy, da, d_err; 
-    //dout << "y21y22" << y11 << y12 << y21<< y22<< "\n";
-    if (get_cord_strand(cord11))
-    {
-        if (get_cord_strand(cord21))
-        {
-            dy = get_cord_y(cord21) - get_cord_y(cord12);
-            dx = get_cord_x(cord21) - get_cord_x(cord12);
-            da = std::abs(int64_t(dx - dy));
-        }
-        else
-        {
-            dy = read_len - 1 - get_cord_y(cord12) - get_cord_y(cord22);
-            dx = get_cord_x(cord12) - get_cord_x(cord22);
-            da = 50;
-        }
-    }
-    else
-    {
-        if (get_cord_strand(cord21))
-        {
-            dy = get_cord_y(cord11) - read_len + 1 + get_cord_y(cord21);
-            dx = get_cord_x(cord11) - get_cord_x(cord21);
-            da = 50;
-        }
-        else
-        {
-            dy = get_cord_y(cord11) - get_cord_y(cord22);
-            dx = get_cord_x(cord11) - get_cord_x(cord22);
-            da = std::abs(int64_t(dx - dy));
-        }
-    }
-
-    print_cord (cord11, "score11");
-    print_cord (cord12, "score12");
-    print_cord (cord21, "score21");
-    print_cord (cord22, "score22");
-    dout << "scorey" << dy << "\n";
-    int64_t thd_max_d = 10000;
-
-    if (dy < thd_reject_y || dy > thd_max_d || std::abs(dx) > thd_max_d)
-    {
-        return INT_MIN;
-    }
-    int64_t thd_min_dy = 300;
-    int64_t d_err =  (100 * da) / std::max({dy, thd_min_dy, std::abs(dx)}); // 1/100 = 0.01
-    if      (d_err < 10)    {d_err = 0;}                 //10%
-    else if (d_err < 25)    {d_err = 10 + d_err;}        //25%
-    else if (d_err < 100)   {d_err = 35 + d_err / 2;}
-    else                    {d_err = 10000;}
-    dy /= 150;    
-    //dout << "cord_score" << dy << d_err << "\n";
-    return 100 - dy - d_err ;    
-}
-*/
-//integer log2
-//log2_uint64_t(38) = 5
-inline uint64_t log2_uint(uint val)
-{
-    if (val)
-    {
-        return 31 - __builtin_clz(unsigned(val));
-    }
-    else
-    {
-        return 0;
-    }
-}
-
 int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len)
 {
     int64_t thd_min_dy = -80;
     int64_t dx, dy, da, d_err; 
     //dout << "y21y22" << y11 << y12 << y21<< y22<< "\n";
     int f_type = 0;
+    if (get_cord_strand(cord11 ^ cord22))
+    {
+        dy = std::max(int64_t(read_len - 1 - get_cord_y(cord12) - get_cord_y(cord22)),  //v1
+                      int64_t(get_cord_y(cord11) + get_cord_y(cord21) + 1 - read_len)); // v2
+                      //if not consider mappeing error, v1,v2,dy should satisify v1*v2 < 0 and dy > 0;
+        dx = get_cord_x(cord11) - get_cord_x(cord22);
+        f_type = 1;
+    }
+    else
+    {
+        dy = get_cord_y(cord11) - get_cord_y(cord22);
+        dx = get_cord_x(cord11) - get_cord_x(cord22);
+        f_type = 0;
+    }
+    /*
     if (get_cord_strand(cord11))
     {
         if (get_cord_strand(cord21))
@@ -1946,7 +1899,7 @@ int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t
         if (get_cord_strand(cord21))
         {
             dy = get_cord_y(cord11) - read_len + 1 + get_cord_y(cord21);
-            dx = get_cord_x(cord11) - get_cord_x(cord21);
+            dx = get_cord_x(cord11) - get_cord_x(cord22);
             f_type = 1;
         }
         else
@@ -1956,27 +1909,51 @@ int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t
             da = std::abs(int64_t(dx - dy));
             f_type = 0;
         }
-    }
+    }*/
 
     print_cord (cord11, "score11");
     print_cord (cord12, "score12");
     print_cord (cord21, "score21");
     print_cord (cord22, "score22");
-    dout << "scorey" << dy  << d_err << dx << "\n";
-    int64_t thd_max_dy = 5000; 
+    int64_t thd_max_dy = 3000; 
     int64_t thd_max_dx = 15000;
-    if (dy < thd_min_dy || dy > thd_max_dy || std::abs(dx) > thd_max_dx)
+    int64_t thd_dup_trigger = -50;
+    int64_t dx_ = std::abs(dx);
+    int64_t dy_ = std::abs(dy);
+    da = dx - dy;
+    int score = 0;
+    if (dy < thd_min_dy || (f_type == 0 && dy > thd_max_dy) || dx_ > thd_max_dx)
     {
         return INT_MIN;
+        //score = INT_MIN;
     }
-    if (f_type == 0) //same str
+    int64_t score_dy = dy_ > 2000 ? dy_ / 20 - 50 : dy_ / 40;  
+    int64_t score_dx = dx_ > 2000 ? dx_ / 20 - 50 : dx_ / 40;  
+    if (f_type == 1) //inv
     {
-        return 100 - (log2_uint(std::abs(dy))  - log2_uint(std::abs(dx) / 4)) * 6;
+        score = 80 - score_dx; 
     }
-    else if (f_type == 1)
+    else if (da < -std::max(dx_ / 4, int64_t(50))) 
     {
-        return 84 - (log2_uint(std::abs(dy))  - log2_uint(std::abs(dx) / 4)) * 6;
+        if (dx > thd_dup_trigger) //ins
+        {
+            score = 80 - score_dx; // any large dy is theoretically allowed
+        }
+        else //dup
+        {
+            score = 80 - score_dy; // different from ins the dy of dup is suppoesd to be close enough
+        }
     }
+    else if (da > std::max(dy / 4, int64_t(50))) //del
+    {
+        score = 80 - score_dy;
+    }
+    else //normal 
+    {
+        score = 100 - score_dy;
+    }
+    dout << "scorey" << dy  << da << dx << score << "\n";
+    return score;
 }
 
 int _filterBlocksCords(StringSet<String<UPair> > & chains, String<uint64_t> & hits, uint64_t read_len, uint64_t thd_major_limit, 
@@ -2056,6 +2033,7 @@ int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p, uint6
     StringSet<String<UPair> > cords_chains; 
     resize(str_ends_p_score, length(str_ends_p));
     uint thd_score_bit = 4; //*16 as average score for each cord
+    /*
     std::sort (begin(str_ends_p), end(str_ends_p), [&cords, &read_len](UPair & a, UPair &b){
         uint64_t y1,y2;
         y1 = get_cord_strand(cords[a.first]) ? read_len - 1 - get_cord_y(cords[a.second - 1]) :
@@ -2063,7 +2041,7 @@ int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p, uint6
         y2 = get_cord_strand(cords[b.first]) ? read_len - 1 - get_cord_y(cords[b.second - 1]) :
             get_cord_y(cords[b.first]);
         return y1 > y2;
-    });
+    });*/
     for (unsigned i = 0; i < length(str_ends_p_score); i++) //init the score as the length of the blocks
     {
         str_ends_p_score[i] = (str_ends_p[i].second - str_ends_p[i].first) << thd_score_bit;
@@ -2074,7 +2052,7 @@ int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p, uint6
     
     ChainScoreMetric chn_score(thd_drop_score, &getApxChainScore3);
     int thd_best_n1 = 3; //unlimited
-    int f_sort = 0; //disable sort in chainBlockBase()
+    int f_sort = 1; //disable sort in chainBlockBase()
     chainBlocksBase(cords_chains, cords, str_ends_p, str_ends_p_score, read_len, chn_score, thd_best_n1, f_sort);
     uint64_t swap_str = 0;
     UPair cordy_pair_pre;
@@ -2141,16 +2119,19 @@ int gather_blocks_ (String<uint64_t> & cords,
     uint64_t d_shift_max = thd_cord_size / 2;
     uint64_t d_shift = d_shift_max; //NOTE::str end is shifted by this value
     unsigned p_str = 1;
-
+    print_cords(cords, "pc22");
+    dout << "pc2\n";
     for (unsigned i = 2; i < length(cords); i++)
     {
-        if (isEndFunc(cords[i - 1])||
-           !isCordsConsecutive_(cords[i - 1], cords[i], thd_large_gap))
+        if (isEndFunc(cords[i - 1]) || !isCordsConsecutive_(cords[i - 1], cords[i], thd_large_gap))
         {
             d_shift = std::min (read_len - get_cord_y(cords[p_str]) - 1, d_shift_max);
             uint64_t b_str = shift_cord (cords[p_str], d_shift, d_shift);
             d_shift = std::min (read_len - get_cord_y(cords[i - 1]) - 1, d_shift_max);
             uint64_t b_end = shift_cord (cords[i - 1], d_shift, d_shift);
+            print_cord(cords[i - 1], "gatherbs1");
+            print_cord(cords[i], "gatherbs2");
+            //dout << "gatherbs1" << isEndFunc(cords[i - 1]) << isCordsConsecutive_(cords[i - 1], cords[i], thd_large_gap) << thd_large_gap << "\n";
             appendValue (str_ends, UPair(b_str, b_end));
             appendValue (str_ends_p, UPair(p_str, i));
             if (f_set_end)

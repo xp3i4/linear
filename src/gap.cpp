@@ -1497,16 +1497,15 @@ int c_create_anchor_block_ (String<uint64_t> & g_hs,
     return g_anchor_end;
 }
 
- int c_create_anchors_ (String<uint64_t> & g_hs, 
-                        String<uint64_t> & g_anchor,
-                        int g_hs_end,
-                        int band_level,
-                        int band_lower,
-                        int64_t anchor_x,
-                        int64_t anchor_y,
-                        int64_t x_lower = 0,
-                        int64_t x_upper = 0
-                       ) 
+int c_create_anchors_ (String<uint64_t> & g_hs, 
+                       String<uint64_t> & g_anchor,
+                       int g_hs_end,
+                       int band_level,
+                       int band_lower,
+                       int64_t anchor_x,
+                       int64_t anchor_y,
+                       int64_t x_lower = 0,
+                       int64_t x_upper = 0) 
 {
     int p1 = 0, p2 = 0;
     int g_anchor_end = 0;

@@ -280,7 +280,7 @@ int isCordsConsecutive_(uint64_t & cord1, uint64_t cord2, uint64_t thd_cord_gap)
     uint64_t y2 = get_cord_y (cord2);
 
     int f = !get_cord_strand(cord1 ^ cord2) &&
-           x1 < x2 && y1 < y2 &&
+           x1 <= x2 && y1 <= y2 &&
            x2 - x1 < thd_cord_gap &&
            y2 - y1 < thd_cord_gap;
 
