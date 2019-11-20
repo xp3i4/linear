@@ -284,7 +284,7 @@ struct Tile
     }
 }_defaultTile;
 
-inline uint16_t get_tile_strand (uint64_t val)
+inline uint64_t get_tile_strand (uint64_t val)
 {
     return _defaultTile.getStrand(val);
 }
@@ -650,34 +650,41 @@ unsigned _get_tile_f_tri_ (uint64_t & tile,
     return fscore;
 }
 
-int apxCreateTilesFromAnchors_ (String<uint64_t> & anchor, 
-                                String<uint64_t> & tiles, 
-                                StringSet<FeaturesDynamic> & f1,
-                                StringSet<FeaturesDynamic> & f2,
-                                uint64_t gap_str, 
-                                int prek, int k, 
-                                int const & thD_tile_size,
-                                int const & thd_pattern_in_window)
+int createTilesFromChains_ (String<uint64_t> & anchor, 
+                            String<uint64_t> & tiles, 
+                            StringSet<FeaturesDynamic> & f1,
+                            StringSet<FeaturesDynamic> & f2,
+                            uint64_t gap_str, 
+                            int it_str, int it_end, 
+                            int const & thD_tile_size,
+                            int const & thd_pattern_in_window,
+                            uint64_t(*get_x)(uint64_t),
+                            uint64_t(*get_y)(uint64_t),
+                            uint64_t(*get_strand)(uint64_t))
 {
+    if (it_end - it_str == 0)
+    {
+        return 0;
+    }
     uint thd_fscore = getWindowThreshold(f1); // todo seqeunce error related 
     uint64_t new_tile = 0;
     int64_t tmp_shift = thD_tile_size / 2;
-    int64_t prex = g_hs_anchor_getX(anchor[prek]);
-    int64_t prey = g_hs_anchor_getY(anchor[prek]);
+    int64_t prex = get_x(anchor[it_str]);
+    int64_t prey = get_y(anchor[it_str]);
     int64_t centroid_x = 0;
     int64_t centroid_y = 0;
     int kcount = 0;
-    int prej = prek;
+    int prej = it_str;
     uint64_t step = thD_tile_size / 3;
-    g_print_tiles_(anchor, "gdanchor");
-    for (int j = prek; j < k; j++)
+    //g_print_tiles_(anchor, "gdanchor");
+    for (int j = it_str; j < it_end; j++)
     {
-        uint64_t x = g_hs_anchor_getX(anchor[j]);
-        uint64_t y = g_hs_anchor_getY(anchor[j]);
+        uint64_t x = get_x(anchor[j]);
+        uint64_t y = get_y(anchor[j]);
         dout << "anchorxy" << x << y << prex << prey << "\n";
-        if ((x > prex + step || y > prey + step) || j == k - 1)
+        if ((x > prex + step || y > prey + step) || j == it_end - 1)
         {
-            if (j == prej) //only when k == prek + 1
+            if (j == prej) //only when it_end == it_str + 1
             {
                 centroid_x = x;
                 centroid_y = y;
@@ -692,7 +699,7 @@ int apxCreateTilesFromAnchors_ (String<uint64_t> & anchor,
             uint64_t tmp_tile = create_tile(get_cord_id(gap_str), 
                                             centroid_x - tmp_shift,
                                             centroid_y - tmp_shift,
-                                            g_hs_anchor_get_strand(anchor[prek]));
+                                            get_strand(anchor[it_str]));
             unsigned score = 
             _get_tile_f_tri_(tmp_tile, new_tile, f1, f2, thd_fscore, thD_tile_size);
             dout << "tile_s" << get_tile_y(tmp_tile) << score << thd_fscore << kcount << thd_pattern_in_window << "\n";
@@ -713,20 +720,20 @@ int apxCreateTilesFromAnchors_ (String<uint64_t> & anchor,
                 }
                 dout << "tile_s1" << get_tile_y(back(tiles)) << "\n";
             }
-            if (j != k - 1)
+            if (j != it_end - 1)
             {
-                prex = g_hs_anchor_getX(anchor[j - 1]);
-                prey = g_hs_anchor_getY(anchor[j - 1]);
+                prex = get_x(anchor[j - 1]);
+                prey = get_y(anchor[j - 1]);
                 prej = j;
-                centroid_x = g_hs_anchor_getX(anchor[j]);
-                centroid_y = g_hs_anchor_getY(anchor[j]);
+                centroid_x = get_x(anchor[j]);
+                centroid_y = get_y(anchor[j]);
                 kcount=1;
             }
         }
         else
         {
-            centroid_x += g_hs_anchor_getX(anchor[j]);
-            centroid_y += g_hs_anchor_getY(anchor[j]);
+            centroid_x += get_x(anchor[j]);
+            centroid_y += get_y(anchor[j]);
             kcount++;
         }
     }
@@ -772,7 +779,9 @@ int createTilesFromAnchors1_(String<uint64_t> & anchor,
                            [](uint64_t & s1, uint64_t & s2)
                            {return g_hs_anchor_getX(s2) > g_hs_anchor_getX(s1);
                            });
-                apxCreateTilesFromAnchors_(anchor, tiles, f1, f2, gap_str, prek, k, thD_tile_size, thd_pattern_in_window);
+                createTilesFromChains_(anchor, tiles, f1, f2, gap_str, prek, k, 
+                                thD_tile_size, thd_pattern_in_window,
+                                &g_hs_anchor_getX, &g_hs_anchor_getY, &g_hs_anchor_get_strand);
             }
             prek = k;
             anchor_len = 0;
@@ -829,16 +838,99 @@ int getGapChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
     return 100 - dy - d_err ;
 }
 
+//Warn red> sychronize getApxChainScore3 of same logic  when modifiy this function  
+int getGapChainScore2(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len)
+{
+    int64_t thd_min_dy = -40;
+    int64_t dx, dy, da, d_err; 
+    int f_type = getForwarChainDxDy(cord11, cord12, cord21, cord22, read_len, dx, dy);
+    
+    print_cord (cord11, "gscore11");
+    print_cord (cord12, "gscore12");
+    print_cord (cord21, "gscore21");
+    print_cord (cord22, "gscore22");
+    int64_t thd_max_dy = 500; 
+    int64_t thd_max_dx = 15000; //inv at end can be infinity
+    int64_t thd_dup_trigger = -50;
+    int64_t dx_ = std::abs(dx);
+    int64_t dy_ = std::abs(dy);
+    da = dx - dy;
+    int score = 0;
+    //if (dy < thd_min_dy || (f_type == 0 && dy > thd_max_dy) || dx_ > thd_max_dx)
+    if (dy < thd_min_dy)
+    {
+        dout << "score_return" << dy << thd_min_dy << f_type << thd_max_dy << dx_ << thd_max_dx << "\n";
+        return INT_MIN;
+        //score = INT_MIN;
+    }
+    int64_t score_dy = dy_ > 300 ? dy_ / 4 - 25 : dy_ / 6;  
+    int64_t score_dx = dx_ > 300 ? dx_ / 4 - 25 : dx_ / 6;  
+    if (f_type == 1) //inv
+    {
+        score = 80 - score_dy; 
+    }
+    else if (da < -std::max(dx_ / 4, int64_t(50))) //1/4 = *0.25 , maximum sequence error_rate
+    {
+        if (dx > thd_dup_trigger) //ins
+        {
+            score = 80 - score_dx; // any large dy is theoretically allowed
+        }
+        else //dup
+        {
+            score = 80 - score_dy; // different from ins the dy of dup is suppoesd to be close enough
+        }
+    }
+    else if (da > std::max(dy / 4, int64_t(50))) //del
+    {
+        score = 80 - score_dy;
+    }
+    else //normal 
+    {
+        score = 100 - score_dy;
+    }
+    dout << "scorey" << dy  << da << dx << score << score_dy << score_dx << "\n";
+    return score;
+}
+
+int chainTiles(String<uint64_t> & tiles, uint64_t read_len, uint64_t thd_gap_size)
+{
+    //insert(tiles, 0, 0);
+    String<UPair> str_ends;
+    String<UPair> str_ends_p;
+    String<int> str_ends_p_score;
+    gather_blocks_(tiles, str_ends, str_ends_p, 0, length(tiles), read_len, thd_gap_size, 0, 0, &is_tile_end, &set_tile_end);
+    for (auto & t : str_ends_p)  
+    {
+        dout << "strp" << t.first << t.second << "\n";
+    }
+    //preFilterChains2(tiles, str_ends_p, &set_tile_end);
+    g_print_tiles_(tiles, "ctst");
+    ChainScoreMetric chn_score(0, &getGapChainScore2);
+    chainBlocksCords(tiles, str_ends_p, chn_score, read_len, 1, &remove_tile_sgn_end, &set_tile_end, 0);
+    g_print_tiles_(tiles, "ctst2");
+
+    for (auto & t : str_ends_p)  
+    {
+        dout << "cts" << t.first << t.second << "\n";
+        //print_cord(t.first, "cts1");
+        //print_cord(t.second, "cts2");
+    }
+
+    return 0;
+}
+
 int createTilesFromAnchors2_(String<uint64_t> & anchors, 
                              String<uint64_t> & tiles,
                              StringSet<FeaturesDynamic> & f1,
                              StringSet<FeaturesDynamic> & f2,
                              uint64_t & gap_str,
                              uint64_t & gap_end,
+                             uint64_t read_len,
                              int const & thD_tile_size,
                              int const & thD_err_rate,
                              int const & thd_pattern_in_window)
 {
+    uint64_t thd_anchor_gap_size = 100; //warn::not the thd_gap_size
     ChainScoreMetric chn_score1(50, &getGapChainScore);
     StringSet<String<uint64_t> > anchors_chains;
     String<int> anchors_chains_score;
@@ -852,7 +944,19 @@ int createTilesFromAnchors2_(String<uint64_t> & anchors,
     chainAnchorsBase(anchors, anchors_chains, anchors_chains_score, chn_score1, 
         [](uint64_t const & a, uint64_t const & b)
         {return g_hs_anchor_getX(a) > g_hs_anchor_getX(b);});
-
+    String <uint64_t> tmp_tiles;
+    resize (tmp_tiles, lengthSum(anchors_chains)); 
+    int it = 0;
+    for (int i = 0; i < length(anchors_chains); i++)
+    {
+        for (int j = 0; j < length(anchors_chains[i]); j++)
+        {
+             tmp_tiles[it++] = g_hs_anchor2Tile(anchors_chains[i][j]);
+        }
+        set_tile_end(tmp_tiles[it - 1]);
+    } 
+    chainTiles(tmp_tiles, read_len, thd_anchor_gap_size);
+    g_print_tiles_(tmp_tiles, "cchain2");
 //<<debug
 
     for (int i = 0; i < length(anchors_chains); i++)
@@ -860,37 +964,21 @@ int createTilesFromAnchors2_(String<uint64_t> & anchors,
 
         for (int j = 0; j < length(anchors_chains[i]); j++)
         {
-            dout << "dup_tiles" << g_hs_anchor_getX(anchors_chains[i][j]) << g_hs_anchor_getY(anchors_chains[i][j]) << "\n";
+            dout << "dup_tiles" << get_tile_x(anchors_chains[i][j]) << get_tile_y(anchors_chains[i][j]) << "\n";
         }
-        dout << "dup_tile_end\n";
+        dout << "dup_tile_end\n"; 
     }
     //>>debug
-    for (auto & chain : anchors_chains)
+    int prei = 0;
+    for (int i = 0; i < length(tmp_tiles); i++)
     {
-        apxCreateTilesFromAnchors_(chain, tiles, f1, f2, gap_str, 0, length(chain), thD_tile_size, thd_pattern_in_window);
+        if (is_tile_end(tmp_tiles[i]) || 
+            (i < length(tmp_tiles) - 1 && get_tile_strand(tmp_tiles[i] ^ tmp_tiles[i + 1])))
+        {
+            createTilesFromChains_(tmp_tiles, tiles, f1, f2, gap_str, prei, i + 1, thD_tile_size, thd_pattern_in_window, &get_tile_x, &get_tile_y, &get_tile_strand);
+            prei = i + 1;
+        }
     }
-    return 0;
-}
-
-int chainTiles(String<uint64_t> & tiles, uint64_t read_len, uint64_t thd_gap_size)
-{
-    String<UPair> str_ends;
-    String<UPair> str_ends_p;
-    String<int> str_ends_p_score;
-    gather_blocks_(tiles, str_ends, str_ends_p, read_len, thd_gap_size, 0, 0, &is_tile_end, &set_tile_end);
-    preFilterChains2(tiles, str_ends_p, &set_tile_end);
-    dout << "ctsss\n";
-    chainBlocksCords(tiles, str_ends_p, read_len, 1, &remove_tile_sgn_end, &set_tile_end);
-    g_print_tiles_(tiles, "ctst");
-    print_cords(tiles, "ctsc");
-
-    for (auto & t : str_ends_p)  
-    {
-        //dout << "cts" << t.first << t.second << "\n";
-        print_cord(t.first, "cts1");
-        print_cord(t.second, "cts2");
-    }
-
     return 0;
 }
 
@@ -901,22 +989,22 @@ int chainTiles(String<uint64_t> & tiles, uint64_t read_len, uint64_t thd_gap_siz
  * Change thD_tile_size for differe size of window in the apx mapping
  */  
  int map_g_anchor2_ (String<uint64_t> & anchor, 
-                   String<uint64_t> & tiles, 
-                   StringSet<FeaturesDynamic> & f1,
-                   StringSet<FeaturesDynamic> & f2,
-                   uint64_t gap_str,
-                   uint64_t gap_end,
-                   int revscomp_const,
-                   int direction,
-                   int const & thD_tile_size,
-                   float const & thD_err_rate,
-                   int const & thd_pattern_in_window,
-                   int const & thd_overlap_size,
-                   int const & thd_gap_size,
-                   float const & thd_overlap_tile,
-                   float const & thd_swap_tile,
-                   float const & thd_anchor_density,
-                   int64_t const & thd_min_segment)
+                     String<uint64_t> & tiles, 
+                     StringSet<FeaturesDynamic> & f1,
+                     StringSet<FeaturesDynamic> & f2,
+                     uint64_t gap_str,
+                     uint64_t gap_end,
+                     uint64_t revscomp_const,
+                     int direction,
+                     int const & thD_tile_size,
+                     float const & thD_err_rate,
+                     int const & thd_pattern_in_window,
+                     int const & thd_overlap_size,
+                     int const & thd_gap_size,
+                     float const & thd_overlap_tile,
+                     float const & thd_swap_tile,
+                     float const & thd_anchor_density,
+                     int64_t const & thd_min_segment)
 {
     //dout << "sv2\n";
     int thd_abort_tiles = 10;
@@ -927,10 +1015,13 @@ int chainTiles(String<uint64_t> & tiles, uint64_t read_len, uint64_t thd_gap_siz
 
     //dp to chain anchors o(mn) ~ o(n)
     //g_print_tiles_(tiles, "tmp_tiles");
-    createTilesFromAnchors2_(anchor, tiles, f1, f2, gap_str, gap_end, thD_tile_size, thD_err_rate, thd_pattern_in_window);
+    createTilesFromAnchors2_(anchor, tiles, f1, f2, gap_str, gap_end, revscomp_const, thD_tile_size, thD_err_rate, thd_pattern_in_window);
     //g_print_tiles_(tiles, "tmp_tiles2");
 
     //step 2. merge check: if different segments in tiles can be megered; if cant then do nothing
+    //chainTiles(tiles, revscomp_const, thd_gap_size);
+    g_print_tiles_ (tiles, "tilesg");
+  /* 
     String<uint64_t> tmp_tiles = tiles;
     std::sort (begin(tmp_tiles), end(tmp_tiles),
     [](uint64_t & s1, uint64_t & s2)
@@ -960,6 +1051,8 @@ int chainTiles(String<uint64_t> & tiles, uint64_t read_len, uint64_t thd_gap_siz
             set_tile_end(back(tiles));
         }
     }
+   */ 
+    
 /**
  * step 3. extend patch
  * extend window if there are gaps between tiles until the 
@@ -1043,8 +1136,7 @@ int chainTiles(String<uint64_t> & tiles, uint64_t read_len, uint64_t thd_gap_siz
                     //set_cord_end (tiles[i - di - 1]);
                 }
             }
-            else
-            {
+            else{
                 //NONE
             }
             di++; 
@@ -1058,6 +1150,7 @@ int chainTiles(String<uint64_t> & tiles, uint64_t read_len, uint64_t thd_gap_siz
     {
         resize (tiles, length(tiles) - di);
     }
+    g_print_tiles_ (tiles, "tilesg2");
     //chainTiles(tiles, revscomp_const, thd_gap_size);
     return 0;
 }
@@ -1078,7 +1171,7 @@ struct MapGAnchor2Parm_
     {
         thd_pattern_in_window = 1;
         thd_overlap_size = 170;
-        thd_gap_size = 180;
+        thd_gap_size = 100;
         thd_overlap_tile = thD_tile_size * 0.4;
         thd_swap_tile = thD_tile_size * 0.05;
         thd_anchor_density = 0.03;
@@ -2822,6 +2915,7 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         unsigned new_dups_count = 0;
         for (uint64_t i = 0; i < getClipsLen(sp_tiles); i++)
         {
+            /*
             String <uint64_t> dup_tiles_left_str;
             String <uint64_t> dup_tiles_rght_str;
             String <uint64_t> dup_tiles_left_end;
@@ -2864,7 +2958,7 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
             g_print_tiles_(dup_tiles_rght_str, "dpts33");
             g_print_tiles_(dup_tiles_rght_end, "dpts34");
 
-/*
+
             insert(tiles_str, getClipEnd(sp_tiles, i) + new_dups_count, dup_tiles_left_str);
             insert(tiles_end, getClipEnd(sp_tiles, i) + new_dups_count, dup_tiles_left_end);
             insert(tiles_str, getClipEnd(sp_tiles, i) + new_dups_count + length(dup_tiles_left_str), 
@@ -2976,7 +3070,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
     MapGAnchorParm parm1(thD_tile_size, thD_err_rate);
 
     clear(apx_gaps);
-    gather_blocks_ (cords_str, str_ends, str_ends_p, length(read), thd_cord_gap, thd_cord_size, 0, &is_cord_block_end, &set_cord_end);
+    gather_blocks_ (cords_str, str_ends, str_ends_p, 1, length(cords_str), length(read), thd_cord_gap, thd_cord_size, 0, &is_cord_block_end, &set_cord_end);
     gather_gaps_y_ (cords_str, str_ends, apx_gaps, length(read), thd_cord_gap);
 
     int count = 0;
