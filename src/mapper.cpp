@@ -453,7 +453,6 @@ int map_(IndexDynamic & index,
     {
         f_chain = 0;
     }
-    dout << "fchain" << f_chain << (f_map & 8) << "\n";
 #pragma omp parallel
 {
     unsigned size2 = length(reads) / threads;
@@ -561,7 +560,6 @@ int map(Mapper & mapper,
         }
         std::string outputPrefix = getFileName(path, "/", ~0);
         outputPrefix = getFileName(outputPrefix, ".", 0);
-        dout << "outputPrefix " << outputPrefix << "\n";
         mapper.getOutputPrefix() = outputPrefix;
         if (f_io_append){
             mapper.setOfApp();
@@ -577,7 +575,6 @@ int map(Mapper & mapper,
             {
                 if (f_buckets_enabled)
                 {
-                    dout << "rstr" << rstr << length(buckets) << length(fin_pos) << "\n";
                     readRecords4FinPosbuckets(mapper.getReadsId(), mapper.getReads(), buckets, fin_pos, rFile, 
                         rstr, rstr + blockSize, gid);
                     rstr += blockSize;
@@ -769,7 +766,6 @@ int filter(Mapper & mapper,
         }
         std::string outputPrefix = getFileName(path, "/", ~0);
         outputPrefix = getFileName(outputPrefix, ".", 0);
-        dout << "outputPrefix " << outputPrefix << length(mapper.getRPaths()) << "\n";
         mapper.getOutputPrefix() = outputPrefix;
         mapper.setOfNew();
         unsigned k = 1;
@@ -818,7 +814,6 @@ int filter(Mapper & mapper,
             //std::cerr << std::flush;
             append_genome_bucket(buckets, mapper.getCords(), length(mapper.getGenomes()));
             std::cerr <<  "--Filter::genomes " << path << " block "<< k << " Size " << length(mapper.getReads()) << " Elapsed Time[s]: file_I/O " << time1 << " filter "<< time2 << " append buckets " << sysTime() - time3  << "\n";
-            dout << "lb" << length(buckets) << "\n";
             clear (mapper.getCords());
             clear (mapper.getCords2());
             clear (mapper.getClips());
