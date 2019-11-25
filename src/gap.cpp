@@ -533,6 +533,14 @@ int g_mapHs_kmer_(String<Dna5> & seq,
                    int step,  
                    uint64_t type)
 {
+    //<<debug
+    if (end - str > ((1ULL << 20)))
+    {
+        //std::cerr << "kmerror" << end << "\n";
+        std::cout << "kmerror" << end << "\n";
+        //return 0;
+    }
+    //>>debug
     LShape shape(shape_len);
     hashInit(shape, begin(seq) + str);
     int count = 0; 
@@ -672,8 +680,8 @@ int createTilesFromChains_ (String<uint64_t> & chains,
     int scan_end = it_str;
     for (int i = it_str; i <= it_end; i++) //i == it_end is out of anchor, this is suit the last one it_end - 1
     {
-        if (get_strand(chains[i] ^ pre_chain) || get_x(chains[i]) > get_x(pre_chain) + step || 
-                get_y(chains[i]) > get_y(pre_chain) + step || i == it_end)
+        if (i == it_end || get_strand(chains[i] ^ pre_chain) || get_x(chains[i]) > get_x(pre_chain) + step || 
+                get_y(chains[i]) > get_y(pre_chain) + step)
         {
             if (i == it_end)
             {
@@ -2723,10 +2731,14 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
 
     if (get_cord_strand(gap_str ^ gap_end))
     {
+        return -1;
         if (direction != g_map_closed)
         {
             return -1; //this case is not allowed
         }
+        int64_t thd_max_extend1 = 500; //when x2 < x1
+        int64_t thd_max_extend2 = 5000; //normal case 
+
         String<uint64_t> tiles_str1;
         String<uint64_t> tiles_str2;
         String<uint64_t> tiles_end1;
@@ -2736,13 +2748,18 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         int direction1 = g_map_rght;
         int direction2 = g_map_left;
 
-        g_cmpll.min(shift_x, x2 - x1) << int64_t(length(ref) - 1 - get_cord_x(gap_str));
+        //g_cmpll.min(shift_x, x2 - x1) << int64_t(5000);
+        shift_x = (x2 - x1 > 0) ? 
+            std::min({thd_max_extend2, int64_t(length(ref) - 1 - get_cord_x(gap_str)), x2 - x1}) : 
+            thd_max_extend1; 
+        //g_cmpll.min(shift_x, x2 - x1) << int64_t(length(ref) - 1 - get_cord_x(gap_str));
         g_cmpll.min(shift_y, (x2 - x1) * (1 + thD_err_rate)) << int64_t(length(read) - 1 - get_cord_y(gap_str));
         if (shift_x < 0){shift_x = 0;}
         if (shift_y < 0){shift_y = 0;}
         uint64_t gap_str1 = gap_str;
         uint64_t gap_end1 = shift_cord (gap_str, shift_x, shift_y);
             
+        dout << "gps1" << gap_str1 << gap_end1 << "\n";
         uint64_t anchor_base = g_hs_Cord2StrAnchor(gap_str);
         uint64_t anchor_lower = anchor_base - 101;
         uint64_t anchor_upper = anchor_base + 101;
@@ -2756,10 +2773,13 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                     thd_cord_gap, thD_tile_size, thd_cord_remap,
                     thD_err_rate, thd_dxy_min, parm1);
 
-        g_cmpll.min(shift_x, x2 - x1) << int64_t(get_cord_x(gap_end));
+        //g_cmpll.min(shift_x, x2 - x1) << int64_t(get_cord_x(gap_end)) << int64_t(5000);
+        shift_x = (x2 - x1 > 0) ? std::min({x2 - x1, int64_t(get_cord_x(gap_end)), thd_max_extend2}) : thd_max_extend1;
+        //g_cmpll.min(shift_x, x2 - x1) << int64_t(get_cord_x(gap_end));
         g_cmpll.min(shift_y, (x2 - x1) * (1 + thD_err_rate)) << int64_t(get_cord_y(gap_end));
         uint64_t gap_str2 = shift_cord (gap_end, -shift_x, -shift_y);
         uint64_t gap_end2 = gap_end;
+        dout << "gps2" << gap_str2 << gap_end2 << "\n";
         anchor_base = g_hs_Cord2StrAnchor(gap_end);
         anchor_lower = anchor_base - 101; 
         anchor_upper = anchor_base + 101;
@@ -2792,8 +2812,11 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         //return 1;
         //todo
     }
-    else
+
+    else if (x1 < x2 && y1 < y2)
     {
+        print_cord(gap_str, "gp1");
+        print_cord(gap_end, "gp2");
         g_mapHs_(ref, read, comstr,
                  g_hs, g_anchor, tiles_str, f1, f2,
                  gap_str, gap_end,
@@ -2862,6 +2885,18 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
             new_dups_count += length(dup_tiles_left_str) + length(dup_tiles_rght_str); 
             */
         }
+    }
+    else if (x1 > x2 && y1 < y2)
+    {
+
+    }
+    else if (x1 < x2 && y1 > y2)
+    {
+
+    }
+    else if (x1 > x2 && y1 > y2)
+    {
+
     }
     return 0;
 }
@@ -3016,6 +3051,8 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                     int64_t anchor_base = g_hs_Cord2StrAnchor(gap_end);
                     int64_t anchor_lower = anchor_base - 100;
                     int64_t anchor_upper = anchor_base + 100;
+                    print_cord(gap_str, "sstr1");
+                    print_cord(gap_end, "sstr2");
                     mapExtend_ (seqs, read, comstr, gap_str, gap_end, anchor_lower, anchor_upper, g_hs, g_anchor, 
                                 f1, f2, tiles_str, tiles_end, clips, direction,
                                 thd_cord_gap, thD_tile_size, thd_cord_remap, thD_err_rate, thd_dxy_min, parm1);
@@ -3072,7 +3109,9 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                     int64_t anchor_base = g_hs_Cord2StrAnchor(gap_str);
                     int64_t anchor_lower = anchor_base - 100;
                     int64_t anchor_upper = anchor_base + 100; 
-
+                    print_cord(gap_str, "eedn1");
+                    print_cord(gap_end, "eedn2");
+                    print_cord(cords_str[i], "eedn3");
                     mapExtend_ (seqs, read, comstr, gap_str, gap_end, anchor_lower, anchor_upper, g_hs, g_anchor, 
                                 f1, f2, tiles_str, tiles_end, clips, direction,
                                 thd_cord_gap, thD_tile_size, thd_cord_remap, thD_err_rate, thd_dxy_min, parm1);

@@ -1645,8 +1645,7 @@ int getBestChains2(String<uint64_t> & hits,
 /*
  * @scoreFunc is the score function passed to create chains of blocks of records of @records
  * @records is supposed to be the struct of cords
- * @parm1 of @filterFunc is a struct of @chains and the chains[0] is supposed to be the best chain
- * the filterFunc should filter the other chains based on the best chain namely chains[0]
+ * @chains[0] is supposed to be the best chain
  */
 int chainBlocksBase(StringSet<String<UPair> > & chains, String<uint64_t> & records, String<UPair> & str_ends_p, String<int> & str_ends_p_score, uint64_t read_len, ChainScoreMetric & chn_score1, int thd_best_n, int f_sort = 1)
 {
@@ -2039,19 +2038,32 @@ int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p,
     uint64_t swap_str = 0;
     UPair cordy_pair_pre;
     UPair cordy_pair;
+    //NOTE::the following is to convert the order of reversed strand y to its original order.
+    //the reversed coordinates is due to sorting of y on forward strand.
+    //if it's chained (sort) according to the x coordinate, remove this part.
+    uint64_t t; 
+    //print_cords(cords, "gpcords1");
     for (unsigned i = 0; i < length(cords_chains); i++) 
     {
+        uint64_t strand_pre = 0;
         for (unsigned j = 0; j < length(cords_chains[i]); j++)
         {
+            //dout << "gpcords2<<< " << cords_chains[i][j].first << cords_chains[i][j].second << "\n";
             cordy_pair = getUPForwardy(UPair(cords[cords_chains[i][j].first], cords[cords_chains[i][j].second - 1]), read_len);
-            if (j > 0 && cordy_pair.first < cordy_pair_pre.second)
+            if (j > 0 && cordy_pair.first < cordy_pair_pre.second && ++cords_chains[i][j].first == cords_chains[i][j].second)
             {
-                ++cords_chains[i][j].first;
+                continue; 
+                //some blocks has small overlaps where dy < 0 since the score function resitric dy > -80 rather than 
+                // dy > 0 to allow small errors caused by apx map.
+                //the overlapped cord is just removed in  this step for simplicity.
+                //++cords[i][j].first is to remove the cord pointer.
+                //if == ..second, then this block is empty, continue to avoid access seg fault value.
             }
             cordy_pair_pre = cordy_pair;
-            if (get_cord_strand(cords[cords_chains[i][j].first]))
+            uint64_t strand_this = get_cord_strand(cords[cords_chains[i][j].first]); 
+            if (strand_this)
             {
-                if (j == 0 || get_cord_strand(cords[cords_chains[i][j - 1].first]) == 0)
+                if (j == 0 || strand_pre == 0)
                 {
                     swap_str = j;
                 }
@@ -2063,8 +2075,10 @@ int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p,
                     }
                 }
             }
+            strand_pre = strand_this;
         }
     }
+
     _filterBlocksCords (cords_chains, cords, read_len, thd_major_limit, unsetEndFunc, setEndFunc, f_header);
     return 0;
 }

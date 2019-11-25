@@ -487,10 +487,11 @@ int map_(IndexDynamic & index,
     #pragma omp for
     for (unsigned j = 0; j < length(reads); j++)
     {
-        dout << "readid" << j << "\n\n";
+        std::cout << "readid " << j << "\n\n";
         double t1 = sysTime ();
         red_len[thd_id] += length(reads[j]);
         float cordLenThr = length(reads[j]) * cordThr;
+        
         if (length(reads[j]) > thd_min_read_len)
         {
             _compltRvseStr(reads[j], comStr);
@@ -507,6 +508,7 @@ int map_(IndexDynamic & index,
                 //check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
             }
         }
+        
         c += 1;
     } 
     #pragma omp for ordered
