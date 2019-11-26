@@ -257,16 +257,23 @@ uint64_t is_cord_block_end (uint64_t cord)
 void print_cords(String<uint64_t> & cords, CharString header)
 {
     std::cout << header << "_cords_header \n";
+    int64_t dx, dy, prex = 0, prey = 0;
     for (uint i = 0; i < length(cords); i++)
     {
         std::cout << header << " " << i << " "
                   << get_cord_id(cords[i]) << " "
                   << get_cord_strand(cords[i]) << " "
                   << get_cord_x(cords[i])  << " "
-                  << get_cord_y (cords[i]) << " "  
+                  << get_cord_y (cords[i]) << " " 
+                  << get_cord_x(cords[i]) - prex << " "
+                  << get_cord_y(cords[i]) - prey << " "
                   << length(cords) << "\n";
+        prex = get_cord_x(cords[i]);
+        prey = get_cord_y(cords[i]);
         if (is_cord_block_end(cords[i]))
         {
+            prex = 0; 
+            prey = 0;
             std::cout << header << " end\n\n";
         }
     }

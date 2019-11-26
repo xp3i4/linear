@@ -1686,7 +1686,7 @@ int chainBlocksBase(StringSet<String<UPair> > & chains, String<uint64_t> & recor
  * Warn:: x
  * score of chain block [@cord11, @cord12) and block [@cord21, @cord22)
  * @cord21 chain to @cord11
- * x21 < x11 are required
+ * x22 < x11 are required
  * @cord*1 and @cord*2 are required to have the same strand
  */
 int getApxChainScore2(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len)
@@ -2883,9 +2883,11 @@ int getAnchorHitsChains(Anchors & anchors, String<uint64_t> & hits, uint64_t sha
     String<UPair> str_ends_p;
     String<int>   str_ends_p_score;
     String<int> hits_score; 
+    print_cords(anchors.set, "ccanchor");
     initHitsScore(hits_score); //be sure hit_score has the same structure with Hits
     chainAnchorsHits(anchors.set, hits, hits_score);
     gather_blocks_ (hits, str_ends, str_ends_p, 1, length(hits), read_len, thd_large_gap, 0, 0, & is_cord_block_end, & set_cord_end);
+    print_cords(hits, "cchits1");
     preFilterChains1 (hits, hits_score, str_ends_p);
     preFilterChains2 (hits, str_ends_p, &set_cord_end);
     resize (str_ends_p_score, length(str_ends_p));
@@ -2893,7 +2895,11 @@ int getAnchorHitsChains(Anchors & anchors, String<uint64_t> & hits, uint64_t sha
     {
         //note the hits_score is in denscending order
         str_ends_p_score[i] = hits_score[str_ends_p[i].first] - hits_score[str_ends_p[i].second - 1];
+        dout << "strp" << str_ends_p[i].first << str_ends_p[i].second << "\n";
     }
+    print_cords(hits, "cchits2");
+    //<<debug
+    //>>debug
     chainBlocksHits(hits, str_ends_p, str_ends_p_score, read_len);
     t2 = sysTime() - t2;
     double ts = t1 + t2;
@@ -2913,6 +2919,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
                        int alg_type,
                        int thd_best_n)
 {
+    std::cout << "mnmp0\n";
     //alg_type = 1;
     uint64_t read_str = get_cord_y(map_str);
     uint64_t read_end = get_cord_y(map_end);
@@ -2947,6 +2954,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
         {
             alg_type_filter = 2;
         }
+        //print_cords(anchors.set, "ccanchor");
         getAnchorHitsChains(anchors, hits, mapParm.shapeLen, length(read), thd_anchor_accept_density, thd_anchor_accept_min, thd_large_gap, thd_anchor_err_bit, thd_max_anchors_num, thd_anchor_accept_err, 2);
         t = sysTime() - t;
         
@@ -3026,6 +3034,7 @@ uint64_t apxMap (IndexDynamic & index,
         uint64_t str_y = 0;                  //stry y of interval between two consecutive blocks
         for (int i = 0; i < length(apx_gaps); i++) //check large gap and re map the gaps
         {
+            dout << "apxgap" << "\n";
             UPair y = getUPForwardy (apx_gaps[i], length(read));
             uint64_t y1 = y.first;
             uint64_t y2 = y.second;   
