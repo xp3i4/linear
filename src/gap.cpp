@@ -818,10 +818,12 @@ int getGapChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
     return 100 - score_dy - score_derr ;
 }
 
-//Warn red> sychronize getApxChainScore3 of same logic  when modifiy this function  
+//Warn::yellow> sychronize getApxChainScore3 of same logic if necessary when modifiy this function  
+//Warn::red dup(dx < thd_min_dx) is not allowed in this score function.
 int getGapChainScore2(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len)
 {
     int64_t thd_min_dy = -40;
+    int64_t thd_min_dx = -40;
     int64_t dx, dy, da, d_err; 
     int f_type = getForwarChainDxDy(cord11, cord12, cord21, cord22, read_len, dx, dy);
     
@@ -833,6 +835,7 @@ int getGapChainScore2(uint64_t const & cord11, uint64_t const & cord12, uint64_t
     da = dx - dy;
     int score = 0;
     //if (dy < thd_min_dy || (f_type == 0 && dy > thd_max_dy) || dx_ > thd_max_dx)
+    //if (dx < thd_min_dx )//|| dy < thd_min_dy)
     if (dy < thd_min_dy)
     {
         return INT_MIN;
@@ -896,11 +899,44 @@ int createTilesFromAnchors2_(String<uint64_t> & anchors,
     ChainScoreMetric chn_score1(50, &getGapChainScore);
     StringSet<String<uint64_t> > anchors_chains;
     String<int> anchors_chains_score;
+    uint block_str = 0;
+    //choice1: when anchors are dense, sort to  dived anchor into blocks of close anchors, then chain within each block
+    //Close anchors may distribute out of range of search depth in chain function due to density, so clusetr anchors first
+    /*
+    if () 
+    {     
+        sort (begin(anchors), end(anchors), [](uint64_t & a, uint64_t & b){
+            return g_hs_anchor_getStrAnchor(a) < g_hs_anchor_getStrAnchor(b);
+        })
+        for (uint i = 0; i < length(anchors); i++)
+        {
+            if (anchors[i] - anchor_center > thd_diff_anchor)
+            {
+                chainAnchorsBase(anchors, anchors_chains, anchors_chains_score, block_str, i, chn_score1, 
+                    [](uint64_t const & a, uint64_t const & b)
+                    {return g_hs_anchor_getX(a) > g_hs_anchor_getX(b);});
+                block_str = i;
+            }
+            else
+            {
 
-    chainAnchorsBase(anchors, anchors_chains, anchors_chains_score, chn_score1, 
-        [](uint64_t const & a, uint64_t const & b)
-        {return g_hs_anchor_getX(a) > g_hs_anchor_getX(b);});
+            }
+        }
+    }
+    */
+    //else //choice 2: when anchors ditributed sparsely, chain anchors directly
+    //{
+        chainAnchorsBase(anchors, anchors_chains, anchors_chains_score, 0, length(anchors), chn_score1, 
+            [](uint64_t const & a, uint64_t const & b)
+            {return g_hs_anchor_getX(a) > g_hs_anchor_getX(b);});
+    //}
     String <uint64_t> tmp_tiles;
+    //<<debug
+    for (int i = 0; i < length(anchors); i++)
+    {
+        dout << "anchorse" << g_hs_anchor_getX (anchors[i]) << g_hs_anchor_getY(anchors[i]) << "\n";
+    }
+    //>>debug
     resize (tmp_tiles, lengthSum(anchors_chains)); 
     int it = 0;
     for (int i = 0; i < length(anchors_chains); i++)
@@ -911,7 +947,9 @@ int createTilesFromAnchors2_(String<uint64_t> & anchors,
         }
         set_tile_end(tmp_tiles[it - 1]);
     } 
+    g_print_tiles_(tmp_tiles, "tptiles1");
     chainTiles(tmp_tiles, read_len, thd_anchor_gap_size);
+    g_print_tiles_(tmp_tiles, "tptiles2");
 
     int prei = 0;
     for (int i = 0; i < length(tmp_tiles); i++)
@@ -2731,7 +2769,9 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
 
     if (get_cord_strand(gap_str ^ gap_end))
     {
-        return -1;
+        //<<debug
+        //return -1;
+        //>>debug
         if (direction != g_map_closed)
         {
             return -1; //this case is not allowed
@@ -2815,8 +2855,14 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
 
     else if (x1 < x2 && y1 < y2)
     {
+        //<<debug
+        if (y1 != 538)
+        {
+            //return -1;
+        }
         print_cord(gap_str, "gp1");
         print_cord(gap_end, "gp2");
+        //>>debug
         g_mapHs_(ref, read, comstr,
                  g_hs, g_anchor, tiles_str, f1, f2,
                  gap_str, gap_end,
