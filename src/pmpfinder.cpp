@@ -1306,6 +1306,7 @@ int path_dst_2(typename Iterator<String<uint64_t> >::Type hitBegin,
             _DefaultHit.unsetBlockEnd(back(cords));
         }
         //extendWindow(f1[get_cord_strand(*itt)], f2[get_cord_id(*itt)], cords, cordy_str, cordy_end, score);
+        
         if (f_last || get_cord_strand(*itt ^ *(itt + 1)) || (std::abs(da) < 100))
         {
             if (f_da_indel)
@@ -1416,14 +1417,13 @@ int const chain_end = -1;
  */ 
 int getBestChains(String<uint64_t>     & anchors, //todo:: anchor1 anchor2 of different strand not finished 
                   String<ChainsRecord> & chains,
-                  uint it_str, uint it_end,
+                  uint it_str, uint it_end, uint64_t thd_chain_depth,
                   int (*scoreFunc) (uint64_t const &, uint64_t const &))
 {
     if (empty(anchors))
     {
         return 0;
     }
-    int thd_chain_depth = 20;
     int new_score = 0;
     int new_max_score = 0;
     int max_j = 0;
@@ -1433,10 +1433,10 @@ int getBestChains(String<uint64_t>     & anchors, //todo:: anchor1 anchor2 of di
     chains[0].score = chain_end_score;  
     chains[0].len = 1;
     chains[0].p2anchor = chain_end;
-    for (int i = 0; i < length(anchors); i++) 
-    //for (int i = it_str; i < it_end; i++) 
+    //for (int i = 0; i < length(anchors); i++) 
+    for (int i = it_str; i < it_end; i++) 
     {
-        int j_str = std::max (0, i - thd_chain_depth);
+        int j_str = std::max (0, i -  (int)thd_chain_depth);
         max_j = i;
         new_max_score = -1;
         for (int j = j_str; j < i; j++)
@@ -1476,7 +1476,7 @@ int traceBackChains(String<ChainElementType> & elements,  StringSet<String<Chain
     int delete_score = -1000;
     int search_times = 8;
     int num_chains = 0;
-    for (int i = 0; i < search_times && length(chains) <= bestn; i++) 
+    for (int i = 0; i < search_times && num_chains++ <= bestn; i++) 
     {
         bool f_done = true;
         int max_2nd_score = -1;
@@ -1570,7 +1570,7 @@ int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
     return 100 - dy - d_err ;    
 }
 
-int chainAnchorsBase(String<uint64_t> & anchors, StringSet<String<uint64_t> > & anchors_chains, String<int> & anchors_chains_score, uint it_str, uint it_end, ChainScoreMetric & chn_score, 
+int chainAnchorsBase(String<uint64_t> & anchors, StringSet<String<uint64_t> > & anchors_chains, String<int> & anchors_chains_score, uint it_str, uint it_end,  uint thd_chain_depth, ChainScoreMetric & chn_score, 
     bool(*_compreAnchor)(uint64_t const &, uint64_t const &))
 {
     if (length(anchors) < 2){
@@ -1580,7 +1580,7 @@ int chainAnchorsBase(String<uint64_t> & anchors, StringSet<String<uint64_t> > & 
     String<ChainsRecord> chain_records;
     std::sort(begin(anchors), end(anchors), _compreAnchor);
     resize (chain_records, length(anchors));
-    getBestChains (anchors, chain_records, it_str, it_end, chn_score.getScore);
+    getBestChains (anchors, chain_records, it_str, it_end, thd_chain_depth, chn_score.getScore);
     traceBackChains(anchors, anchors_chains, chain_records, anchors_chains_score, chn_score.getAbortScore(), bestn);
     return 0;
 }
@@ -1588,9 +1588,10 @@ int chainAnchorsBase(String<uint64_t> & anchors, StringSet<String<uint64_t> > & 
 int chainAnchorsHits(String<uint64_t> & anchors, String<uint64_t> & hits, String<int> & hits_chains_score)
 {
     int thd_drop_score = 45; //<<TODO, change the score!
+    uint thd_chain_depth = 20;
     ChainScoreMetric chn_score(thd_drop_score, &getApxChainScore);
     StringSet<String<uint64_t> > anchors_chains;
-    chainAnchorsBase(anchors, anchors_chains, hits_chains_score, 0, length(anchors), chn_score, 
+    chainAnchorsBase(anchors, anchors_chains, hits_chains_score, 0, length(anchors), thd_chain_depth, chn_score, 
         [](uint64_t const & a, uint64_t const & b){ 
             return get_cord_x(_DefaultCord.hit2Cord_dstr(a)) > get_cord_x(_DefaultCord.hit2Cord_dstr(b));
         });
@@ -2566,7 +2567,7 @@ uint64_t filterAnchorsList(String<uint64_t> & anchors,
 }
 
 /*
- * NOTE::after call this function, the anchor[0] which is for additional infos is just removed.
+ * NOTE::after calling this function,  anchor[0] for additional infos is just removed.
  */
 uint64_t filterAnchors1(Anchors & anchors, uint64_t shape_len, uint64_t thd_anchor_accept_density, uint64_t thd_anchor_accept_min, unsigned thd_anchor_err_bit)
 {    

@@ -169,7 +169,7 @@ struct ChainsRecord
 int getBestChains(String<uint64_t> & anchor, String<ChainsRecord> & chains,
                   int (*getScore) (uint64_t const &, uint64_t const &));
 
-int chainAnchorsBase(String<uint64_t> &, StringSet<String<uint64_t> > &, String<int> &, uint, uint, ChainScoreMetric &, 
+int chainAnchorsBase(String<uint64_t> &, StringSet<String<uint64_t> > &, String<int> &, uint, uint, uint, ChainScoreMetric &, 
   bool(*_compreAnchor)(uint64_t const &, uint64_t const &));
 int getForwarChainDxDy(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len, int64_t & dx, int64_t & dy);
 int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len);
