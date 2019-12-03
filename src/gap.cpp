@@ -500,10 +500,9 @@ bool is_diff_anchor (uint64_t cord1, uint64_t cord2, int greater, int64_t thd_dx
 {
     int64_t dy = get_cord_y(cord2) - get_cord_y(cord1);
     int64_t dx = get_cord_x(cord2) - get_cord_x(cord1);
-    int64_t da = dy - dx;
     int64_t dmax = std::max(std::abs(dx), std::abs(dy));
-    return std::abs(da) > int64_t(std::max(thd_dxy_min, dmax) * thd_da_zero) && 
-           da * greater >= 0;
+    return std::abs(dy - dx) > int64_t(std::max(thd_dxy_min, dmax) * thd_da_zero) && 
+           dy - dx * greater >= 0;
 }
 
 /**
@@ -667,12 +666,14 @@ int createTilesFromChains_ (String<uint64_t> & chains,
                             uint64_t(*get_y)(uint64_t),
                             uint64_t(*get_strand)(uint64_t))
 {
+    g_print_tiles_(chains, "ctfcs");
     if (it_end - it_str == 0)
     {
         return 0;
     }
     uint thd_fscore = getWindowThreshold(f1); // todo seqeunce error related 
     uint64_t pre_chain = chains[it_str];
+    uint64_t pre_tile = 0;
     int64_t tmp_shift = thD_tile_size / 2;
     uint64_t step = thD_tile_size / 3;
     int kcount = 0; //count of kmers in range of each step
@@ -694,14 +695,20 @@ int createTilesFromChains_ (String<uint64_t> & chains,
                                                 get_y(chains[j]) - tmp_shift,
                                                 get_strand(chains[j]));
                 //unsigned score = _get_tile_f_(new_tile, f1, f2);
+                //g_print_tile(new_tile, "gs2");
                 unsigned score =  _get_tile_f_tri_(new_tile, f1, f2, thd_fscore, thD_tile_size);
-                if (kcount >= thd_pattern_in_window && score <= thd_fscore)
+                //g_print_tile(new_tile, "gs22");
+                dout << "gscore" << get_y(chains[j]) << get_tile_y(new_tile) << get_tile_x(chains[j]) << get_tile_x(new_tile) << score << kcount << "\n";
+                if (kcount >= thd_pattern_in_window && score <= thd_fscore && 
+                    get_tile_y(new_tile) > get_tile_y(pre_tile))
                 {
                     if (empty (tiles) || is_tile_end(back(tiles)))
                     {
                         set_tile_start(new_tile);
                     }
                     appendValue (tiles, new_tile);
+                    pre_tile = new_tile;
+                    g_print_tile(new_tile, "gs11") ;
                     kcount = i - j;
                     pre_chain = chains[j];
                     break;
@@ -817,6 +824,53 @@ int getGapChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
     }
     return 100 - score_dy - score_derr ;
 }
+
+/*
+//ATTENTION::the Adjust @thd_abort_score if the function is changed
+int getGapChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
+{
+    int64_t dy = g_hs_anchor_getY(anchor1) - g_hs_anchor_getY(anchor2);
+    int64_t dx = g_hs_anchor_getX(anchor1) - g_hs_anchor_getX(anchor2);
+    if (dy < 0 || g_hs_anchor_get_strand(anchor1 ^ anchor2) || (std::abs(dx) < 8 && dx != dy)) //abort too close dx, such as dx == 0, dy == 100;
+    {
+        return -10000;
+    }
+
+    int64_t thd_min_dy = 50;
+    int64_t da = std::abs(int64_t(g_hs_anchor_getStrAnchor(anchor2) - g_hs_anchor_getStrAnchor(anchor1)));
+    int64_t derr =  (100 * da) / std::max(dy, thd_min_dy); // 1/100 = 0.01
+    int score_derr;
+    int score_dy;
+    //d_err
+    if (derr < 5)
+    {
+        score_derr = 0;
+    }
+    else if (derr < 10)
+    {
+        score_derr = 10 + 2 * derr ;
+    }
+    else 
+    {
+        score_derr =  derr * derr / 10 + 40;
+    }
+
+    //d_y
+    if (dy < 100)
+    {
+        score_dy = dy / 4;
+    }
+    else if (dy < 200)
+    {
+        score_dy = dy / 3 - 9;
+    }
+    else 
+    {
+        score_dy = dy - 145;
+    }
+    return 100 - score_dy - score_derr ;
+}
+*/
 
 //Warn::yellow> sychronize getApxChainScore3 of same logic if necessary when modifiy this function  
 //Warn::red dup(dx < thd_min_dx) is not allowed in this score function.
@@ -954,9 +1008,11 @@ int createTilesFromAnchors2_(String<uint64_t> & anchors,
     int prei = 0;
     for (int i = 0; i < length(tmp_tiles); i++)
     {
+        std::cout << "isend" << get_cord_y(tmp_tiles[i]) << " " << is_tile_end(tmp_tiles[i]) << "\n";
         if (is_tile_end(tmp_tiles[i]) || 
             (i < length(tmp_tiles) - 1 && get_tile_strand(tmp_tiles[i] ^ tmp_tiles[i + 1])))
         {
+            dout << "cti1" << prei << i + 1 << "\n";
             createTilesFromChains_(tmp_tiles, tiles, f1, f2, gap_str, prei, i + 1, thD_tile_size, thd_pattern_in_window, &get_tile_x, &get_tile_y, &get_tile_strand);
             prei = i + 1;
         }
@@ -2285,6 +2341,8 @@ uint64_t reform_tile_ (String<Dna5> & seq1,
     int f_e = is_tile_end(tile_str);
     uint64_t clip = clip_tile (seq1, seq2, comstr, g_hs, g_hs_anchor, tile_str, sv_flag, thD_tile_size);
     int64_t shift;
+    g_print_tile(tile_str, "cp1");
+    g_print_tile(tile_end, "cp2");
     if (sv_flag & g_sv_r)
     {
         tile_end = clip;
@@ -2298,6 +2356,9 @@ uint64_t reform_tile_ (String<Dna5> & seq1,
         set_tile_end(tile_str);
         set_tile_end(tile_end);
     }
+
+    g_print_tile(tile_str, "cp3");
+    g_print_tile(clip, "cp3");
     return clip;
 }
 
@@ -2718,13 +2779,14 @@ int mapExtend_(StringSet<String<Dna5> > & seqs,
              g_hs, tiles_str, f1, f2,
              gap_str, gap_end, anchor_lower, anchor_upper,
              thd_da_zero, thD_tile_size, thd_dxy_min,
-             g_map_rght, parm1
-       );
+             g_map_rght, parm1);
+    g_print_tiles_(tiles_str, "gtstr");
     reform_tiles(ref, read, comstr, 
                  tiles_str, tiles_end,
                  clips, g_hs, g_anchor, sp_tiles, 
                  gap_str, gap_end, direction, 
                  thd_cord_gap, thD_tile_size, thD_err_rate);
+    g_print_tiles_(tiles_str, "gtend");
     return 0;
 }
 
@@ -2767,6 +2829,8 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
     int64_t da = x2 - x1 - y2 + y1;
     int64_t shift_x, shift_y;
     String<uint64_t> sp_tiles; 
+    print_cord(gap_str, "mgp1");
+    print_cord(gap_end, "mgp2");
 
     if (get_cord_strand(gap_str ^ gap_end))
     {
@@ -2858,82 +2922,147 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
     else if (x1 < x2 && y1 < y2)
     {
         //<<debug
-        /*
+        
         if (y1 != 538)
         {
             return -1;
         }
-        */
-        print_cord(gap_str, "gp1");
-        print_cord(gap_end, "gp2");
+        dout << "danchor" << x1 - x2 - y1 + y2 << "\n";
         //>>debug
-        g_mapHs_(ref, read, comstr,
-                 g_hs, g_anchor, tiles_str, f1, f2,
-                 gap_str, gap_end,
-                 thd_da_zero, thD_tile_size, thd_dxy_min,
-                 direction,
-                 parm1);
-        reform_tiles(ref, read, comstr, 
-                     tiles_str, tiles_end,
-                     clips, g_hs, g_anchor, sp_tiles,
-                     gap_str, gap_end, direction, 
-                     thd_cord_gap, thD_tile_size, thD_err_rate);
-        //try dup for each sp_tiles element.
-        unsigned new_dups_count = 0;
-        for (uint64_t i = 0; i < getClipsLen(sp_tiles); i++)
+        if (x1 - x2 - y1 + y2 > 80) //ins signal
         {
-            /*
-            String <uint64_t> dup_tiles_left_str;
-            String <uint64_t> dup_tiles_rght_str;
-            String <uint64_t> dup_tiles_left_end;
-            String <uint64_t> dup_tiles_rght_end;
-            String <uint64_t> dup_clips;  //not used
-            String <uint64_t> dup_sp_tiles; //not used
-            int dup_direction = g_map_closed;
-            uint64_t it_dup_str = getClipStr(sp_tiles, i) + new_dups_count;
-            uint64_t dup_str = tiles_str[getClipStr(sp_tiles, i) + new_dups_count];
-            uint64_t dup_end = tiles_str[getClipEnd(sp_tiles, i) + new_dups_count];
-            //if ()
-            dup_end = shift_tile(dup_end, thD_tile_size, thD_tile_size);
-            dout << "dpstrend" << getClipStr(sp_tiles, i) << getClipEnd(sp_tiles, i) << new_dups_count << "\n";
-            g_print_tile(dup_str, "dpstrend1");
-            g_print_tile(dup_end, "dpstrend2");
-            //erase (tiles_str, )
+            int64_t thd_max_extend1 = 500; //when x2 < x1
+            int64_t thd_max_extend2 = 5000; //normal case 
 
-            try_dup (ref, read, comstr, 
-                     f1, f2,
-                     g_hs, g_anchor, 
-                     dup_tiles_left_str, dup_tiles_rght_str,
-                     dup_str, dup_end, 
-                     thD_err_rate, 
-                     thD_tile_size,
+            String<uint64_t> tiles_str1;
+            String<uint64_t> tiles_str2;
+            String<uint64_t> tiles_end1;
+            String<uint64_t> tiles_end2;
+            String<uint64_t> clips1;
+            String<uint64_t> clips2;
+            int direction1 = g_map_rght;
+            int direction2 = g_map_left;
+
+            shift_y = std::min({std::max(y2 - y1, int64_t(0)), thd_max_extend2, int64_t(length(read) - y1 - 1)});
+            shift_x = std::min({int64_t(shift_y * (1 + thD_err_rate)), thd_max_extend2, int64_t(length(ref) - x1 - 1)});
+            uint64_t gap_str1 = gap_str;
+            uint64_t gap_end1 = shift_cord (gap_str, shift_x, shift_y);
+            
+            print_cord(gap_str1, "mpins1");
+            print_cord(gap_end1, "mpins2");    
+
+            uint64_t anchor_base = g_hs_Cord2StrAnchor(gap_str);
+            uint64_t anchor_lower = anchor_base - 50;
+            uint64_t anchor_upper = anchor_base + 50;
+           /* 
+            mapExtend_ (seqs, read, comstr, 
+                        gap_str1, gap_end1, 
+                        anchor_lower, anchor_upper,
+                        g_hs, g_anchor, 
+                        f1, f2,  
+                        tiles_str1, tiles_end1, clips1, 
+                        direction1,
+                        thd_cord_gap, thD_tile_size, thd_cord_remap,
+                        thD_err_rate, thd_dxy_min, parm1);
+*/
+            shift_y = std::min({std::max(y2 - y1, int64_t(0)), thd_max_extend2, int64_t(y2)});
+            shift_x = std::min({int64_t(shift_y * (1 + thD_err_rate)), thd_max_extend2, int64_t(x2)});          
+            uint64_t gap_str2 = shift_cord (gap_end, -shift_x, -shift_y);
+            uint64_t gap_end2 = gap_end;
+            anchor_base = g_hs_Cord2StrAnchor(gap_end);
+            anchor_lower = anchor_base - 50; 
+            anchor_upper = anchor_base + 50;
+            mapExtend_ (seqs, read, comstr, 
+                        gap_str2, gap_end2, 
+                        anchor_lower, anchor_upper,
+                        g_hs, g_anchor, 
+                        f1, f2,  
+                        tiles_str2, tiles_end2, clips2, 
+                        direction2,
+                        thd_cord_gap, thD_tile_size, thd_cord_remap,
+                        thD_err_rate, thd_dxy_min, parm1);
+            if (!empty(tiles_str1))
+            {
+                append(tiles_str, tiles_str1);
+                append(tiles_end, tiles_end1);
+            }
+            if (!empty(tiles_str2))
+            {
+                append(tiles_str, tiles_str2);
+                append(tiles_end, tiles_end2);
+            }
+        }
+
+        else 
+        {
+            g_mapHs_(ref, read, comstr,
+                     g_hs, g_anchor, tiles_str, f1, f2,
+                     gap_str, gap_end,
+                     thd_da_zero, thD_tile_size, thd_dxy_min,
+                     direction,
                      parm1);
-            g_print_tiles_(dup_tiles_left_str, "dpts1");
-            g_print_tiles_(dup_tiles_rght_str, "dpts2");
-            reform_tiles(ref, read, comstr,
-                         dup_tiles_left_str, dup_tiles_left_end,
-                         dup_clips, g_hs, g_anchor, dup_sp_tiles,
-                         dup_str, dup_end, g_map_rght,
+            reform_tiles(ref, read, comstr, 
+                         tiles_str, tiles_end,
+                         clips, g_hs, g_anchor, sp_tiles,
+                         gap_str, gap_end, direction, 
                          thd_cord_gap, thD_tile_size, thD_err_rate);
-            reform_tiles(ref, read, comstr,
-                         dup_tiles_rght_str, dup_tiles_rght_end,
-                         dup_clips, g_hs, g_anchor, dup_sp_tiles,
-                         dup_str, dup_end, g_map_left,
-                         thd_cord_gap, thD_tile_size, thD_err_rate); 
-            g_print_tiles_(dup_tiles_left_str, "dpts31");
-            g_print_tiles_(dup_tiles_left_end, "dpts32");
-            g_print_tiles_(dup_tiles_rght_str, "dpts33");
-            g_print_tiles_(dup_tiles_rght_end, "dpts34");
+            //try dup for each sp_tiles element.
+            unsigned new_dups_count = 0;
+            for (uint64_t i = 0; i < getClipsLen(sp_tiles); i++)
+            {
+                /*
+                String <uint64_t> dup_tiles_left_str;
+                String <uint64_t> dup_tiles_rght_str;
+                String <uint64_t> dup_tiles_left_end;
+                String <uint64_t> dup_tiles_rght_end;
+                String <uint64_t> dup_clips;  //not used
+                String <uint64_t> dup_sp_tiles; //not used
+                int dup_direction = g_map_closed;
+                uint64_t it_dup_str = getClipStr(sp_tiles, i) + new_dups_count;
+                uint64_t dup_str = tiles_str[getClipStr(sp_tiles, i) + new_dups_count];
+                uint64_t dup_end = tiles_str[getClipEnd(sp_tiles, i) + new_dups_count];
+                //if ()
+                dup_end = shift_tile(dup_end, thD_tile_size, thD_tile_size);
+                dout << "dpstrend" << getClipStr(sp_tiles, i) << getClipEnd(sp_tiles, i) << new_dups_count << "\n";
+                g_print_tile(dup_str, "dpstrend1");
+                g_print_tile(dup_end, "dpstrend2");
+                //erase (tiles_str, )
+
+                try_dup (ref, read, comstr, 
+                         f1, f2,
+                         g_hs, g_anchor, 
+                         dup_tiles_left_str, dup_tiles_rght_str,
+                         dup_str, dup_end, 
+                         thD_err_rate, 
+                         thD_tile_size,
+                         parm1);
+                g_print_tiles_(dup_tiles_left_str, "dpts1");
+                g_print_tiles_(dup_tiles_rght_str, "dpts2");
+                reform_tiles(ref, read, comstr,
+                             dup_tiles_left_str, dup_tiles_left_end,
+                             dup_clips, g_hs, g_anchor, dup_sp_tiles,
+                             dup_str, dup_end, g_map_rght,
+                             thd_cord_gap, thD_tile_size, thD_err_rate);
+                reform_tiles(ref, read, comstr,
+                             dup_tiles_rght_str, dup_tiles_rght_end,
+                             dup_clips, g_hs, g_anchor, dup_sp_tiles,
+                             dup_str, dup_end, g_map_left,
+                             thd_cord_gap, thD_tile_size, thD_err_rate); 
+                g_print_tiles_(dup_tiles_left_str, "dpts31");
+                g_print_tiles_(dup_tiles_left_end, "dpts32");
+                g_print_tiles_(dup_tiles_rght_str, "dpts33");
+                g_print_tiles_(dup_tiles_rght_end, "dpts34");
 
 
-            insert(tiles_str, getClipEnd(sp_tiles, i) + new_dups_count, dup_tiles_left_str);
-            insert(tiles_end, getClipEnd(sp_tiles, i) + new_dups_count, dup_tiles_left_end);
-            insert(tiles_str, getClipEnd(sp_tiles, i) + new_dups_count + length(dup_tiles_left_str), 
-                dup_tiles_rght_str);
-            insert(tiles_end, getClipEnd(sp_tiles, i) + new_dups_count + length(dup_tiles_left_end), 
-                dup_tiles_rght_end);
-            new_dups_count += length(dup_tiles_left_str) + length(dup_tiles_rght_str); 
-            */
+                insert(tiles_str, getClipEnd(sp_tiles, i) + new_dups_count, dup_tiles_left_str);
+                insert(tiles_end, getClipEnd(sp_tiles, i) + new_dups_count, dup_tiles_left_end);
+                insert(tiles_str, getClipEnd(sp_tiles, i) + new_dups_count + length(dup_tiles_left_str), 
+                    dup_tiles_rght_str);
+                insert(tiles_end, getClipEnd(sp_tiles, i) + new_dups_count + length(dup_tiles_left_end), 
+                    dup_tiles_rght_end);
+                new_dups_count += length(dup_tiles_left_str) + length(dup_tiles_rght_str); 
+                */
+            }
         }
     }
     else if (x1 > x2 && y1 < y2)
@@ -3126,6 +3255,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                     clips, direction, thd_cord_gap, 
                     thD_tile_size, thd_cord_remap, thD_err_rate, thd_dxy_min, parm1);
             insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size, thd_max_segs_num);
+            return 0;
         }
         if (_DefaultHit.isBlockEnd(cords_str[i]))  ///right clip end cord
         {
