@@ -149,7 +149,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
 //Chainning Score metric wrapper: including a score function with corresponding parms.
 struct ChainScoreMetric 
 {
-    int thd_abort_score;
+    int thd_abort_score; //lower bound of average chain score per anchor
 
     int (*getScore) (uint64_t const &, uint64_t const &);
     int (*getScore2)(uint64_t const &, uint64_t const &, uint64_t const &, uint64_t const &, uint64_t const & read_len);

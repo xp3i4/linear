@@ -1391,6 +1391,7 @@ bool path_dst(String<uint64_t> & hits,
   ---------- @sub::Generic chain funcs  ----------*/
 
 //Chainning Score metric wrapper: including a score function with corresponding parms.
+ChainScoreMetric::ChainScoreMetric(){};
 ChainScoreMetric::ChainScoreMetric(int abort_socre, 
         int(*scoreFunc)(uint64_t const &, uint64_t const &)) 
         : thd_abort_score(abort_socre), getScore(scoreFunc), getScore2(NULL)
