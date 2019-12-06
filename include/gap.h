@@ -14,8 +14,8 @@ int getClipsLen(String<uint64_t> &);
 void insertClipStr(String<uint64_t> &, uint64_t);
 void insertClipEnd(String<uint64_t> &, uint64_t);
 bool isClipEmpty(uint64_t);
-int getGapChainScore(uint64_t const & anchor1, uint64_t const & anchor2);
-int getGapChainScore2(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len);
+int getGapAnchorsChainScore(uint64_t const & anchor1, uint64_t const & anchor2);
+int getGapBlocksChainScore2(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len);
 
 struct GapParms
 {

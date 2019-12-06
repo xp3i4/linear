@@ -1377,8 +1377,11 @@ bool path_dst(String<uint64_t> & hits,
         return path_dst_1 (beginHits(hits), endHits(hits), f1, f2, cords, read_str, read_end, read_len, thd_min_block_len);
     }
     else if (alg_type == 2){
+       print_cords(hits, "pd1");
        _filterHits(hits, f1, f2);
+       print_cords(hits, "pd2");
        path_dst_2 (beginHits(hits), endHits(hits), f1, f2, cords, read_str, read_end, read_len, thd_min_block_len);
+       print_cords(cords, "pd3");
     }
     return 0;
 }
@@ -1904,6 +1907,7 @@ int getForwarChainDxDy(uint64_t const & cord11, uint64_t const & cord12, uint64_
 int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len)
 {
     int64_t thd_min_dy = -80;
+    int64_t thd_min_dx = -80;
     int64_t dx, dy, da, d_err; 
     int f_type = getForwarChainDxDy(cord11, cord12, cord21, cord22, read_len, dx, dy);
     /*
@@ -1930,16 +1934,19 @@ int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t
     int64_t dy_ = std::abs(dy);
     da = dx - dy;
     int score = 0;
-    if (dy < thd_min_dy || (f_type == 0 && dy > thd_max_dy) || dx_ > thd_max_dx)
+    if (dy < thd_min_dy)// || (f_type == 0 && dy > thd_max_dy) || dx_ > thd_max_dx)
     {
         return INT_MIN;
         //score = INT_MIN;
     }
-    int64_t score_dy = dy_ > 2000 ? dy_ / 20 - 50 : dy_ / 40;  
-    int64_t score_dx = dx_ > 2000 ? dx_ / 20 - 50 : dx_ / 40;  
+    int64_t score_dy = dy_ > 2000 ? std::min(dy_ / 25 - 50, int64_t(70)): dy_ / 40;  
+    int64_t score_dx = dx_ > 2000 ? std::min(dx_ / 25 - 50, int64_t(70)): dx_ / 40;  
     if (f_type == 1) //inv
     {
-        score = 80 - score_dy; 
+        if (dx > thd_min_dx)
+        {
+            score = 75 - score_dy; 
+        }
     }
     else if (da < -std::max(dx_ / 4, int64_t(50))) 
     {
@@ -2067,7 +2074,7 @@ int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p,
         uint64_t strand_pre = 0;
         for (unsigned j = 0; j < length(cords_chains[i]); j++)
         {
-            //dout << "gpcords2<<< " << cords_chains[i][j].first << cords_chains[i][j].second << "\n";
+            dout << "gpcords2<<< " << i << j << cords_chains[i][j].first << cords_chains[i][j].second << "\n";
             cordy_pair = getUPForwardy(UPair(cords[cords_chains[i][j].first], cords[cords_chains[i][j].second - 1]), read_len);
             if (j > 0 && cordy_pair.first < cordy_pair_pre.second && ++cords_chains[i][j].first == cords_chains[i][j].second)
             {
@@ -2097,8 +2104,9 @@ int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p,
             strand_pre = strand_this;
         }
     }
-
+    print_cords(cords, "cords11");
     _filterBlocksCords (cords_chains, cords, read_len, thd_major_limit, unsetEndFunc, setEndFunc, f_header);
+    print_cords(cords, "cords11");
     return 0;
 }
 
@@ -2902,11 +2910,11 @@ int getAnchorHitsChains(Anchors & anchors, String<uint64_t> & hits, uint64_t sha
     String<UPair> str_ends_p;
     String<int>   str_ends_p_score;
     String<int> hits_score; 
-    print_cords(anchors.set, "ccanchor");
+    //print_cords(anchors.set, "ccanchor");
     initHitsScore(hits_score); //be sure hit_score has the same structure with Hits
     chainAnchorsHits(anchors.set, hits, hits_score);
     gather_blocks_ (hits, str_ends, str_ends_p, 1, length(hits), read_len, thd_large_gap, 0, 0, & is_cord_block_end, & set_cord_end);
-    print_cords(hits, "cchits1");
+    //print_cords(hits, "cchits1");
     preFilterChains1 (hits, hits_score, str_ends_p);
     preFilterChains2 (hits, str_ends_p, &set_cord_end);
     resize (str_ends_p_score, length(str_ends_p));
@@ -2916,10 +2924,11 @@ int getAnchorHitsChains(Anchors & anchors, String<uint64_t> & hits, uint64_t sha
         str_ends_p_score[i] = hits_score[str_ends_p[i].first] - hits_score[str_ends_p[i].second - 1];
         dout << "strp" << str_ends_p[i].first << str_ends_p[i].second << "\n";
     }
-    print_cords(hits, "cchits2");
+    //print_cords(hits, "cchits2");
     //<<debug
     //>>debug
     chainBlocksHits(hits, str_ends_p, str_ends_p_score, read_len);
+    //print_cords(hits, "cchits3");
     t2 = sysTime() - t2;
     double ts = t1 + t2;
     return 0;
@@ -3006,6 +3015,7 @@ uint64_t apxMap_ (IndexDynamic & index,
     uint64_t read_str = get_cord_y(map_str);
     uint64_t read_end = get_cord_y(map_end);
     path_dst(hit, f1, f2, cords, read_str, read_end, length(read), alg_type, cordLenThr);
+    //print_cords(cords, "cds1");
     return 0;
 }
 
@@ -3042,6 +3052,7 @@ uint64_t apxMap (IndexDynamic & index,
         uint64_t map_end = create_cord (MAX_CORD_ID, MAX_CORD_X, length(read), 0);
         double t1 = sysTime();
         apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, map_str, map_end, alg_type, cordLenThr, thd_best_n);
+        //print_cords(cords, "cds3");
         t1 = sysTime() - t1;
         double t2 = sysTime();
         String<UPair> str_ends;
@@ -3049,19 +3060,20 @@ uint64_t apxMap (IndexDynamic & index,
         clean_blocks_ (cords, thd_drop_len);
         gather_blocks_ (cords, str_ends, str_ends_p, 1, length(cords), length(read), thd_large_gap, thd_cord_size, 1, &is_cord_block_end, &set_cord_end);
         gather_gaps_y_ (cords, str_ends, apx_gaps, length(read), thd_large_gap);
+        //print_cords(cords, "cds3");
         uint64_t map_d = thd_cord_size >> 1; // cords + to map areas
         uint64_t str_y = 0;                  //stry y of interval between two consecutive blocks
         for (int i = 0; i < length(apx_gaps); i++) //check large gap and re map the gaps
         {
-            dout << "apxgap" << "\n";
             UPair y = getUPForwardy (apx_gaps[i], length(read));
             uint64_t y1 = y.first;
             uint64_t y2 = y.second;   
+            //dout << "apxgap" << y1 << y2 <<  "\n";
             thd_best_n = 1; //best hit only
             map_str =  y1; 
             map_end =  create_cord(MAX_CORD_ID, MAX_CORD_X, y2, 0);
             apxMap_(index, read, anchors, mapParm2, hit, f1, f2, cords, map_str, map_end, alg_type, cordLenThr, thd_best_n);
-
+            //print_cords(cords, "ag1");
         }
         
         clear (str_ends);
