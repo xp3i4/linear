@@ -177,4 +177,6 @@ uint64_t make_anchor(uint64_t id, uint64_t x, uint64_t y, uint64_t strand);
 bool _isRangeOverLap(uint64_t x11, uint64_t x12, uint64_t x21, uint64_t x22);
 bool _isCordyOverLap(uint64_t cord11, uint64_t cord12, uint64_t cord21, uint64_t cord22, uint64_t read_len);
 
+uint64_t getAnchorX(uint64_t anchor);
+
 #endif

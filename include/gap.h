@@ -19,8 +19,8 @@ int getGapBlocksChainScore2(uint64_t const & cord11, uint64_t const & cord12, ui
 
 struct GapParms
 {
-    ChainScoreMetric chn_score1; ///createTilesFromAnchors2_
-    ChainScoreMetric chn_score2; ///chainTiles
+    ChainScoreMetric chn_score1; ///createTilesFromAnchors2_ ::getGapAnchorsChainScore
+    ChainScoreMetric chn_score2; ///chainTiles::getGapBlocksChainScore
 
     GapParms(float thd_error_rate);
 };

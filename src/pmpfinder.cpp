@@ -1393,6 +1393,8 @@ bool path_dst(String<uint64_t> & hits,
 /*__________________________________________________
   ---------- @sub::Generic chain funcs  ----------*/
 
+int ChainsRecord::isLeaf(){return f_leaf;};
+
 //Chainning Score metric wrapper: including a score function with corresponding parms.
 ChainScoreMetric::ChainScoreMetric(){};
 ChainScoreMetric::ChainScoreMetric(int abort_socre, 
@@ -1421,9 +1423,11 @@ int const chain_end = -1;
  */ 
 int getBestChains(String<uint64_t>     & anchors, //todo:: anchor1 anchor2 of different strand not finished 
                   String<ChainsRecord> & chains,
-                  uint it_str, uint it_end, uint64_t thd_chain_depth,
-                  int (*scoreFunc) (uint64_t const &, uint64_t const &))
+                  uint it_str, uint it_end, uint64_t thd_chain_depth, uint64_t thd_chain_dx_depth,
+                  int (*scoreFunc) (uint64_t const &, uint64_t const &),
+                  uint64_t (*get_anchor_x)(uint64_t))
 {
+    dout << "gchains" << "\n";
     if (empty(anchors))
     {
         return 0;
@@ -1443,9 +1447,11 @@ int getBestChains(String<uint64_t>     & anchors, //todo:: anchor1 anchor2 of di
         int j_str = std::max (0, i -  (int)thd_chain_depth);
         max_j = i;
         new_max_score = -1;
-        for (int j = j_str; j < i; j++)
+        //for (int j = j_str; j < i; j++)
+        for (int j = i - 1; j>=0 && (j >=j_str || get_anchor_x(anchors[j]) - get_anchor_x(anchors[i]) < thd_chain_dx_depth); j--)
         {
             new_score = scoreFunc(anchors[j], anchors[i]);
+        dout << "gbs1" << i << j << get_cord_y(anchors[i]) << get_cord_y(anchors[j]) << new_score << "\n";
             if (new_score > 0 && new_score + chains[j].score >= new_max_score)
             {
                 max_j = j;
@@ -1458,6 +1464,10 @@ int getBestChains(String<uint64_t>     & anchors, //todo:: anchor1 anchor2 of di
             chains[i].score = new_max_score ;
             chains[i].len = chains[max_j].len + 1;
             chains[i].score2 = new_max_score;
+            dout << "chains" << i << max_j  << get_cord_x(_DefaultCord.hit2Cord_dstr(anchors[i])) << get_cord_x(_DefaultCord.hit2Cord_dstr(anchors[max_j])) << get_cord_y(anchors[i]) << get_cord_y(anchors[max_j]) << new_max_score << chains[i].score << chains[max_j].score  << "\n";
+            chains[i].root_ptr = chains[max_j].root_ptr;
+            chains[i].f_leaf = 1;
+            chains[max_j].f_leaf = 0;
         }
         else
         {
@@ -1465,18 +1475,21 @@ int getBestChains(String<uint64_t>     & anchors, //todo:: anchor1 anchor2 of di
             chains[i].score = chain_end_score;
             chains[i].len = 1;
             chains[i].score2 = chain_end_score;
+            chains[i].root_ptr = i;
+            chains[i].f_leaf = 1;
         }
     }
     return 0;
 }
+
 /* Back trace function to retrive @chains of @elements from the @chains_record
  * For any element in the @elements, it will be chained at most once in the most likely(highest score) chain
  */
 template <class ChainElementType>
-int traceBackChains(String<ChainElementType> & elements,  StringSet<String<ChainElementType> > & chains, String<ChainsRecord> & chain_records, String<int> & chains_score, int _chain_abort_score, int bestn)
+int traceBackChains0(String<ChainElementType> & elements,  StringSet<String<ChainElementType> > & chains, String<ChainsRecord> & chain_records, String<int> & chains_score, int _chain_abort_score, int bestn)
 {
     String<ChainElementType> chain;
-    String<uint64_t> chain_score;
+    String<int> chain_score;
     int delete_score = -1000;
     int search_times = 8;
     int num_chains = 0;
@@ -1489,6 +1502,7 @@ int traceBackChains(String<ChainElementType> & elements,  StringSet<String<Chain
         int max_len = 0;
         for (int j = 0; j < length(chain_records); j++)
         {
+            dout << "chainscores" << j << chain_records[j].score << "\n";
             if (chain_records[j].score > max_score)
             {
                 max_2nd_score = max_score;
@@ -1498,6 +1512,7 @@ int traceBackChains(String<ChainElementType> & elements,  StringSet<String<Chain
                 f_done = false;
             }
         }
+        dout << "chainscore2" << max_score << max_str << "\n";
         if (f_done || max_score == 0)
         {
             break;
@@ -1506,6 +1521,7 @@ int traceBackChains(String<ChainElementType> & elements,  StringSet<String<Chain
         {
             for (int j = max_str; j != chain_end; j = chain_records[j].p2anchor)
             {
+                dout << "chainp2" << j << chain_records[j].p2anchor << "\n"; 
                 if (chain_records[j].score != delete_score)
                 {
                     appendValue (chain, elements[j]);
@@ -1522,7 +1538,6 @@ int traceBackChains(String<ChainElementType> & elements,  StringSet<String<Chain
                         {
                             chain_records[k].score = chain_records[k].score2 - infix_chain_score;
                         } 
-
                         clear (chain); 
                         clear (chain_score);
                     }
@@ -1546,6 +1561,94 @@ int traceBackChains(String<ChainElementType> & elements,  StringSet<String<Chain
     return 0;
 }
 
+/* Back trace function to retrive @chains of @elements from the @chains_record
+ * For any element in the @elements, it will be chained at most once in the most likely(highest score) chain
+ */
+template <class ChainElementType>
+int traceBackChains(String<ChainElementType> & elements,  StringSet<String<ChainElementType> > & chains, String<ChainsRecord> & chain_records, String<int> & chains_score, int _chain_abort_score, int bestn)
+{
+    String<ChainElementType> chain;
+    String<int> chain_score;
+    int delete_score = -1000;
+    int search_times = 8;
+    int num_chains = 0;
+    String<int> new_leaves;
+    StringSet<String<int> > leaves;
+    resize (new_leaves, 4);
+
+    for (int j = 0; j < length(chain_records); j++)
+    {
+        if (chain_records[j].isLeaf()) //create leaves list for each tree
+        {
+            int f_new = 1;
+            for (int k = 0; k < length(leaves); k++)
+            {
+                if (leaves[k][0] == chain_records[j].root_ptr)
+                {
+                    appendValue(leaves[k], j);
+                    if (chain_records[j].score > leaves[k][1])
+                    {
+                        leaves[k][1] = chain_records[j].score;
+                        leaves[k][2] = chain_records[j].len;
+                        leaves[k][3] = j;
+                    }
+                    f_new = 0;
+                }
+            }
+            if (f_new)
+            {
+                new_leaves[0] = chain_records[j].root_ptr;
+                new_leaves[1] = chain_records[j].score;
+                new_leaves[2] = chain_records[j].len;
+                new_leaves[3] = j; //leaf of max score
+                appendValue(leaves, new_leaves);
+            }
+        dout << "chainscores" << j << chain_records[j].score << "\n";
+
+        }
+    }
+    
+    String<std::pair<int,int> > tree_score_ranks;
+    resize(tree_score_ranks, length (leaves));
+    for (int i = 0; i < length(leaves); i++)
+    {
+        tree_score_ranks[i] = std::pair<int, int> (i, leaves[i][1]);
+    }
+    std::sort (begin(tree_score_ranks), end(tree_score_ranks), 
+        [](std::pair<int, int> & a, std::pair<int, int> & b){return a.second > b.second;});
+    dout << "trees0" << "\n";
+    for (int i = 0; i < length(tree_score_ranks); i++)
+    {
+        dout << "trees1" << leaves[tree_score_ranks[i].first][0] << leaves[tree_score_ranks[i].first][3] << leaves[tree_score_ranks[i].first][1]  << "\n";
+
+    }
+    
+    for (int i = 0; i < std::min(bestn, int(length(tree_score_ranks))); i++) 
+    {
+        int max_score = leaves[tree_score_ranks[i].first][1];
+        int max_len = leaves[tree_score_ranks[i].first][2];
+        int max_str = leaves[tree_score_ranks[i].first][3];
+        dout << "chainscore2" << max_score << max_str << "\n";
+        if (max_len > 1 && max_score / (max_len - 1) > _chain_abort_score) //max_len is the number of anchors, ..-1 is the number of connection(interval) between anchors
+        {
+            for (int j = max_str; j != chain_end; j = chain_records[j].p2anchor)
+            {
+                //dout << "chainp2" << j << chain_records[j].p2anchor << "\n"; 
+                appendValue (chain, elements[j]);
+                appendValue (chain_score, chain_records[j].score2);
+            }
+            if (!empty(chain))
+            {
+                appendValue(chains, chain);
+                append(chains_score, chain_score);
+                clear(chain);
+                clear(chain_score);
+            }
+        } 
+    }  
+    return 0;
+}
+
 int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
 {
     int64_t dy = get_cord_y(anchor1) - get_cord_y(anchor2);
@@ -1556,35 +1659,64 @@ int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
         return -10000;
     }
     int64_t thd_min_dy = 50;
-    int64_t da = std::abs(int64_t(_DefaultHit.getAnchor(anchor2) - _DefaultHit.getAnchor(anchor1)));
-    int64_t d_err =  (100 * da) / std::max(dy, thd_min_dy); // 1/100 = 0.01
-
+    int64_t dx = dy + int64_t(_DefaultHit.getAnchor(anchor2) - _DefaultHit.getAnchor(anchor1));
+    int64_t da = std::abs(dx - dy);
+    int64_t derr =  (100 * da) / std::max({std::abs(dy), std::abs(dx), thd_min_dy}); // 1/100 = 0.01
+    
     //d_err
-    if (d_err < 10)         {d_err = 0;}
-    else if (d_err < 25)    {d_err = 10 + 2 * d_err ;}
-    else if (d_err < 100)   {d_err = d_err * d_err / 10 + 40;}
-    else                    {d_err = 10000;}
+    /*
+    if (derr < 10)         {derr = 0;}
+    else if (derr < 25)    {derr = 10 + 2 * derr ;}
+    else if (derr < 100)   {d_err = derr * derr / 10 + 40;}
+    else                    {derr = 10000;}
+    */
+    //d_err
+    int score_derr;
+    if (derr < 5)
+    {
+        score_derr = 4 * derr;
+    }
+    else if (derr < 10)
+    {
+        score_derr = 6 * derr - 10;
+    }
+    else if (derr < 100) 
+    {
+        score_derr =  derr * derr - 5 * derr;
+    }
+    else
+    {
+        return -1000;
+    }
     //d_y
+    int score_dy;
     dy /= 15;
-    if (dy < 150)           {dy = dy / 5;}
-    else if (dy < 100)      {dy = dy - 30;}
-    else if (dy < 10000)    {dy = dy * dy / 200 + 20;}
-    else                    {dy = 10000;}
-
-    return 100 - dy - d_err ;    
+    if (dy < 150)           {score_dy = dy / 5;}
+    else if (dy < 100)      {score_dy = dy - 30;}
+    else if (dy < 10000)    {score_dy = dy * dy / 200 + 20;}
+    else                    {score_dy = 10000;}
+    dout << "gss2" << get_cord_y(anchor1) << get_cord_y(anchor2) << dy << da << derr << score_dy << score_derr << "\n";
+    if (da < 10)
+    {
+        return 100 - score_dy;
+    }
+    else
+    {
+        return 100 - score_dy - score_derr ;    
+    }
 }
 
-int chainAnchorsBase(String<uint64_t> & anchors, StringSet<String<uint64_t> > & anchors_chains, String<int> & anchors_chains_score, uint it_str, uint it_end,  uint thd_chain_depth, ChainScoreMetric & chn_score, 
-    bool(*_compreAnchor)(uint64_t const &, uint64_t const &))
+int chainAnchorsBase(String<uint64_t> & anchors, StringSet<String<uint64_t> > & anchors_chains, 
+    String<int> & anchors_chains_score, uint it_str, uint it_end,  uint thd_chain_depth, uint64_t thd_chain_dx_depth, 
+    ChainScoreMetric & chn_score, uint64_t (*get_anchor_x) (uint64_t))
 {
     if (length(anchors) < 2){
         return 0;
     }
     int bestn = 5;
     String<ChainsRecord> chain_records;
-    std::sort(begin(anchors), end(anchors), _compreAnchor);
     resize (chain_records, length(anchors));
-    getBestChains (anchors, chain_records, it_str, it_end, thd_chain_depth, chn_score.getScore);
+    getBestChains (anchors, chain_records, it_str, it_end, thd_chain_depth, thd_chain_dx_depth, chn_score.getScore, get_anchor_x);
     traceBackChains(anchors, anchors_chains, chain_records, anchors_chains_score, chn_score.getAbortScore(), bestn);
     return 0;
 }
@@ -1595,10 +1727,14 @@ int chainAnchorsHits(String<uint64_t> & anchors, String<uint64_t> & hits, String
     uint thd_chain_depth = 20;
     ChainScoreMetric chn_score(thd_drop_score, &getApxChainScore);
     StringSet<String<uint64_t> > anchors_chains;
-    chainAnchorsBase(anchors, anchors_chains, hits_chains_score, 0, length(anchors), thd_chain_depth, chn_score, 
-        [](uint64_t const & a, uint64_t const & b){ 
-            return get_cord_x(_DefaultCord.hit2Cord_dstr(a)) > get_cord_x(_DefaultCord.hit2Cord_dstr(b));
-        });
+    std::sort(begin(anchors), end(anchors), 
+        [](uint64_t & a, uint64_t & b){return getAnchorX(a) > getAnchorX(b);});
+    for (int i = 0; i < length(anchors); i++)
+    {
+        dout << "chainAnchors" << get_cord_x(_DefaultCord.hit2Cord_dstr(anchors[i])) << get_cord_y(_DefaultCord.hit2Cord_dstr(anchors[i])) << "\n";
+    }
+    chainAnchorsBase(anchors, anchors_chains, hits_chains_score, 0, length(anchors), thd_chain_depth, 0, chn_score, &getAnchorX);
+    //additoinal filter and convert to hits
     for (int i = 0; i < length(anchors_chains); i++)
     {
         for (int j = 0; j <length(anchors_chains[i]); j++)
@@ -1653,12 +1789,19 @@ int getBestChains2(String<uint64_t> & hits,
             chain_records[i].p2anchor = max_j;
             chain_records[i].score = new_max_score ;
             chain_records[i].len = str_ends_p[i].second - str_ends_p[i].first + chain_records[max_j].len;
+            chain_records[i].score2 = chain_records[i].score;
+            chain_records[i].root_ptr = chain_records[max_j].root_ptr;
+            chain_records[i].f_leaf = 1;
+            chain_records[max_j].f_leaf = 0;
         }
         else
         {
             chain_records[i].p2anchor = chain_end;
             chain_records[i].score = str_ends_p_score[i];
             chain_records[i].len = str_ends_p[i].second - str_ends_p[i].first;
+            chain_records[i].score2 = chain_records[i].score;
+            chain_records[i].root_ptr = i;
+            chain_records[i].f_leaf = 1;
         }
     }
     return 0;
@@ -1722,16 +1865,35 @@ int getApxChainScore2(uint64_t const & cord11, uint64_t const & cord12, uint64_t
     }
     int64_t thd_min_dy = 300;
     int64_t da = std::abs(int64_t(dx - dy));
-    int64_t d_err =  (100 * da) / std::max({dy, thd_min_dy, std::abs(dx)}); // 1/100 = 0.01
+    int64_t derr =  (100 * da) / std::max({std::abs(dy), thd_min_dy, std::abs(dx)}); // 1/100 = 0.01
+    int score_derr;
+    if (derr < 5)
+    {
+        score_derr = 2 * derr; //todo gap open penalty required
+    }
+    else if (derr < 10)
+    {
+        score_derr = 3 * derr - 5;
+    }
+    else if (derr < 100) 
+    {
+        score_derr =  derr * derr - 5 * derr;
+    }
+    else
+    {
+        return -1000;
+    }
+    /*
     if      (d_err < 10)    {d_err = 0;}                 //10%
     else if (d_err < 25)    {d_err = 10 + d_err;}        //25%
     else if (d_err < 100)   {d_err = 35 + d_err / 2;}
     else                    {d_err = 10000;}
+    */
     dy /= 150;    
 
     (void)read_len;
 
-    return 100 - dy - d_err ;    
+    return 100 - dy - score_derr ;    
 }
 
 int _filterBlocksHits(StringSet<String<UPair> > & chains, String<uint64_t> & hits, uint64_t read_len)
@@ -1822,6 +1984,12 @@ int chainBlocksHits(String<uint64_t> & hits, String<UPair> & str_ends_p, String<
     int thd_best_n = 3;
     StringSet<String<UPair> > hits_chains;
     ChainScoreMetric chn_score(thd_drop_score, &getApxChainScore2);
+    print_cords(hits, "strph1");
+    for (unsigned i = 0; i < length(str_ends_p_score); i++) //init the score as the length of the blocks
+    {
+        dout << "strph2" << str_ends_p[i].first << str_ends_p[i].second << "\n";
+    }
+
     chainBlocksBase(hits_chains, hits, str_ends_p, str_ends_p_score, read_len, chn_score, thd_best_n);
     _filterBlocksHits(hits_chains, hits, read_len);
     return 0;
@@ -2042,6 +2210,7 @@ int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p,
 {
     //return 0;
     //chain regular, ins, del duplication
+    print_cords(cords, "cbs1");
     String<int> str_ends_p_score;
     StringSet<String<UPair> > cords_chains; 
     resize(str_ends_p_score, length(str_ends_p));
@@ -2055,6 +2224,7 @@ int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p,
     });
     for (unsigned i = 0; i < length(str_ends_p_score); i++) //init the score as the length of the blocks
     {
+        dout << "strpb" << str_ends_p[i].first << str_ends_p[i].second << "\n";
         str_ends_p_score[i] = (str_ends_p[i].second - str_ends_p[i].first) * thd_init_cord_score;
     }
 
@@ -2106,7 +2276,19 @@ int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p,
     }
     print_cords(cords, "cords11");
     _filterBlocksCords (cords_chains, cords, read_len, thd_major_limit, unsetEndFunc, setEndFunc, f_header);
-    print_cords(cords, "cords11");
+    //<<debug
+    return 0;
+    if (get_cord_y(cords[1]) == 192)
+    {
+        dout << "cds11" << "\n";
+        for (int i = 88; i < length(cords); i++)
+        {
+            cords[i - 12] = cords[i];
+        }
+        resize(cords, length(cords) - 12);
+    }
+    //>>debug
+    print_cords(cords, "cords12");
     return 0;
 }
 
@@ -2856,6 +3038,8 @@ int preFilterChains2(String<uint64_t> & hits,  String<UPair> & str_ends_p, void 
     {
         ycuts[2 * i] = str_ends_p[i].first;
         ycuts[2 * i + 1] = (str_ends_p[i].second - 1) | mask;  //mask to distinguish the .first and .second
+//        dout << "cuts3" << get_cord_y(hits[str_ends_p[i].first]) << get_cord_y(hits[str_ends_p[i].second - 1]) << "\n";
+        dout << "cuts3" << str_ends_p[i].first << str_ends_p[i].second << "\n";
     }
     for (int i = 0; i < length(ystrs); i++) //init
     {
@@ -2866,16 +3050,21 @@ int preFilterChains2(String<uint64_t> & hits,  String<UPair> & str_ends_p, void 
     });
     for (int i = 0; i < length(ycuts); i++)
     {
+        dout << "cuts2" << get_cord_y(hits[ycuts[i]] & (~mask)) << "\n";
         uint64_t cuty = get_cord_y(hits[(ycuts[i] & (~mask))]);
         for (int j = 0; j < length(ystrs) && ystrs[j] < length(hits); j++)
         {
             if (cuty < get_cord_y(hits[ystrs[j]])){
                 continue;
             }
+            dout << "cuts4" << j << cuty << get_cord_y(hits[ystrs[j]]) << get_cord_y(hits[str_ends_p[j].second - 1]) << "\n";
             for (int k = ystrs[j]; k < str_ends_p[j].second; k++)
             {
+                dout << "cuts5" << get_cord_y(hits[k]) << "\n";
+/*
                 if (get_cord_y(hits[k]) >= cuty)
                 {
+                    dout << "cuts1" << cuty << get_cord_y(hits[k]) << "\n";
                     uint64_t lowery = ystrs[j];
                     uint64_t uppery = (ycuts[i] & mask) ? (k + 1) : (k);
                     if (lowery != uppery)
@@ -2885,14 +3074,62 @@ int preFilterChains2(String<uint64_t> & hits,  String<UPair> & str_ends_p, void 
                     }
                     break;
                 }
+                */
+                if (ycuts[i] & mask)
+                {
+                    if (get_cord_y(hits[k]) == cuty)
+                    {
+                        uint64_t lowery = ystrs[j];
+                        uint64_t uppery = k + 1;
+                        if (lowery != uppery)
+                        {
+                            appendValue(str_ends_p_tmp, UPair(lowery, uppery));
+                            dout << "up1" << lowery << uppery << cuty << "\n";
+                            ystrs[j] = uppery;
+                        }
+                        break;
+                    }
+                    else if (get_cord_y(hits[k]) > cuty)
+                    {
+                        uint64_t lowery = ystrs[j];
+                        uint64_t uppery = k;
+                        if (lowery != uppery)
+                        {
+                            appendValue (str_ends_p_tmp, UPair(lowery, uppery));
+                            dout << "up2" << lowery << uppery << "\n";
+                            ystrs[j] = uppery;
+                        }
+                        break;
+                    }
+                }
+                else
+                {
+                    if (get_cord_y(hits[k]) >= cuty)
+                    {
+                        uint64_t lowery = ystrs[j];
+                        uint64_t uppery = k;
+                        if (lowery != uppery)
+                        {
+                            appendValue (str_ends_p_tmp, UPair(lowery, uppery));
+                            dout << "up3" << lowery << uppery << "\n";
+                            ystrs[j] = uppery;
+                        }
+                        break;
+                    }
+                }
             }
         }
+    }
+    for (int i = 0; i < length(str_ends_p_tmp); i++)
+    {
+        dout << "stptmp" << str_ends_p_tmp[i].first << str_ends_p_tmp[i].second << "\n";
     }
     str_ends_p = str_ends_p_tmp;
     std::sort (begin(str_ends_p), end(str_ends_p), [](UPair & a, UPair & b){return a.second < b.second;});
     for (int i = 0; i < length(str_ends_p); i++)
     {
         setEndFunc(hits[str_ends_p[i].second - 1]);
+        dout << "strpp1" << str_ends_p[i].second << "\n";
     }
 
     return 0;
@@ -2903,6 +3140,7 @@ int getAnchorHitsChains(Anchors & anchors, String<uint64_t> & hits, uint64_t sha
     uint64_t thd_anchor_accept_density, uint64_t thd_anchor_accept_min, uint64_t thd_large_gap, unsigned thd_anchor_err_bit, uint64_t thd_max_anchors_num, int64_t thd_anchor_accept_err, unsigned alg_type_filter) 
 {
     double t1 = sysTime();
+    //print_cords(anchors.set, "ga21");
     filterAnchors(anchors, shape_len, thd_anchor_accept_density, thd_anchor_accept_min, thd_anchor_err_bit, thd_max_anchors_num, thd_anchor_accept_err, alg_type_filter) ;
     t1 = sysTime() - t1;
     double t2 = sysTime();
@@ -2912,23 +3150,23 @@ int getAnchorHitsChains(Anchors & anchors, String<uint64_t> & hits, uint64_t sha
     String<int> hits_score; 
     //print_cords(anchors.set, "ccanchor");
     initHitsScore(hits_score); //be sure hit_score has the same structure with Hits
+    dout << "ach2" << length(anchors.set) << "\n";
     chainAnchorsHits(anchors.set, hits, hits_score);
+    print_cords(hits, "achits1");
     gather_blocks_ (hits, str_ends, str_ends_p, 1, length(hits), read_len, thd_large_gap, 0, 0, & is_cord_block_end, & set_cord_end);
-    //print_cords(hits, "cchits1");
     preFilterChains1 (hits, hits_score, str_ends_p);
+    print_cords(hits, "cchits1");
     preFilterChains2 (hits, str_ends_p, &set_cord_end);
     resize (str_ends_p_score, length(str_ends_p));
     for (int i = 0; i < length(str_ends_p); i++)
     {
         //note the hits_score is in denscending order
         str_ends_p_score[i] = hits_score[str_ends_p[i].first] - hits_score[str_ends_p[i].second - 1];
-        dout << "strp" << str_ends_p[i].first << str_ends_p[i].second << "\n";
+        dout << "strp11" << str_ends_p[i].first << str_ends_p[i].second << "\n";
     }
-    //print_cords(hits, "cchits2");
-    //<<debug
-    //>>debug
+    print_cords(hits, "cchits2");
     chainBlocksHits(hits, str_ends_p, str_ends_p_score, read_len);
-    //print_cords(hits, "cchits3");
+    print_cords(hits, "cchits3");
     t2 = sysTime() - t2;
     double ts = t1 + t2;
     return 0;
@@ -2968,14 +3206,13 @@ uint64_t mnMapReadList(IndexDynamic & index,
     }
     else if (alg_type == 2)
     {
-        
         double t = sysTime();
         uint64_t thd_anchor_accept_density = 1;// 1 anchor per 1000 bases
         uint64_t thd_anchor_accept_min = 2; //> this
         //uint64_t thd_anchor_accept_lens = (read_end - read_str) * 0.01;
         uint64_t thd_max_anchors_num = 5; //max num of different anchor groups accepted
         int64_t thd_anchor_accept_err = 2500; //(-2500, 2500) 2500=avearge_read_len(10k) * average_err (25%) , use int64_t, not uint64_t
-        uint64_t thd_large_gap = 1000;     
+        uint64_t thd_large_gap = 600;     
         unsigned thd_anchor_err_bit = 2; //  = 1/2^2 = 0.25
         int alg_type_filter = 1; 
         if (length(anchors) > 2000)
@@ -2998,7 +3235,7 @@ uint64_t apxMap_ (IndexDynamic & index,
                   String<Dna5> & read,
                   Anchors & anchors,
                   MapParm & mapParm,
-                  String<uint64_t> & hit, 
+                  String<uint64_t> & hits, 
                   StringSet<FeaturesDynamic> & f1,
                   StringSet<FeaturesDynamic> & f2,
                   String<uint64_t> & cords, 
@@ -3008,13 +3245,13 @@ uint64_t apxMap_ (IndexDynamic & index,
                   float cordLenThr,
                   int thd_best_n) //flag if chain_blocks
 {
-    clear (hit);
+    clear (hits);
     anchors.init(1);
-    initHits(hit);
-    mnMapReadList(index, read, anchors, map_str, map_end, mapParm, hit, alg_type, thd_best_n);
+    initHits(hits);
+    mnMapReadList(index, read, anchors, map_str, map_end, mapParm, hits, alg_type, thd_best_n);
     uint64_t read_str = get_cord_y(map_str);
     uint64_t read_end = get_cord_y(map_end);
-    path_dst(hit, f1, f2, cords, read_str, read_end, length(read), alg_type, cordLenThr);
+    path_dst(hits, f1, f2, cords, read_str, read_end, length(read), alg_type, cordLenThr);
     //print_cords(cords, "cds1");
     return 0;
 }
@@ -3072,7 +3309,7 @@ uint64_t apxMap (IndexDynamic & index,
             thd_best_n = 1; //best hit only
             map_str =  y1; 
             map_end =  create_cord(MAX_CORD_ID, MAX_CORD_X, y2, 0);
-            apxMap_(index, read, anchors, mapParm2, hit, f1, f2, cords, map_str, map_end, alg_type, cordLenThr, thd_best_n);
+            //apxMap_(index, read, anchors, mapParm2, hit, f1, f2, cords, map_str, map_end, alg_type, cordLenThr, thd_best_n);
             //print_cords(cords, "ag1");
         }
         

@@ -433,3 +433,8 @@ bool _isCordyOverLap(uint64_t cord11, uint64_t cord12, uint64_t cord21, uint64_t
                                 read_len - 1 - get_cord_y(cord21), read_len - 1 - get_cord_y(cord22)) :
                 _isRangeOverLap(get_cord_y(cord11), get_cord_y(cord12), get_cord_y(cord21), get_cord_y(cord22));
 }
+
+uint64_t getAnchorX(uint64_t anchor)
+{
+    return get_cord_x(_DefaultCord.hit2Cord_dstr(anchor));
+}
