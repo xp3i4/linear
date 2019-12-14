@@ -146,17 +146,24 @@ uint64_t mnMapReadList(IndexDynamic & index,
                        String<uint64_t> & hit);
                        */
 
+struct ChainScoreParms
+{
+
+};
+
 //Chainning Score metric wrapper: including a score function with corresponding parms.
 struct ChainScoreMetric 
 {
     int thd_abort_score; //lower bound of average chain score per anchor
+    ChainScoreParms chn_score_parms;
 
-    int (*getScore) (uint64_t const &, uint64_t const &);
-    int (*getScore2)(uint64_t const &, uint64_t const &, uint64_t const &, uint64_t const &, uint64_t const & read_len);
+    int (*getScore) (uint64_t const &, uint64_t const &, ChainScoreParms &);
+    int (*getScore2)(uint64_t const &, uint64_t const &, uint64_t const &, uint64_t const &, 
+        uint64_t const & read_len, ChainScoreParms &);
     int getAbortScore();
     ChainScoreMetric();
-    ChainScoreMetric(int abort_score, int (*scoreFunc) (uint64_t const &, uint64_t const &));
-    ChainScoreMetric(int abort_score, int (*scoreFunc)(uint64_t const &, uint64_t const &, uint64_t const &, uint64_t const &, uint64_t const & read_len));
+    ChainScoreMetric(int abort_score, int (*scoreFunc) (uint64_t const &, uint64_t const &, ChainScoreParms &));
+    ChainScoreMetric(int abort_score, int (*scoreFunc)(uint64_t const &, uint64_t const &, uint64_t const &, uint64_t const &, uint64_t const & read_len, ChainScoreParms &));
 };
 
 struct ChainsRecord

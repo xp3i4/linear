@@ -231,4 +231,6 @@ struct CmpInt64
 
 void sort_ska(Iterator<String<uint64_t> >::Type it_str, Iterator<String<uint64_t> >::Type it_end);
 
+int erf_1k(int64_t val);
+
 #endif

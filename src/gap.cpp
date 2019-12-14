@@ -772,7 +772,7 @@ int createTilesFromAnchors1_(String<uint64_t> & anchor,
 }
 
 //ATTENTION::the Adjust @thd_abort_score if the function is changed
-int getGapAnchorsChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
+int getGapAnchorsChainScore(uint64_t const & anchor1, uint64_t const & anchor2, ChainScoreParms & chn_score_parms)
 {
     int64_t dy = g_hs_anchor_getY(anchor1) - g_hs_anchor_getY(anchor2);
     int64_t dx = g_hs_anchor_getX(anchor1) - g_hs_anchor_getX(anchor2);
@@ -817,7 +817,7 @@ int getGapAnchorsChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
 }
 //chain compact anchors whose anchor value are very close
 //supposed to use in extend existing anchor that might be called when mapping ins
-int getGapAnchorsChainScore2(uint64_t const & anchor1, uint64_t const & anchor2)
+int getGapAnchorsChainScore2(uint64_t const & anchor1, uint64_t const & anchor2, ChainScoreParms & chn_score_parms)
 {
     int64_t dy = g_hs_anchor_getY(anchor1) - g_hs_anchor_getY(anchor2);
     int64_t dx = g_hs_anchor_getX(anchor1) - g_hs_anchor_getX(anchor2);
@@ -918,7 +918,7 @@ int getGapChainScore(uint64_t const & anchor1, uint64_t const & anchor2)
 
 //Warn::yellow> sychronize getApxChainScore3 of same logic if necessary when modifiy this function  
 //Warn::red dup(dx < thd_min_dx) is not allowed in this score function.
-int getGapBlocksChainScore2(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len)
+int getGapBlocksChainScore2(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len, ChainScoreParms & chn_score_parms)
 {
     int64_t thd_min_dy = -40;
     int64_t thd_min_dx = -40;
@@ -969,7 +969,7 @@ int getGapBlocksChainScore2(uint64_t const & cord11, uint64_t const & cord12, ui
 
 //chain blocks that are very close comppatly
 //supposed to use in extend existing anchor that might be called when mapping ins
-int getGapBlocksChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len)
+int getGapBlocksChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len, ChainScoreParms & chn_score_parms)
 {
     int64_t thd_min_dy = -20;
     int64_t thd_min_dx = -20;
