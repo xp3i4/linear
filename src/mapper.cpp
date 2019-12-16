@@ -299,7 +299,8 @@ int print_clips_gvf(Mapper & mapper)
 }
 int print_cords_sam(Mapper & mapper)
 {
-    uint64_t thd_large_X = 80; //cigar containing X > this will be clipped into 2 records
+//    uint64_t thd_large_X = 80; //cigar containing X > this will be clipped into 2 records
+    uint64_t thd_large_X = 8000; //cigar containing X > this will be clipped into 2 records
     print_cords_sam(mapper.getCords(),
                     mapper.getCords2(),
                     mapper.getBamRecords(),
