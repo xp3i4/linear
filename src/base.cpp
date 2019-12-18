@@ -517,3 +517,14 @@ void sort_ska(Iterator<String<uint64_t> >::Type it_str, Iterator<String<uint64_t
 {
     ska_sort(it_str, it_end);
 }
+
+int print_seq(String<Dna5> & seq, uint64_t str, uint64_t end, std::string header)
+{
+    std::cout << header << " ";
+    for (int i = str; i < end; i++)
+    {
+        std::cout << seq[i];
+    }
+    std::cout << "\n";
+    return 0;
+}
