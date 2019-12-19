@@ -21,9 +21,12 @@ struct GapParms
 {
     ChainScoreMetric chn_score1; ///createTilesFromAnchors2_ ::getGapAnchorsChainScore
     ChainScoreMetric chn_score2; ///chainTiles::getGapBlocksChainScore
+    ChainScoreMetric ext_clip_chn_metric1;
 
     GapParms(float thd_error_rate);
 };
+
+uint64_t extendClip(String<Dna5> & seq1, String<Dna5> & seq2, uint64_t ext_str, uint64_t ext_end, int direction, GapParms & gap_parms);
 
 /**
  * Re-map gaps in cords.
@@ -34,8 +37,6 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             String<Dna5> & comstr,
             String<uint64_t> & cords_str, 
             String<uint64_t> & cords_end, 
-            String<uint64_t> & g_hs,
-            String<uint64_t> & g_anchor,
             String<uint64_t> & clips,
             String<UPair> & apx_gaps,
             StringSet<FeaturesDynamic> & f1,

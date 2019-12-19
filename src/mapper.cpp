@@ -480,11 +480,7 @@ int map_(IndexDynamic & index,
     f1[1].init(f2[0].fs_type);
     unsigned c = 0;
     
-    String<uint64_t> g_hs;
-    String<uint64_t> g_anchor;
     String<UPair> apx_gaps; 
-    resize (g_hs, 1ULL << 20);
-    resize (g_anchor, 1ULL<<20);
     #pragma omp for
     for (unsigned j = 0; j < length(reads); j++)
     {
@@ -501,7 +497,7 @@ int map_(IndexDynamic & index,
             apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordLenThr, f_chain);
             if (fm_handler_.isMapGap(f_map))
             {
-                mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], g_hs, g_anchor, clipsTmp[c], apx_gaps, f1, f2, gap_len_min, feature_window_size, thd_err_rate);
+                mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], clipsTmp[c], apx_gaps, f1, f2, gap_len_min, feature_window_size, thd_err_rate);
             }
             if (fm_handler_.isAlign(f_map))
             {

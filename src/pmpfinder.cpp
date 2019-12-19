@@ -1709,16 +1709,15 @@ int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2, ChainSc
 
 int chainAnchorsBase(String<uint64_t> & anchors, StringSet<String<uint64_t> > & anchors_chains, 
     String<int> & anchors_chains_score, uint it_str, uint it_end,  uint thd_chain_depth, uint64_t thd_chain_dx_depth, 
-    ChainScoreMetric & chn_metric, uint64_t (*get_anchor_x) (uint64_t))
+    int thd_best_n, ChainScoreMetric & chn_metric, uint64_t (*get_anchor_x) (uint64_t))
 {
     if (length(anchors) < 2){
         return 0;
     }
-    int bestn = 5;
     String<ChainsRecord> chain_records;
     resize (chain_records, length(anchors));
     getBestChains (anchors, chain_records, it_str, it_end, thd_chain_depth, thd_chain_dx_depth, chn_metric, get_anchor_x);
-    traceBackChains(anchors, anchors_chains, chain_records, anchors_chains_score, chn_metric.getAbortScore(), bestn);
+    traceBackChains(anchors, anchors_chains, chain_records, anchors_chains_score, chn_metric.getAbortScore(), thd_best_n);
     return 0;
 }
 
@@ -1734,7 +1733,8 @@ int chainAnchorsHits(String<uint64_t> & anchors, String<uint64_t> & hits, String
     {
         dout << "chainAnchors" << get_cord_x(_DefaultCord.hit2Cord_dstr(anchors[i])) << get_cord_y(_DefaultCord.hit2Cord_dstr(anchors[i])) << "\n";
     }
-    chainAnchorsBase(anchors, anchors_chains, hits_chains_score, 0, length(anchors), thd_chain_depth, 0, chn_score, &getAnchorX);
+    int thd_best_n = 5;
+    chainAnchorsBase(anchors, anchors_chains, hits_chains_score, 0, length(anchors), thd_chain_depth, 0, thd_best_n, chn_score, &getAnchorX);
     //additoinal filter and convert to hits
     for (int i = 0; i < length(anchors_chains); i++)
     {
