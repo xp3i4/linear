@@ -136,13 +136,14 @@ uint64_t hashNexth(LShape & me, TIterS it)
     return me.x < 0 ? me.hValue : me.crhValue;
 }
 /**
- * only calculate hash value for single strand
+ *  calculate hash value for single strand
  * calculate hValue;
  */ 
 uint64_t hashNext_hs(LShape & me, TIterS it)
 {
     uint64_t v2 = ordValue((ShapeType)*(it + me.span - 1 ));
     uint64_t mask = getMask((me.span << 1) - 2);
+    std::cout << "hashNext_hs " << me.hValue << " " << mask << " " << v2 << " " << me.span << "\n";
     me.hValue = ((me.hValue & mask) << 2) + v2;
     return me.hValue; 
 }

@@ -121,8 +121,9 @@ int extendPatch(StringSet<FeaturesDynamic> & f1,
                 uint64_t cord1,
                 uint64_t cord2,
                 int revscomp_const,
-                int overlap_size = window_size,
-                int gap_size = window_size);
+                int overlap_size,
+                int gap_size,
+                unsigned thd_accept_score);
 
 void printInt96(int96 val, CharString header);
 

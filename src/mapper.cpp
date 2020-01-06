@@ -420,6 +420,7 @@ int readRecords2FinPosBuckets(StringSet<CharString> & ids, StringSet<String<Dna5
 int map_(IndexDynamic & index,
          StringSet<FeaturesDynamic > & f2,
          StringSet<String<Dna5> > & reads,
+         StringSet<CharString> & readsId,
          MapParm & mapParm,
          StringSet<String<uint64_t> > & cords_str,
          StringSet<String<uint64_t> > & cords_end,
@@ -431,6 +432,7 @@ int map_(IndexDynamic & index,
          uint threads,
          int p1)
 {
+    GapParms gap_parms(0.85);
     unsigned feature_window_size = getFeatureWindowSize(f2);
     dout << "fe" << feature_window_size << "\n";
     float senThr = mapParm.senThr / feature_window_size;  //map for 2 roun if cords cover len <
@@ -496,9 +498,12 @@ int map_(IndexDynamic & index,
             createFeatures(begin(comStr), end(comStr), f1[1]);
             apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordLenThr, f_chain);
             if (fm_handler_.isMapGap(f_map))
-            {
-                mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], clipsTmp[c], apx_gaps, f1, f2, gap_len_min, feature_window_size, thd_err_rate);
-            }
+                {
+                //<<debug
+                gap_parms.read_id = readsId[j];
+                //>>debug
+                mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], clipsTmp[c], apx_gaps, f1, f2, gap_len_min, feature_window_size, thd_err_rate, gap_parms);
+                }
             if (fm_handler_.isAlign(f_map))
             {
                 align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
@@ -599,6 +604,7 @@ int map(Mapper & mapper,
             map_(mapper.getIndex(), 
                  f2, 
                  mapper.getReads(), 
+                 mapper.getReadsId(),
                  mapper.mapParm(), 
                  mapper.getCords(),  //cords_str 
                  mapper.getCords2(), //cords_end

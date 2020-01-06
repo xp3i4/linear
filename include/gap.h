@@ -16,17 +16,39 @@ void insertClipEnd(String<uint64_t> &, uint64_t);
 bool isClipEmpty(uint64_t);
 int getGapAnchorsChainScore(uint64_t const &, uint64_t const &, ChainScoreParms &);
 int getGapBlocksChainScore2(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len, ChainScoreParms & chn_score_parms);
+int getExtendClipScore(uint64_t const & anchor1, uint64_t const & anchor2, ChainScoreParms & chn_score_parms);
 
 struct GapParms
 {
     ChainScoreMetric chn_score1; ///createTilesFromAnchors2_ ::getGapAnchorsChainScore
     ChainScoreMetric chn_score2; ///chainTiles::getGapBlocksChainScore
-    ChainScoreMetric ext_clip_chn_metric1;
+    ChainScoreMetric chn_ext_clip_metric1;
+
+    //global parms
+    int thd_tile_size;
+    CharString read_id;
+
+    //extendClipRange() 
+    int thd_ecr_shape_len;
+    int thd_ecr_reject_da;
+
+    //reform_tiles_ 
+    int thd_rfts_cord_gaps;
+
+    //m_g_anchor2_
+    uint thd_accept_score;
+
+    //mapExtend
+    int64_t thd_me_reject_gap;
+
+    //createTilesFromChains_
+    uint thd_ctfc_accept_score;
+
 
     GapParms(float thd_error_rate);
 };
 
-uint64_t extendClip(String<Dna5> & seq1, String<Dna5> & seq2, uint64_t ext_str, uint64_t ext_end, int direction, GapParms & gap_parms);
+uint64_t extendClip(String<Dna5> & seq1, String<Dna5> & seq2, String<uint64_t> & tiles, uint64_t ext_str, uint64_t ext_end, int direction, GapParms & gap_parms);
 
 /**
  * Re-map gaps in cords.
@@ -43,7 +65,8 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             StringSet<FeaturesDynamic>& f2,
             int64_t thd_gap, 
             int64_t thd_tileSize,
-            float thd_err_rate
+            float thd_err_rate,
+            GapParms & gap_parms
            );
 
 int print_clips_gvf_(StringSet<String<uint64_t> > & clips, 

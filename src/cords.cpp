@@ -249,6 +249,11 @@ uint64_t get_cord_recd (uint64_t cord)
     return cord & _DefaultCordBase.f_recd;
 }
 
+uint64_t is_cord_block_str (String<uint64_t> & cords, uint it)
+{
+    return it == 0 || is_cord_block_end(cords[it - 1]);
+}
+
 uint64_t is_cord_block_end (uint64_t cord)
 {
     return _DefaultCord.isBlockEnd(cord);
@@ -287,10 +292,9 @@ int isCordsConsecutive_(uint64_t & cord1, uint64_t cord2, uint64_t thd_cord_gap)
     uint64_t y2 = get_cord_y (cord2);
 
     int f = !get_cord_strand(cord1 ^ cord2) &&
-           x1 <= x2 && y1 <= y2 &&
-           x2 - x1 < thd_cord_gap &&
-           y2 - y1 < thd_cord_gap;
-
+           x1 <= x2 && y1 <= y2 && 
+           x2 - x1 < thd_cord_gap && y2 - y1 < thd_cord_gap;
+    std::cout << "getcons " << get_cord_strand(cord1 ^ cord2) << " " << x1 << " " << x2 << " " << y1 << " " << y2 << " " << x2 - x1 << " " << y2 - y1 << "\n";
     return f;
 }
 

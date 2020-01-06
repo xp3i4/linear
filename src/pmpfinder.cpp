@@ -795,7 +795,7 @@ uint64_t previousWindow1_32(String<short> & f1,
             new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         } 
     }
-    score += min;
+    score = min;
     return new_cord;
 }
 
@@ -841,7 +841,7 @@ uint64_t previousWindow2_48(String<int96> & f1,
             new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         } 
     }
-    score += min;
+    score = min;
     return new_cord;
 }
 uint64_t previousWindow(FeaturesDynamic & f1, //read  
@@ -906,7 +906,7 @@ uint64_t previousWindow(FeaturesDynamic & f1, //read
             new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         } 
     }
-    score += min;
+    score = min;
     return new_cord;
 }
 
@@ -954,7 +954,7 @@ uint64_t nextWindow1_32(String<short> & f1,
             new_cord = _DefaultCord.createCord(create_id_x(genomeId, _DefaultCord.cell2Cord(x_min)), _DefaultCord.cell2Cord(y), strand);
         }
     }
-    score += min;
+    score = min;
     return new_cord;
 }
 
@@ -1004,7 +1004,7 @@ uint64_t nextWindow2_48(String<int96> & f1, //read
                 _DefaultCord.cell2Cord(y), strand);
         }
     }
-    score += min;
+    score = min;
     return new_cord;
 }
 
@@ -1107,7 +1107,7 @@ uint64_t nextWindow(FeaturesDynamic & f1,
                 _DefaultCord.cell2Cord(y), strand);
         }
     }
-    score += min;
+    score = min;
     return new_cord;
 }
 
@@ -1122,6 +1122,7 @@ bool extendWindow(FeaturesDynamic & f1,
     uint64_t new_cord = 0;
     while ((new_cord = previousWindow(f1, f2, back(cords), score)) && get_cord_y(new_cord) >= cordy_str)
     {
+        dout << "ep1" << score << "\n";
         appendValue(cords, new_cord);
     } 
     uint cords_p_end = length(cords);
@@ -1131,6 +1132,7 @@ bool extendWindow(FeaturesDynamic & f1,
     }
     while ((new_cord = nextWindow(f1, f2, back(cords), score)) && get_cord_y(new_cord) + window_size < cordy_end)
     {
+        dout << "en1" << score << "\n";
         appendValue(cords, new_cord);
     }
     return true;    
@@ -1265,7 +1267,7 @@ bool path_dst_1(typename Iterator<String<uint64_t> >::Type hitBegin,
 }
 /*
  * NOTE::cord_str == read_str, while cord_end = read_end - window_size in case of forward strand
- * Do not limit cordx boundary, since duplications can create cords of cordx[i - 1] > cordx[i]
+ * Do not restrict cordx boundary, since duplications can create cords of cordx[i - 1] > cordx[i]
  */
 int path_dst_2(typename Iterator<String<uint64_t> >::Type hitBegin, 
                typename Iterator<String<uint64_t> >::Type hitEnd, 
@@ -1277,52 +1279,101 @@ int path_dst_2(typename Iterator<String<uint64_t> >::Type hitBegin,
                uint64_t read_len,
                float const & thd_min_block_len)
 {
-    if (hitBegin >= hitEnd)
+    typedef Iterator<String<uint64_t> >::Type Iter; 
+    if (hitBegin >= hitEnd - 1) //at leat 2 patterns
     {
         return 0;
     }
-    unsigned thd_cord_size = getFeatureWindowSize(f1);
+    int thd_cord_size = getFeatureWindowSize(f1);
     float score = 0;
 
     if (empty(cords))
     {
         initCords(cords);
     }
-    int f_da_indel = 0; //indel like anchor 
-    for (Iterator<String<uint64_t> >::Type itt = hitBegin; itt < hitEnd; itt++) 
-    {
-        uint64_t ready_str = get_cord_strand(*itt) ? read_len - read_end     : read_str;  
-        uint64_t ready_end = get_cord_strand(*itt) ? read_len - read_str + 1 : read_end; 
-        uint64_t cordy_str = (isFirstHit(itt)) ? ready_str : std::max (ready_str, get_cord_y(back(cords)));
-        //uint64_t cordy_end = (isLastHit(itt))  ? ready_end : std::min (ready_end, get_cord_y(*(itt + 1)) + window_size);
-        uint64_t cordy_end = std::min(read_end, get_cord_y(*(itt + 1)) + window_size);
-        bool f_last = 0;
-        appendValue (cords, *itt);
-        int64_t da = get_cord_x(*(itt + 1)) - get_cord_x (*itt) - get_cord_y(*(itt + 1)) + get_cord_y(*itt);
-        if (isLastHit(itt))
-        {
-            f_last = 1;
-            cordy_end = read_end;
-            _DefaultHit.unsetBlockEnd(back(cords));
-        }
-        //extendWindow(f1[get_cord_strand(*itt)], f2[get_cord_id(*itt)], cords, cordy_str, cordy_end, score);
-        
-        if (f_last || get_cord_strand(*itt ^ *(itt + 1)) || (std::abs(da) < 100))
-        {
-            if (f_da_indel)
-            {
-                cordy_str = get_cord_y(*itt);
-            }
-            extendWindow(f1[get_cord_strand(*itt)], f2[get_cord_id(*itt)], cords, cordy_str, cordy_end, score);
-            dout << "ebase" << f_last << get_cord_strand(*itt ^ *(itt + 1)) << da << get_cord_y(*itt) << cordy_str << f_da_indel << "\n";
-        }
-        if (f_last)
-        {
-            _DefaultHit.setBlockEnd(back(cords));
-        }
-        f_da_indel = std::abs(da) >= 100 ? 1 : 0;
-    }
 
+    uint64_t ready_str, ready_end;
+    uint64_t cordy_str, cordy_end;
+    bool f_sp_l = false; 
+    bool f_sp_r = false; 
+    bool f_block_str = false;
+    bool f_block_end = false;
+    bool f_append = false;
+    Iterator <String<uint64_t> >::Type itt_next = hitBegin + 1; //hitBegin + 1 < hitEnd for sure 
+    Iter itt_first = hitBegin; //point 2 first of block
+    //<<debug
+    for (int i = 0; i < hitEnd - hitBegin; i++)
+    {
+        dout << "phits1" << get_cord_y(*(hitBegin + i)) << "\n";
+    }
+    //>>debug
+    for (Iterator<String<uint64_t> >::Type itt = hitBegin; itt < hitEnd; itt = itt_next++) 
+    {
+        ready_str = get_cord_strand(*itt) ? read_len - read_end : read_str;  
+        ready_end = get_cord_strand(*itt) ? read_len - read_str + 1 : read_end; 
+        int64_t da_l = isFirstHit(itt) ? 0 : std::abs(int64_t(get_cord_x(*itt) - get_cord_x(*(itt - 1)) - 
+            get_cord_y(*itt) + get_cord_y(*(itt - 1))));
+        f_sp_l = (da_l > 80) || get_cord_strand((*itt) ^ (*(itt - 1)));
+        while (1)
+        {   //iterate itt_next within range of thd_cord_size until block_end or sv
+            if (itt_next >= hitEnd || isFirstHit(itt_next))
+            {
+                f_block_end = 1;
+                itt_first = itt_next;
+                break;
+            }
+            int64_t da_r = isFirstHit(itt_next) ? 0 : std::abs(int64_t(get_cord_x(*itt_next) - get_cord_x(*(itt_next - 1)) - 
+                get_cord_y(*itt_next) + get_cord_y(*(itt_next - 1))));
+            f_sp_r = (da_r > 80) || get_cord_strand((*itt_next) ^ (*(itt_next - 1))); //special cord:: add sv conditions here
+            if ((get_cord_y(*itt) + thd_cord_size < get_cord_y(*itt_next) && get_cord_x(*itt) + thd_cord_size < get_cord_x(*itt_next)) ||f_sp_r) //out of range or sv 
+            {
+                break;
+            }
+            itt_next++;
+        }
+        if (!f_sp_r && !f_block_end) //normal case 
+        {
+            cordy_str = f_sp_l ? *itt : (isFirstHit(itt) ? ready_str : get_cord_y(back(cords)));
+            cordy_end = get_cord_y(*itt_next);
+            appendValue(cords, *itt);
+            _DefaultHit.unsetBlockEnd(back(cords));
+            f_append = true;
+        }
+        else
+        {
+            if (!f_sp_l && get_cord_y(*(itt_next - 1)) >= thd_cord_size && get_cord_x(*(itt_next - 1)) >= thd_cord_size)
+            {
+                uint64_t new_cord = shift_cord(*(itt_next - 1), -thd_cord_size, -thd_cord_size);
+                cordy_str =isFirstHit(itt) ? read_str : get_cord_y(new_cord);
+                cordy_end = get_cord_y(*(itt_next - 1)); //don't change it, sv 
+                appendValue(cords, new_cord);
+                _DefaultHit.unsetBlockEnd(back(cords));
+                f_append = true;
+            }
+            else //skip the pattern
+            {
+                f_append = false;
+            }  
+        }
+        if (isLastHit(itt) || f_block_end) //if last patttern, force reset cordy_end
+        {
+            f_block_end = true;
+            cordy_end = ready_end;
+        }
+        if (f_append)
+        {
+            extendWindow(f1[get_cord_strand(*itt)], f2[get_cord_id(*itt)], cords, cordy_str, cordy_end, score);
+            if (f_block_end)
+            {
+                _DefaultHit.setBlockEnd(back(cords));
+            }
+        }
+        itt_next = f_block_end ? itt_first : itt_next;
+        f_sp_l = false;
+        f_sp_r = false;
+        f_block_end = false;
+        f_append = false;
+    }
     return 0;
 }
 
@@ -1452,7 +1503,7 @@ int getBestChains(String<uint64_t>     & anchors, //todo:: anchor1 anchor2 of di
         for (int j = i - 1; j>=0 && (j >=j_str || get_anchor_x(anchors[j]) - get_anchor_x(anchors[i]) < thd_chain_dx_depth); j--)
         {
             new_score = chn_metric.getScore(anchors[j], anchors[i], chn_metric.chn_score_parms);
-        dout << "gbs1" << i << j << get_cord_y(anchors[i]) << get_cord_y(anchors[j]) << new_score << "\n";
+        dout << "gbs1" << i << j << get_cord_y(anchors[i]) << get_cord_y(anchors[j]) << get_anchor_x(anchors[i]) << get_anchor_x(anchors[j])  << new_score << "\n";
             if (new_score > 0 && new_score + chains[j].score >= new_max_score)
             {
                 max_j = j;
@@ -3054,7 +3105,7 @@ int preFilterChains2(String<uint64_t> & hits,  String<UPair> & str_ends_p, void 
     });
     for (int i = 0; i < length(ycuts); i++)
     {
-        dout << "cuts2" << get_cord_y(hits[ycuts[i]] & (~mask)) << "\n";
+        //dout << "cuts2" << get_cord_y(hits[ycuts[i]] & (~mask)) << "\n";
         uint64_t cuty = get_cord_y(hits[(ycuts[i] & (~mask))]);
         for (int j = 0; j < length(ystrs) && ystrs[j] < length(hits); j++)
         {
@@ -3434,7 +3485,9 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
                  uint64_t cord2,
                  int revscomp_const,
                  int overlap_size,
-                 int gap_size)
+                 int gap_size,
+                 uint thd_accept_score
+                 )
 {
     float score = 0;
     if (isOverlap(cord1, cord2, revscomp_const, overlap_size))
@@ -3462,7 +3515,7 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
     while (isPreGap(cord, scord, revscomp_const, gap_size))
     {
         cord = nextWindow (f1[strand1], f2[genomeId1], cord, score);
-        if (cord && get_cord_y(cord) < y_bound && get_cord_x(cord) < x_bound)
+        if (cord && get_cord_y(cord) < y_bound && get_cord_x(cord) < x_bound && score < thd_accept_score)
         {
             appendValue (tmp, cord);
         }
@@ -3492,7 +3545,7 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
     while (isSucGap(cord, nw, revscomp_const, gap_size))
     {
         cord = previousWindow(f1[strand2], f2[genomeId2], cord, score);
-        if (cord && get_cord_y (cord) >  y_bound && get_cord_x(cord) > x_bound)
+        if (cord && get_cord_y (cord) >  y_bound && get_cord_x(cord) > x_bound && score < thd_accept_score)
         {
             appendValue (tmp, cord);
    
