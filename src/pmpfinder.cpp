@@ -1309,6 +1309,7 @@ int path_dst_2(typename Iterator<String<uint64_t> >::Type hitBegin,
     //>>debug
     for (Iterator<String<uint64_t> >::Type itt = hitBegin; itt < hitEnd; itt = itt_next++) 
     {
+        print_cord(*itt, "phits2");
         ready_str = get_cord_strand(*itt) ? read_len - read_end : read_str;  
         ready_end = get_cord_strand(*itt) ? read_len - read_str + 1 : read_end; 
         int64_t da_l = isFirstHit(itt) ? 0 : std::abs(int64_t(get_cord_x(*itt) - get_cord_x(*(itt - 1)) - 
@@ -1503,7 +1504,7 @@ int getBestChains(String<uint64_t>     & anchors, //todo:: anchor1 anchor2 of di
         for (int j = i - 1; j>=0 && (j >=j_str || get_anchor_x(anchors[j]) - get_anchor_x(anchors[i]) < thd_chain_dx_depth); j--)
         {
             new_score = chn_metric.getScore(anchors[j], anchors[i], chn_metric.chn_score_parms);
-        dout << "gbs1" << i << j << get_cord_y(anchors[i]) << get_cord_y(anchors[j]) << get_anchor_x(anchors[i]) << get_anchor_x(anchors[j])  << new_score << "\n";
+        //dout << "gbs1" << i << j << get_cord_y(anchors[i]) << get_cord_y(anchors[j]) << get_anchor_x(anchors[i]) << get_anchor_x(anchors[j])  << new_score << "\n";
             if (new_score > 0 && new_score + chains[j].score >= new_max_score)
             {
                 max_j = j;
