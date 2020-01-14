@@ -116,7 +116,7 @@ void print_cords_apf(CordsSetType & cords,
                     int main_strand_count = 0;
                     int block_len = 0;
                     ///>determine the main strand
-                    while (!_DefaultHit.isBlockEnd(cords[k][m]))
+                    while (m < length(cords[k]) && !_DefaultHit.isBlockEnd(cords[k][m]))
                     {
                         if (_DefaultCord.getCordStrand(cords[k][m]))
                         {

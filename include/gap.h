@@ -23,6 +23,7 @@ struct GapParms
     ChainScoreMetric chn_score1; ///createTilesFromAnchors2_ ::getGapAnchorsChainScore
     ChainScoreMetric chn_score2; ///chainTiles::getGapBlocksChainScore
     ChainScoreMetric chn_ext_clip_metric1;
+    int direction; 
 
     //global parms
     int thd_tile_size;
@@ -39,10 +40,22 @@ struct GapParms
     uint thd_accept_score;
 
     //mapExtend
+    int64_t f_me_map_extend;
     int64_t thd_me_reject_gap;
 
     //createTilesFromChains_
     uint thd_ctfc_accept_score;
+
+    //g_mapHs_setAnchors_
+    int f_gmsa_direction;
+    float thd_gmsa_d_anchor_rate;
+
+    //chainTiles
+    uint64_t thd_cts_major_limit;
+
+    //createTilesFromAnchors2_
+    int64_t thd_ctfas2_connect_danchor;
+    int64_t thd_ctfas2_connect_dy_dx;
 
 
     GapParms(float thd_error_rate);
