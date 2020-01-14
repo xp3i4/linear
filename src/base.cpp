@@ -528,3 +528,4 @@ int print_seq(String<Dna5> & seq, uint64_t str, uint64_t end, std::string header
     std::cout << "\n";
     return 0;
 }
+

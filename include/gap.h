@@ -1,6 +1,7 @@
 #ifndef LINEAR_HEADER_GAP_H
 #define LINEAR_HEADER_GAP_H
 #include <seqan/sequence.h>
+#include "cluster_util.h"
 #include "pmpfinder.h"
 
 using namespace seqan;
