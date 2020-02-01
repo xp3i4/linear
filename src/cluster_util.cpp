@@ -277,9 +277,11 @@ int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2, ChainSc
         return -10000;
     }
     int64_t thd_min_dy = 50;
-    int64_t dx = dy + int64_t(_DefaultHit.getAnchor(anchor2) - _DefaultHit.getAnchor(anchor1));
+    //int64_t dx = dy + int64_t(_DefaultHit.getAnchor(anchor2) - _DefaultHit.getAnchor(anchor1));
+    int64_t dx = getAnchorX(anchor1) -  getAnchorX(anchor2);
     int64_t da = std::abs(dx - dy);
     int64_t derr =  (100 * da) / std::max({std::abs(dy), std::abs(dx), thd_min_dy}); // 1/100 = 0.01
+    dout << "gss3" << dx << "\n";
     
     //d_err
     /*
@@ -313,7 +315,7 @@ int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2, ChainSc
     else if (dy < 100)      {score_dy = dy - 30;}
     else if (dy < 10000)    {score_dy = dy * dy / 200 + 20;}
     else                    {score_dy = 10000;}
-    dout << "gss2" << get_cord_y(anchor1) << get_cord_y(anchor2) << dy << da << derr << score_dy << score_derr << "\n";
+    dout << "gss2" << get_cord_y(anchor1) << get_cord_y(anchor2) << get_cord_x(_DefaultCord.hit2Cord_dstr(anchor1)) << get_cord_x(_DefaultCord.hit2Cord_dstr(anchor2)) << dy << dx << da << derr << score_dy << score_derr << "\n";
     if (da < 10)
     {
         return 100 - score_dy;
@@ -475,6 +477,7 @@ int chainBlocksBase(StringSet<String<UPair> > & chains, String<uint64_t> & recor
  */
 int getApxChainScore2(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len, ChainScoreParms & chn_sc_parms)
 {
+    dout << "gacs2" << get_cord_y(cord11) << "\n";
     int64_t thd_max_d = 20000;
     int64_t thd_indel_trigger = 100;
     int64_t thd_indel_op = 30; //indel open penalty
@@ -699,6 +702,7 @@ int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t
     int64_t thd_min_dx = -80;
     int64_t dx, dy, da, d_err; 
     int f_type = getForwarChainDxDy(cord11, cord12, cord21, cord22, read_len, dx, dy);
+    dout << "gacs3" << get_cord_y(cord11) << "\n";
     /*
     if (get_cord_strand(cord11 ^ cord22))
     {

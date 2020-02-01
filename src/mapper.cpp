@@ -432,7 +432,8 @@ int map_(IndexDynamic & index,
          uint threads,
          int p1)
 {
-    GapParms gap_parms(0.85);
+    //GapParms gap_parms(0.85);
+    GapParms gap_parms(0.1);
     unsigned feature_window_size = getFeatureWindowSize(f2);
     dout << "fe" << feature_window_size << "\n";
     float senThr = mapParm.senThr / feature_window_size;  //map for 2 roun if cords cover len <

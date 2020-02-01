@@ -19,6 +19,7 @@ add_definitions (${SEQAN_DEFINITIONS})
 set (CMAKE_BUILD_TYPE Release)
 #set (CMAKE_BUILD_TYPE Debug) 
 
+
 add_library(linear_base STATIC base.cpp)
 add_library(linear_cords STATIC cords.cpp)
 add_library(linear_shape_extend STATIC shape_extend.cpp)
