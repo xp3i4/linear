@@ -1,6 +1,7 @@
 #ifndef LINEAR_HEADER_GAP_H
 #define LINEAR_HEADER_GAP_H
 #include <seqan/sequence.h>
+#include "cluster_util.h"
 #include "pmpfinder.h"
 
 using namespace seqan;
@@ -20,11 +21,15 @@ int getExtendClipScore(uint64_t const & anchor1, uint64_t const & anchor2, Chain
 
 struct GapParms
 {
+    //global
+    float thd_err;
     ChainScoreMetric chn_score1; ///createTilesFromAnchors2_ ::getGapAnchorsChainScore
     ChainScoreMetric chn_score2; ///chainTiles::getGapBlocksChainScore
     ChainScoreMetric chn_ext_clip_metric1;
-
-    //global parms
+    int direction; 
+    uint64_t ref_len;
+    uint64_t read_len;
+    int int_precision;
     int thd_tile_size;
     CharString read_id;
 
@@ -38,14 +43,75 @@ struct GapParms
     //m_g_anchor2_
     uint thd_accept_score;
 
-    //mapExtend
+    //mapExtend_
+    int64_t f_me_map_extend;
     int64_t thd_me_reject_gap;
 
     //createTilesFromChains_
-    uint thd_ctfc_accept_score;
+    uint thd_ctfcs_accept_score;
+    uint thd_ctfcs_pattern_in_window;
 
+    //g_mapHs_setAnchors_
+    int f_gmsa_direction;
+    float thd_gmsa_d_anchor_rate;
 
+    //chainTiles
+    uint64_t thd_cts_major_limit;
+
+    //createTilesFromAnchors2_
+    int64_t thd_ctfas2_connect_danchor;
+    int64_t thd_ctfas2_connect_dy_dx;
+
+    //extendsInterval
+    int f_eis_raw_clip;     //whether to clip
+    int f_eis_raw_clip_ins; //clip two parts of the extension as ins rather than dup
+    int thd_eis_shape_len;
+    int thd_eis_step1;
+    int thd_eis_step2;
+
+    //dropChainGapX
+    int thd_dcgx_window_size;
+    int thd_dcgx_Xdrop_peak;
+    int thd_dcgx_Xdrop_sum;
+
+    //mapTilesFromAnchors
+    int thd_mtfas_pattern_in_window;
+    int thd_mtfas_overlap_size;
+    int thd_mtfas_gap_size;
+    int thd_mtfas_overlap_tile;
+    int thd_mtfas_swap_tile;
+    int thd_mtfas_anchor_density;
+    int thd_mtfas_min_segment;
+
+    //trimTiles
+    int thd_tts_overlap_size;
+    int thd_tts_gap_size;
+
+    //stickMainChain
+    int64_t thd_smcn_danchor;
+
+    //getExtendsIntervalChainsOverlaps
+    uint64_t thd_dcomx_err_dx;
+    uint64_t thd_dcomx_err_dy;
+
+    //extendsIntervalClipOverlaps_
+    uint64_t thd_eicos_clip_dxy;
+    int thd_eicos_window_size;
+    int thd_eicos_f_as_ins;
+  
+    //mapAlongChain 
+    int thd_etfas_shape_len;
+    int thd_etfas_step1;
+    int thd_etfas_step2;
+
+    //clipChain
+    int thd_ccps_clip_min;
+    int thd_ccps_clip_init;
+    int thd_ccps_clip1_upper;
+    int thd_ccps_clip2_lower;
+    int thd_ccps_window_size;
     GapParms(float thd_error_rate);
+    void clipChainParms(int shape_len, int step1, int step2, float thd_err_rate);
 };
 
 uint64_t extendClip(String<Dna5> & seq1, String<Dna5> & seq2, String<uint64_t> & tiles, uint64_t ext_str, uint64_t ext_end, int direction, GapParms & gap_parms);
@@ -73,5 +139,9 @@ int print_clips_gvf_(StringSet<String<uint64_t> > & clips,
               StringSet<CharString> & readsId, 
               StringSet<CharString> & genomesId,
               std::ofstream & of);
+
+int c_stream_(String<Dna5> & seq,String<uint64_t> & g_hs, 
+              uint64_t sq_str, uint64_t sq_end, int step, int shape_len, uint64_t type);
+int stickMainChain(String<uint64_t> & chain1, String<uint64_t> & chain2, uint64_t(*getX1)(uint64_t), uint64_t(*getY1)(uint64_t), uint64_t(*getX2)(uint64_t), uint64_t(*getY2)(uint64_t));
 
 #endif

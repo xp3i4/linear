@@ -179,4 +179,7 @@ bool _isCordyOverLap(uint64_t cord11, uint64_t cord12, uint64_t cord21, uint64_t
 
 uint64_t getAnchorX(uint64_t anchor);
 
+typedef std::pair<uint64_t, uint64_t> UPair;
+UPair getUPForwardy(UPair str_end, uint64_t read_len);
+
 #endif

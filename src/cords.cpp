@@ -442,3 +442,18 @@ uint64_t getAnchorX(uint64_t anchor)
 {
     return get_cord_x(_DefaultCord.hit2Cord_dstr(anchor));
 }
+
+//shortcut to extract y value of cords and convert them to y value(stry, endy) on the forward strand (y projection)
+UPair getUPForwardy(UPair str_end, uint64_t read_len)
+{
+    if (get_cord_strand(str_end.first))
+    {
+        return UPair(read_len - get_cord_y(str_end.second) - 1,
+                     read_len - get_cord_y(str_end.first) - 1);
+    }
+    else
+    {
+        return UPair(get_cord_y(str_end.first),
+                     get_cord_y(str_end.second));
+    }
+}

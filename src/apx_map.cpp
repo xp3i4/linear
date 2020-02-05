@@ -3,7 +3,6 @@
 #include "cords.h"
 #include "shape_extend.h"
 #include "index_util.h"
-#include "cluster_util.h"
 #include "pmpfinder.h"
 
 using namespace seqan;
@@ -883,7 +882,7 @@ uint64_t previousWindow(FeaturesDynamic & f1, //read
         return 0;
     else 
         y = y_suf - parm->med;
-    std::cout << "pvw1 " << (x_suf - parm->inf) - (x_suf - parm->sup)  << "\n";
+
     unsigned min = ~0;
     for (uint64_t x = x_suf - parm->sup; x < x_suf - parm->inf; x += 1) 
     {
@@ -1082,7 +1081,6 @@ uint64_t nextWindow(FeaturesDynamic & f1,
     else 
         y = y_pre + parm->med;
     
-    std::cout << "ntw1 " << (parm->sup - parm->inf)  << "\n";
     for (uint64_t x = x_pre + parm->inf; x < x_pre + parm->sup; x += 1) 
     {
         unsigned tmp = __windowDist(f1, f2, y, x);
@@ -1124,7 +1122,7 @@ bool extendWindow(FeaturesDynamic & f1,
     uint64_t new_cord = 0;
     while ((new_cord = previousWindow(f1, f2, back(cords), score)) && get_cord_y(new_cord) >= cordy_str)
     {
-        dout << "ep1" << score << get_cord_y(new_cord) << "\n";
+        dout << "ep1" << score << "\n";
         appendValue(cords, new_cord);
     } 
     uint cords_p_end = length(cords);
@@ -1134,7 +1132,7 @@ bool extendWindow(FeaturesDynamic & f1,
     }
     while ((new_cord = nextWindow(f1, f2, back(cords), score)) && get_cord_y(new_cord) + window_size < cordy_end)
     {
-        dout << "en1" << score << get_cord_y(new_cord) << "\n";
+        dout << "en1" << score << "\n";
         appendValue(cords, new_cord);
     }
     return true;    
@@ -1311,7 +1309,6 @@ int path_dst_2(typename Iterator<String<uint64_t> >::Type hitBegin,
     //>>debug
     for (Iterator<String<uint64_t> >::Type itt = hitBegin; itt < hitEnd; itt = itt_next++) 
     {
-        print_cord(*itt, "phits2");
         ready_str = get_cord_strand(*itt) ? read_len - read_end : read_str;  
         ready_end = get_cord_strand(*itt) ? read_len - read_str + 1 : read_end; 
         int64_t da_l = isFirstHit(itt) ? 0 : std::abs(int64_t(get_cord_x(*itt) - get_cord_x(*(itt - 1)) - 
@@ -1440,9 +1437,6 @@ bool path_dst(String<uint64_t> & hits,
     return 0;
 }
 
-/*==================================================
-=          @Section::Mapping and anchoring         =
-===================================================*/
 /*__________________________________________________
   ---------- @sub::apx chain additionals ----------*/
 /*
@@ -1524,7 +1518,20 @@ int clean_blocks_ (String<uint64_t> & cords, uint64_t thd_drop_len)
     return 0;
 }
 
-
+//shortcut to extract y value of cords and convert them to y value(stry, endy) on the forward strand (y projection)
+UPair getUPForwardy(UPair str_end, uint64_t read_len)
+{
+    if (get_cord_strand(str_end.first))
+    {
+        return UPair(read_len - get_cord_y(str_end.second) - 1,
+                     read_len - get_cord_y(str_end.first) - 1);
+    }
+    else
+    {
+        return UPair(get_cord_y(str_end.first),
+                     get_cord_y(str_end.second));
+    }
+}
 /*
  * WARN::1.
    gaps use cord structure to record y coordinate for simplicity. 
@@ -1693,7 +1700,6 @@ int chainApxCordsBlocks (String<uint64_t> & cords,
     {
         //chainBlocksSimple_(cords, str_ends_p, read_len, thd_chain_blocks_lower, thd_chain_blocks_upper);
         int thd_drop_score = 0;
-        dout << "cacbs" << alg_type << "\n";
         ChainScoreMetric chn_score(thd_drop_score, &getApxChainScore3);
         chainBlocksCords(cords, str_ends_p, chn_score, read_len, 16, 2, &unset_cord_end, &set_cord_end, 1); //2 major chains limit
     }
@@ -1792,7 +1798,7 @@ unsigned getDIndexMatchAll (DIndex & index,
     uint64_t read_end = get_cord_y(map_end);
     uint64_t idx_str = _DefaultCord.getCordX(map_str); //NOTE:: id included = id|x
     uint64_t idx_end = _DefaultCord.getCordX(map_end);
-    dout << "ghmal1" << mapParm.kmerStep << mapParm.delta << "\n";
+
     for (unsigned k = read_str; k < read_end; k++)
     {
         hashNexth(shape, begin(read) + k);
@@ -1814,8 +1820,8 @@ unsigned getDIndexMatchAll (DIndex & index,
                         _DefaultHs.getHsBodyY(index.ysa[pos]) == 0))
                 {
                     uint64_t idx = _DefaultHs.getHsBodyS(index.ysa[pos]);
-                    //if (_DefaultHs.getHsBodyS(pre - index.ysa[pos]) > mapParm.kmerStep &&
-                    if(idx >= idx_str && idx < idx_end)
+                    if (_DefaultHs.getHsBodyS(pre - index.ysa[pos]) > mapParm.kmerStep &&
+                        idx >= idx_str && idx < idx_end)
                     {
                         uint64_t id = _getSA_i1(idx);
                         uint64_t x  = _getSA_i2(idx);
@@ -1830,7 +1836,6 @@ unsigned getDIndexMatchAll (DIndex & index,
                             appendValue (set, new_anchor);
                         }
                         pre = index.ysa[pos];
-                    //dout << "idx" << idx << get_cord_y(back(set)) << get_cord_x(back(set)) << "\n";
                     }
                     if (++pos > length(index.ysa) - 1)
                     {
@@ -1867,7 +1872,6 @@ uint64_t filterAnchorsList(String<uint64_t> & anchors,
     {
         uint64_t anc_y = get_cord_y(anchors[i]);
         uint64_t dy2 = std::abs(int64_t(anc_y - get_cord_y(ak2)));
-        dout << "fal1" << get_cord_x(_DefaultCord.hit2Cord_dstr(anchors[i])) << get_cord_y(_DefaultCord.hit2Cord_dstr(anchors[i])) << "\n";
         int f_continuous = (_DefaultCord.getCordX(anchors[i] - ak2) < (dy2 >> thd_anchor_err_bit)); 
         if (f_continuous)
         {
@@ -2165,82 +2169,95 @@ int preFilterChains1(String<uint64_t> & hits, String<int>  & hits_score, String<
 
 /* Break the chains from the last step into none-overlapperd pieces
  * Note::Corresponding str_ends is not required, so update str_ends manually according to the @str_ends_p after calling
- * getCordXY:: get_cord_y to cut by y coordinates or get_cord_x ...
  */
-int preFilterChains2(String<uint64_t> & hits,  String<UPair> & str_ends_p, void (*setEndFunc)(uint64_t &), uint64_t (*getCordXY)(uint64_t))
+int preFilterChains2(String<uint64_t> & hits,  String<UPair> & str_ends_p, void (*setEndFunc)(uint64_t &))
 {
     //second round : break any overlaps
     String<UPair> str_ends_p_tmp;
-    String<uint64_t> xy_strs;
-    String<uint64_t> xycuts;
-    resize (xy_strs, length(str_ends_p));
-    resize (xycuts, 2 * length(str_ends_p));
+    String<uint64_t> ystrs;
+    String<uint64_t> ycuts;
+    resize (ystrs, length(str_ends_p));
+    resize (ycuts, 2 * length(str_ends_p));
     uint64_t const mask = 1ULL << 62; //a constant large enough
-    for (int i = 0; i < length(str_ends_p); i++) //init xycuts
+    for (int i = 0; i < length(str_ends_p); i++) //init ycuts
     {
-        xycuts[2 * i] = str_ends_p[i].first;
-        xycuts[2 * i + 1] = (str_ends_p[i].second - 1) | mask;  //mask to distinguish the .first and .second
-//        dout << "cuts3" << getCordXY(hits[str_ends_p[i].first]) << getCordXY(hits[str_ends_p[i].second - 1]) << "\n";
+        ycuts[2 * i] = str_ends_p[i].first;
+        ycuts[2 * i + 1] = (str_ends_p[i].second - 1) | mask;  //mask to distinguish the .first and .second
+//        dout << "cuts3" << get_cord_y(hits[str_ends_p[i].first]) << get_cord_y(hits[str_ends_p[i].second - 1]) << "\n";
         dout << "cuts3" << str_ends_p[i].first << str_ends_p[i].second << "\n";
     }
-    for (int i = 0; i < length(xy_strs); i++) //init
+    for (int i = 0; i < length(ystrs); i++) //init
     {
-        xy_strs[i] = str_ends_p[i].first;
+        ystrs[i] = str_ends_p[i].first;
     }
-    std::sort(begin(xycuts), end(xycuts), [&hits, &mask, &getCordXY](uint64_t & a, uint64_t & b){
-        return getCordXY(hits[a & (~mask)]) < getCordXY(hits[b & (~mask)]);  //& erase mask sign when sort
+    std::sort(begin(ycuts), end(ycuts), [&hits, &mask](uint64_t & a, uint64_t & b){
+        return get_cord_y(hits[a & (~mask)]) < get_cord_y(hits[b & (~mask)]);  //& erase mask sign when sort
     });
-    for (int i = 0; i < length(xycuts); i++)
+    for (int i = 0; i < length(ycuts); i++)
     {
-        //dout << "cuts2" << getCordXY(hits[xycuts[i]] & (~mask)) << "\n";
-        uint64_t cuty = getCordXY(hits[(xycuts[i] & (~mask))]);
-        for (int j = 0; j < length(xy_strs) && xy_strs[j] < length(hits); j++)
+        //dout << "cuts2" << get_cord_y(hits[ycuts[i]] & (~mask)) << "\n";
+        uint64_t cuty = get_cord_y(hits[(ycuts[i] & (~mask))]);
+        for (int j = 0; j < length(ystrs) && ystrs[j] < length(hits); j++)
         {
-            if (cuty < getCordXY(hits[xy_strs[j]])){
+            if (cuty < get_cord_y(hits[ystrs[j]])){
                 continue;
             }
-            dout << "cuts4" << j << cuty << getCordXY(hits[xy_strs[j]]) << getCordXY(hits[str_ends_p[j].second - 1]) << "\n";
-            for (int k = xy_strs[j]; k < str_ends_p[j].second; k++)
+            dout << "cuts4" << j << cuty << get_cord_y(hits[ystrs[j]]) << get_cord_y(hits[str_ends_p[j].second - 1]) << "\n";
+            for (int k = ystrs[j]; k < str_ends_p[j].second; k++)
             {
-                dout << "cuts5" << getCordXY(hits[k]) << "\n";
-                if (xycuts[i] & mask)
+                dout << "cuts5" << get_cord_y(hits[k]) << "\n";
+/*
+                if (get_cord_y(hits[k]) >= cuty)
                 {
-                    if (getCordXY(hits[k]) == cuty)
+                    dout << "cuts1" << cuty << get_cord_y(hits[k]) << "\n";
+                    uint64_t lowery = ystrs[j];
+                    uint64_t uppery = (ycuts[i] & mask) ? (k + 1) : (k);
+                    if (lowery != uppery)
                     {
-                        uint64_t lowery = xy_strs[j];
+                        appendValue (str_ends_p_tmp, UPair(lowery, uppery));
+                        ystrs[j] = uppery;
+                    }
+                    break;
+                }
+                */
+                if (ycuts[i] & mask)
+                {
+                    if (get_cord_y(hits[k]) == cuty)
+                    {
+                        uint64_t lowery = ystrs[j];
                         uint64_t uppery = k + 1;
                         if (lowery != uppery)
                         {
                             appendValue(str_ends_p_tmp, UPair(lowery, uppery));
                             dout << "up1" << lowery << uppery << cuty << "\n";
-                            xy_strs[j] = uppery;
+                            ystrs[j] = uppery;
                         }
                         break;
                     }
-                    else if (getCordXY(hits[k]) > cuty)
+                    else if (get_cord_y(hits[k]) > cuty)
                     {
-                        uint64_t lowery = xy_strs[j];
+                        uint64_t lowery = ystrs[j];
                         uint64_t uppery = k;
                         if (lowery != uppery)
                         {
                             appendValue (str_ends_p_tmp, UPair(lowery, uppery));
                             dout << "up2" << lowery << uppery << "\n";
-                            xy_strs[j] = uppery;
+                            ystrs[j] = uppery;
                         }
                         break;
                     }
                 }
                 else
                 {
-                    if (getCordXY(hits[k]) >= cuty)
+                    if (get_cord_y(hits[k]) >= cuty)
                     {
-                        uint64_t lowery = xy_strs[j];
+                        uint64_t lowery = ystrs[j];
                         uint64_t uppery = k;
                         if (lowery != uppery)
                         {
                             appendValue (str_ends_p_tmp, UPair(lowery, uppery));
                             dout << "up3" << lowery << uppery << "\n";
-                            xy_strs[j] = uppery;
+                            ystrs[j] = uppery;
                         }
                         break;
                     }
@@ -2284,8 +2301,7 @@ int getAnchorHitsChains(Anchors & anchors, String<uint64_t> & hits, uint64_t sha
     gather_blocks_ (hits, str_ends, str_ends_p, 1, length(hits), read_len, thd_large_gap, 0, 0, & is_cord_block_end, & set_cord_end);
     preFilterChains1 (hits, hits_score, str_ends_p);
     print_cords(hits, "cchits1");
-    preFilterChains2 (hits, str_ends_p, &set_cord_end, &get_cord_y);
-    preFilterChains2 (hits, str_ends_p, &set_cord_end, &get_cord_x);
+    preFilterChains2 (hits, str_ends_p, &set_cord_end);
     resize (str_ends_p_score, length(str_ends_p));
     for (int i = 0; i < length(str_ends_p); i++)
     {
@@ -2381,7 +2397,7 @@ uint64_t apxMap_ (IndexDynamic & index,
     uint64_t read_str = get_cord_y(map_str);
     uint64_t read_end = get_cord_y(map_end);
     path_dst(hits, f1, f2, cords, read_str, read_end, length(read), alg_type, cordLenThr);
-    print_cords(cords, "cds1");
+    //print_cords(cords, "cds1");
     return 0;
 }
 
@@ -2410,7 +2426,6 @@ uint64_t apxMap (IndexDynamic & index,
     {
         MapParm mapParm1 = mapParm;
         MapParm mapParm2 = mapParm;
-
         mapParm2.alpha = 7;
         mapParm2.listN = mapParm2.listN2;
         thd_best_n = 999; //unlimited best hit;

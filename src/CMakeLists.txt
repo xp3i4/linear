@@ -19,11 +19,13 @@ add_definitions (${SEQAN_DEFINITIONS})
 set (CMAKE_BUILD_TYPE Release)
 #set (CMAKE_BUILD_TYPE Debug) 
 
+
 add_library(linear_base STATIC base.cpp)
 add_library(linear_cords STATIC cords.cpp)
 add_library(linear_shape_extend STATIC shape_extend.cpp)
 add_library(linear_index_util STATIC index_util.cpp)
 add_library(linear_args_parser STATIC args_parser.cpp)
+add_library(linear_cluster_util STATIC cluster_util.cpp)
 add_library(linear_pmpfinder STATIC pmpfinder.cpp)
 add_library(linear_gap STATIC gap.cpp)
 add_library(linear_align_util STATIC align_util.cpp)
@@ -39,6 +41,7 @@ target_link_libraries (linear
                        linear_align_interface
                        linear_args_parser 
                        linear_pmpfinder 
+                       linear_cluster_util
                        linear_gap 
                        linear_fio 
                        linear_align_util
@@ -48,21 +51,21 @@ target_link_libraries (linear
                        linear_base
                       ${SEQAN_LIBRARIES})
 
-add_executable (test_case test_case.cpp)
-target_link_libraries (test_case 
-                       linear_mapper
-                       linear_test_units
-                       linear_align_interface
-                       linear_args_parser 
-                       linear_pmpfinder 
-                       linear_gap 
-                       linear_fio 
-                       linear_align_util
-                       linear_index_util 
-                       linear_shape_extend
-                       linear_cords 
-                       linear_base
-                      ${SEQAN_LIBRARIES})
-
+#add_executable (test_case test_case.cpp)
+#target_link_libraries (test_case 
+                       #linear_mapper
+                       #linear_test_units
+                       #linear_align_interface
+                       #linear_args_parser 
+                       #linear_pmpfinder 
+                       #linear_gap 
+                       #linear_fio 
+                       #linear_align_util
+                       #linear_index_util 
+                       #linear_shape_extend
+                       #linear_cords 
+                       #linear_base
+                      #${SEQAN_LIBRARIES})
+#
 install (TARGETS linear RUNTIME DESTINATION bin)
 
