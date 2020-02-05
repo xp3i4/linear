@@ -294,7 +294,6 @@ int isCordsConsecutive_(uint64_t & cord1, uint64_t cord2, uint64_t thd_cord_gap)
     int f = !get_cord_strand(cord1 ^ cord2) &&
            x1 <= x2 && y1 <= y2 && 
            x2 - x1 < thd_cord_gap && y2 - y1 < thd_cord_gap;
-    std::cout << "getcons " << get_cord_strand(cord1 ^ cord2) << " " << x1 << " " << x2 << " " << y1 << " " << y2 << " " << x2 - x1 << " " << y2 - y1 << "\n";
     return f;
 }
 
