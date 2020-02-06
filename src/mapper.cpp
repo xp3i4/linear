@@ -487,7 +487,7 @@ int map_(IndexDynamic & index,
     #pragma omp for
     for (unsigned j = 0; j < length(reads); j++)
     {
-        std::cout << "readid " << j << "\n\n";
+        std::cout << "readid " << j << readsId[j] << "\n\n";
         double t1 = sysTime ();
         red_len[thd_id] += length(reads[j]);
         float cordLenThr = length(reads[j]) * cordThr;
