@@ -126,7 +126,7 @@ uint64_t Cord::getMaxLen(String<uint64_t> const & cord, uint64_t const & mask)
         return 0;
     return cord[0] & mask;
 }
-
+ 
 uint64_t Cord::shift(uint64_t const & val, int64_t x, int64_t y, unsigned const & bit) //add x and y
 {
     if (x < 0)
