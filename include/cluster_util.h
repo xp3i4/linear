@@ -16,16 +16,18 @@ int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t
 //Chainning Score metric wrapper: including a score function with corresponding parms.
 struct ChainScoreMetric 
 {
+    int thd_min_chain_len;
     int thd_abort_score; //lower bound of average chain score per anchor
     ChainScoreParms chn_score_parms;
 
     int (*getScore) (uint64_t const &, uint64_t const &, ChainScoreParms &);
     int (*getScore2)(uint64_t const &, uint64_t const &, uint64_t const &, uint64_t const &, 
         uint64_t const & read_len, ChainScoreParms &);
+    int getMinChainLen();
     int getAbortScore();
     ChainScoreMetric();
-    ChainScoreMetric(int abort_score, int (*scoreFunc) (uint64_t const &, uint64_t const &, ChainScoreParms &));
-    ChainScoreMetric(int abort_score, int (*scoreFunc)(uint64_t const &, uint64_t const &, uint64_t const &, uint64_t const &, uint64_t const & read_len, ChainScoreParms &));
+    ChainScoreMetric(int min_chain_score, int abort_score, int (*scoreFunc) (uint64_t const &, uint64_t const &, ChainScoreParms &));
+    ChainScoreMetric(int min_chain_score, int abort_score, int (*scoreFunc)(uint64_t const &, uint64_t const &, uint64_t const &, uint64_t const &, uint64_t const & read_len, ChainScoreParms &));
 };
 
 struct ChainsRecord

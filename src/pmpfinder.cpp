@@ -1678,8 +1678,9 @@ int chainApxCordsBlocks (String<uint64_t> & cords,
     else if (alg_type == 2)
     {
         //chainBlocksSimple_(cords, str_ends_p, read_len, thd_chain_blocks_lower, thd_chain_blocks_upper);
+        int thd_min_chain_len = 1;
         int thd_drop_score = 0;
-        ChainScoreMetric chn_score(thd_drop_score, &getApxChainScore3);
+        ChainScoreMetric chn_score(thd_min_chain_len, thd_drop_score, &getApxChainScore3);
         chainBlocksCords(cords, str_ends_p, chn_score, read_len, 16, 2, &unset_cord_end, &set_cord_end, 1); //2 major chains limit
     }
     return 0;
@@ -2235,6 +2236,13 @@ int getAnchorHitsChains(Anchors & anchors, String<uint64_t> & hits, uint64_t sha
     uint64_t thd_anchor_accept_density, uint64_t thd_anchor_accept_min, uint64_t thd_large_gap, unsigned thd_anchor_err_bit, uint64_t thd_max_anchors_num, int64_t thd_anchor_accept_err, unsigned alg_type_filter) 
 {
     double t1 = sysTime();
+    //<<debug
+    for (int i = 0; i < length(anchors.set); i++)
+    {
+        uint64_t h = _DefaultCord.hit2Cord_dstr(anchors.set[i]);
+        dout << "gahcs" << i << get_cord_y(h) << get_cord_x(h) << "\n";
+    }
+    //>>debug
     filterAnchors(anchors, shape_len, thd_anchor_accept_density, thd_anchor_accept_min, thd_anchor_err_bit, thd_max_anchors_num, thd_anchor_accept_err, alg_type_filter) ;
     t1 = sysTime() - t1;
     double t2 = sysTime();
@@ -2575,7 +2583,6 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
         if (cord && get_cord_y (cord) >  y_bound && get_cord_x(cord) > x_bound && score < thd_accept_score)
         {
             appendValue (tmp, cord);
-   
         }
         else
         {
