@@ -36,6 +36,7 @@ struct Options{
     uint apx_chain_flag;
     uint aln_flag;
     uint sam_flag;
+    uint bal_flag;
 
     unsigned    sensitivity;
     unsigned    thread;

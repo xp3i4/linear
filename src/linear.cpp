@@ -1,6 +1,7 @@
 #include <seqan/arg_parse.h>
 #include "args_parser.h"
 #include "pmpfinder.h"
+#include "parallel_io.h"
 #include "mapper.h"
 using namespace seqan; 
 
@@ -76,7 +77,18 @@ int process2(Mapper & mapper, Options & options, int p1)
 
 int process3(Mapper & mapper, Options & options, int p1)
 {
-
+    dout << "p3" << "\n";
+    StringSet<FeaturesDynamic> f2;
+    StringSet<String<short> > empty_buckets; 
+    String<Position<SeqFileIn>::Type>   empty_fin_pos; 
+    P_Tasks p_tasks(mapper.getPReadsBuffer(), mapper.getPReadsIdBuffer(),
+    mapper.getPCordsBuffer(), mapper.getPBamLinksBuffer(), mapper.getThreads(), mapper.getGPaths(), mapper.getRPaths());
+    P_Parms p_parms;
+    //omp_set_num_threads(mapper.getThreads());
+    //createFeatures(mapper.getGenomes(), f2, mapper.getFeatureType(), mapper.getThreads());
+    //mapper.createIndex(0, length(mapper.getGenomes()), false); 
+    map (mapper, f2, empty_buckets, empty_fin_pos, p_tasks, p_parms, 0, 0, p1);
+    return 0;
 }
 
 int main(int argc, char const ** argv)
@@ -102,7 +114,14 @@ int main(int argc, char const ** argv)
     {
         */
         int p1 = 0; //temp var for test config
-        process1 (mapper, options, p1);
+        if (options.bal_flag)
+        {
+            process3 (mapper, options, p1);
+        }
+        else
+        {
+            process1 (mapper, options, p1);
+        }
     //}
     std::cerr << "Time in sum[s] " << sysTime() - time << "      \n";
     return 0;

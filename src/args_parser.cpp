@@ -99,6 +99,10 @@ parseCommandLine(Options & options, int argc, char const ** argv)
         "s", "sam_flag", "0 to turn off output .sam for approximate mapping. Otherwise the results of approximate mapping will be covert to the .sam",
         seqan::ArgParseArgument::INTEGER, "INT"
         ));
+    addOption(parser, seqan::ArgParseOption(
+        "b", "bal_flag", "dynamic balancing tasks schedule 0 to diable(default) or 1 to enable ",
+            seqan::ArgParseArgument::INTEGER, "INT" 
+        ));   
 //    addDefaultValue(parser, "gap_len", "1");
 
 // Advanced parms for mapping
@@ -140,6 +144,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     getOptionValue(options.apx_chain_flag, parser, "apx_chain_flag");
     getOptionValue(options.aln_flag, parser, "aln_flag");
     getOptionValue(options.sam_flag, parser, "sam_flag");
+    getOptionValue(options.bal_flag, parser, "bal_flag");
 
     //std::cerr << "xxxxx " << options.gap_len << isSet(parser, "gap_len") << "\n";
     std::vector<std::string> args;

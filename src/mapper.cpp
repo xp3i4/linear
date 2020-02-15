@@ -141,6 +141,7 @@ void Mapper::loadOptions(Options & options)
     r_paths = options.r_paths;
     g_paths = options.g_paths; 
     cord_size = window_size;
+    //dout << "loadoptions" << options.bal_flag << "\n";
     switch (options.sensitivity)
     {
         case 0: 
@@ -264,6 +265,31 @@ void Mapper::loadGenomes()
 void Mapper::clearIndex()
 {
     index_dynamic.clearIndex();
+}
+
+//=== pipeline2 of parallel buffer 
+P_Buffer<P_Dna5s> & Mapper::getPReadsBuffer()
+{
+    return p_reads_buffer;
+}
+P_Buffer<P_CharStrings> & Mapper::getPReadsIdBuffer()
+{
+    return p_reads_ids_buffer;
+}
+P_Buffer<P_ULLs> & Mapper::getPCordsBuffer()
+{
+   return p_cords_buffer; 
+}
+P_Buffer<P_BamLinks> & Mapper::getPBamLinksBuffer()
+{
+    return p_bam_links_buffer;
+}
+void Mapper::initBuffers(int read_buffer_size, int cords_buffer_size)
+{
+    p_reads_buffer.resize(read_buffer_size);
+    p_reads_ids_buffer.resize(read_buffer_size);
+    p_cords_buffer.resize(cords_buffer_size);
+    p_bam_links_buffer.resize(cords_buffer_size);
 }
 
 /*----------  Wrapper of file I/O   ----------*/
@@ -655,7 +681,28 @@ int map(Mapper & mapper,
     //print_mapper_results(mapper);
     return 0;
 }
-
+/*
+ * parallel io with dynamic balancing task scheduling
+ */
+int map(Mapper & mapper, 
+        StringSet<FeaturesDynamic> & f2, 
+        StringSet<String<short> > & buckets, 
+        String<Position<SeqFileIn>::Type> & fin_pos,
+        P_Tasks & p_tasks,
+        P_Parms & p_parms,
+        int gid, 
+        int f_buckets_enabled,
+        int p1,
+        bool f_io_append)
+{
+    mapper.initBuffers(5000, 10000);
+#pragma omp parallel
+{
+    std::cout << "parallel\n";
+    p_ThreadProcess(p_tasks, p_parms, omp_get_thread_num());
+}
+    return 0;
+}
 //Shortcut called within filter function to marked the genome requiring map
 //@bucket[i][j] == 1:the the ith read should map to the jth genome; otherwise not
 void append_genome_bucket(StringSet<String<short> > & buckets, 

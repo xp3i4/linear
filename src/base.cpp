@@ -31,7 +31,8 @@ Options::Options():
         gap_len(0),
         apx_chain_flag(1),
         aln_flag(0),
-        sam_flag(0)
+        sam_flag(0),
+        bal_flag(1)
         {
            date += __TIME__; 
            date += " ";

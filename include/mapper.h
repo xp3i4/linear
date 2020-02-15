@@ -4,6 +4,7 @@
 #include "base.h"
 #include "index_util.h"
 #include "f_io.h"
+#include "parallel_io.h"
 //#include "mapparm.h"
 
 
@@ -30,6 +31,12 @@ class Mapper
     uint f_print;   //print control flag
     uint64_t gap_len_min; //process gaps of length > this value
     int cord_size; //default cord size 
+
+    //=== pipeline2 of parallel buffer 
+    P_Buffer<P_Dna5s> p_reads_buffer;
+    P_Buffer<P_CharStrings> p_reads_ids_buffer;
+    P_Buffer<P_ULLs>  p_cords_buffer;
+    P_Buffer<P_BamLinks>  p_bam_links_buffer;
 
 public:
     Mapper();
@@ -70,12 +77,29 @@ public:
     void loadGenomes();
     void clearIndex();
 
+    //=== pipeline2 of parallel buffer 
+    P_Buffer<P_Dna5s> & getPReadsBuffer();
+    P_Buffer<P_CharStrings> & getPReadsIdBuffer();
+    P_Buffer<P_ULLs> & getPCordsBuffer();
+    P_Buffer<P_BamLinks> & getPBamLinksBuffer();
+    void initBuffers(int, int);
 };
 
 int map(Mapper & mapper, 
         StringSet<FeaturesDynamic> & f2, 
         StringSet<String<short> > & buckets, 
         String<Position<SeqFileIn>::Type> & fin_pos,
+        int gid, 
+        int f_buckets_enabled,
+        int p1,
+        bool f_io_append = false);
+
+int map(Mapper & mapper, 
+        StringSet<FeaturesDynamic> & f2, 
+        StringSet<String<short> > & buckets, 
+        String<Position<SeqFileIn>::Type> & fin_pos,
+        P_Tasks & p_tasks,
+        P_Parms & p_parms,
         int gid, 
         int f_buckets_enabled,
         int p1,
