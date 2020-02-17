@@ -268,14 +268,15 @@ void Mapper::clearIndex()
 }
 
 //=== pipeline2 of parallel buffer 
-P_Buffer<P_Dna5s> & Mapper::getPReadsBuffer()
+P_ReadsBuffer & Mapper::getPReadsBuffer()
 {
-    return p_reads_buffer;
+    return reads_buffer;
 }
-P_Buffer<P_CharStrings> & Mapper::getPReadsIdBuffer()
+P_ReadsIdsBuffer & Mapper::getPReadsIdBuffer()
 {
-    return p_reads_ids_buffer;
+    return reads_ids_buffer;
 }
+/*
 P_Buffer<P_ULLs> & Mapper::getPCordsBuffer()
 {
    return p_cords_buffer; 
@@ -284,12 +285,12 @@ P_Buffer<P_BamLinks> & Mapper::getPBamLinksBuffer()
 {
     return p_bam_links_buffer;
 }
-void Mapper::initBuffers(int read_buffer_size, int cords_buffer_size)
+*/
+void Mapper::initBuffers(int reads_buffer_size, int cords_buffer_size)
 {
-    p_reads_buffer.resize(read_buffer_size);
-    p_reads_ids_buffer.resize(read_buffer_size);
-    p_cords_buffer.resize(cords_buffer_size);
-    p_bam_links_buffer.resize(cords_buffer_size);
+    reads_buffer.resize(reads_buffer_size);
+    reads_ids_buffer.resize(reads_buffer_size);
+    //p_reads_ids_buffer.resize(read_buffer_size);
 }
 
 /*----------  Wrapper of file I/O   ----------*/
@@ -695,7 +696,7 @@ int map(Mapper & mapper,
         int p1,
         bool f_io_append)
 {
-    mapper.initBuffers(5000, 10000);
+    dout << "p_taskend" << p_tasks.isTasksEnd(0) << p_tasks.tasks[0].task_type << "\n";
 #pragma omp parallel
 {
     std::cout << "parallel\n";

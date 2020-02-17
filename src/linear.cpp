@@ -81,8 +81,10 @@ int process3(Mapper & mapper, Options & options, int p1)
     StringSet<FeaturesDynamic> f2;
     StringSet<String<short> > empty_buckets; 
     String<Position<SeqFileIn>::Type>   empty_fin_pos; 
-    P_Tasks p_tasks(mapper.getPReadsBuffer(), mapper.getPReadsIdBuffer(),
-    mapper.getPCordsBuffer(), mapper.getPBamLinksBuffer(), mapper.getThreads(), mapper.getGPaths(), mapper.getRPaths());
+    omp_set_num_threads(mapper.getThreads());
+    mapper.initBuffers(2, 100);
+    P_Tasks p_tasks(mapper.getPReadsBuffer(), mapper.getPReadsIdBuffer(), 
+        mapper.getGPaths(), mapper.getRPaths(), mapper.getThreads());
     P_Parms p_parms;
     //omp_set_num_threads(mapper.getThreads());
     //createFeatures(mapper.getGenomes(), f2, mapper.getFeatureType(), mapper.getThreads());

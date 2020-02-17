@@ -33,10 +33,8 @@ class Mapper
     int cord_size; //default cord size 
 
     //=== pipeline2 of parallel buffer 
-    P_Buffer<P_Dna5s> p_reads_buffer;
-    P_Buffer<P_CharStrings> p_reads_ids_buffer;
-    P_Buffer<P_ULLs>  p_cords_buffer;
-    P_Buffer<P_BamLinks>  p_bam_links_buffer;
+    P_ReadsBuffer reads_buffer;
+    P_ReadsIdsBuffer reads_ids_buffer;
 
 public:
     Mapper();
@@ -78,10 +76,10 @@ public:
     void clearIndex();
 
     //=== pipeline2 of parallel buffer 
-    P_Buffer<P_Dna5s> & getPReadsBuffer();
-    P_Buffer<P_CharStrings> & getPReadsIdBuffer();
-    P_Buffer<P_ULLs> & getPCordsBuffer();
-    P_Buffer<P_BamLinks> & getPBamLinksBuffer();
+    P_ReadsBuffer & getPReadsBuffer();
+    P_ReadsIdsBuffer & getPReadsIdBuffer();
+    //P_Buffer<P_ULLs> & getPCordsBuffer();
+    //P_Buffer<P_BamLinks> & getPBamLinksBuffer();
     void initBuffers(int, int);
 };
 
