@@ -34,7 +34,7 @@ class Mapper
 
     //=== pipeline2 of parallel buffer 
     P_ReadsBuffer reads_buffer;
-    P_ReadsIdsBuffer reads_ids_buffer;
+    P_ReadsIdsBuffer reads_ids_buffer; 
 
 public:
     Mapper();

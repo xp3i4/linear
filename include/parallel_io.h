@@ -27,7 +27,6 @@ public:
         RLIter it = r_list.begin();
         for (int i = 0; i < len; i++)
         {
-            dout << "int_len" << length(*it) << r_list.size() << "\n";
             its[i] = it++;
         }
     }
@@ -38,6 +37,8 @@ public:
 template<class T>
 class P_Buffer
 {
+    //use size() + 1 length(physical len) of list to simulate size() length (virtual len) of buffer
+    //to avoid ambiguity of both empty and full has it_in == it_out if phy len == virtual len 
     RandomList<T> buffer;
     int it_in;
     int it_out;
@@ -45,13 +46,20 @@ public:
     T & operator [] (int i){return buffer[i];}
     T & in() {return buffer[it_in];}    //return the T for input
     T & out() {return buffer[it_out];}  //..output
-    int size() {return buffer.size();}
-    int usedSize(){return (it_in - it_out) % buffer.size();}
-    void resize(int len) {buffer.resize(len);}
-    int isFull() {return usedSize() == buffer.size() - 1;}
-    int isEmpty() {return it_in == it_out;}
-    void nextIn(){it_in = ++it_in % buffer.size();dout << "fin" << it_in << "\n";} 
-    void nextOut(){it_out = ++it_out % buffer.size(); dout << "fout" << it_out << "\n";}
+    int InIt(){return it_in;}
+    int OutIt(){return it_out;}
+    int physicalSize(){return buffer.size();}
+    int size() {return this->physicalSize() - 1;}  //return virtual size 
+    int size(int it_str, int it_end){
+        return (it_end - it_str) % physicalSize();
+    } //size of [it_str, it_end)
+    int usedSize(){return (it_in - it_out) % this->physicalSize();}
+    int isFull() {return usedSize() == this->size();}
+    int isEmpty() {return usedSize() == 0;}
+    //modifer: 
+    void resize(int len) {buffer.resize(len + 1);} // len is the virtual size
+    void nextOut(){it_out = ++it_out % this->physicalSize();}
+    void nextIn(){int p = it_in; it_in = ++it_in % this->physicalSize();dout << "nextin---" << p << it_in << "\n";} 
     P_Buffer(){it_in = 0; it_out = 0;}
 };
 
@@ -60,9 +68,19 @@ public:
 typedef StringSet<String<Dna5> > * P_P_Reads;
 typedef P_Buffer<StringSet<String<Dna5> > > P_ReadsBuffer;
 typedef P_Buffer<StringSet<CharString> > P_ReadsIdsBuffer;
+typedef P_Buffer<StringSet<String<uint64_t> > > P_CordsBuffer;
+typedef P_Buffer<StringSet<String<BamAlignmentRecordLink> > > P_BamLinkBuffer;
+
+struct P_Parms
+{
+    int thd_fetch_num;
+    int thd_fetch_block_size;
+    int thd_assign_num;
+    P_Parms();
+};
 
 struct P_Task{
-    String<P_P_Reads> p_p_reads; //*p_p_reads[i] to get the StringSet<..>
+    String<int> p_reads; //*p_p_reads[i] to get the StringSet<..>
     int task_type;
     int thread_id;
     P_Task();
@@ -72,17 +90,18 @@ struct P_Tasks{
     //buffers
     P_ReadsBuffer * p_reads_buffer;
     P_ReadsIdsBuffer * p_reads_ids_buffer;
+    P_CordsBuffer * p_cords_buffer;
+    P_BamLinkBuffer * p_bam_link_buffer;
 
-    //settings for task of each thread
+    //settings of task of each thread
     String<P_Task> tasks;
 
-    //
+    //critical resources
     StringSet<std::string> paths1;
     StringSet<std::string> paths2;
     int paths1_it;
     int paths2_it;
-
-    //critical resources
+    int assign_it; //iter to read ready for assignment for calculatation
     int sgn_request;
     int sgn_fetch;
     int sgn_fetch_end;
@@ -104,15 +123,11 @@ struct P_Tasks{
     int isTasksPrintResults(int thread_id);
     int isTasksEnd(int thread_id);
     int isTasksAllEnd();
+    int assignCalReads(P_Parms & p_parms, int thread_id);
     //int isReadBufferFull();
     //int isReadBufferEmpty();
 };
-struct  P_Parms
-{
-    int thd_fetch_num;
-    int thd_fetch_block_size;
-    P_Parms();
-};
+
 
 int p_FetchReads(P_Tasks & p_tasks);
 int p_CalRecords();

@@ -7,6 +7,7 @@
 #include <iostream>
 
 using namespace seqan;
+using std::ostringstream;
 
 extern const float    base_alpha_;
 extern const unsigned base_shape_len_;
@@ -182,17 +183,30 @@ int readRecords_block (StringSet<CharString> & ids, StringSet<String<Dna5> > & r
 void _compltStr(String<Dna5> & str, String<Dna5> & res);
 void _compltRvseStr(String<Dna5> & str, String<Dna5> & res);
 
-struct Dout //debug cout utility
+/*----------  Debug ostream to replace cout: thread safe  ----------*/
+
+struct Gout //debug cout utility
 {
     std::ostringstream buffer;
-    Dout & operator << (int);
-    Dout & operator << (unsigned);
-    Dout & operator << (int64_t);
-    Dout & operator << (uint64_t);
-    Dout & operator << (CharString);
-    Dout & operator << (String<int64_t> &);
-    Dout & operator << (double);
+    Gout & operator << (int);
+    Gout & operator << (unsigned);
+    Gout & operator << (int64_t);
+    Gout & operator << (uint64_t);
+    Gout & operator << (CharString);
+    Gout & operator << (String<int64_t> &);
+    Gout & operator << (double);
+
+    void deleteThisNew(); // call to delete the object when it's created by new;
 };
+struct Dout 
+{};
+Gout & operator << (Dout & d, int n);
+Gout & operator << (Dout & d, unsigned n);
+Gout & operator << (Dout & d, int64_t n);
+Gout & operator << (Dout & d, uint64_t n);
+Gout & operator << (Dout & d, CharString n);
+Gout & operator << (Dout & d, String<int64_t> & n);
+Gout & operator << (Dout & d, double n);
 extern Dout dout;
 
 class ostreamWapper

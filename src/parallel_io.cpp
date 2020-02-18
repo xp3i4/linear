@@ -27,6 +27,7 @@ P_Tasks::P_Tasks(P_ReadsBuffer & reads_buffer, P_ReadsIdsBuffer & reads_ids_buff
 
     paths1_it = 0;
     paths2_it = 0;
+    assign_it = p_reads_buffer->OutIt(); // = 0;
     sgn_request = 0;
     sgn_fetch = 0;
     sgn_fetch_end = 0;
@@ -78,11 +79,28 @@ int P_Tasks::isTasksAllEnd()
 {
     return atomicCas(sgn_all_tasks_end, 1, sgn_all_tasks_end); //just get the value atomically 
 }
+int P_Tasks::assignCalReads(P_Parms & p_parms, int thread_id)
+{
+    if (!empty(tasks[thread_id].p_reads))
+    {
+        return 1;
+    }
+    P_ReadsBuffer & buffer = * p_reads_buffer;
+    int n = std::min(buffer.size(assign_it, buffer.InIt()), p_parms.thd_assign_num);
+    for (int i = 0; i < n; i++)
+    {
+        appendValue(tasks[thread_id].p_reads, assign_it++);
+    }
+    int return_val = length(tasks[thread_id].p_reads) ? 0 : 1;
+    dout << "acrs1" << length(tasks[thread_id].p_reads) << n << assign_it << thread_id << "\n";
+    return return_val;
+}
 /*----------  Class P_Parms  ----------*/
 
 P_Parms::P_Parms():
     thd_fetch_num(1),
-    thd_fetch_block_size(5)
+    thd_fetch_block_size(5),
+    thd_assign_num(1)
     {}
 /*----------  Threads functions  ----------*/
 /*
@@ -93,22 +111,27 @@ int freeCurrentTask_(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_
     if (f_error)
     {
         p_tasks.setTasksAllEnd();
+        p_tasks.setTasksEnd(thread_id);
+        //dout << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1" << "\n";
     }
     if (p_tasks.isTasksFetchReads(thread_id))
     {
-        atomicCas(p_tasks.sgn_fetch, 1, 0);
         p_tasks.setTasksWait(thread_id);
+        atomicCas(p_tasks.sgn_fetch, 1, 0);
+        //dout << "tasks=============================" << p_tasks.tasks[thread_id].task_type << "\n";
     }
     else if (p_tasks.isTasksCalRecords(thread_id))
     {
-
+        //dout << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2" << "\n";
     }
     else if (p_tasks.isTasksPrintResults(thread_id))
     {
 
+        //dout << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3" << "\n";
     }
     else
     {
+        //dout << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx4" << p_tasks.tasks[thread_id].task_type << "\n";
         //none
     }
     return 0;
@@ -122,20 +145,21 @@ int requestNewTask_(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_e
     {
         p_tasks.setTasksEnd(thread_id);
     }
-    else if (p_tasks.sgn_fetch_end != 1)
+    else if (!atomicCas(p_tasks.sgn_fetch_end, 0, p_tasks.sgn_fetch_end) && 
+             !p_tasks.p_reads_buffer->isFull() && 
+             !atomicCas(p_tasks.sgn_fetch, 0, 1))
     {
-        if (!atomicCas(p_tasks.sgn_fetch, 0, 1))
-        {
-            p_tasks.setTasksFetchReads(thread_id);
-        }
+        p_tasks.setTasksFetchReads(thread_id);
+    dout << "fetch_t..........." << thread_id << p_tasks.sgn_fetch_end << p_tasks.p_reads_buffer->InIt() << "f" << p_tasks.sgn_fetch << p_tasks.isTasksFetchReads(0) << p_tasks.isTasksFetchReads(1) << "\n";
     }
     /*
     else if (!atomicCas(p_tasks.sgn_print, 0, 1))
     {
         p_tasks.setTasksPrintResults(thread_id);
     }
-    else if (!p_tasks.isReadBufferEmpty())
+    else if (!p_tasks.assignCalReads(p_parms, thread_id))
     {
+        dout << "cal" << thread_id << "\n";
         p_tasks.setTaskCalRecords(thread_id);
     }
     */
@@ -143,6 +167,7 @@ int requestNewTask_(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_e
     {
         if (p_tasks.sgn_fetch_end == 1) // !!!Add all end conditions here !!!
         {
+            dout << "$$$$$$$$$$$$$$$$$$$$$$" << "\n";
             p_tasks.setTasksEnd(thread_id);
         }
     }   
@@ -164,16 +189,18 @@ int p_RequestTask(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_err
     return 1;
 }
 
-int p_FetchReads(P_Tasks & p_tasks, P_Parms & p_parms)
+int p_FetchReads(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id)
 {
     P_ReadsIdsBuffer & buffer1 = *p_tasks.p_reads_ids_buffer;
     P_ReadsBuffer & buffer2 = *p_tasks.p_reads_buffer;
     if (p_tasks.paths2_it >= length(p_tasks.paths2))
     {
+        dout << "7&&&&&&&&&&&&&&&&&" << "\n";
         p_tasks.sgn_fetch_end = 1;
         return 1;
     }
     std::string file_name = p_tasks.paths2[p_tasks.paths2_it];
+    //dout << "path2" << buffer1.size() << buffer1.InIt() << buffer1.OutIt() << p_tasks.paths2_it << length(p_tasks.paths2) << thread_id << file_name << buffer1.isFull() << "\n";
     for (int i = 0; i < p_parms.thd_fetch_num && ! buffer1.isFull(); i++)
     {
         if (!p_tasks.f_fin_open)
@@ -191,6 +218,11 @@ int p_FetchReads(P_Tasks & p_tasks, P_Parms & p_parms)
         }
         clear(buffer1.in());
         clear(buffer2.in());
+
+        std::ostringstream ss;
+        dout << "path2=============" << buffer1.InIt() << buffer1.physicalSize() << thread_id << p_tasks.tasks[0].task_type << p_tasks.tasks[1].task_type << "\n";
+        //std::cout << ss.str();
+
         readRecords(buffer1.in(), buffer2.in(), p_tasks.fin, p_parms.thd_fetch_block_size);
         //<<debug
         /*
@@ -204,9 +236,11 @@ int p_FetchReads(P_Tasks & p_tasks, P_Parms & p_parms)
         //>>debug
         buffer1.nextIn();
         buffer2.nextIn();
+        dout << "path3---------------" << buffer1.InIt() << thread_id << "\n";
     }
     if (atEnd(p_tasks.fin))
     {
+        dout << "8&&&&&&&&&&&&&&&&&" << "\n";
         close(p_tasks.fin);
         p_tasks.paths2_it++;
         p_tasks.f_fin_open = 0;
@@ -216,7 +250,7 @@ int p_FetchReads(P_Tasks & p_tasks, P_Parms & p_parms)
 /*
  * Calculate records
  */
-int p_CalRecords()
+int p_CalRecords(P_Tasks & p_tasks, P_Parms & p_parms)
 {
 
     return 0;
@@ -243,7 +277,7 @@ int p_ThreadProcess(P_Tasks & p_tasks, P_Parms p_parms, int thread_id)
         }
         else if(p_tasks.isTasksFetchReads(thread_id)) 
         {
-            f_error = p_FetchReads(p_tasks, p_parms);
+            f_error = p_FetchReads(p_tasks, p_parms, thread_id);
         }
         /*
         else if (p_tasks.isTasksCalRecords(thread_id))

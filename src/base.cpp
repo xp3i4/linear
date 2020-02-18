@@ -375,39 +375,84 @@ static const String<Dna5> _complt = "tgcan";
         //std::cout << (unsigned)ordValue(str[length(str) - k - 1]) << std::endl;
     }
 }
-
+/*----------  Debug ostream to replace ostream ----------*/
 Dout dout;
-Dout & Dout::operator << (int n)
+Gout & operator << (Dout & d, int n)
+{
+    Gout *p = new Gout;
+    *p << n;
+    return *p;
+}
+Gout & operator << (Dout & d, unsigned n)
+{
+    Gout *p = new Gout;
+    *p << n;
+    return *p;  
+}
+Gout & operator << (Dout & d, int64_t n)
+{
+    Gout *p = new Gout;
+    *p << n;
+    return *p;
+}
+Gout & operator << (Dout & d, uint64_t n)
+{
+    Gout *p = new Gout;
+    *p << n;
+    return *p;
+}
+Gout & operator << (Dout & d, CharString n)
+{
+    Gout *p = new Gout;
+    *p << n;
+    return *p;
+}
+Gout & operator << (Dout & d, String<int64_t> & n)
+{
+    Gout *p = new Gout;
+    *p << n;
+    return *p;
+}
+Gout & operator << (Dout & d, double n)
+{
+    Gout *p = new Gout;
+    *p << n;
+    return *p;
+}
+
+Gout & Gout::operator << (int n)
 {
     buffer << n << " "; 
     return *this;
 }
-Dout & Dout::operator << (unsigned n)
+Gout & Gout::operator << (unsigned n)
 {
     buffer << n << " "; 
     return *this;
 }
-Dout & Dout::operator << (int64_t n)
+Gout & Gout::operator << (int64_t n)
 {
     buffer << n << " "; 
     return *this;
 }
-Dout & Dout::operator << (uint64_t n)
+Gout & Gout::operator << (uint64_t n)
 {
     buffer << n << " "; 
     return *this;
 }
-Dout & Dout::operator << (CharString n)
+Gout & Gout::operator << (CharString n)
 {
     buffer << n << " ";
     if (n == "\n")
     {
         std::cout << buffer.str();
-        buffer.str("");
+        //buffer.str("");
+        delete this;
+        //return NULL;
     }
     return *this;
 }
-Dout & Dout::operator << (String<int64_t> & ns)
+Gout & Gout::operator << (String<int64_t> & ns)
 {
     for (auto n : ns)
     {
@@ -415,7 +460,7 @@ Dout & Dout::operator << (String<int64_t> & ns)
     }
     return * this;
 }
-Dout & Dout::operator << (double n)
+Gout & Gout::operator << (double n)
 {
     buffer << n << " " ;
     return * this;
