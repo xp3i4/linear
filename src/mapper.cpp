@@ -276,20 +276,21 @@ P_ReadsIdsBuffer & Mapper::getPReadsIdBuffer()
 {
     return reads_ids_buffer;
 }
-/*
-P_Buffer<P_ULLs> & Mapper::getPCordsBuffer()
+P_CordsBuffer & Mapper::getPCordsBuffer()
 {
-   return p_cords_buffer; 
+    return cords_buffer;
 }
-P_Buffer<P_BamLinks> & Mapper::getPBamLinksBuffer()
+P_BamLinkBuffer & Mapper::getPBamLinksBuffer()
 {
-    return p_bam_links_buffer;
+    return bam_link_buffer;
 }
-*/
+
 void Mapper::initBuffers(int reads_buffer_size, int cords_buffer_size)
 {
     reads_buffer.resize(reads_buffer_size);
     reads_ids_buffer.resize(reads_buffer_size);
+    cords_buffer.resize(cords_buffer_size);
+    bam_link_buffer.resize(cords_buffer_size);
     //p_reads_ids_buffer.resize(read_buffer_size);
 }
 
@@ -696,7 +697,7 @@ int map(Mapper & mapper,
         int p1,
         bool f_io_append)
 {
-    dout << "p_taskend" << p_tasks.isTasksEnd(0) << p_tasks.tasks[0].task_type << "\n";
+    dout << "p_taskend" << p_tasks.isTaskEnd(0) << p_tasks.tasks[0].task_type << "\n";
 #pragma omp parallel
 {
     std::cout << "parallel\n";

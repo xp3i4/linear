@@ -35,6 +35,8 @@ class Mapper
     //=== pipeline2 of parallel buffer 
     P_ReadsBuffer reads_buffer;
     P_ReadsIdsBuffer reads_ids_buffer; 
+    P_CordsBuffer cords_buffer;
+    P_BamLinkBuffer bam_link_buffer;
 
 public:
     Mapper();
@@ -78,8 +80,9 @@ public:
     //=== pipeline2 of parallel buffer 
     P_ReadsBuffer & getPReadsBuffer();
     P_ReadsIdsBuffer & getPReadsIdBuffer();
-    //P_Buffer<P_ULLs> & getPCordsBuffer();
-    //P_Buffer<P_BamLinks> & getPBamLinksBuffer();
+    P_CordsBuffer & getPCordsBuffer();
+    P_BamLinkBuffer & getPBamLinksBuffer();
+
     void initBuffers(int, int);
 };
 

@@ -40,27 +40,41 @@ class P_Buffer
     //use size() + 1 length(physical len) of list to simulate size() length (virtual len) of buffer
     //to avoid ambiguity of both empty and full has it_in == it_out if phy len == virtual len 
     RandomList<T> buffer;
+    String<int> buffer_status;
     int it_in;
     int it_out;
+    int CONST_F_PROTECTED; //it_in or it_out can't access or skip protected variables;
 public:
     T & operator [] (int i){return buffer[i];}
     T & in() {return buffer[it_in];}    //return the T for input
     T & out() {return buffer[it_out];}  //..output
-    int InIt(){return it_in;}
-    int OutIt(){return it_out;}
+    int inIt(){return it_in;}
+    int outIt(){return it_out;}
     int physicalSize(){return buffer.size();}
     int size() {return this->physicalSize() - 1;}  //return virtual size 
     int size(int it_str, int it_end){
-        return (it_end - it_str) % physicalSize();
+        return mod((it_end - it_str), physicalSize());
     } //size of [it_str, it_end)
-    int usedSize(){return (it_in - it_out) % this->physicalSize();}
+    int usedSize(){return mod((it_in - it_out), this->physicalSize());}
     int isFull() {return usedSize() == this->size();}
     int isEmpty() {return usedSize() == 0;}
-    //modifer: 
-    void resize(int len) {buffer.resize(len + 1);} // len is the virtual size
-    void nextOut(){it_out = ++it_out % this->physicalSize();}
-    void nextIn(){int p = it_in; it_in = ++it_in % this->physicalSize();dout << "nextin---" << p << it_in << "\n";} 
-    P_Buffer(){it_in = 0; it_out = 0;}
+    int isProtected(int i){return buffer_status[i] & CONST_F_PROTECTED;}
+    //modifer:=== 
+    void setProtected(int i){buffer_status[i] |= CONST_F_PROTECTED;}
+    void unsetProtected(int i){buffer_status[i] &= (~ CONST_F_PROTECTED);}
+    void resize(int len) 
+    {
+        buffer.resize(len + 1);
+        seqan::resize(buffer_status, len + 1, CONST_F_PROTECTED);
+    } // len is the virtual size
+    void nextIt(int & it){it = mod(++it, this->physicalSize());}
+    void nextOut(){nextIt(it_out);}
+    void nextIn(){nextIt(it_in);} 
+    P_Buffer()
+    {
+        it_in = 0; it_out = 0; 
+        CONST_F_PROTECTED = 1;
+    }
 };
 
 /*----------  Parallel tasks controller  ----------*/
@@ -76,11 +90,15 @@ struct P_Parms
     int thd_fetch_num;
     int thd_fetch_block_size;
     int thd_assign_num;
+    int thd_print_num;
     P_Parms();
+    void printParms();
 };
 
 struct P_Task{
-    String<int> p_reads; //*p_p_reads[i] to get the StringSet<..>
+    //all input buffers are supposed to have the same length. This applies to the output buffers too.
+    String<int> p_ins; //points to i_th element in buffer(input) for calculation
+    String<int> p_outs; //points to cords and bam for output result
     int task_type;
     int thread_id;
     P_Task();
@@ -101,7 +119,8 @@ struct P_Tasks{
     StringSet<std::string> paths2;
     int paths1_it;
     int paths2_it;
-    int assign_it; //iter to read ready for assignment for calculatation
+    int assign_it2; //iter to read ready for assignment for calculatation
+    int assign_it3;
     int sgn_request;
     int sgn_fetch;
     int sgn_fetch_end;
@@ -111,21 +130,29 @@ struct P_Tasks{
     seqan::SeqFileIn fin;
     std::ofstream fout;
 
-    P_Tasks(P_ReadsBuffer &, P_ReadsIdsBuffer &, StringSet<std::string> &, StringSet<std::string> &, int);
-    void setTasksWait (int thread_id);
-    void setTasksFetchReads(int thread_id);
+    P_Tasks(P_ReadsBuffer &, P_ReadsIdsBuffer &, P_CordsBuffer &, P_BamLinkBuffer &, StringSet<std::string> &, StringSet<std::string> &, int);
+    //modifier
+    void setTaskWait (int thread_id);
+    void setTaskFetchReads(int thread_id);
     void setTaskCalRecords(int thread_id);
-    void setTasksPrintResults(int thread_id);
-    void setTasksEnd(int thread_id);
-    void setTasksAllEnd();
-    int isTasksFetchReads(int thread_id);
-    int isTasksCalRecords(int thread_id);
-    int isTasksPrintResults(int thread_id);
-    int isTasksEnd(int thread_id);
-    int isTasksAllEnd();
-    int assignCalReads(P_Parms & p_parms, int thread_id);
+    void setTaskPrintResults(int thread_id);
+    void setTaskEnd(int thread_id);
+    void setTaskAllEnd();
+    //is
+    int isTaskFetchReads(int thread_id);
+    int isTaskCalRecords(int thread_id);
+    int isTaskPrintResults(int thread_id);
+    int isTaskEnd(int thread_id);
+    int isTaskAllEnd();
     //int isReadBufferFull();
     //int isReadBufferEmpty();
+    //
+    int getTaskInBufferLen(int thread_id);
+    int getTaskOutBufferLen(int thread_id);
+    int getTaskInBufferPtr(int thread_id, int i);
+    int getTaskOutBufferPtr(int thread_id, int i);
+    //
+    int assignCalRecords(P_Parms & p_parms, int thread_id);
 };
 
 

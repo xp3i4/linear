@@ -574,4 +574,5 @@ int print_seq(String<Dna5> & seq, uint64_t str, uint64_t end, std::string header
     std::cout << "\n";
     return 0;
 }
+int mod(int a, int b){int c = a % b; return c >= 0 ? c : c + b;}
 
