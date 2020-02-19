@@ -75,6 +75,19 @@ int process2(Mapper & mapper, Options & options, int p1)
     return 0;
 }
 
+/*----------  Process 3  ----------*/
+
+//Interface wrapper
+void p_PrintCordsApf(CordsSetType & cords, 
+                     StringSet<String<Dna5> > & genomes,
+                     StringSet<String<Dna5> > & reads,
+                     StringSet<CharString> & genomesId,
+                     StringSet<CharString> & readsId,
+                     std::ofstream & of)
+{
+    print_cords_apf(cords, genomes, reads, genomesId, readsId, of);
+}
+void p_PrintBamLinksSam()
 int process3(Mapper & mapper, Options & options, int p1)
 {
     dout << "p3" << "\n";
@@ -82,14 +95,17 @@ int process3(Mapper & mapper, Options & options, int p1)
     StringSet<String<short> > empty_buckets; 
     String<Position<SeqFileIn>::Type>   empty_fin_pos; 
     omp_set_num_threads(mapper.getThreads());
-    mapper.initBuffers(2, 100);
+    mapper.initBuffers(2, 2);
     P_Tasks p_tasks(mapper.getPReadsBuffer(), mapper.getPReadsIdBuffer(), mapper.getPCordsBuffer(),
         mapper.getPBamLinksBuffer(), mapper.getGPaths(), mapper.getRPaths(), mapper.getThreads());
     P_Parms p_parms;
     //omp_set_num_threads(mapper.getThreads());
     //createFeatures(mapper.getGenomes(), f2, mapper.getFeatureType(), mapper.getThreads());
     //mapper.createIndex(0, length(mapper.getGenomes()), false); 
-    map (mapper, f2, empty_buckets, empty_fin_pos, p_tasks, p_parms, 0, 0, p1);
+    #pragma  omp parallel
+    {
+        p_ThreadProcess(p_tasks, p_parms, omp_get_thread_num());
+    }
     return 0;
 }
 

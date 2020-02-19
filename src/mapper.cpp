@@ -701,7 +701,7 @@ int map(Mapper & mapper,
 #pragma omp parallel
 {
     std::cout << "parallel\n";
-    p_ThreadProcess(p_tasks, p_parms, omp_get_thread_num());
+    p_threadprocess(p_tasks, p_parms, omp_get_thread_num());
 }
     return 0;
 }

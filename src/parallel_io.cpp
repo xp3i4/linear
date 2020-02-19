@@ -134,14 +134,14 @@ int P_Tasks::assignCalRecords(P_Parms & p_parms, int thread_id)
 
 P_Parms::P_Parms():
     thd_fetch_num(1),
-    thd_fetch_block_size(5),
+    thd_buffer_block_size(5),
     thd_assign_num(1),
     thd_print_num(1)
     {}
 void P_Parms::printParms()
 {
     dout << "thd_fetch_num" << thd_fetch_num << "\n";
-    dout << "thd_fetch_block_size" << thd_fetch_block_size << "\n";
+    dout << "thd_buffer_block_size" << thd_buffer_block_size << "\n";
     dout << "thd_assign_num" << thd_assign_num << "\n";
     dout << "thd_print_num" << thd_print_num << "\n";
 }
@@ -271,7 +271,7 @@ int p_FetchReads(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id)
         dout << "path2=============" << buffer1.inIt() << buffer1.physicalSize() << thread_id << p_tasks.tasks[0].task_type << p_tasks.tasks[1].task_type << "\n";
         //std::cout << ss.str();
 
-        readRecords(buffer1.in(), buffer2.in(), p_tasks.fin, p_parms.thd_fetch_block_size);
+        readRecords(buffer1.in(), buffer2.in(), p_tasks.fin, p_parms.thd_buffer_block_size);
         //<<debug
         /*
         for (int i = 0; i < length(buffer1.out()); i++)
@@ -297,7 +297,7 @@ int p_FetchReads(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id)
 /*
  * Calculate records
  */
-int p_CalRecords(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id)
+int p_CalRecords(P_Tasks & p_tasks, P_Parms & p_parms, P_Mapper & p_mapper int thread_id)
 {
     P_ReadsIdsBuffer & buffer1 = * p_tasks.p_reads_ids_buffer;
     P_ReadsBuffer & buffer2 = * p_tasks.p_reads_buffer;
@@ -314,6 +314,7 @@ int p_CalRecords(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id)
         //add cal function here
         int i_out = p_tasks.getTaskOutBufferPtr(thread_id, i);
         int i_in = p_tasks.getTaskInBufferPtr(thread_id, i);
+        p_mapper.calRecords();
         dout << "p_calreocords" << i << length(p_tasks.tasks[thread_id].p_ins) << buffer1[p_tasks.tasks[thread_id].p_ins[i]][0] << "\n";
         buffer3.unsetProtected(i_out);
         buffer4.unsetProtected(i_out);
@@ -322,7 +323,7 @@ int p_CalRecords(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id)
     return 0;
 }
 
-int p_PrintResults(P_Tasks & p_tasks, P_Parms p_parms, int thread_id)
+int p_PrintResults(P_Tasks & p_tasks, P_Parms p_parms, P_Mapper & p_mapper, int thread_id)
 {   
     P_ReadsIdsBuffer & buffer1 = * p_tasks.p_reads_ids_buffer;
     P_ReadsBuffer & buffer2 = * p_tasks.p_reads_buffer;
@@ -338,6 +339,7 @@ int p_PrintResults(P_Tasks & p_tasks, P_Parms p_parms, int thread_id)
     {
         //add print_function here
         //dout << "p_PrintResults <<<<<<" << buffer1[0][0] << buffer1.outIt() << buffer1.inIt() << "\n";
+        p_mapper.PrintResults();
         //reads(ids) and cords(bam) buffer are not released until the following sentences.
         buffer1.nextOut();
         buffer2.nextOut();
@@ -347,7 +349,7 @@ int p_PrintResults(P_Tasks & p_tasks, P_Parms p_parms, int thread_id)
     return 0; 
 }
 
-int p_ThreadProcess(P_Tasks & p_tasks, P_Parms p_parms, int thread_id)
+int p_ThreadProcess(P_Tasks & p_tasks, P_Parms p_parms, P_Mapper & p_mapper, int thread_id)
 {
         //std::cout << "p1" << "\n";
     int f_error = 0;

@@ -8,7 +8,7 @@
 //#include "mapparm.h"
 
 
-class Mapper 
+class Mapper : public P_Mapper 
 {
     PMRecord    record;
     MapParm     parm;

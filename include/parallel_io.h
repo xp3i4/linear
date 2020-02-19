@@ -88,7 +88,7 @@ typedef P_Buffer<StringSet<String<BamAlignmentRecordLink> > > P_BamLinkBuffer;
 struct P_Parms
 {
     int thd_fetch_num;
-    int thd_fetch_block_size;
+    int thd_buffer_block_size;
     int thd_assign_num;
     int thd_print_num;
     P_Parms();
@@ -159,7 +159,21 @@ struct P_Tasks{
 int p_FetchReads(P_Tasks & p_tasks);
 int p_CalRecords();
 int p_PrintResults();
-int p_ThreadProcess(P_Tasks & p_tasks, P_Parms p_parms, int thread_id);
+int p_ThreadProcess(P_Tasks & p_tasks, P_Parms p_parms,
+
+                    int thread_id);
+//Wrapper class to abstract two operations
+class P_Mapper
+{
+protected:
+    P_ReadsBuffer reads_buffer;
+    P_ReadsIdsBuffer reads_ids_buffer; 
+    P_CordsBuffer cords_buffer;
+    P_BamLinkBuffer bam_link_buffer;
+public:
+    calRecords();
+    printResults();
+}
 
 /*----------  Global utilities  ----------*/
 //None
