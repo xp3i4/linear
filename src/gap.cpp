@@ -38,6 +38,7 @@ GapParms::GapParms(float err_rate) : //estimated err_rate
 
     thd_ecr_shape_len(3),
     thd_ecr_reject_da(20),
+    f_rfts_clip(1),
     f_me_map_extend(0),
     thd_me_reject_gap(200), //~192 = 96 x 2
     thd_accept_score(32),
@@ -3095,18 +3096,19 @@ int reform_tiles(String<Dna5> & seq1, String<Dna5> & seq2, String<Dna5> & comstr
     }
 
     //step.2 reform tiles:clip and break block if necessary
-    
-    reform_tiles_(seq1, seq2, comstr, 
-                tiles_str_tmp,
-                tiles_end_tmp,
-                clips, 
-                sp_tiles,
-                direction, 
-                thd_cord_gap, 
-                thd_tile_size,
-                thd_err_rate,
-                gap_parms);
-               
+    if (gap_parms.f_rfts_clip)
+    {
+        reform_tiles_(seq1, seq2, comstr, 
+                    tiles_str_tmp,
+                    tiles_end_tmp,
+                    clips, 
+                    sp_tiles,
+                    direction, 
+                    thd_cord_gap, 
+                    thd_tile_size,
+                    thd_err_rate,
+                    gap_parms);
+    }
     tiles_str = tiles_str_tmp;
     tiles_end = tiles_end_tmp;
     return 0;
@@ -3594,6 +3596,8 @@ int extendsTilesFromAnchors (String<Dna5> & ref, String<Dna5> & read, String<Dna
     g_CreateTilesFromChains_(tmp_tiles1, tiles1, f1, f2, gap_str1, 0, length(tmp_tiles1), &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);    
     trimTiles(tiles1, f1, f2, gap_str1, gap_end2, read_len - 1, direction1, gap_parms);
     g_CreateTilesFromChains_(tmp_tiles2, tiles2, f1, f2, gap_str2, 0, length(tmp_tiles2), &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);  
+
+    g_print_tiles_(tiles2, "extt7");
     trimTiles(tiles2, f1, f2, gap_str1, gap_end2, read_len - 1, direction2, gap_parms);
     //<<debug
     //if (get_cord_y(gap_str1) == 7761) 
@@ -3775,7 +3779,9 @@ int mapExtends(StringSet<String<Dna5> > & seqs, String<Dna5> & read, String<Dna5
     gap_parms.thd_cts_major_limit = 3;
     gap_parms.f_me_map_extend = 1;
     int original_direction = gap_parms.direction;
+    int original_f_rfts_clip = gap_parms.f_rfts_clip;
     int direction1 = g_map_rght, direction2 = g_map_left;
+    gap_parms.f_rfts_clip = 0;
     String <Dna5> & ref = seqs[get_cord_id(gap_str1)];
     String<uint64_t> sp_tiles1; 
     String<uint64_t> sp_tiles2; 
@@ -3788,18 +3794,19 @@ int mapExtends(StringSet<String<Dna5> > & seqs, String<Dna5> & read, String<Dna5
     {
         remove_tile_sgn_end(back(tiles_str1));
     }
-    reform_tiles(ref, read, comstr, tiles_str1, tiles_end1, clips1, sp_tiles1, gap_str1, gap_end1, direction1, 
-                 thd_cord_gap, thd_tile_size, thd_err_rate, gap_parms);
+    reform_tiles(ref, read, comstr, tiles_str1, tiles_end1, clips1, sp_tiles1, gap_str1, gap_end1, direction1, thd_cord_gap, thd_tile_size, thd_err_rate, gap_parms);
     //directiond = -1 part
     gap_parms.direction = direction2; 
     g_print_tiles_(tiles_str2, "gpts1");
     mapExtendResultFileter_(tiles_str2, gap_str2, gap_end2, direction2, gap_parms);
     g_print_tiles_(tiles_str2, "gpts2");
-    reform_tiles(ref, read, comstr, tiles_str2, tiles_end2, clips2, sp_tiles2, gap_str2, gap_end2, direction2,                thd_cord_gap, thd_tile_size, thd_err_rate, gap_parms);
+    reform_tiles(ref, read, comstr, tiles_str2, tiles_end2, clips2, sp_tiles2, gap_str2, gap_end2, direction2, thd_cord_gap, thd_tile_size, thd_err_rate, gap_parms);
     //restore gap_parms
 
+    g_print_tiles_(tiles_str2, "gpts3");
 
     gap_parms.direction = original_direction;
+    gap_parms.f_rfts_clip = original_f_rfts_clip;
     gap_parms.f_me_map_extend = 0;
     return 0;    
 }

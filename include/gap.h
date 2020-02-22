@@ -39,6 +39,7 @@ struct GapParms
 
     //reform_tiles_ 
     int thd_rfts_cord_gaps;
+    int f_rfts_clip;
 
     //m_g_anchor2_
     uint thd_accept_score;
