@@ -683,7 +683,7 @@ int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
                 }
                 else{
                     int64_t d_anchor_acc = std::max((dy >> 7) * d_anchor, int64_t(50)); // d_anchor accumulated
-                    anchor_lower2 = std::max(anchor_base - d_anchor_acc, int64_t(0)); // 1<<7 =128, every 128bp increase d_anchor
+                    anchor_lower2 = std::max(anchor_base - d_anchor_acc, int64_t(0)); // 1<<7 =128, every 128bp increase by d_anchor
                     anchor_upper2 = anchor_base + d_anchor_acc;
                 }
                 if (tmp < anchor_upper2 && tmp >= anchor_lower2){
@@ -2372,7 +2372,7 @@ uint64_t extendClipRange(String<Dna5> & seq1, String<Dna5> & seq2,
     }
     if (min_da > gap_parms.thd_ecr_reject_da || length(anchors_chains[closest_i]) < 1)
     {
-        return 2;
+        return 2; 
     }
     String<int> chain_score;
     resize(chain_score, length(anchors_chains[closest_i]));
@@ -3729,6 +3729,12 @@ int mapExtends(StringSet<String<Dna5> > & seqs, String<Dna5> & read, String<Dna5
     g_print_tile(gap_end1, "gp12");
     g_print_tile(gap_str2, "gp21");
     g_print_tile(gap_end2, "gp22");
+    //<<debug
+    if (get_cord_y(gap_str1) != 4913)
+    {
+        //return 1;
+    }
+    //>>debug
 
     gap_parms.thd_ctfas2_connect_danchor = 50;
     gap_parms.thd_ctfas2_connect_dy_dx = 150;
