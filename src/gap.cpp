@@ -3717,25 +3717,21 @@ int mapExtends(StringSet<String<Dna5> > & seqs, String<Dna5> & read, String<Dna5
                String<uint64_t> & tiles_str2, String<uint64_t> & tiles_end2, String<uint64_t> & clips2, 
                uint64_t gap_str1, uint64_t gap_end1, 
                uint64_t gap_str2, uint64_t gap_end2,
-               int thd_cord_gap, 
-               int thd_tile_size,
-               int thd_cord_remap, 
-               float thd_err_rate,
-               int64_t thd_dxy_min,
+               int thd_cord_gap, int thd_tile_size, int thd_cord_remap, 
+               float thd_err_rate, int64_t thd_dxy_min,
                GapParms & gap_parms)
 {
-    /*--Specify gap parms map extending--*/
+    //<<debug
     g_print_tile(gap_str1, "gp11");
     g_print_tile(gap_end1, "gp12");
     g_print_tile(gap_str2, "gp21");
     g_print_tile(gap_end2, "gp22");
-    //<<debug
     if (get_cord_y(gap_str1) != 4913)
     {
         //return 1;
     }
     //>>debug
-
+    //! Specify parms of gap mapExtend here
     gap_parms.thd_ctfas2_connect_danchor = 50;
     gap_parms.thd_ctfas2_connect_dy_dx = 150;
     gap_parms.thd_cts_major_limit = 3;
@@ -3744,7 +3740,7 @@ int mapExtends(StringSet<String<Dna5> > & seqs, String<Dna5> & read, String<Dna5
     int original_f_rfts_clip = gap_parms.f_rfts_clip;
     int direction1 = g_map_rght, direction2 = g_map_left;
     gap_parms.f_rfts_clip = 0;
-    String <Dna5> & ref = seqs[get_cord_id(gap_str1)];
+    String<Dna5> & ref = seqs[get_cord_id(gap_str1)];
     String<uint64_t> sp_tiles1; 
     String<uint64_t> sp_tiles2; 
 
@@ -3889,11 +3885,11 @@ int mapGap_ (StringSet<String<Dna5> > & seqs, String<Dna5> & read, String<Dna5> 
     else if (x1 < x2 && y1 < y2)
     {
         int64_t danc = x1 - x2 - y1 + y2;
-        if (std::abs(danc) > gap_parms.thd_mg1_danc_indel) //ins/del signal
+        if (std::abs(danc) > gap_parms.thd_mg1_danc_indel) //signal of ins/del 
         {
-            //!add vars declaration here
-            ChainScoreMetric chn_score1_tmp = gap_parms.chn_score1; //just used to restore the original parms after call mapExtend
-            ChainScoreMetric chn_score2_tmp = gap_parms.chn_score2; //just used to restore the original parms after call mapExtend
+            //!add declaration of variables here
+            ChainScoreMetric chn_score1_tmp = gap_parms.chn_score1; //used to restore the original parms after mapExtend
+            ChainScoreMetric chn_score2_tmp = gap_parms.chn_score2; //used to restore the original parms after mapExtend
             gap_parms.chn_score1.thd_min_chain_len = 1;
             gap_parms.chn_score1.thd_abort_score = 0;
             gap_parms.chn_score1.getScore = &getGapAnchorsChainScore2;
