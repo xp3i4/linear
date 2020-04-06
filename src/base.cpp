@@ -59,7 +59,7 @@ uint64_t _flipCoord (uint64_t coord, uint64_t len, uint64_t strand)
     return len * strand - _nStrand(strand) * coord;
 }
 
-MapParm::MapParm():
+MapParms::MapParms():
         blockSize(base_block_size_),
         delta(base_delta_),
         threshold(base_threshold_),
@@ -78,7 +78,7 @@ MapParm::MapParm():
         senThr(0.8),
         clsThr(0.1)
     {}
-MapParm::MapParm(unsigned bs, unsigned dt, unsigned thr, 
+MapParms::MapParms(unsigned bs, unsigned dt, unsigned thr, 
             unsigned ks, unsigned sl, unsigned st,
             unsigned ad, unsigned mr, unsigned listn,
             unsigned listn2,
@@ -101,7 +101,7 @@ MapParm::MapParm(unsigned bs, unsigned dt, unsigned thr,
         senThr(sent),
         clsThr(clst)
         {} 
-MapParm::MapParm(MapParm & parm):
+MapParms::MapParms(MapParms & parm):
         blockSize(parm.blockSize),
         delta(parm.delta),
         threshold(parm.threshold),
@@ -336,7 +336,7 @@ unsigned Anchors::length()
     return seqan::length(set);
 }
 
-void MapParm::print()
+void MapParms::print()
 {
     std::cerr << "blockSize " << blockSize << std::endl
               << "alpha " << alpha << std::endl

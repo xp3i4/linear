@@ -8,20 +8,19 @@ using namespace seqan;
 
 int process1 (Mapper & mapper, Options & options, int p1)
 {
-    StringSet<FeaturesDynamic> f2;
     StringSet<String<short> > empty_buckets; 
     String<Position<SeqFileIn>::Type>   empty_fin_pos; 
 
     omp_set_num_threads(mapper.getThreads());
-    createFeatures(mapper.getGenomes(), f2, mapper.getFeatureType(), mapper.getThreads());
+    createFeatures(mapper.getGenomes(), mapper.getGenomesFeatures(), 
+        mapper.getFeatureType(), mapper.getThreads());
     mapper.createIndex(0, length(mapper.getGenomes()), false); 
-    return map (mapper, f2, empty_buckets, empty_fin_pos, 0, 0, p1);
+    return map (mapper, empty_buckets, empty_fin_pos, 0, 0, p1);
 }
 
 int process2(Mapper & mapper, Options & options, int p1)
 {
     //init filter mapper
-    StringSet<FeaturesDynamic> f2;
     StringSet<String<short> > buckets;
     String<Position<SeqFileIn>::Type> fin_pos; 
     Options filter_options = options;
@@ -36,8 +35,8 @@ int process2(Mapper & mapper, Options & options, int p1)
     omp_set_num_threads(mapper.getThreads());
     mapper.getIndex().setMIndex(); //enable filter index && disable mapper index (DIndex for filter by default)
     mapper.createIndex(0, length(mapper.getGenomes()), false); 
-    createFeatures(mapper.getGenomes(), f2, mapper.getFeatureType(), mapper.getThreads());
-    filter (mapper, f2, buckets, fin_pos, p1);
+    createFeatures(mapper.getGenomes(), mapper.getGenomesFeatures(), mapper.getFeatureType(), mapper.getThreads());
+    filter (mapper, buckets, fin_pos, p1);
     //<<ddebug
     for (int i = 0; i < length(buckets); i++)
     {
@@ -68,7 +67,7 @@ int process2(Mapper & mapper, Options & options, int p1)
         serr.print_message("\033[0m        ", 0, 1, std::cerr);
         //mapper.
         mapper.createIndex(i, i + 1, false); 
-        map (mapper, f2, buckets, fin_pos, i, 1, p1, f_io_append);
+        map (mapper, buckets, fin_pos, i, 1, p1, f_io_append);
         f_io_append = true;
         std::cerr << "\n";
     }
@@ -88,23 +87,27 @@ void p_PrintCordsApf(CordsSetType & cords,
     print_cords_apf(cords, genomes, reads, genomesId, readsId, of);
 }
 void p_PrintBamLinksSam()
+{
+
+}
 int process3(Mapper & mapper, Options & options, int p1)
 {
     dout << "p3" << "\n";
-    StringSet<FeaturesDynamic> f2;
     StringSet<String<short> > empty_buckets; 
     String<Position<SeqFileIn>::Type>   empty_fin_pos; 
     omp_set_num_threads(mapper.getThreads());
     mapper.initBuffers(2, 2);
-    P_Tasks p_tasks(mapper.getPReadsBuffer(), mapper.getPReadsIdBuffer(), mapper.getPCordsBuffer(),
+    P_Tasks p_tasks(mapper.getPReadsBuffer(), mapper.getPReadsIdBuffer(), 
+        mapper.getPCords1Buffer(), mapper.getPCords2Buffer(),
         mapper.getPBamLinksBuffer(), mapper.getGPaths(), mapper.getRPaths(), mapper.getThreads());
     P_Parms p_parms;
-    //omp_set_num_threads(mapper.getThreads());
-    //createFeatures(mapper.getGenomes(), f2, mapper.getFeatureType(), mapper.getThreads());
-    //mapper.createIndex(0, length(mapper.getGenomes()), false); 
-    #pragma  omp parallel
+    omp_set_num_threads(mapper.getThreads());
+    createFeatures(mapper.getGenomes(), mapper.getGenomesFeatures(), mapper.getFeatureType(), mapper.getThreads());
+    mapper.createIndex(0, length(mapper.getGenomes()), false); 
+    //std::cerr << "process3 done \n";
+    #pragma omp parallel
     {
-        p_ThreadProcess(p_tasks, p_parms, omp_get_thread_num());
+        p_ThreadProcess(p_tasks, p_parms, mapper, omp_get_thread_num());
     }
     return 0;
 }

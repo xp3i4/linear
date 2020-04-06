@@ -3,7 +3,7 @@
 #include <ctime>
 #include "cords.h"
 #include "pmpfinder.h"
-#include "gap.h"
+//#include "gap.h"
 #include "align_interface.h"
 #include "mapper.h"
 //#include "test_units.h"
@@ -12,7 +12,7 @@ using namespace seqan;
 using std::cerr;
 
 //efficient 
-MapParm parm1 ( 
+MapParms parm1 ( 
         base_block_size_,     //blockSize,
         //Const_::_DELTA,          //delta(Const_::_DELTA),
         64,                          //delta
@@ -34,7 +34,7 @@ MapParm parm1 (
 ); 
 
 //normal
-MapParm parm0 ( 
+MapParms parm0 ( 
         base_block_size_,     //blockSize,
         base_delta_,          //delta(Const_::_DELTA),
         base_threshold_,     //threshold(Const_::_THRESHOLD),
@@ -56,7 +56,7 @@ MapParm parm0 (
 ); 
 
 //sensitive
-MapParm parm2 ( 
+MapParms parm2 ( 
         base_block_size_,     //blockSize,
         //Const_::_DELTA,          //delta(Const_::_DELTA),
         64,                      //delta
@@ -80,7 +80,7 @@ MapParm parm2 (
 ); 
 
 
-MapParm parmt ( 
+MapParms parmt ( 
         base_block_size_,     //blockSize,
         base_delta_,          //delta(Const_::_DELTA),
         base_threshold_,     //threshold(Const_::_THRESHOLD),
@@ -128,6 +128,7 @@ struct F_Map_
 
 Mapper::Mapper(Options & options):
                record(options),
+               gap_parms(0.1),
                index_dynamic(getGenomes())
 {
     loadOptions(options);
@@ -146,17 +147,17 @@ void Mapper::loadOptions(Options & options)
     {
         case 0: 
         {
-            parm = parm0; //normal
+            map_parms = parm0; //normal
             break;
         }
         case 1:
         {
-            parm =  parm1; //fast
+            map_parms =  parm1; //fast
             break;
         }
         case 2:
         {
-            parm = parm2; //sensitive
+            map_parms = parm2; //sensitive
             break;
         }
     }
@@ -268,53 +269,111 @@ void Mapper::clearIndex()
 }
 
 //=== pipeline2 of parallel buffer 
-P_ReadsBuffer & Mapper::getPReadsBuffer()
+
+int Mapper::p_calRecords(int in_id, int out_id) 
 {
-    return reads_buffer;
-}
-P_ReadsIdsBuffer & Mapper::getPReadsIdBuffer()
-{
-    return reads_ids_buffer;
-}
-P_CordsBuffer & Mapper::getPCordsBuffer()
-{
-    return cords_buffer;
-}
-P_BamLinkBuffer & Mapper::getPBamLinksBuffer()
-{
-    return bam_link_buffer;
+    StringSet<String<Dna5> > & reads = reads_buffer[in_id];
+    StringSet<CharString> & reads_id = reads_ids_buffer[in_id]; 
+    StringSet<String<uint64_t> > & cords_str = cords1_buffer[out_id];
+    StringSet<String<uint64_t> > & cords_end = cords2_buffer[out_id];
+    StringSet<String<BamAlignmentRecordLink> > & bam_records = bam_link_buffer[out_id];
+    clear(cords_str);
+    clear(cords_end);
+    clear(bam_records);
+    resize(cords_str, length(reads));
+    resize(cords_end, length(reads));
+    resize(bam_records, length(reads));
+
+    Anchors anchors;
+    String<uint64_t> crhit;
+    String<Dna5> comStr; //complement revers of read seq
+    String<UPair> apx_gaps; 
+    StringSet<String<uint64_t> > clips;
+    StringSet<FeaturesDynamic> f1;
+    StringSet<FeaturesDynamic> & f2 = this->getGenomesFeatures();
+    unsigned feature_window_size = getFeatureWindowSize(f2);
+    float thd_err_rate = 0.2;    //todo::wrapper parms here
+    uint thd_min_read_len = 200; //todo::wrapper parms here
+
+    resize(f1, 2);
+    f1[0].init(f2[0].fs_type);
+    f1[1].init(f2[0].fs_type);
+    resize (clips, length(cords_str));
+    int f_chain = fm_handler_.isApxChain(f_map) ? 1 : 0; 
+    for (unsigned j = 0; j < length(reads); j++)
+    {
+        if (length(reads[j]) > thd_min_read_len)
+        {
+            _compltRvseStr(reads[j], comStr);
+            createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
+            createFeatures(begin(comStr), end(comStr), f1[1]);
+            apxMap(this->getIndex(), reads[j], anchors, this->getMapParms(), crhit, f1, f2, apx_gaps, cords_str[j], f_chain);
+            if (fm_handler_.isMapGap(f_map))
+            {
+                //<<debug
+                gap_parms.read_id = reads_id[j];
+                //>>debug
+                mapGaps(this->getGenomes(), reads[j], comStr, cords_str[j], cords_end[j], clips[j], apx_gaps, f1, f2, gap_len_min, feature_window_size, thd_err_rate, this->getGapParms());
+            }
+            if (fm_handler_.isAlign(f_map))
+            {
+                align_cords(this->getGenomes(), reads[j], comStr, cords_str[j], bam_records[j]);
+                //check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
+            }
+        }
+    } 
+    return 0;
 }
 
-void Mapper::initBuffers(int reads_buffer_size, int cords_buffer_size)
+int Mapper::p_printResults(int it1, int it2)
 {
-    reads_buffer.resize(reads_buffer_size);
-    reads_ids_buffer.resize(reads_buffer_size);
-    cords_buffer.resize(cords_buffer_size);
-    bam_link_buffer.resize(cords_buffer_size);
-    //p_reads_ids_buffer.resize(read_buffer_size);
+    print_mapper_results(*this, 1, it1, it2);
+    return 0;
 }
 
 /*----------  Wrapper of file I/O   ----------*/
-int print_cords_apf(Mapper & mapper)
+int print_cords_apf(Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
 {
-    print_cords_apf(mapper.getCords(), 
-                    mapper.getGenomes(),
-                    mapper.getReads(),
-                    mapper.getGenomesId(),
-                    mapper.getReadsId(),
-                    mapper.getOf()
-                );
+    if (f_p_mapper) //P buffer enabled
+    {
+        print_cords_apf(mapper.getPCords1Buffer()[p_out_id],
+                        mapper.getGenomes(),
+                        mapper.getPReadsBuffer()[p_in_id],
+                        mapper.getGenomesId(),
+                        mapper.getPReadsIdBuffer()[p_in_id],
+                        mapper.getOf());
+    }
+    else
+    {
+        print_cords_apf(mapper.getCords(), 
+                        mapper.getGenomes(),
+                        mapper.getReads(),
+                        mapper.getGenomesId(),
+                        mapper.getReadsId(),
+                        mapper.getOf());
+    }
     return 0;
 }
-int print_align_sam (Mapper & mapper)
+int print_align_sam (Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
 {
-    print_align_sam (mapper.getGenomes(),
-                     mapper.getGenomesId(),
-                     mapper.getReadsId(),
-                     mapper.getBamRecords(),
-                     mapper.getOf(),
-                     mapper.isOfNew()
-                     );
+    if (f_p_mapper)
+    {
+        print_align_sam(mapper.getGenomes(),
+                        mapper.getGenomesId(),
+                        mapper.getPReadsIdBuffer()[p_in_id],
+                        mapper.getPBamLinksBuffer()[p_out_id],
+                        mapper.getOf(),
+                        mapper.isOfNew());
+    }
+    else
+    {
+        print_align_sam (mapper.getGenomes(),
+                         mapper.getGenomesId(),
+                         mapper.getReadsId(),
+                         mapper.getBamRecords(),
+                         mapper.getOf(),
+                         mapper.isOfNew());  
+    }
     return 0;
 }
 int print_clips_gvf(Mapper & mapper)
@@ -325,23 +384,41 @@ int print_clips_gvf(Mapper & mapper)
                      mapper.getOf());
     return 0;
 }
-int print_cords_sam(Mapper & mapper)
+int print_cords_sam(Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
 {
 //    uint64_t thd_large_X = 80; //cigar containing X > this will be clipped into 2 records
     uint64_t thd_large_X = 8000; //cigar containing X > this will be clipped into 2 records
-    print_cords_sam(mapper.getCords(),
-                    mapper.getCords2(),
-                    mapper.getBamRecords(),
-                    mapper.getGenomesId(),
-                    mapper.getReadsId(),
-                    mapper.getGenomes(),
-                    mapper.getReads(),
-                    mapper.getCordSize(),
-                    mapper.getOf(),
-                    thd_large_X,
-                    mapper.getThreads(),
-                    mapper.isOfNew()
-        );
+    //todo:: fix this parm, too large
+    if (f_p_mapper)
+    {
+        print_cords_sam(mapper.getPCords1Buffer()[p_out_id],
+                        mapper.getPCords2Buffer()[p_out_id],
+                        mapper.getPBamLinksBuffer()[p_out_id],
+                        mapper.getGenomesId(),
+                        mapper.getPReadsIdBuffer()[p_in_id],
+                        mapper.getGenomes(),
+                        mapper.getPReadsBuffer()[p_in_id],
+                        mapper.getCordSize(),
+                        mapper.getOf(),
+                        thd_large_X,
+                        mapper.getThreads(),
+                        mapper.isOfNew());
+    }
+    else
+    {
+        print_cords_sam(mapper.getCords(),
+                        mapper.getCords2(),
+                        mapper.getBamRecords(),
+                        mapper.getGenomesId(),
+                        mapper.getReadsId(),
+                        mapper.getGenomes(),
+                        mapper.getReads(),
+                        mapper.getCordSize(),
+                        mapper.getOf(),
+                        thd_large_X,
+                        mapper.getThreads(),
+                        mapper.isOfNew());
+    }
     return 0;
 }
 /**
@@ -367,12 +444,14 @@ void close_mapper_of (Mapper & mapper)
 /** 
  * Print main apf sam and gvf
  */
-int print_mapper_results(Mapper & mapper) 
+int print_mapper_results(Mapper & mapper, 
+    int f_p_mapper, int p_in_id, int p_out_id) //parms to enable P_Mapper
 {
     ///.apf
     std::string file1 = mapper.getOutputPrefix() + ".apf";
+    std::cout << "file ====== "  << "\n";
     open_mapper_of (mapper, file1);
-    print_cords_apf(mapper);
+    print_cords_apf(mapper, f_p_mapper, p_in_id, p_out_id);
     close_mapper_of(mapper);
     ///.gvf
     /*
@@ -389,11 +468,11 @@ int print_mapper_results(Mapper & mapper)
     {
         if (fm_handler_.isAlign(mapper.getMapFlag()))
         {
-            print_align_sam(mapper);
+            print_align_sam(mapper, f_p_mapper, p_in_id, p_out_id);
         }
         else
         {
-            print_cords_sam (mapper);
+            print_cords_sam(mapper, f_p_mapper, p_in_id, p_out_id);
         }
     }
     close_mapper_of(mapper);
@@ -449,7 +528,7 @@ int map_(IndexDynamic & index,
          StringSet<FeaturesDynamic > & f2,
          StringSet<String<Dna5> > & reads,
          StringSet<CharString> & readsId,
-         MapParm & mapParm,
+         MapParms & mapParm,
          StringSet<String<uint64_t> > & cords_str,
          StringSet<String<uint64_t> > & cords_end,
          StringSet<String<uint64_t> > & clips,
@@ -466,7 +545,7 @@ int map_(IndexDynamic & index,
     float cordThr = 0.3 / feature_window_size; //cords cover length < are aborted
     uint thd_min_read_len = 200;
     //todo::tune the cordThr try to merge cords of blocks 
-    MapParm complexParm = mapParm;
+    MapParms complexParm = mapParm;
     complexParm.alpha = complexParm.alpha2;
     complexParm.listN = complexParm.listN2;
     String<uint64_t> gap_len;
@@ -518,14 +597,13 @@ int map_(IndexDynamic & index,
         std::cout << "readid " << j << readsId[j] << "\n\n";
         double t1 = sysTime ();
         red_len[thd_id] += length(reads[j]);
-        float cordLenThr = length(reads[j]) * cordThr;
         
         if (length(reads[j]) > thd_min_read_len)
         {
             _compltRvseStr(reads[j], comStr);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
             createFeatures(begin(comStr), end(comStr), f1[1]);
-            apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordLenThr, f_chain);
+            apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], f_chain);
             if (fm_handler_.isMapGap(f_map))
                 {
                 //<<debug
@@ -568,7 +646,6 @@ int map_(IndexDynamic & index,
    in the same way the function filter() did. Otherwise the @buckets can't work properly.
  */
 int map(Mapper & mapper, 
-        StringSet<FeaturesDynamic> & f2, 
         StringSet<String<short> > & buckets, 
         String<Position<SeqFileIn>::Type> & fin_pos,
         int gid, 
@@ -631,10 +708,10 @@ int map(Mapper & mapper,
             time1 = sysTime() - time1;
             double time2 = sysTime();
             map_(mapper.getIndex(), 
-                 f2, 
+                 mapper.getGenomesFeatures(),
                  mapper.getReads(), 
                  mapper.getReadsId(),
-                 mapper.mapParm(), 
+                 mapper.getMapParms(), 
                  mapper.getCords(),  //cords_str 
                  mapper.getCords2(), //cords_end
                  mapper.getClips(),
@@ -685,9 +762,8 @@ int map(Mapper & mapper,
 }
 /*
  * parallel io with dynamic balancing task scheduling
- */
+ *
 int map(Mapper & mapper, 
-        StringSet<FeaturesDynamic> & f2, 
         StringSet<String<short> > & buckets, 
         String<Position<SeqFileIn>::Type> & fin_pos,
         P_Tasks & p_tasks,
@@ -705,6 +781,7 @@ int map(Mapper & mapper,
 }
     return 0;
 }
+*/
 //Shortcut called within filter function to marked the genome requiring map
 //@bucket[i][j] == 1:the the ith read should map to the jth genome; otherwise not
 void append_genome_bucket(StringSet<String<short> > & buckets, 
@@ -726,7 +803,7 @@ void append_genome_bucket(StringSet<String<short> > & buckets,
 int filter_(IndexDynamic & index,
             StringSet<FeaturesDynamic > & f2,
             StringSet<String<Dna5> > & reads,
-            MapParm & mapParm,
+            MapParms & mapParm,
             StringSet<String<uint64_t> > & cords_str,
             StringSet<String<uint64_t> > & cords_end,
             StringSet<String<uint64_t> > & clips,
@@ -741,7 +818,7 @@ int filter_(IndexDynamic & index,
     float cordThr = 0.3 / window_size; //cords cover length < are aborted
     uint thd_min_read_len = 200;
     //todo::tune the cordThr try to merge cords of blocks 
-    MapParm complexParm = mapParm;
+    MapParms complexParm = mapParm;
     String<uint64_t> gap_len;
     String<uint64_t> red_len;
     resize (gap_len, threads, 0);
@@ -776,13 +853,12 @@ int filter_(IndexDynamic & index,
     {
         double t1 = sysTime ();
         red_len[thd_id] += length(reads[j]);
-        float cordLenThr = length(reads[j]) * cordThr;
         if (length(reads[j]) > thd_min_read_len)
         {
             _compltRvseStr(reads[j], comStr);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
             createFeatures(begin(comStr), end(comStr), f1[1]);
-            apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordLenThr, f_chain);
+            apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], f_chain);
             //filterGenomes(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordLenThr, f_chain);
         }
         c += 1;
@@ -802,7 +878,6 @@ int filter_(IndexDynamic & index,
  * Filter control interface
  */
 int filter(Mapper & mapper, 
-          StringSet<FeaturesDynamic> f2, 
           StringSet<String<short> > & buckets, 
           String<Position<SeqFileIn>::Type> & fin_pos, int p1)
 {
@@ -851,9 +926,9 @@ int filter(Mapper & mapper,
             time1 = sysTime() - time1;
             double time2 = sysTime();
             filter_(mapper.getIndex(), 
-                 f2, 
+                mapper.getGenomesFeatures(),
                  mapper.getReads(), 
-                 mapper.mapParm(), 
+                 mapper.getMapParms(), 
                  mapper.getCords(),  //cords_str 
                  mapper.getCords2(), //cords_end
                  mapper.getClips(),

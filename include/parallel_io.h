@@ -43,7 +43,7 @@ class P_Buffer
     String<int> buffer_status;
     int it_in;
     int it_out;
-    int CONST_F_PROTECTED; //it_in or it_out can't access or skip protected variables;
+    int CONST_F_PROTECTED; //it_in or it_out is not allowed to access/skip protected variables;
 public:
     T & operator [] (int i){return buffer[i];}
     T & in() {return buffer[it_in];}    //return the T for input
@@ -98,7 +98,7 @@ struct P_Parms
 struct P_Task{
     //all input buffers are supposed to have the same length. This applies to the output buffers too.
     String<int> p_ins; //points to i_th element in buffer(input) for calculation
-    String<int> p_outs; //points to cords and bam for output result
+    String<int> p_outs; //points to cords and bam for buffering result during the calculation
     int task_type;
     int thread_id;
     P_Task();
@@ -108,10 +108,11 @@ struct P_Tasks{
     //buffers
     P_ReadsBuffer * p_reads_buffer;
     P_ReadsIdsBuffer * p_reads_ids_buffer;
-    P_CordsBuffer * p_cords_buffer;
+    P_CordsBuffer * p_cords1_buffer; //cords_str
+    P_CordsBuffer * p_cords2_buffer; //cords_end
     P_BamLinkBuffer * p_bam_link_buffer;
 
-    //settings of task of each thread
+    //tasks of each thread : tasks[thread_id] 
     String<P_Task> tasks;
 
     //critical resources
@@ -119,8 +120,8 @@ struct P_Tasks{
     StringSet<std::string> paths2;
     int paths1_it;
     int paths2_it;
-    int assign_it2; //iter to read ready for assignment for calculatation
-    int assign_it3;
+    int assign_it2; //iter to read buffer ready for assignment
+    int assign_it3; //iter to cords1 2 and bam_buffer
     int sgn_request;
     int sgn_fetch;
     int sgn_fetch_end;
@@ -130,7 +131,12 @@ struct P_Tasks{
     seqan::SeqFileIn fin;
     std::ofstream fout;
 
-    P_Tasks(P_ReadsBuffer &, P_ReadsIdsBuffer &, P_CordsBuffer &, P_BamLinkBuffer &, StringSet<std::string> &, StringSet<std::string> &, int);
+    P_Tasks(P_ReadsBuffer &, P_ReadsIdsBuffer &, P_CordsBuffer &, 
+        P_CordsBuffer &, P_BamLinkBuffer &, StringSet<std::string> &, 
+        StringSet<std::string> &, int);
+    //iterator
+    void nextAssignIt2(){p_reads_buffer->nextIt(assign_it2);}
+    void nextAssignIt3(){p_cords1_buffer->nextIt(assign_it3);}
     //modifier
     void setTaskWait (int thread_id);
     void setTaskFetchReads(int thread_id);
@@ -159,22 +165,29 @@ struct P_Tasks{
 int p_FetchReads(P_Tasks & p_tasks);
 int p_CalRecords();
 int p_PrintResults();
-int p_ThreadProcess(P_Tasks & p_tasks, P_Parms p_parms,
-
-                    int thread_id);
 //Wrapper class to abstract two operations
 class P_Mapper
 {
 protected:
     P_ReadsBuffer reads_buffer;
     P_ReadsIdsBuffer reads_ids_buffer; 
-    P_CordsBuffer cords_buffer;
+    P_CordsBuffer cords1_buffer;
+    P_CordsBuffer cords2_buffer;
     P_BamLinkBuffer bam_link_buffer;
-public:
-    calRecords();
-    printResults();
-}
 
+public:
+    P_ReadsBuffer & getPReadsBuffer();
+    P_ReadsIdsBuffer & getPReadsIdBuffer();
+    P_CordsBuffer & getPCords1Buffer();
+    P_CordsBuffer & getPCords2Buffer();
+    P_BamLinkBuffer & getPBamLinksBuffer();
+    void initBuffers(int reads_buffer_size, int cords_buffer_size);
+
+    virtual int p_calRecords(int, int){}; //input: in_buffer_id, out_buffer_id
+    virtual int p_printResults(int, int){};
+};
+
+int p_ThreadProcess(P_Tasks & p_tasks, P_Parms p_parms, P_Mapper & p_mapper, int thread_id);
 /*----------  Global utilities  ----------*/
 //None
 

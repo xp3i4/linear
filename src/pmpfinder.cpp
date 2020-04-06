@@ -1162,8 +1162,7 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
  * endCord for double strand index
  */
  bool endCord(String<uint64_t> & cord,
-              unsigned & preCordStart,
-              float const & thd_min_block_len)
+              unsigned & preCordStart)
 {
     _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);   
     _DefaultHit.setBlockEnd(back(cord));
@@ -1233,8 +1232,7 @@ bool path_dst_1(typename Iterator<String<uint64_t> >::Type hitBegin,
                 String<uint64_t> & cords,
                 uint64_t read_str, //required to be on the forward strand
                 uint64_t read_end, // ...forward strand
-                uint64_t read_len,
-                float const & thd_min_block_len)
+                uint64_t read_len)
 {
     if (hitBegin > hitEnd)
     {
@@ -1258,7 +1256,7 @@ bool path_dst_1(typename Iterator<String<uint64_t> >::Type hitBegin,
         }
         while (nextCord(it, hitEnd, f1, f2, preBlockPtr, cords, read_str, read_end, read_len, thd_cord_size));
         set_cord_end (back(cords));
-        return endCord(cords, preBlockPtr, thd_min_block_len);   
+        return endCord(cords, preBlockPtr);   
     }
     set_cord_end (back(cords));
     return false;
@@ -1274,8 +1272,7 @@ int path_dst_2(typename Iterator<String<uint64_t> >::Type hitBegin,
                String<uint64_t> & cords,
                uint64_t read_str, //required to be on the forward strand
                uint64_t read_end, // ...forward strand
-               uint64_t read_len,
-               float const & thd_min_block_len)
+               uint64_t read_len)
 {
     typedef Iterator<String<uint64_t> >::Type Iter; 
     if (hitBegin >= hitEnd - 1) //at leat 2 patterns
@@ -1409,19 +1406,18 @@ bool path_dst(String<uint64_t> & hits,
               uint64_t read_str,
               uint64_t read_end,
               uint64_t read_len,
-              int alg_type,
-              float const & thd_min_block_len)
+              int alg_type)
 {
     if (isHitsEmpty(hits)) 
     {
         return true;
     }
     if (alg_type == 1){
-        return path_dst_1 (beginHits(hits), endHits(hits), f1, f2, cords, read_str, read_end, read_len, thd_min_block_len);
+        return path_dst_1 (beginHits(hits), endHits(hits), f1, f2, cords, read_str, read_end, read_len);
     }
     else if (alg_type == 2){
        _filterHits(hits, f1, f2);
-       path_dst_2 (beginHits(hits), endHits(hits), f1, f2, cords, read_str, read_end, read_len, thd_min_block_len);
+       path_dst_2 (beginHits(hits), endHits(hits), f1, f2, cords, read_str, read_end, read_len);
     }
     return 0;
 }
@@ -1693,7 +1689,7 @@ unsigned getDIndexMatchAll (DIndex & index,
                             String<uint64_t> & set,
                             uint64_t read_str,   //map [read_str, read_end) of read
                             uint64_t read_end,
-                            MapParm & mapParm)
+                            MapParms & mapParm)
 {
     int dt = 0;
     LShape shape(index.getShape());
@@ -1766,7 +1762,7 @@ unsigned getDIndexMatchAll (DIndex & index,
                            String<uint64_t> & set,
                            uint64_t map_str,
                            uint64_t map_end,
-                           MapParm & mapParm)
+                           MapParms & mapParm)
 {   
     int dt = 0;
     LShape shape(index.shape);
@@ -1987,7 +1983,7 @@ uint64_t filterAnchors(Anchors & anchors, uint64_t shape_len, uint64_t thd_ancho
     return 0;
 }
 
-uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read_str, uint64_t read_end, MapParm & mapParm)
+uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read_str, uint64_t read_end, MapParms & mapParm)
 {
     float thd_err_rate = 0.2;
     float thd_anchor_accept_dens = 0.001; //todo::tune err, kmer step related
@@ -2048,7 +2044,7 @@ uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read
     return 0;
 }
 
-uint64_t getDHitList(String<uint64_t> & hits, String<int64_t> & list, Anchors & anchors, MapParm & mapParm, int thd_best_n)
+uint64_t getDHitList(String<uint64_t> & hits, String<int64_t> & list, Anchors & anchors, MapParms & mapParm, int thd_best_n)
 {
     uint64_t mask = (1ULL << 20) - 1;
     if (!empty(list))
@@ -2088,7 +2084,7 @@ uint64_t getDHitList(String<uint64_t> & hits, String<int64_t> & list, Anchors & 
     }
 }
 
-uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read_end, MapParm & mapParm, String<uint64_t> & hit, int thd_best_n)
+uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read_end, MapParms & mapParm, String<uint64_t> & hit, int thd_best_n)
 {
     String <int64_t> list;
     double t1 = sysTime();
@@ -2276,7 +2272,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
                        Anchors & anchors,
                        uint64_t map_str,
                        uint64_t map_end,
-                       MapParm & mapParm,
+                       MapParms & mapParm,
                        String<uint64_t> & hits,
                        int alg_type,
                        int thd_best_n)
@@ -2328,7 +2324,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
 uint64_t apxMap_ (IndexDynamic & index,
                   String<Dna5> & read,
                   Anchors & anchors,
-                  MapParm & mapParm,
+                  MapParms & mapParm,
                   String<uint64_t> & hits, 
                   StringSet<FeaturesDynamic> & f1,
                   StringSet<FeaturesDynamic> & f2,
@@ -2336,7 +2332,6 @@ uint64_t apxMap_ (IndexDynamic & index,
                   uint64_t map_str,
                   uint64_t map_end,
                   int alg_type,
-                  float cordLenThr,
                   int thd_best_n) //flag if chain_blocks
 {
     clear (hits);
@@ -2345,20 +2340,19 @@ uint64_t apxMap_ (IndexDynamic & index,
     mnMapReadList(index, read, anchors, map_str, map_end, mapParm, hits, alg_type, thd_best_n);
     uint64_t read_str = get_cord_y(map_str);
     uint64_t read_end = get_cord_y(map_end);
-    path_dst(hits, f1, f2, cords, read_str, read_end, length(read), alg_type, cordLenThr);
+    path_dst(hits, f1, f2, cords, read_str, read_end, length(read), alg_type);
     return 0;
 }
 
 uint64_t apxMap (IndexDynamic & index,
                  String<Dna5> & read,
                  Anchors & anchors,
-                 MapParm & mapParm,
+                 MapParms & mapParm,
                  String<uint64_t> & hit, 
                  StringSet<FeaturesDynamic> & f1,
                  StringSet<FeaturesDynamic> & f2,
                  String<UPair> & apx_gaps,
                  String<uint64_t> & cords, 
-                 float cordLenThr,
                  int f_chain)
 {
     double tts = sysTime();
@@ -2372,8 +2366,8 @@ uint64_t apxMap (IndexDynamic & index,
     clear(apx_gaps);
     if (f_chain)
     {
-        MapParm mapParm1 = mapParm;
-        MapParm mapParm2 = mapParm;
+        MapParms mapParm1 = mapParm;
+        MapParms mapParm2 = mapParm;
 
         mapParm2.alpha = 7;
         mapParm2.listN = mapParm2.listN2;
@@ -2382,7 +2376,7 @@ uint64_t apxMap (IndexDynamic & index,
         uint64_t map_str = 0ULL;
         uint64_t map_end = create_cord (MAX_CORD_ID, MAX_CORD_X, length(read), 0);
         double t1 = sysTime();
-        apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, map_str, map_end, alg_type, cordLenThr, thd_best_n);
+        apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, map_str, map_end, alg_type, thd_best_n);
         t1 = sysTime() - t1;
         double t2 = sysTime();
         String<UPair> str_ends;
@@ -2400,7 +2394,7 @@ uint64_t apxMap (IndexDynamic & index,
             thd_best_n = 1; //best hit only
             map_str =  y1; 
             map_end =  create_cord(MAX_CORD_ID, MAX_CORD_X, y2, 0);
-            //apxMap_(index, read, anchors, mapParm2, hit, f1, f2, cords, map_str, map_end, alg_type, cordLenThr, thd_best_n);
+            //apxMap_(index, read, anchors, mapParm2, hit, f1, f2, cords, map_str, map_end, alg_type, thd_best_n);
         }
         
         clear (str_ends);
@@ -2415,17 +2409,17 @@ uint64_t apxMap (IndexDynamic & index,
     else
     {
         float senThr = mapParm.senThr / thd_cord_size;  
-        MapParm mapParm1 = mapParm;
-        MapParm mapParm2 = mapParm;
+        MapParms mapParm1 = mapParm;
+        MapParms mapParm2 = mapParm;
         mapParm2.alpha = mapParm2.alpha2;
         mapParm2.listN = mapParm2.listN2;
 
         int alg_type = 1;
-        apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, 0, length(read), alg_type, cordLenThr, thd_best_n);
+        apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, 0, length(read), alg_type, thd_best_n);
         if (_DefaultCord.getMaxLen(cords) < length(read) * senThr)
         {
             clear(cords);
-            apxMap_ (index, read, anchors, mapParm2, hit, f1, f2, cords, 0, length(read), alg_type, cordLenThr, thd_best_n);
+            apxMap_ (index, read, anchors, mapParm2, hit, f1, f2, cords, 0, length(read), alg_type, thd_best_n);
         }   
         clean_blocks_ (cords, thd_drop_len);
     }
@@ -2448,22 +2442,21 @@ uint64_t apxMap (IndexDynamic & index,
 uint64_t filterGenomes (IndexDynamic & index,
                  String<Dna5> & read,
                  Anchors & anchors,
-                 MapParm & mapParm,
+                 MapParms & mapParm,
                  String<uint64_t> & hit, 
                  StringSet<FeaturesDynamic> & f1,
                  StringSet<FeaturesDynamic> & f2,
                  String<UPair> & apx_gaps,
                  String<uint64_t> & cords, 
-                 float cordLenThr,
                  int f_chain)
 {
     int thd_best_n = 999; //unlimited best hit;
-    MapParm mapParm1 = mapParm;
-    MapParm mapParm2 = mapParm;
+    MapParms mapParm1 = mapParm;
+    MapParms mapParm2 = mapParm;
     mapParm2.alpha = mapParm2.alpha2;
     mapParm2.listN = mapParm2.listN2;
     int alg_type = 1;
-    apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, 0, length(read), alg_type, cordLenThr, thd_best_n);
+    apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, 0, length(read), alg_type,thd_best_n);
     return 0;
 }
 
