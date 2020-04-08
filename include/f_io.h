@@ -94,7 +94,8 @@ void cords2BamLink(String<uint64_t> & cords_str,
 
 void cords2BamLink(StringSet<String<uint64_t> > & cords_str, 
                    StringSet<String<uint64_t> > & cords_end,
-                   StringSet<String<BamAlignmentRecordLink> > & bam_link_records);
+                   StringSet<String<BamAlignmentRecordLink> > & bam_link_records,
+                   int f_parallel);
 
 void print_cords_sam (StringSet<String<uint64_t> > & cordset_str,    
                       StringSet<String<uint64_t> > & cordset_end,    
@@ -107,5 +108,6 @@ void print_cords_sam (StringSet<String<uint64_t> > & cordset_str,
                       std::ofstream & of,
                       uint64_t thd_large_X,
                       unsigned threads,
-                      int f_header);
+                      int f_header,
+                      int f_parallel = 1);
 #endif

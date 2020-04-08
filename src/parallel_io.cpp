@@ -13,6 +13,7 @@ P_Task::P_Task()
 /*----------  Class P_Tasks  ----------*/
 P_Tasks::P_Tasks(P_ReadsBuffer & reads_buffer, 
                  P_ReadsIdsBuffer & reads_ids_buffer, 
+                 P_ReadsPathsBuffer & reads_paths_buffer,
                  P_CordsBuffer & cords1_buffer,  
                  P_CordsBuffer & cords2_buffer,
                  P_BamLinkBuffer & bam_link_buffer, 
@@ -27,6 +28,7 @@ P_Tasks::P_Tasks(P_ReadsBuffer & reads_buffer,
     }
     p_reads_buffer = & reads_buffer;
     p_reads_ids_buffer = & reads_ids_buffer;
+    p_reads_paths_buffer = &reads_paths_buffer;
     p_cords1_buffer = & cords1_buffer;
     p_cords2_buffer = & cords2_buffer;
     p_bam_link_buffer = & bam_link_buffer;
@@ -120,8 +122,8 @@ int P_Tasks::assignCalRecords(P_Parms & p_parms, int thread_id)
     int n = std::min(n_in, n_out);
     for (int i = 0; i < n; i++)
     {
-        appendValue(tasks[thread_id].p_ins, assign_it2); //assign reads
-        appendValue(tasks[thread_id].p_outs, assign_it3); //assign cords and bam_Link
+        appendValue(tasks[thread_id].p_ins, assign_it2); //assign reads block
+        appendValue(tasks[thread_id].p_outs, assign_it3); //assign cords and bam_Link block
         //buffer2.setProtected(assign_it2);
         //Warn here protected must be set before call nextIn to avoid print new added empty buffer.
         buffer31.setProtected(assign_it3); //protect cords1
@@ -131,9 +133,8 @@ int P_Tasks::assignCalRecords(P_Parms & p_parms, int thread_id)
         buffer32.nextIn();
         buffer4.nextIn();
         dout << "acrs2" << assign_it2 << assign_it3 << buffer2.inIt() << buffer31.isEmpty() << "\n";
-        this->nextAssignIt2();
+        this->nextAssignIt2(); //assign_it2 iterator
         this->nextAssignIt3();
-//        buffer32.nextIt(assign_it3);
     }
     int return_val = length(tasks[thread_id].p_ins) ? 0 : 1;
     dout << "acrs1" << length(tasks[thread_id].p_ins) << n << n_in << n_out << "it" << buffer2.inIt() << assign_it2 << buffer2.inIt() << buffer2.outIt() << return_val << "\n";
@@ -165,6 +166,10 @@ P_ReadsIdsBuffer & P_Mapper::getPReadsIdBuffer()
 {
     return reads_ids_buffer;
 }
+P_ReadsPathsBuffer & P_Mapper::getPReadsPathsBuffer()
+{
+    return reads_paths_buffer;
+}
 P_CordsBuffer & P_Mapper::getPCords1Buffer()
 {
     return cords1_buffer;
@@ -181,6 +186,7 @@ void P_Mapper::initBuffers(int reads_buffer_size, int cords_buffer_size)
 {
     reads_buffer.resize(reads_buffer_size);
     reads_ids_buffer.resize(reads_buffer_size);
+    reads_paths_buffer.resize(reads_buffer_size);
     cords1_buffer.resize(cords_buffer_size);
     cords2_buffer.resize(cords_buffer_size);
     bam_link_buffer.resize(cords_buffer_size);
@@ -282,16 +288,15 @@ int p_RequestTask(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_err
 
 int p_FetchReads(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id)
 {
-    P_ReadsIdsBuffer & buffer1 = *p_tasks.p_reads_ids_buffer;
-    P_ReadsBuffer & buffer2 = *p_tasks.p_reads_buffer;
+    P_ReadsIdsBuffer & buffer1 = * p_tasks.p_reads_ids_buffer;
+    P_ReadsBuffer & buffer2 = * p_tasks.p_reads_buffer;
+    P_ReadsPathsBuffer & buffer3 = * p_tasks.p_reads_paths_buffer;
     if (p_tasks.paths2_it >= length(p_tasks.paths2))
     {
-        //dout << "7&&&&&&&&&&&&&&&&&" << "\n";
         p_tasks.sgn_fetch_end = 1;
         return 0;
     }
     std::string file_name = p_tasks.paths2[p_tasks.paths2_it];
-    //dout << "path2" << buffer1.size() << buffer1.inIt() << buffer1.outIt() << p_tasks.paths2_it << length(p_tasks.paths2) << thread_id << file_name << buffer1.isFull() << "\n";
     for (int i = 0; i < p_parms.thd_fetch_num && ! buffer1.isFull(); i++)
     {
         if (!p_tasks.f_fin_open)
@@ -304,7 +309,6 @@ int p_FetchReads(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id)
             }  
             else
             {
-
                 p_tasks.f_fin_open = 1;
             }  
         }
@@ -314,7 +318,7 @@ int p_FetchReads(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id)
         std::ostringstream ss;
         dout << "path2=============" << buffer1.inIt() << buffer1.physicalSize() << thread_id << p_tasks.tasks[0].task_type << p_tasks.tasks[1].task_type << "\n";
         //std::cout << ss.str();
-
+        buffer3.in() = file_name;
         readRecords(buffer1.in(), buffer2.in(), p_tasks.fin, p_parms.thd_buffer_block_size);
         //<<debug
         /*
@@ -328,6 +332,7 @@ int p_FetchReads(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id)
         //>>debug
         buffer1.nextIn();
         buffer2.nextIn();
+        buffer3.nextIn();
         dout << "path3---------------" << buffer1.outIt() << buffer1.inIt() << thread_id << buffer1.isFull() << buffer1.usedSize() << "\n";
         if (atEnd(p_tasks.fin))
         {
@@ -343,17 +348,21 @@ int p_FetchReads(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id)
  */
 int p_CalRecords(P_Tasks & p_tasks, P_Parms & p_parms, P_Mapper & p_mapper, int thread_id)
 {
-    P_ReadsIdsBuffer & buffer1 = * p_tasks.p_reads_ids_buffer;
-    P_ReadsBuffer & buffer2 = * p_tasks.p_reads_buffer;
+    //P_ReadsIdsBuffer & buffer1 = * p_tasks.p_reads_ids_buffer;
+    //P_ReadsBuffer & buffer2 = * p_tasks.p_reads_buffer;
     P_CordsBuffer & buffer31 = * p_tasks.p_cords1_buffer;
     P_CordsBuffer & buffer32 = * p_tasks.p_cords2_buffer;
     P_BamLinkBuffer & buffer4 = * p_tasks.p_bam_link_buffer;
-    if (buffer1.isEmpty() || buffer31.isFull())
+    dout << "pcr2" << buffer31.inIt() << buffer31.outIt() << "\n";
+    /* 
+    if (buffer1.isEmpty() ) //|| buffer31.isFull())
     {
         return 0;   
     }
+    */
     //p_tasks.p_reads_buffer -> nextOut();
     //p_tasks.p_reads_ids_buffer -> nextOut();
+    dout << "pcr1" << "\n";
     for (int i = 0; i < p_tasks.getTaskInBufferLen(thread_id); i++)
     {
         //add cal function here
@@ -364,7 +373,7 @@ int p_CalRecords(P_Tasks & p_tasks, P_Parms & p_parms, P_Mapper & p_mapper, int 
         buffer31.unsetProtected(i_out);
         buffer32.unsetProtected(i_out);
         buffer4.unsetProtected(i_out);
-        dout << "i_out" << i_out << "\n";
+        dout << "i_out" << i_out << buffer31.isProtected(i_out) << "\n";
     }
 
     return 0;
@@ -372,6 +381,7 @@ int p_CalRecords(P_Tasks & p_tasks, P_Parms & p_parms, P_Mapper & p_mapper, int 
 
 int p_PrintResults(P_Tasks & p_tasks, P_Parms p_parms, P_Mapper & p_mapper, int thread_id)
 {   
+    P_ReadsPathsBuffer & buffer0 = * p_tasks.p_reads_paths_buffer;
     P_ReadsIdsBuffer & buffer1 = * p_tasks.p_reads_ids_buffer;
     P_ReadsBuffer & buffer2 = * p_tasks.p_reads_buffer;
     P_CordsBuffer & buffer31 = * p_tasks.p_cords1_buffer;
@@ -386,18 +396,20 @@ int p_PrintResults(P_Tasks & p_tasks, P_Parms p_parms, P_Mapper & p_mapper, int 
     //print result buffer in sequential order (1,2,...)
     for (int i = 0; i < p_parms.thd_print_num && !buffer31.isProtected(buffer31.outIt()) &&
         !buffer32.isProtected(buffer32.outIt()) && !buffer4.isProtected(buffer4.outIt()) 
-        && !buffer31.isEmpty(); i++)
+        && !buffer31.isEmpty() && !buffer32.isEmpty(); i++)
     {
         //add print_function here
         //dout << "p_PrintResults <<<<<<" << buffer1[0][0] << buffer1.outIt() << buffer1.inIt() << "\n";
-        //p_mapper.p_printResults(buffer1.outIt(), buffer31.outIt());
+        p_mapper.p_printResults(buffer1.outIt(), buffer31.outIt());
+        buffer0.nextOut();
         buffer1.nextOut(); //release one block in reads_buffer
         buffer2.nextOut();
         buffer31.nextOut();
         buffer32.nextOut();
         buffer4.nextOut();
+    dout << "ppr2" << buffer31.outIt() << buffer31.inIt() << buffer31.isProtected(buffer31.outIt())<< "\n";
     }
-    dout << "nextIn out" << buffer31.outIt() << buffer31.inIt() << buffer31.isProtected(buffer31.outIt())<< "\n";
+    dout << "ppr3" << buffer31.outIt() << buffer31.inIt() << buffer31.isProtected(buffer31.outIt())<< "\n";
     return 0; 
 }
 

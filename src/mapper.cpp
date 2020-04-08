@@ -327,6 +327,11 @@ int Mapper::p_calRecords(int in_id, int out_id)
 
 int Mapper::p_printResults(int it1, int it2)
 {
+    std::string path = this->getPReadsPathsBuffer()[it1];
+    std::string prefix = getFileName(path, "/", ~0);
+    this->outputPrefix = getFileName(prefix, ".", 0);
+    //prefix = path;
+    std::cout << "reads_path"  << this->outputPrefix << "\n"; // (this->outputPrefix) << "\n";
     print_mapper_results(*this, 1, it1, it2);
     return 0;
 }
@@ -389,8 +394,17 @@ int print_cords_sam(Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
 //    uint64_t thd_large_X = 80; //cigar containing X > this will be clipped into 2 records
     uint64_t thd_large_X = 8000; //cigar containing X > this will be clipped into 2 records
     //todo:: fix this parm, too large
+    int f_parallel = 1;
     if (f_p_mapper)
     {
+        clear(mapper.getPBamLinksBuffer()[p_out_id]);
+        f_parallel = 0;
+        dout << "pcss1" << length(mapper.getPCords1Buffer()[p_out_id])
+                        << length(mapper.getPCords2Buffer()[p_out_id])
+                        << length(mapper.getPBamLinksBuffer()[p_out_id])
+                        << length(mapper.getPReadsIdBuffer()[p_in_id])
+                        << length(mapper.getPReadsIdBuffer()[p_in_id])
+                        << "\n";
         print_cords_sam(mapper.getPCords1Buffer()[p_out_id],
                         mapper.getPCords2Buffer()[p_out_id],
                         mapper.getPBamLinksBuffer()[p_out_id],
@@ -402,10 +416,12 @@ int print_cords_sam(Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
                         mapper.getOf(),
                         thd_large_X,
                         mapper.getThreads(),
-                        mapper.isOfNew());
+                        mapper.isOfNew(),
+                        f_parallel);
     }
     else
     {
+        dout << "pcssd1" << length(mapper.getCords()) << length(mapper.getBamRecords()) << "\n";
         print_cords_sam(mapper.getCords(),
                         mapper.getCords2(),
                         mapper.getBamRecords(),
@@ -417,7 +433,8 @@ int print_cords_sam(Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
                         mapper.getOf(),
                         thd_large_X,
                         mapper.getThreads(),
-                        mapper.isOfNew());
+                        mapper.isOfNew(),
+                        f_parallel);
     }
     return 0;
 }

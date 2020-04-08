@@ -82,6 +82,7 @@ public:
 typedef StringSet<String<Dna5> > * P_P_Reads;
 typedef P_Buffer<StringSet<String<Dna5> > > P_ReadsBuffer;
 typedef P_Buffer<StringSet<CharString> > P_ReadsIdsBuffer;
+typedef P_Buffer<std::string> P_ReadsPathsBuffer;
 typedef P_Buffer<StringSet<String<uint64_t> > > P_CordsBuffer;
 typedef P_Buffer<StringSet<String<BamAlignmentRecordLink> > > P_BamLinkBuffer;
 
@@ -108,6 +109,7 @@ struct P_Tasks{
     //buffers
     P_ReadsBuffer * p_reads_buffer;
     P_ReadsIdsBuffer * p_reads_ids_buffer;
+    P_ReadsPathsBuffer * p_reads_paths_buffer;
     P_CordsBuffer * p_cords1_buffer; //cords_str
     P_CordsBuffer * p_cords2_buffer; //cords_end
     P_BamLinkBuffer * p_bam_link_buffer;
@@ -131,9 +133,9 @@ struct P_Tasks{
     seqan::SeqFileIn fin;
     std::ofstream fout;
 
-    P_Tasks(P_ReadsBuffer &, P_ReadsIdsBuffer &, P_CordsBuffer &, 
-        P_CordsBuffer &, P_BamLinkBuffer &, StringSet<std::string> &, 
-        StringSet<std::string> &, int);
+    P_Tasks(P_ReadsBuffer &, P_ReadsIdsBuffer &, P_ReadsPathsBuffer&, 
+        P_CordsBuffer &, P_CordsBuffer &, P_BamLinkBuffer &, 
+        StringSet<std::string> &, StringSet<std::string> &, int);
     //iterator
     void nextAssignIt2(){p_reads_buffer->nextIt(assign_it2);}
     void nextAssignIt3(){p_cords1_buffer->nextIt(assign_it3);}
@@ -171,6 +173,7 @@ class P_Mapper
 protected:
     P_ReadsBuffer reads_buffer;
     P_ReadsIdsBuffer reads_ids_buffer; 
+    P_ReadsPathsBuffer reads_paths_buffer;
     P_CordsBuffer cords1_buffer;
     P_CordsBuffer cords2_buffer;
     P_BamLinkBuffer bam_link_buffer;
@@ -178,6 +181,7 @@ protected:
 public:
     P_ReadsBuffer & getPReadsBuffer();
     P_ReadsIdsBuffer & getPReadsIdBuffer();
+    P_ReadsPathsBuffer & getPReadsPathsBuffer();
     P_CordsBuffer & getPCords1Buffer();
     P_CordsBuffer & getPCords2Buffer();
     P_BamLinkBuffer & getPBamLinksBuffer();

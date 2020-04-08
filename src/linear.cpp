@@ -98,7 +98,7 @@ int process3(Mapper & mapper, Options & options, int p1)
     omp_set_num_threads(mapper.getThreads());
     mapper.initBuffers(2, 2);
     P_Tasks p_tasks(mapper.getPReadsBuffer(), mapper.getPReadsIdBuffer(), 
-        mapper.getPCords1Buffer(), mapper.getPCords2Buffer(),
+        mapper.getPReadsPathsBuffer(), mapper.getPCords1Buffer(), mapper.getPCords2Buffer(),
         mapper.getPBamLinksBuffer(), mapper.getGPaths(), mapper.getRPaths(), mapper.getThreads());
     P_Parms p_parms;
     omp_set_num_threads(mapper.getThreads());
