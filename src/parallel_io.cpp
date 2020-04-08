@@ -47,6 +47,18 @@ P_Tasks::P_Tasks(P_ReadsBuffer & reads_buffer,
     sgn_all_tasks_end = 0;
     f_fin_open = 0;
 }
+void P_Tasks::nextGroup1In()
+{
+    p_reads_buffer -> nextIn();
+    p_reads_ids_buffer -> nextIn();
+    p_reads_paths_buffer -> nextIn();
+}
+void P_Tasks::nextGroup2In()
+{
+    p_cords1_buffer -> nextIn();
+    p_cords2_buffer -> nextIn();
+    p_bam_link_buffer -> nextIn();
+}
 void P_Tasks::setTaskWait(int thread_id)
 {
     tasks[thread_id].task_type = 1;
@@ -71,6 +83,10 @@ void P_Tasks::setTaskAllEnd()
 {
     atomicCas(sgn_all_tasks_end, 0, 1);
 }
+//void P_Tasks::setAllOutBuffProtected()
+//{
+    //
+//}
 int P_Tasks::isTaskFetchReads(int thread_id)
 {
     return tasks[thread_id].task_type == 2;
@@ -90,6 +106,18 @@ int P_Tasks::isTaskEnd(int thread_id)
 int P_Tasks::isTaskAllEnd()
 {
     return atomicCas(sgn_all_tasks_end, 1, sgn_all_tasks_end); //just get the value atomically 
+}
+int P_Tasks::isAllInBuffsEmpty()
+{
+    return p_reads_buffer -> isEmpty() &&
+           p_reads_ids_buffer -> isEmpty() &&
+           p_reads_paths_buffer -> isEmpty();
+}
+int P_Tasks::isAllOutBuffsEmpty()
+{
+    return p_cords1_buffer -> isEmpty() &&
+           p_cords2_buffer -> isEmpty() &&
+           p_bam_link_buffer -> isEmpty();
 }
 int P_Tasks::getTaskInBufferPtr(int thread_id, int i)
 {
@@ -113,13 +141,19 @@ int P_Tasks::assignCalRecords(P_Parms & p_parms, int thread_id)
     {
         return 1;
     }
+    P_ReadsPathsBuffer & buffer0 = * p_reads_paths_buffer;
+    P_ReadsIdsBuffer &  buffer1 = * p_reads_ids_buffer;
     P_ReadsBuffer &     buffer2 = * p_reads_buffer;
     P_CordsBuffer &     buffer31 = * p_cords1_buffer;
     P_CordsBuffer &     buffer32 = * p_cords2_buffer;
     P_BamLinkBuffer &   buffer4 = * p_bam_link_buffer;
-    int n_in = std::min(buffer2.size(assign_it2, buffer2.inIt()), p_parms.thd_assign_num);
-    int n_out = std::min(buffer31.size() - buffer31.usedSize(), p_parms.thd_assign_num);
-    int n = std::min(n_in, n_out);
+    int n_in0 = buffer0.size(assign_it2, buffer0.inIt());
+    int n_in1 = buffer1.size(assign_it2, buffer1.inIt());
+    int n_in2 = buffer2.size(assign_it2, buffer2.inIt());
+    int n_out1 = buffer31.size() - buffer31.usedSize();
+    int n_out2 = buffer32.size() - buffer32.usedSize();
+    int n_out3 = buffer4.size() - buffer4.usedSize();
+    int n = std::min({n_in0, n_in1, n_in2, n_out1, n_out2, n_out3, p_parms.thd_assign_num});
     for (int i = 0; i < n; i++)
     {
         appendValue(tasks[thread_id].p_ins, assign_it2); //assign reads block
@@ -129,15 +163,16 @@ int P_Tasks::assignCalRecords(P_Parms & p_parms, int thread_id)
         buffer31.setProtected(assign_it3); //protect cords1
         buffer32.setProtected(assign_it3); //protect cords2
         buffer4.setProtected(assign_it3); //protect bam_link
-        buffer31.nextIn();
-        buffer32.nextIn();
-        buffer4.nextIn();
+        //buffer31.nextIn();
+        //buffer32.nextIn();
+        //buffer4.nextIn();
+        this->nextGroup2In();
         dout << "acrs2" << assign_it2 << assign_it3 << buffer2.inIt() << buffer31.isEmpty() << "\n";
         this->nextAssignIt2(); //assign_it2 iterator
         this->nextAssignIt3();
     }
     int return_val = length(tasks[thread_id].p_ins) ? 0 : 1;
-    dout << "acrs1" << length(tasks[thread_id].p_ins) << n << n_in << n_out << "it" << buffer2.inIt() << assign_it2 << buffer2.inIt() << buffer2.outIt() << return_val << "\n";
+    dout << "acrs1" << length(tasks[thread_id].p_ins) << n << "it" << buffer2.inIt() << assign_it2 << buffer2.inIt() << buffer2.outIt() << return_val << "\n";
     return return_val;
 }
 
@@ -262,7 +297,11 @@ int requestNewTask_(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_e
     {
         if (p_tasks.sgn_fetch_end == 1 && 
             p_tasks.p_reads_ids_buffer-> isEmpty() && 
-            p_tasks.p_cords1_buffer -> isEmpty()) // !!!Add here all the conditions of task end !!!
+            p_tasks.p_reads_buffer -> isEmpty() &&
+            p_tasks.p_reads_paths_buffer -> isEmpty() &&
+            p_tasks.p_cords1_buffer -> isEmpty() && // !!!Add here all the conditions of task end !!!
+            p_tasks.p_cords2_buffer -> isEmpty() &&
+            p_tasks.p_bam_link_buffer -> isEmpty())
         {
             dout << "$$$$$$$$$$$$$$$$$$$$$$" << "\n";
             p_tasks.setTaskEnd(thread_id);
@@ -272,6 +311,7 @@ int requestNewTask_(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_e
 }
 /*
  * Tasks main controller
+ * Critical function
  */
 int p_RequestTask(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_error)
 {
@@ -396,7 +436,7 @@ int p_PrintResults(P_Tasks & p_tasks, P_Parms p_parms, P_Mapper & p_mapper, int 
     //print result buffer in sequential order (1,2,...)
     for (int i = 0; i < p_parms.thd_print_num && !buffer31.isProtected(buffer31.outIt()) &&
         !buffer32.isProtected(buffer32.outIt()) && !buffer4.isProtected(buffer4.outIt()) 
-        && !buffer31.isEmpty() && !buffer32.isEmpty(); i++)
+        && !buffer31.isEmpty() && !buffer32.isEmpty() && !buffer4.isEmpty(); i++)
     {
         //add print_function here
         //dout << "p_PrintResults <<<<<<" << buffer1[0][0] << buffer1.outIt() << buffer1.inIt() << "\n";

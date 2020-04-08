@@ -3,10 +3,15 @@
 
 #include <seqan/sequence.h>
 #include "f_io.h"
-
+/*
+ * This is a simple model for parallel I/O buffers.
+ * Restrictions : Only one thread is allowed to input or output at the same time,
+   while parallel of I/O and jobs are allowed. 
+ * Namely one thread fetch read from the disk, 
+   multiple threads for jobs and one thread dump results to the disk simultaneously!
+ */
 using seqan::String;
 /*----------  A wrapper of Random access list  ----------*/
-
 template<class T>
 class RandomList{
     typedef typename std::list<T>::iterator RLIter;
@@ -33,7 +38,9 @@ public:
     RandomList(){}
 };
 /*----------  A wrapper of buffer  ----------*/
-
+//NOTE::!!
+//Functions of P_Buffer are not thread safe for reasons regarding computational performance.
+//Use them carefully!
 template<class T>
 class P_Buffer
 {
@@ -107,9 +114,13 @@ struct P_Task{
 
 struct P_Tasks{
     //buffers
+    //Warn!!::make sure the in and out iterator of the Group are modified 
+    //by at most one function at the same time
+    //Group1:buffers of Input
     P_ReadsBuffer * p_reads_buffer;
     P_ReadsIdsBuffer * p_reads_ids_buffer;
     P_ReadsPathsBuffer * p_reads_paths_buffer;
+    //Group2:buffers of output
     P_CordsBuffer * p_cords1_buffer; //cords_str
     P_CordsBuffer * p_cords2_buffer; //cords_end
     P_BamLinkBuffer * p_bam_link_buffer;
@@ -122,6 +133,8 @@ struct P_Tasks{
     StringSet<std::string> paths2;
     int paths1_it;
     int paths2_it;
+    /*WARN::assign_it only be used in P_Tasks::assignCalRecords; To prevent 
+      synchronization conflicat, Don't use them in other functions.*/
     int assign_it2; //iter to read buffer ready for assignment
     int assign_it3; //iter to cords1 2 and bam_buffer
     int sgn_request;
@@ -139,6 +152,8 @@ struct P_Tasks{
     //iterator
     void nextAssignIt2(){p_reads_buffer->nextIt(assign_it2);}
     void nextAssignIt3(){p_cords1_buffer->nextIt(assign_it3);}
+    void nextGroup1In();
+    void nextGroup2In();
     //modifier
     void setTaskWait (int thread_id);
     void setTaskFetchReads(int thread_id);
@@ -152,6 +167,8 @@ struct P_Tasks{
     int isTaskPrintResults(int thread_id);
     int isTaskEnd(int thread_id);
     int isTaskAllEnd();
+    int isAllInBuffsEmpty();
+    int isAllOutBuffsEmpty();
     //int isReadBufferFull();
     //int isReadBufferEmpty();
     //
