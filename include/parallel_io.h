@@ -96,9 +96,9 @@ typedef P_Buffer<StringSet<String<BamAlignmentRecordLink> > > P_BamLinkBuffer;
 struct P_Parms
 {
     int thd_fetch_num;
-    int thd_buffer_block_size;
     int thd_assign_num;
     int thd_print_num;
+    int thd_buffer_block_size;
     P_Parms();
     void printParms();
 };

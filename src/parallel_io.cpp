@@ -81,7 +81,8 @@ void P_Tasks::setTaskEnd(int thread_id)
 }
 void P_Tasks::setTaskAllEnd()
 {
-    atomicCas(sgn_all_tasks_end, 0, 1);
+    //atomicCas(sgn_all_tasks_end, 0, 1);
+    sgn_all_tasks_end = 1;
 }
 //void P_Tasks::setAllOutBuffProtected()
 //{
@@ -105,7 +106,8 @@ int P_Tasks::isTaskEnd(int thread_id)
 }
 int P_Tasks::isTaskAllEnd()
 {
-    return atomicCas(sgn_all_tasks_end, 1, sgn_all_tasks_end); //just get the value atomically 
+    //return atomicCas(sgn_all_tasks_end, 1, sgn_all_tasks_end); //just get the value atomically 
+    return sgn_all_tasks_end == 1;
 }
 int P_Tasks::isAllInBuffsEmpty()
 {
@@ -177,12 +179,16 @@ int P_Tasks::assignCalRecords(P_Parms & p_parms, int thread_id)
 }
 
 /*----------  Class P_Parms  ----------*/
-
+/*
+ * thd_fetch_num * thd_buffer_block_size reads will be fetched by call p_FetchReads
+   thd_assign_num * thd_buffer_block_size reads will be calculated by call p_CalRecords
+   thd_print_num * thd_buffer_block_size reads will be printed by call p_PrintResults
+ */
 P_Parms::P_Parms():
-    thd_fetch_num(1),
-    thd_buffer_block_size(5),
+    thd_fetch_num(1), //number of blocks of buffer to fetch 
     thd_assign_num(1),
-    thd_print_num(1)
+    thd_print_num(1),
+    thd_buffer_block_size(2) //number of reads once fetched from the file 
     {}
 void P_Parms::printParms()
 {
@@ -243,7 +249,7 @@ int freeCurrentTask_(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_
     if (p_tasks.isTaskFetchReads(thread_id))
     {
         p_tasks.setTaskWait(thread_id);
-        atomicCas(p_tasks.sgn_fetch, 1, 0);
+        p_tasks.sgn_fetch = 0;
         //dout << "tasks=============================" << p_tasks.tasks[thread_id].task_type << "\n";
     }
     else if (p_tasks.isTaskCalRecords(thread_id))
@@ -256,7 +262,7 @@ int freeCurrentTask_(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_
     else if (p_tasks.isTaskPrintResults(thread_id))
     {
         p_tasks.setTaskWait(thread_id);
-        atomicCas(p_tasks.sgn_print, 1, 0);
+        p_tasks.sgn_print = 0;
         //dout << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3" << "\n";
     }
     else
@@ -271,20 +277,26 @@ int freeCurrentTask_(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_
  */
 int requestNewTask_(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_error)
 {
+    if (p_tasks.paths2_it >= length(p_tasks.paths2))
+    {
+        p_tasks.sgn_fetch_end = 1; 
+    }
     if (p_tasks.isTaskAllEnd())  
     {
         p_tasks.setTaskEnd(thread_id);
     }
-    else if (!atomicCas(p_tasks.sgn_fetch_end, 0, p_tasks.sgn_fetch_end) && 
-             !p_tasks.p_reads_buffer->isFull() && 
-             !atomicCas(p_tasks.sgn_fetch, 0, 1))
+    else if (p_tasks.sgn_fetch_end == 0 && 
+             p_tasks.sgn_fetch == 0 &&
+             !p_tasks.p_reads_buffer->isFull())
     {
+        p_tasks.sgn_fetch = 1;
         p_tasks.setTaskFetchReads(thread_id);
     dout << "fetch_t..........." << thread_id << p_tasks.sgn_fetch_end << p_tasks.p_reads_buffer->inIt() << "f" << p_tasks.sgn_fetch << p_tasks.isTaskFetchReads(0) << p_tasks.isTaskFetchReads(1) << "\n";
     }
     else if (!p_tasks.p_cords1_buffer-> isEmpty() &&
-            !atomicCas(p_tasks.sgn_print, 0, 1))
+             p_tasks.sgn_print == 0)
     {
+        p_tasks.sgn_print = 1;
         dout << "is " << p_tasks.p_cords1_buffer->isEmpty() << "\n";
         p_tasks.setTaskPrintResults(thread_id);
     }
@@ -331,11 +343,6 @@ int p_FetchReads(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id)
     P_ReadsIdsBuffer & buffer1 = * p_tasks.p_reads_ids_buffer;
     P_ReadsBuffer & buffer2 = * p_tasks.p_reads_buffer;
     P_ReadsPathsBuffer & buffer3 = * p_tasks.p_reads_paths_buffer;
-    if (p_tasks.paths2_it >= length(p_tasks.paths2))
-    {
-        p_tasks.sgn_fetch_end = 1;
-        return 0;
-    }
     std::string file_name = p_tasks.paths2[p_tasks.paths2_it];
     for (int i = 0; i < p_parms.thd_fetch_num && ! buffer1.isFull(); i++)
     {
@@ -427,10 +434,7 @@ int p_PrintResults(P_Tasks & p_tasks, P_Parms p_parms, P_Mapper & p_mapper, int 
     P_CordsBuffer & buffer31 = * p_tasks.p_cords1_buffer;
     P_CordsBuffer & buffer32 = * p_tasks.p_cords2_buffer;
     P_BamLinkBuffer & buffer4 = * p_tasks.p_bam_link_buffer;
-    if (buffer31.isEmpty())
-    {
-        return 0;
-    }
+
     dout << "ppr1" << p_parms.thd_print_num << buffer31.isProtected(buffer31.outIt()) 
         << buffer31.isEmpty() << buffer31.outIt() << "\n";
     //print result buffer in sequential order (1,2,...)
