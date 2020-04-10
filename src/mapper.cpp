@@ -269,7 +269,10 @@ void Mapper::clearIndex()
 }
 
 //=== pipeline2 of parallel buffer 
-
+void Mapper::initBuffers(int buffer_size1, int buffer_size2, P_Parms & p_parms)
+{
+    P_Mapper::initBuffers(buffer_size1, buffer_size2, getGPaths(), getRPaths(), getThreads(), p_parms);
+}
 int Mapper::p_calRecords(int in_id, int out_id) 
 {
     StringSet<String<Dna5> > & reads = reads_buffer[in_id];

@@ -11,15 +11,15 @@ P_Task::P_Task()
     task_type = 1;
 }
 /*----------  Class P_Tasks  ----------*/
-P_Tasks::P_Tasks(P_ReadsBuffer & reads_buffer, 
-                 P_ReadsIdsBuffer & reads_ids_buffer, 
-                 P_ReadsPathsBuffer & reads_paths_buffer,
-                 P_CordsBuffer & cords1_buffer,  
-                 P_CordsBuffer & cords2_buffer,
-                 P_BamLinkBuffer & bam_link_buffer, 
-                 StringSet<std::string> & g_paths, 
-                 StringSet<std::string> & r_paths, 
-                 int thread_num)
+void P_Tasks::initPTasks(P_ReadsBuffer & reads_buffer, 
+                    P_ReadsIdsBuffer & reads_ids_buffer, 
+                    P_ReadsPathsBuffer & reads_paths_buffer,
+                    P_CordsBuffer & cords1_buffer,  
+                    P_CordsBuffer & cords2_buffer,
+                    P_BamLinkBuffer & bam_link_buffer, 
+                    StringSet<std::string> & g_paths, 
+                    StringSet<std::string> & r_paths, 
+                    int thread_num)
 {
     resize(tasks, thread_num);
     for (int i = 0; i < length(tasks); i++)
@@ -47,6 +47,21 @@ P_Tasks::P_Tasks(P_ReadsBuffer & reads_buffer,
     sgn_all_tasks_end = 0;
     f_fin_open = 0;
 }
+P_Tasks::P_Tasks(P_ReadsBuffer & reads_buffer, 
+                 P_ReadsIdsBuffer & reads_ids_buffer, 
+                 P_ReadsPathsBuffer & reads_paths_buffer,
+                 P_CordsBuffer & cords1_buffer,  
+                 P_CordsBuffer & cords2_buffer,
+                 P_BamLinkBuffer & bam_link_buffer, 
+                 StringSet<std::string> & g_paths, 
+                 StringSet<std::string> & r_paths, 
+                 int thread_num)
+{
+    P_Tasks::initPTasks(reads_buffer, reads_ids_buffer, reads_paths_buffer,
+        cords1_buffer, cords2_buffer, bam_link_buffer, g_paths, r_paths, thread_num);
+}
+P_Tasks::P_Tasks()
+{}
 void P_Tasks::nextGroup1In()
 {
     p_reads_buffer -> nextIn();
@@ -184,12 +199,16 @@ int P_Tasks::assignCalRecords(P_Parms & p_parms, int thread_id)
    thd_assign_num * thd_buffer_block_size reads will be calculated by call p_CalRecords
    thd_print_num * thd_buffer_block_size reads will be printed by call p_PrintResults
  */
-P_Parms::P_Parms():
-    thd_fetch_num(1), //number of blocks of buffer to fetch 
-    thd_assign_num(1),
-    thd_print_num(1),
-    thd_buffer_block_size(2) //number of reads once fetched from the file 
+P_Parms::P_Parms(int x1, int x2, int x3, int x4):
+    thd_fetch_num(x1),
+    thd_assign_num(x2), //number of blocks of buffer to fetch 
+    thd_print_num(x3),
+    thd_buffer_block_size(x4) //number of reads once fetched from the file
     {}
+P_Parms::P_Parms()
+{
+    P_Parms(1, 1, 1, 2);
+}
 void P_Parms::printParms()
 {
     dout << "thd_fetch_num" << thd_fetch_num << "\n";
@@ -199,6 +218,10 @@ void P_Parms::printParms()
 }
 
 /*----------  Class P_Mapper  ----------*/
+P_Tasks & P_Mapper::getPTasks()
+{
+    return p_tasks;
+}
 P_ReadsBuffer & P_Mapper::getPReadsBuffer()
 {
     return reads_buffer;
@@ -223,7 +246,9 @@ P_BamLinkBuffer & P_Mapper::getPBamLinksBuffer()
 {
     return bam_link_buffer;
 }
-void P_Mapper::initBuffers(int reads_buffer_size, int cords_buffer_size)
+void P_Mapper::initBuffers(int reads_buffer_size, int cords_buffer_size,
+        StringSet<std::string> & g_paths, StringSet<std::string> & r_paths, int thread_num,
+        P_Parms & parms)
 {
     reads_buffer.resize(reads_buffer_size);
     reads_ids_buffer.resize(reads_buffer_size);
@@ -231,6 +256,9 @@ void P_Mapper::initBuffers(int reads_buffer_size, int cords_buffer_size)
     cords1_buffer.resize(cords_buffer_size);
     cords2_buffer.resize(cords_buffer_size);
     bam_link_buffer.resize(cords_buffer_size);
+    p_tasks.initPTasks(reads_buffer, reads_ids_buffer, reads_paths_buffer,
+        cords1_buffer, cords2_buffer, bam_link_buffer, g_paths, r_paths, thread_num);
+    p_parms = parms;
     //p_reads_ids_buffer.resize(read_buffer_size);
 }
 
@@ -338,8 +366,9 @@ int p_RequestTask(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_err
     return 1;
 }
 
-int p_FetchReads(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id)
+int p_FetchReads(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
 {
+    P_Tasks & p_tasks = p_mapper.getPTasks(); 
     P_ReadsIdsBuffer & buffer1 = * p_tasks.p_reads_ids_buffer;
     P_ReadsBuffer & buffer2 = * p_tasks.p_reads_buffer;
     P_ReadsPathsBuffer & buffer3 = * p_tasks.p_reads_paths_buffer;
@@ -393,8 +422,9 @@ int p_FetchReads(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id)
 /*
  * Calculate records
  */
-int p_CalRecords(P_Tasks & p_tasks, P_Parms & p_parms, P_Mapper & p_mapper, int thread_id)
+int p_CalRecords(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
 {
+    P_Tasks & p_tasks = p_mapper.getPTasks();
     //P_ReadsIdsBuffer & buffer1 = * p_tasks.p_reads_ids_buffer;
     //P_ReadsBuffer & buffer2 = * p_tasks.p_reads_buffer;
     P_CordsBuffer & buffer31 = * p_tasks.p_cords1_buffer;
@@ -426,8 +456,9 @@ int p_CalRecords(P_Tasks & p_tasks, P_Parms & p_parms, P_Mapper & p_mapper, int 
     return 0;
 }
 
-int p_PrintResults(P_Tasks & p_tasks, P_Parms p_parms, P_Mapper & p_mapper, int thread_id)
+int p_PrintResults(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
 {   
+    P_Tasks & p_tasks = p_mapper.getPTasks();
     P_ReadsPathsBuffer & buffer0 = * p_tasks.p_reads_paths_buffer;
     P_ReadsIdsBuffer & buffer1 = * p_tasks.p_reads_ids_buffer;
     P_ReadsBuffer & buffer2 = * p_tasks.p_reads_buffer;
@@ -457,10 +488,11 @@ int p_PrintResults(P_Tasks & p_tasks, P_Parms p_parms, P_Mapper & p_mapper, int 
     return 0; 
 }
 
-int p_ThreadProcess(P_Tasks & p_tasks, P_Parms p_parms, P_Mapper & p_mapper, int thread_id)
+int p_ThreadProcess(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
 {
         //std::cout << "p1" << "\n";
     int f_error = 0;
+    P_Tasks & p_tasks = p_mapper.getPTasks();
     while (true)
     {
         if (p_RequestTask(p_tasks, p_parms, thread_id, f_error))
@@ -473,18 +505,18 @@ int p_ThreadProcess(P_Tasks & p_tasks, P_Parms p_parms, P_Mapper & p_mapper, int
         }
         else if(p_tasks.isTaskFetchReads(thread_id)) 
         {
-            f_error = p_FetchReads(p_tasks, p_parms, thread_id);
+            f_error = p_FetchReads(p_mapper, p_parms, thread_id);
             dout << "fe1" << f_error << "\n";
         }
         else if (p_tasks.isTaskCalRecords(thread_id))
         {
-            f_error = p_CalRecords(p_tasks, p_parms, p_mapper, thread_id);
+            f_error = p_CalRecords(p_mapper, p_parms, thread_id);
             dout << "fe2" << f_error << "\n";
         }
         
         else if (p_tasks.isTaskPrintResults(thread_id))
         {
-            f_error = p_PrintResults(p_tasks, p_parms, p_mapper, thread_id);
+            f_error = p_PrintResults(p_mapper, p_parms, thread_id);
             dout << "fe3" << f_error << "\n";
         }
     } 

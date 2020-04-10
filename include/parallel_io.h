@@ -99,6 +99,7 @@ struct P_Parms
     int thd_assign_num;
     int thd_print_num;
     int thd_buffer_block_size;
+    P_Parms(int, int, int, int);
     P_Parms();
     void printParms();
 };
@@ -145,7 +146,9 @@ struct P_Tasks{
     int f_fin_open;
     seqan::SeqFileIn fin;
     std::ofstream fout;
-
+    void initPTasks(P_ReadsBuffer &,  P_ReadsIdsBuffer &, P_ReadsPathsBuffer &, P_CordsBuffer &, P_CordsBuffer &, P_BamLinkBuffer &, 
+        StringSet<std::string> &, StringSet<std::string> &, int);
+    P_Tasks();
     P_Tasks(P_ReadsBuffer &, P_ReadsIdsBuffer &, P_ReadsPathsBuffer&, 
         P_CordsBuffer &, P_CordsBuffer &, P_BamLinkBuffer &, 
         StringSet<std::string> &, StringSet<std::string> &, int);
@@ -180,14 +183,12 @@ struct P_Tasks{
     int assignCalRecords(P_Parms & p_parms, int thread_id);
 };
 
-
-int p_FetchReads(P_Tasks & p_tasks);
-int p_CalRecords();
-int p_PrintResults();
 //Wrapper class to abstract two operations
 class P_Mapper
 {
 protected:
+    P_Tasks p_tasks;
+    P_Parms p_parms;
     P_ReadsBuffer reads_buffer;
     P_ReadsIdsBuffer reads_ids_buffer; 
     P_ReadsPathsBuffer reads_paths_buffer;
@@ -196,19 +197,21 @@ protected:
     P_BamLinkBuffer bam_link_buffer;
 
 public:
+    P_Tasks & getPTasks();
     P_ReadsBuffer & getPReadsBuffer();
     P_ReadsIdsBuffer & getPReadsIdBuffer();
     P_ReadsPathsBuffer & getPReadsPathsBuffer();
     P_CordsBuffer & getPCords1Buffer();
     P_CordsBuffer & getPCords2Buffer();
     P_BamLinkBuffer & getPBamLinksBuffer();
-    void initBuffers(int reads_buffer_size, int cords_buffer_size);
+    void initBuffers(int reads_buffer_size, int cords_buffer_size, 
+        StringSet<std::string> &, StringSet<std::string> &, int, P_Parms &);
 
     virtual int p_calRecords(int, int){}; //input: in_buffer_id, out_buffer_id
     virtual int p_printResults(int, int){};
 };
 
-int p_ThreadProcess(P_Tasks & p_tasks, P_Parms p_parms, P_Mapper & p_mapper, int thread_id);
+int p_ThreadProcess(P_Mapper & mapper, P_Parms & p_parms, int thread_id);
 /*----------  Global utilities  ----------*/
 //None
 

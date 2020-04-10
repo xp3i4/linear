@@ -74,40 +74,22 @@ int process2(Mapper & mapper, Options & options, int p1)
     return 0;
 }
 
-/*----------  Process 3  ----------*/
-
-//Interface wrapper
-void p_PrintCordsApf(CordsSetType & cords, 
-                     StringSet<String<Dna5> > & genomes,
-                     StringSet<String<Dna5> > & reads,
-                     StringSet<CharString> & genomesId,
-                     StringSet<CharString> & readsId,
-                     std::ofstream & of)
-{
-    print_cords_apf(cords, genomes, reads, genomesId, readsId, of);
-}
-void p_PrintBamLinksSam()
-{
-
-}
+/*----------  Process 3  ----------/
+ * Dynamic balancing I/O: parallel dumping i/o to buffers 
+ */
 int process3(Mapper & mapper, Options & options, int p1)
 {
     dout << "p3" << "\n";
-    StringSet<String<short> > empty_buckets; 
-    String<Position<SeqFileIn>::Type>   empty_fin_pos; 
+    P_Parms p_parms(1, 1, 1, 2);
+    mapper.initBuffers(2, 2, p_parms);
     omp_set_num_threads(mapper.getThreads());
-    mapper.initBuffers(2, 2);
-    P_Tasks p_tasks(mapper.getPReadsBuffer(), mapper.getPReadsIdBuffer(), 
-        mapper.getPReadsPathsBuffer(), mapper.getPCords1Buffer(), mapper.getPCords2Buffer(),
-        mapper.getPBamLinksBuffer(), mapper.getGPaths(), mapper.getRPaths(), mapper.getThreads());
-    P_Parms p_parms;
     omp_set_num_threads(mapper.getThreads());
     createFeatures(mapper.getGenomes(), mapper.getGenomesFeatures(), mapper.getFeatureType(), mapper.getThreads());
     mapper.createIndex(0, length(mapper.getGenomes()), false); 
     //std::cerr << "process3 done \n";
     #pragma omp parallel
     {
-        p_ThreadProcess(p_tasks, p_parms, mapper, omp_get_thread_num());
+        p_ThreadProcess(mapper, p_parms, omp_get_thread_num());
     }
     return 0;
 }
