@@ -567,14 +567,22 @@ int print_align_sam (StringSet<String<Dna5> > & genms,
 /*
  *shortcut to append cigar
  */
-void appendCigar(String<CigarElement< > > & cigars, char ops, int opn)
+void appendCigar(String<CigarElement< > > & cigars, CigarElement<> & cigar)
 {
-    appendValue(cigars, CigarElement<>(ops, opn));
+    appendValue(cigars, CigarElement<>(cigar.operation, cigar.count));
 }
-void appendCigar(String<CigarElement< > > & cigars, CigarElement<> cigar)
+void appendCigarShrink(String<CigarElement< > > & cigars, CigarElement<> & cigar)
 {
-    appendCigar(cigars, cigar.operation, cigar.count);
+    if (!empty(cigars) && back(cigars).operation == cigar.operation)
+    {
+        back(cigars).count += cigar.count;
+    }
+    else 
+    {
+        appendCigar(cigars, cigar);
+    }
 }
+
 /*
  * If necessary to create new bam record given the @cords
  */
@@ -590,10 +598,11 @@ int ifCreateNew_(uint64_t cord1_str, uint64_t cord1_end, uint64_t cord2_str, uin
     int flag = is_cord_block_end (cord1_str) ||  
                                  (x11 > x21) || 
                                  (y11 > y21) ||
-                    (x12 > x21 && y12 < y21) ||
-                    (x12 < x21 && y12 > x21) ||
+               //     (x12 > x21 && y12 < y21) ||
+               //     (x12 < x21 && y12 > x21) ||
                 (int64_t(x21 - x12) > int64_t(thd_large_X) && int64_t(y21 - y12) > int64_t(thd_large_X)) ||
                     get_cord_strand (cord1_str ^ cord2_str);
+    dout << "ifnew" << x11 << y11 << x12 << y12 << x21 << y21 << flag << "\n";
     return flag;
 }
 /*
@@ -634,6 +643,8 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
                       uint64_t cord2_str, 
                       String<CigarElement<> > & cigar)
 {
+    CigarElement<> cigar1, cigar2;
+    uint64_t next_cigar_str;
     uint64_t x0 = get_cord_x (cigar_str);
     uint64_t y0 = get_cord_y (cigar_str);
     uint64_t x11 = get_cord_x(cord1_str);
@@ -643,55 +654,50 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
     uint64_t x21 = get_cord_x(cord2_str);
     uint64_t y21 = get_cord_y(cord2_str);
 
-    CigarElement<> cigar1, cigar2;
-    uint64_t next_cigar_str;
-    int opn;
-    char ops;
     if (x0 - y0 != x11 - y11) 
     {
-        return ~0; //return error
+        return ~0; //error
     }
-    /*
-    uint64_t cigar_cord1 = cord1_str;
-    uint64_t cigar_cord2 = shift_cord(cord1_end, int64_t(std::min(x12, x21) - x12), int64_t(std::min(y12, y21) - y12)); 
-    uint64_t cigar_cord3 = cord2_str;
-    createRectangleCigarPair(cigar_cord1, cigar_cord2, cigar1, cigar2, 0);
-    if (cigar1.count) appendCigar(cigar, cigar1);
-    if (cigar2.count) appendCigar(cigar, cigar2);
-    createRectangleCigarPair(cigar_cord2, cigar_cord3, cigar1, cigar2, 1);
-    if (cigar1.count) appendCigar(cigar, cigar1);
-    if (cigar2.count) appendCigar(cigar, cigar2);
-
-    next_cigar_str = cord2_str; 
-    return next_cigar_str;
-    */
-    uint64_t mstrx = get_cord_x(cigar_str); //match ('M'='X' + '=') start
-    uint64_t mstry = get_cord_y(cigar_str); 
-    uint64_t dx = x21 - mstrx;
-    uint64_t dy = y21 - mstry;
-    int e_upper = std::min(x12 - mstrx, y12 - mstry); //'=' len upper bound
-    uint64_t m_len = std::min(dx, dy); //'=' + 'X' len
-    if (m_len <= e_upper)
+    uint64_t dx = x21 - x0;
+    uint64_t dy = y21 - y0;
+    //uint64_t len1 = std::min(x12 - x0, y12 - y0); //'=' len upper bound
+    //uint64_t len2 = std::min(x21 - x0, y21 - y0); //'=' + 'X' len
+    //if (len2 <= len1)
+    if (x12 >= x21  && y12 >= y21)
     {
         createRectangleCigarPair(cord1_str, cord2_str, cigar1, cigar2, 0); //'='
-        if (cigar1.count) appendCigar(cigar, cigar1);
-        if (cigar2.count) appendCigar(cigar, cigar2);
+        if (cigar1.count) appendCigarShrink(cigar, cigar1);
+        if (cigar2.count) appendCigarShrink(cigar, cigar2);
         //appendCigar (cigar, cigar1);
         //appendCigar (cigar, cigar2);
         next_cigar_str = cord2_str;
     }
-    else
+    else if (x12 < x21 && y12 < y21)
     {
         createRectangleCigarPair(cord1_str, cord1_end, cigar1, cigar2, 0); //'='
-        if (cigar1.count) appendCigar(cigar, cigar1);
-        if (cigar2.count) appendCigar(cigar, cigar2);
+        if (cigar1.count) appendCigarShrink(cigar, cigar1);
+        if (cigar2.count) appendCigarShrink(cigar, cigar2);
         //appendCigar (cigar, cigar1);
         //appendCigar (cigar, cigar2);
         createRectangleCigarPair(cord1_end, cord2_str, cigar1, cigar2, 1); //'X'
-        if (cigar1.count) appendCigar(cigar, cigar1);
-        if (cigar2.count) appendCigar(cigar, cigar2);
+        if (cigar1.count) appendCigarShrink(cigar, cigar1);
+        if (cigar2.count) appendCigarShrink(cigar, cigar2);
         //appendCigar (cigar, cigar1);
         //appendCigar (cigar, cigar2);
+        next_cigar_str = cord2_str;
+    }
+    else if (x12 >= x21 && y12 < y21)
+    {
+        createRectangleCigarPair(cord1_str, cord2_str, cigar1, cigar2, 0);
+        if (cigar1.count) appendCigarShrink(cigar, cigar1);
+        if (cigar2.count) appendCigarShrink(cigar, cigar2);
+        next_cigar_str = cord2_str;
+    }
+    else if (x12 < x21 && y12 >= y21)
+    {
+        createRectangleCigarPair(cord1_str, cord2_str, cigar1, cigar2, 0);
+        if (cigar1.count) appendCigarShrink(cigar, cigar1);
+        if (cigar2.count) appendCigarShrink(cigar, cigar2);
         next_cigar_str = cord2_str;
     }
     
@@ -719,6 +725,7 @@ void cords2BamLink(String<uint64_t> & cords_str,
     int g_id, g_beginPos, r_beginPos, strand;
     int f_soft = 1; //soft clip in cigar;
     int f_new = 1;
+    dout << "thdx" << thd_large_X << "\n";
     for (int i = 1; i < length(cords_str); i++)
     {
         if (f_new) //initiate a record for new block 
@@ -739,7 +746,6 @@ void cords2BamLink(String<uint64_t> & cords_str,
             cord1_str = cords_str[i];
             cord1_end = cords_end[i];
             cord2_str = cords_end[i];
-            //back(bam_link_records).seq = infix (read, r_beginPos, get_cord_y(cord1_end));
             f_new = 1; //next cord[i + 1] will start a new recordd
         }
         else
