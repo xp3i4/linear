@@ -127,12 +127,11 @@ std::ifstream::pos_type _filesize(const char* filename)
 }
 
 /*
- *[]::load all records in one genome file
+ *[]::load all genome from path [.fa]
  */
 std::pair<uint, uint> loadRecords(StringSet<String<Dna5> > & seqs, 
             StringSet<CharString> & ids, 
-            Options::PathType path
-            )
+            Options::PathType path)
 {
     //double time = sysTime();
     SeqFileIn gFile;
@@ -198,6 +197,19 @@ std::pair<uint, uint> loadRecords(StringSet<String<Dna5> > & seqs,
                     try
                     {
                         readRecord (tmp_id, tmp_seq, gFile);
+                        CharString id_ = "";
+                        for (auto x : tmp_id)
+                        {
+                            if (x == ' ')
+                            {
+                                break; 
+                            }
+                            else
+                            {
+                                id_ += x;
+                            }
+                        }
+                        tmp_id = id_;
                     }
                     catch (Exception const & e)
                     {
