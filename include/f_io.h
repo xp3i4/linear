@@ -7,6 +7,12 @@
 using namespace seqan;
 using std::ofstream;
 
+struct FIOParms
+{
+    uint64_t thd_large_X; 
+    uint64_t thd_trim_bound;
+};
+
 void print_cords_paf(CordsSetType & cords, 
                      StringSet<String<Dna5> > & genomes,
                      StringSet<String<Dna5> > & reads,

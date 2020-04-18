@@ -1123,6 +1123,7 @@ bool extendWindow(FeaturesDynamic & f1,
     while ((new_cord = previousWindow(f1, f2, back(cords), score)) && get_cord_y(new_cord) >= cordy_str)
     {
         appendValue(cords, new_cord);
+        print_cord(new_cord, "newc1");
     } 
     uint cords_p_end = length(cords);
     for (unsigned k = cords_p_str; k < (cords_p_str + cords_p_end) / 2; k++) 
@@ -1132,6 +1133,7 @@ bool extendWindow(FeaturesDynamic & f1,
     while ((new_cord = nextWindow(f1, f2, back(cords), score)) && get_cord_y(new_cord) + window_size < cordy_end)
     {
         appendValue(cords, new_cord);
+        print_cord(new_cord, "newc2");
     }
     return true;    
 }
@@ -2345,6 +2347,7 @@ uint64_t apxMap_ (IndexDynamic & index,
     mnMapReadList(index, read, anchors, map_str, map_end, mapParm, hits, alg_type, thd_best_n);
     uint64_t read_str = get_cord_y(map_str);
     uint64_t read_end = get_cord_y(map_end);
+    print_cords(hits, "this>>");
     path_dst(hits, f1, f2, cords, read_str, read_end, length(read), alg_type, cordLenThr);
     return 0;
 }
@@ -2383,6 +2386,9 @@ uint64_t apxMap (IndexDynamic & index,
         uint64_t map_end = create_cord (MAX_CORD_ID, MAX_CORD_X, length(read), 0);
         double t1 = sysTime();
         apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, map_str, map_end, alg_type, cordLenThr, thd_best_n);
+        //<<debug
+        //return 0;
+        //>>debug
         t1 = sysTime() - t1;
         double t2 = sysTime();
         String<UPair> str_ends;
@@ -2392,7 +2398,7 @@ uint64_t apxMap (IndexDynamic & index,
         gather_gaps_y_ (cords, str_ends, apx_gaps, length(read), thd_large_gap);
         uint64_t map_d = thd_cord_size >> 1; // cords + to map areas
         uint64_t str_y = 0;                  //stry y of interval between two consecutive blocks
-        for (int i = 0; i < length(apx_gaps); i++) //check large gap and re map the gaps
+        for (int i = 0; i < length(apx_gaps); i++) //check large gap and remap the gaps
         {
             UPair y = getUPForwardy (apx_gaps[i], length(read));
             uint64_t y1 = y.first;
@@ -2411,6 +2417,7 @@ uint64_t apxMap (IndexDynamic & index,
         chainApxCordsBlocks (cords, str_ends_p, length(read), thd_chain_blocks_lower, thd_chain_blocks_upper, alg_type);
         t3 = sysTime() - t3;
         clean_blocks_ (cords, thd_drop_len);
+        dout << "f_chain" << f_chain << "\n";
     }
     else
     {

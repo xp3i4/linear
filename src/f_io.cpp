@@ -835,9 +835,33 @@ void shrink_cords_cigar(StringSet<String<BamAlignmentRecordLink> > & bam_records
 {
     for (auto & records : bam_records){shrink_cords_cigar(records);}
 }
+/*
+int trimCordsPair(String<uint64_t> & cords_str, String<uint64_t> & cords_end, FIOParms & fio_parms)
+{
+    if (length(cords_str) < 3)
+    {
+        return 0;
+    }
+    uint64_t pre_x1 = get_cord_x(cords_str[1]);
+    uint64_t pre_y1 = get_cord_y(cords_str[1]);
+    for (int i = 3; i < length(cords_str); i++)
+    {
+        uint64_t x1 = get_cord_x(cords_str[i]);
+        uint64_t y1 = get_cord_y(cords_str[i]);
+        int64_t dist = std::min(int64_t(x1 - pre_x1), int64_t(y1 - pre_y1));
+        if (dist < 0)
+        {
+
+        }
+        pre_x1 = get_cord_x(cords_str[i]);
+        pre_y1 = get_cord_y(cords_str[i]);
+    }
+    return 0;
+}
+*/
 
 /*
- * num of operation 'X' > @thd_large_X will be clipped to new bam records
+ * Record containing operation 'X' > @thd_large_X is clipped as two records
  */
 void print_cords_sam
     (StringSet<String<uint64_t> > & cordset_str,    
@@ -853,7 +877,6 @@ void print_cords_sam
      unsigned threads,
      int f_header)
 {
-    //thd_large_X = 500;
     cords2BamLink (cordset_str, cordset_end, bam_records, reads, thd_cord_size, thd_large_X, threads);
     //shrink_cords_cigar(bam_records);
     print_align_sam (genms, genmsId, readsId, bam_records, of, f_header);
