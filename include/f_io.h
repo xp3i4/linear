@@ -11,6 +11,11 @@ struct FIOParms
 {
     uint64_t thd_large_X; 
     uint64_t thd_trim_bound;
+    //reformCCSBams
+    int thd_rcb_xy;
+    int f_reform_ccs;
+
+    FIOParms();
 };
 
 void print_cords_paf(CordsSetType & cords, 
@@ -113,5 +118,7 @@ void print_cords_sam (StringSet<String<uint64_t> > & cordset_str,
                       std::ofstream & of,
                       uint64_t thd_large_X,
                       unsigned threads,
-                      int f_header);
+                      int f_header,
+                      FIOParms & fio_parms);
+
 #endif

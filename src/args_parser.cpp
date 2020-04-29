@@ -33,6 +33,11 @@ parseCommandLine(Options & options, int argc, char const ** argv)
             new_vals = "1";
             new_args.push_back ((const char*)new_vals);
         }
+        if (std::string(argv[i]) == "-r" && (i + 1 >= argc || !is_number (argv[i + 1])))
+        {
+            new_vals = "1";
+            new_args.push_back ((const char*)new_vals);
+        }
     }
     argc = length(new_args); 
     // Setup ArgumentParser.
@@ -96,12 +101,17 @@ parseCommandLine(Options & options, int argc, char const ** argv)
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
     addOption (parser, seqan::ArgParseOption(
-        "s", "sam_flag", "0 to turn off output .sam for approximate mapping. Otherwise the results of approximate mapping will be covert to the .sam",
+        "s", "sam_flag", "Set -s 0 to disbale output of SAM. Set -s or -s 1 (default) to enable output of SAM",
+        seqan::ArgParseArgument::INTEGER, "INT"
+        ));
+    addOption (parser, seqan::ArgParseOption(
+        "r", "reform_ccs_cigar_flag", "Set -r or -r 1 to enable compressing the cigar string for Pacbio CCS reads. Disbaled(-r 0) by default",
         seqan::ArgParseArgument::INTEGER, "INT"
         ));
 //    addDefaultValue(parser, "gap_len", "1");
 
 // Advanced parms for mapping
+    addSection(parser, "Advanced optoins");
     addOption(parser, seqan::ArgParseOption(
         "l1", "listn1", "mapping::listn1",
             seqan::ArgParseArgument::INTEGER, "INT"));     
@@ -140,6 +150,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     getOptionValue(options.apx_chain_flag, parser, "apx_chain_flag");
     getOptionValue(options.aln_flag, parser, "aln_flag");
     getOptionValue(options.sam_flag, parser, "sam_flag");
+    getOptionValue(options.reform_ccs_cigar_flag, parser, "reform_ccs_cigar_flag");
 
     //std::cerr << "xxxxx " << options.gap_len << isSet(parser, "gap_len") << "\n";
     std::vector<std::string> args;

@@ -215,6 +215,7 @@ void Mapper::loadOptions(Options & options)
     {
         fp_handler_.setPrintSam(f_print);
     }
+    fio_parms.f_reform_ccs = options.reform_ccs_cigar_flag;
 }
 int Mapper::createIndex(unsigned gstr, unsigned gend, bool efficient)
 {
@@ -312,7 +313,8 @@ int print_cords_sam(Mapper & mapper)
                     mapper.getOf(),
                     thd_large_X,
                     mapper.getThreads(),
-                    mapper.isOfNew()
+                    mapper.isOfNew(),  
+                    mapper.getFIOParms()
         );
     return 0;
 }

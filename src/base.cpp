@@ -31,7 +31,8 @@ Options::Options():
         gap_len(0),
         apx_chain_flag(1),
         aln_flag(0),
-        sam_flag(0)
+        sam_flag(0),
+        reform_ccs_cigar_flag(0)
         {
            date += __TIME__; 
            date += " ";

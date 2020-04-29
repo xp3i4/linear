@@ -30,6 +30,7 @@ class Mapper
     uint f_print;   //print control flag
     uint64_t gap_len_min; //process gaps of length > this value
     int cord_size; //default cord size 
+    FIOParms fio_parms;
 
 public:
     Mapper();
@@ -67,6 +68,7 @@ public:
     uint & getPrintFlag(){return f_print;}
     uint getGapLenMin () {return gap_len_min;}
     int  getCordSize() {return cord_size;}
+    FIOParms & getFIOParms(){return fio_parms;}
     void loadGenomes();
     void clearIndex();
 

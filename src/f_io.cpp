@@ -11,6 +11,11 @@ using std::cout;
 /*============================================================
 =               print Approximate mapping records            =
 ============================================================*/
+FIOParms::FIOParms()
+{
+    thd_rcb_xy = 15;
+    f_reform_ccs = 0;
+}
 /*
 void print_cords_paf(CordsSetType & cords, 
                      StringSet<String<Dna5> > & genomes,
@@ -860,6 +865,89 @@ int trimCordsPair(String<uint64_t> & cords_str, String<uint64_t> & cords_end, FI
 }
 */
 
+int reformCCSBams(String<BamAlignmentRecordLink> & bam_records, 
+                 FIOParms &fio_parms)
+{
+    unsigned it;
+    int f_compress = 0;
+    for (unsigned i = 0; i < length(bam_records); i = it + 1)
+    {
+        it = i;
+        int end = 0;
+        int x1 = 0, y1 = 0; //original  coordinates
+        int x2 = 0, y2 = 0; //revised coordinates
+        int xy = 0;
+        int f_compress = 0;
+        int compress_count = 0;
+        char compress_operation;
+        dout << "rcs2" << length(bam_records) << "\n";
+        while (1)
+        {
+        dout << "rcs1" << it << "\n";
+            int j2 = 0;
+            for (unsigned j1 = 0; j1 < length(bam_records[it].cigar); ++j1)
+            {
+                int new_count = bam_records[it].cigar[j1].count;
+                int compress_count = new_count;
+                char new_operation = bam_records[it].cigar[j1].operation;
+                char compress_operation = new_operation;
+                std::cout << "rcs3" << j1 << " " << new_count << " " << new_operation << "\n";
+                if (new_operation == 'I')
+                {
+                    if (std::abs(xy + new_count) < fio_parms.thd_rcb_xy)
+                    {
+                        xy += new_count;
+                        f_compress = 1;
+                        compress_operation = '=';
+                        compress_count = new_count;
+                    }
+                }
+                else if (new_operation == 'D')
+                {//deletion is ommited
+                    if (std::abs(xy - new_count) < fio_parms.thd_rcb_xy)
+                    {//allow to compress (replace D with =)
+                        xy -= new_count;
+                        f_compress = 1;
+                        compress_operation = '=';
+                        compress_count = 0; 
+                    }
+                }
+                std::cout << "rcs4" << j1 << " " << j2 << " " << bam_records[it].cigar[j2 - 1].count<< bam_records[it].cigar[j2 - 1].operation << " " << new_count << new_operation << " " << compress_count<< compress_operation << " " << xy << "\n";
+                if (j2 > 0 && bam_records[it].cigar[j2 - 1].operation == compress_operation)
+                {//merge to last operation
+                    bam_records[it].cigar[j2 - 1].count += compress_count;
+                }
+                else if (compress_count != 0)
+                {
+                    bam_records[it].cigar[j2].operation = compress_operation;
+                    bam_records[it].cigar[j2].count = compress_count;
+                    j2++;
+                }
+                f_compress = 0;
+            }
+            resize(bam_records[it].cigar, j2);
+            if (bam_records[it].isEnd())
+            {
+                break;
+            }
+            else
+            {
+                it = bam_records[it].next();
+            }
+        }
+    }
+    return 0;
+}
+
+int reformCCSBams(StringSet<String<BamAlignmentRecordLink> > & bam_records, 
+                  FIOParms & fio_parms)
+{
+    for (int i = 0; i < length(bam_records); i++)
+    {
+        reformCCSBams(bam_records[i], fio_parms);
+    }
+    return 0;
+}
 /*
  * Record containing operation 'X' > @thd_large_X is clipped as two records
  */
@@ -875,9 +963,14 @@ void print_cords_sam
      std::ofstream & of,
      uint64_t thd_large_X,
      unsigned threads,
-     int f_header)
+     int f_header,
+     FIOParms & fio_parms)
 {
     cords2BamLink (cordset_str, cordset_end, bam_records, reads, thd_cord_size, thd_large_X, threads);
     //shrink_cords_cigar(bam_records);
+    if (fio_parms.f_reform_ccs)
+    {
+        reformCCSBams(bam_records, fio_parms);
+    }
     print_align_sam (genms, genmsId, readsId, bam_records, of, f_header);
 }   
