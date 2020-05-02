@@ -14,6 +14,7 @@ struct FIOParms
     //reformCCSBams
     int thd_rcb_xy;
     int f_reform_ccs;
+    int f_print_seq;
 
     FIOParms();
 };
@@ -38,48 +39,20 @@ std::string & operator<< (std::string & s, std::string s2);
 
 std::string getFileName(std::string, std::string sep = "/", uint flag = ~0);
 
-void writeSam(std::ofstream & target,
-              BamAlignmentRecord const & record,
-              CharString genome_id,
-              CharString genome_id_next = "*"
-             );
-int writeSam(std::ofstream & target,
-              String<BamAlignmentRecordLink> const & record,
-              int & it,
-              CharString genome_id,
-              CharString genome_id_next = "*"
-             );
-int clip_cigar (String<CigarElement<> > & cigar);
-
 std::pair<int, int> countCigar(String<CigarElement<> > & cigar);
 void printRows(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
                Row<Align<String<Dna5>,ArrayGaps> >::Type & row2,
                CharString header = ""
                );
 
-int print_align_sam_header_ (StringSet<CharString> & genomesId,
-                             StringSet<String<Dna5> > & genomes,
-                             std::ofstream & of
-                            );
-
-int print_align_sam_record_(StringSet<String<BamAlignmentRecord > > & records, 
-                            StringSet<CharString> & genomesId,
-                            StringSet<CharString> & readsId, 
-                            std::ofstream & of
-                            );
-
-int print_align_sam_record_(StringSet<String<BamAlignmentRecordLink> > & records, 
-                            StringSet<CharString> & genomesId,
-                            StringSet<CharString> & readsId, 
-                            std::ofstream & of
-                            );
 int print_align_sam (StringSet<String<Dna5> > & genms,
+                     StringSet<String<Dna5> > & reads,
                      StringSet<CharString> & genmsId,
                      StringSet<CharString> & readsId,
                      StringSet<String<BamAlignmentRecordLink> > & bam_records,
                      std::ofstream & of,
-                     int f_header //if print header
-                     );
+                     int f_header, //if print header
+                     FIOParms & fio_parms);
 
 void addNextBamLink(String<BamAlignmentRecordLink> & bam_records,
                     int id, int next_id);

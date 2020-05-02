@@ -368,8 +368,9 @@ static const String<Dna5> _complt = "tgcan";
 {
     resize(res, length(str));
     for (unsigned k = 0; k < length(str); k++)
-     //   res[k]=_complt[str[k] - 'A'];
+    {
         res[k] = _complt[(unsigned)ordValue(str[k])];
+    }
 }
 
  void _compltRvseStr(String<Dna5> & str, String<Dna5> & res)

@@ -15,8 +15,9 @@ FIOParms::FIOParms()
 {
     thd_rcb_xy = 15;
     f_reform_ccs = 0;
+    f_print_seq = 0;
 }
-/*
+
 void print_cords_paf(CordsSetType & cords, 
                      StringSet<String<Dna5> > & genomes,
                      StringSet<String<Dna5> > & reads,
@@ -93,7 +94,7 @@ void print_cords_paf(CordsSetType & cords,
         }
     }
 }
-*/
+
 void print_cords_apf(CordsSetType & cords, 
                      StringSet<String<Dna5> > & genomes,
                      StringSet<String<Dna5> > & reads,
@@ -202,6 +203,63 @@ void print_cords_apf(CordsSetType & cords,
 /*=================================================
 =                print SAM records                =
 ===================================================*/
+//infer seq bases (10th column) of SAM according to the given cigar element
+void cigar2SamSeq(CigarElement<> & cigar, IupacString & result, 
+    Iterator<String<Dna5> >::Type & it1, Iterator<String<Dna5> >::Type & it2)
+{
+    if (cigar.operation == 'D')
+    {
+        it1 += cigar.count;
+    }
+    else if (cigar.operation == 'I')
+    {
+        for (int i = 0; i < cigar.count; i++)
+        {
+            appendValue(result, *it2);
+            it2++;
+        }
+    }
+    else if (cigar.operation == 'M')
+    {
+        for (int i = 0; i < cigar.count; i++)
+        {
+            appendValue(result, *it1);
+            it1++;
+            it2++;
+        }
+    }
+    else if (cigar.operation == '=')
+    {
+        for (int i = 0; i < cigar.count; i++)
+        {
+            appendValue(result, *it1);
+            it1++;
+            it2++;
+        }
+    }
+    else if (cigar.operation == 'X')
+    {
+        for (int i = 0; i < cigar.count; i++)
+        {
+            appendValue(result, 'N');
+            it1++;
+            it2++;
+        }
+    }
+    else if (cigar.operation == 'S')
+    {
+        for (int i = 0; i < cigar.count; i++)
+        {
+            appendValue(result, *it2);
+            it2++;
+        }
+    }
+    else if (cigar.operation == 'H')
+    {
+        it2 += cigar.count;
+    }
+}
+
 std::string getFileName(std::string s, std::string delimiter, uint count) 
 {
     size_t pos = 0;
@@ -220,10 +278,9 @@ std::string getFileName(std::string s, std::string delimiter, uint count)
     return s;
 }
 
-
 //Lightweight sam function of Seqan::write(bamAlignmentRecord)
 void writeSam(std::ofstream & target,
-              BamAlignmentRecord const & record,
+              BamAlignmentRecord & record,
               CharString genome_id,
               CharString genome_id_next
             )
@@ -301,14 +358,20 @@ void writeSam(std::ofstream & target,
 
 //Lightweight sam function of Seqan::write(bamAlignmentRecord)
 int writeSam(std::ofstream & target,
-             String<BamAlignmentRecordLink> const & records,
+             String<BamAlignmentRecordLink>  & records,
+             String<Dna5> & genome,
+             String<Dna5> & read,
              int & it,
              CharString genome_id,
-             CharString genome_id_next
-            )
+             CharString genome_id_next,
+             FIOParms & fio_parms)
 {
     int it_count = -1;
-    BamAlignmentRecordLink const & record = records[it];
+    BamAlignmentRecordLink & record = records[it];
+    if (fio_parms.f_print_seq)
+    {
+        reserve(record.seq, length(read));
+    }
     write(target, record.qName);
     writeValue(target, '\t');
 
@@ -326,31 +389,27 @@ int writeSam(std::ofstream & target,
 
     appendNumber(target, static_cast<__uint16>(record.mapQ));
     writeValue(target, '\t');
-
+    //initiate it1 it2 to print seq 
+    Iterator<String<Dna5> >::Type it1 = begin(genome) + record.beginPos + 1; 
+    Iterator<String<Dna5> >::Type it2 = begin(read); 
+    String<Dna5> comp_reverse;
+    if (int(record.flag) & int(16))
+    {
+        _compltStr(read, comp_reverse);
+        it2 = begin(comp_reverse);
+    }
     if (empty(record.cigar))
         writeValue(target, '*');
     else
     {
-        int end = 0;
         while (1)
         {
             for (unsigned i = 0; i < length(records[it].cigar); ++i)
             {
-                switch (records[it].cigar[i].operation)
+                if (fio_parms.f_print_seq)
                 {
-                    case 'D':
-                        end += records[it].cigar[i].count;
-                        break;
-                    case 'M':
-                        end += records[it].cigar[i].count;
-                        break;
+                    cigar2SamSeq(records[it].cigar[i], record.seq, it1, it2);
                 }
-                /*
-                writeValue(target, ' ');
-                appendNumber(target, end);
-                writeValue(target, ' ');
-                */
-
                 appendNumber(target, records[it].cigar[i].count);
                 writeValue(target, records[it].cigar[i].operation);
             }
@@ -389,7 +448,7 @@ int writeSam(std::ofstream & target,
     writeValue(target, '\t');
 
     if (empty(record.seq))
-        writeValue(target, '*');  // Case of empty seq string / "*".
+        writeValue(target, '*');  
     else
         write(target, record.seq);
 
@@ -523,15 +582,18 @@ int print_align_sam_record_(StringSet<String<BamAlignmentRecord > > & records,
         {
             records[i][j].qName = readsId[i];
             CharString g_id = genomesId[records[i][j].rID];
-            writeSam(of, records[i][j], g_id);
+            writeSam(of, records[i][j], g_id, "*");
         }
     }
     return 0;
 }
 int print_align_sam_record_(StringSet<String<BamAlignmentRecordLink> > & records, 
+                            StringSet<String<Dna5> > & genomes,
+                            StringSet<String<Dna5> > & reads,
                             StringSet<CharString> & genomesId,
                             StringSet<CharString> & readsId, 
-                            std::ofstream & of
+                            std::ofstream & of,
+                            FIOParms & fio_parms
                             )
 {
     for (int i = 0; i < length(records); i++)
@@ -545,25 +607,27 @@ int print_align_sam_record_(StringSet<String<BamAlignmentRecordLink> > & records
             {
                 continue;
             }
-            int dt = writeSam(of, records[i], j, g_id);
+            CharString gnext = "*";
+            int dt = writeSam(of, records[i], genomes[records[i][j].rID], reads[i], j, g_id, gnext, fio_parms);
         }
     }
     return 0;
 }
 
 int print_align_sam (StringSet<String<Dna5> > & genms,
+                     StringSet<String<Dna5> > & reads,
                      StringSet<CharString> & genmsId,
                      StringSet<CharString> & readsId,
                      StringSet<String<BamAlignmentRecordLink> > & bam_records,
                      std::ofstream & of,
-                     int f_header
-                     )
+                     int f_header,
+                     FIOParms & fio_parms)
 {
     if (f_header)
     {
         print_align_sam_header_(genmsId, genms, of);
     }
-    print_align_sam_record_(bam_records, genmsId, readsId, of); 
+    print_align_sam_record_(bam_records, genms, reads, genmsId, readsId, of, fio_parms); 
     return 0;
 }
 
@@ -968,9 +1032,10 @@ void print_cords_sam
 {
     cords2BamLink (cordset_str, cordset_end, bam_records, reads, thd_cord_size, thd_large_X, threads);
     //shrink_cords_cigar(bam_records);
+    fio_parms.f_print_seq = 1;
     if (fio_parms.f_reform_ccs)
     {
         reformCCSBams(bam_records, fio_parms);
     }
-    print_align_sam (genms, genmsId, readsId, bam_records, of, f_header);
+    print_align_sam (genms, reads, genmsId, readsId, bam_records, of, f_header, fio_parms);
 }   
