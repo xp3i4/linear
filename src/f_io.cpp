@@ -213,8 +213,20 @@ void cigar2SamSeq(CigarElement<> & cigar, IupacString & result,
     }
     else if (cigar.operation == 'I')
     {
+        //<<debug
+        if (cigar.count > 300)
+        {
+            std::cout << "\nsqcigar " ;
+        }
+        //>>debug
         for (int i = 0; i < cigar.count; i++)
         {
+            //<<debug
+            if (cigar.count > 300)
+            {
+                std::cout << (*it2);
+            }
+            //>>debug
             appendValue(result, *it2);
             it2++;
         }
@@ -397,6 +409,10 @@ int writeSam(std::ofstream & target,
     {
         _compltStr(read, comp_reverse);
         it2 = begin(comp_reverse);
+        //<<debug
+        std::cout << "seqr1 " << read << "\n" ;
+        std::cout << "seqr2 " << comp_reverse << "\n"; 
+        //>>debug
     }
     if (empty(record.cigar))
         writeValue(target, '*');
@@ -804,7 +820,7 @@ void cords2BamLink(String<uint64_t> & cords_str,
             g_beginPos = get_cord_x(cords_str[i]);
             r_beginPos = get_cord_y(cords_str[i]);
             strand = get_cord_strand (cords_str[i]);
-            insertNewBamRecord (bam_link_records, g_id, g_beginPos, r_beginPos, strand, -1, 0);
+            insertNewBamRecord (bam_link_records, g_id, g_beginPos, r_beginPos, strand, -1, 1);
             cigar_str = cords_str[i];
         }
         if (i == length(cords_str) - 1 ||
