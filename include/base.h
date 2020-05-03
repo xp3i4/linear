@@ -43,7 +43,7 @@ struct Options{
     int         index_t;
     int         feature_t;
 
-//map tuning
+//map parms
     unsigned    listN;
     unsigned    listN2;
     float       alpha;
@@ -56,6 +56,9 @@ struct Options{
     std::string versions;
     std::string date; 
 
+    std::string read_group;
+    std::string sample_name;
+    int sequence_sam_flag;
     Options();
     std::string getOutputPath() const;
 }; 

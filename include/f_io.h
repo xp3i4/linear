@@ -15,6 +15,10 @@ struct FIOParms
     int thd_rcb_xy;
     int f_reform_ccs;
     int f_print_seq;
+    int f_sequence_sam;
+
+    std::string read_group;
+    std::string sample_name;
 
     FIOParms();
 };

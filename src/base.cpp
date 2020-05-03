@@ -32,7 +32,10 @@ Options::Options():
         apx_chain_flag(1),
         aln_flag(0),
         sam_flag(0),
-        reform_ccs_cigar_flag(0)
+        reform_ccs_cigar_flag(0),
+        read_group(""),
+        sample_name(""),
+        sequence_sam_flag(0)
         {
            date += __TIME__; 
            date += " ";

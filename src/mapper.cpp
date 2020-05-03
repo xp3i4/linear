@@ -216,6 +216,9 @@ void Mapper::loadOptions(Options & options)
         fp_handler_.setPrintSam(f_print);
     }
     fio_parms.f_reform_ccs = options.reform_ccs_cigar_flag;
+    fio_parms.read_group = options.read_group;
+    fio_parms.sample_name = options.sample_name;
+    fio_parms.f_sequence_sam = options.sequence_sam_flag;
 }
 int Mapper::createIndex(unsigned gstr, unsigned gend, bool efficient)
 {

@@ -38,6 +38,11 @@ parseCommandLine(Options & options, int argc, char const ** argv)
             new_vals = "1";
             new_args.push_back ((const char*)new_vals);
         }
+        if (std::string(argv[i]) == "-ss" && (i + 1 >= argc || !is_number (argv[i + 1])))
+        {
+            new_vals = "1";
+            new_args.push_back ((const char*)new_vals);
+        }
     }
     argc = length(new_args); 
     // Setup ArgumentParser.
@@ -70,7 +75,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
         seqan::ArgParseArgument::INPUT_FILE, "genome"));
     setHelpText(parser, 1, "Reference file .fa(.gz), .fasta(.gz)");
 */
-    addSection(parser, "Mapping Options");
+    addSection(parser, "Basic Options");
     addOption(parser, seqan::ArgParseOption(
         "o", "output", "choose output file.",
             seqan::ArgParseArgument::STRING, "STR"));
@@ -107,6 +112,18 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     addOption (parser, seqan::ArgParseOption(
         "r", "reform_ccs_cigar_flag", "Set -r or -r 1 to enable compressing the cigar string for Pacbio CCS reads. Disbaled(-r 0) by default",
         seqan::ArgParseArgument::INTEGER, "INT"
+        ));
+    addOption (parser, seqan::ArgParseOption(
+        "rg", "read_group", "Set name of read group. Some SVs may need the tag of name of read group specified in the SAM header",
+        seqan::ArgParseArgument::STRING, "STR"
+        ));
+    addOption (parser, seqan::ArgParseOption(
+        "sn", "sample_name", "Set name of sample. Some SVs may need the tag of sample name specified in the SAM header",
+        seqan::ArgParseArgument::STRING, "STR"
+        ));
+    addOption (parser, seqan::ArgParseOption(
+        "ss", "sequence_sam", "Set -ss or -ss 1 to enable printing sequence segment in the sam for each read. This function is required in some SVs caller. Diabled (-ss 0) by default",
+        seqan::ArgParseArgument::STRING, "STR"
         ));
 //    addDefaultValue(parser, "gap_len", "1");
 
@@ -151,6 +168,9 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     getOptionValue(options.aln_flag, parser, "aln_flag");
     getOptionValue(options.sam_flag, parser, "sam_flag");
     getOptionValue(options.reform_ccs_cigar_flag, parser, "reform_ccs_cigar_flag");
+    getOptionValue(options.read_group, parser, "read_group");
+    getOptionValue(options.sample_name, parser, "sample_name");
+    getOptionValue(options.sequence_sam_flag, parser, "sequence_sam");
 
     //std::cerr << "xxxxx " << options.gap_len << isSet(parser, "gap_len") << "\n";
     std::vector<std::string> args;

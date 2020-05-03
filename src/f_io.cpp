@@ -213,20 +213,8 @@ void cigar2SamSeq(CigarElement<> & cigar, IupacString & result,
     }
     else if (cigar.operation == 'I')
     {
-        //<<debug
-        if (cigar.count > 300)
-        {
-            std::cout << "\nsqcigar " ;
-        }
-        //>>debug
         for (int i = 0; i < cigar.count; i++)
         {
-            //<<debug
-            if (cigar.count > 300)
-            {
-                std::cout << (*it2);
-            }
-            //>>debug
             appendValue(result, *it2);
             it2++;
         }
@@ -409,10 +397,6 @@ int writeSam(std::ofstream & target,
     {
         _compltRvseStr(read, comp_reverse);
         it2 = begin(comp_reverse);
-        //<<debug
-        std::cout << "\nseqr1 " << read << "\n" ;
-        std::cout << "seqr2 " << comp_reverse << "\n"; 
-        //>>debug
     }
     if (empty(record.cigar))
         writeValue(target, '*');
@@ -574,7 +558,8 @@ void printRows(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
 
 int print_align_sam_header_ (StringSet<CharString> & genomesId,
                              StringSet<String<Dna5> > & genomes,
-                             std::ofstream & of
+                             std::ofstream & of,
+                             FIOParms & fio_parms
                             )
 {
     of << "@HD\tVN:1.6\n";
@@ -583,6 +568,11 @@ int print_align_sam_header_ (StringSet<CharString> & genomesId,
         of << "@SQ\tSN:" << genomesId[k] << "\tLN:" << length(genomes[k]) << "\n";
     }
     of << "@PG\tPN:" << "Linear\n";
+    if (fio_parms.read_group != "" && fio_parms.sample_name != "")
+    {
+        std::string sample_name = fio_parms.sample_name == "" ? "sample1" : fio_parms.sample_name;
+        of << "@RG\tID:" << fio_parms.read_group << "\tSM:" << sample_name << "\n";
+    }
     return 0;
 }
 
@@ -641,7 +631,7 @@ int print_align_sam (StringSet<String<Dna5> > & genms,
 {
     if (f_header)
     {
-        print_align_sam_header_(genmsId, genms, of);
+        print_align_sam_header_(genmsId, genms, of, fio_parms);
     }
     print_align_sam_record_(bam_records, genms, reads, genmsId, readsId, of, fio_parms); 
     return 0;
