@@ -407,10 +407,10 @@ int writeSam(std::ofstream & target,
     String<Dna5> comp_reverse;
     if (int(record.flag) & int(16))
     {
-        _compltStr(read, comp_reverse);
+        _compltRvseStr(read, comp_reverse);
         it2 = begin(comp_reverse);
         //<<debug
-        std::cout << "seqr1 " << read << "\n" ;
+        std::cout << "\nseqr1 " << read << "\n" ;
         std::cout << "seqr2 " << comp_reverse << "\n"; 
         //>>debug
     }
