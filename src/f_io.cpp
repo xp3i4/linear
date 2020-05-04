@@ -215,6 +215,7 @@ void cigar2SamSeq(CigarElement<> & cigar, IupacString & result,
     {
         for (int i = 0; i < cigar.count; i++)
         {
+            //appendValue(result, 'N');
             appendValue(result, *it2);
             it2++;
         }
@@ -677,7 +678,7 @@ int ifCreateNew_(uint64_t cord1_str, uint64_t cord1_end, uint64_t cord2_str, uin
                //     (x12 < x21 && y12 > x21) ||
                 (int64_t(x21 - x12) > int64_t(thd_large_X) && int64_t(y21 - y12) > int64_t(thd_large_X)) ||
                     get_cord_strand (cord1_str ^ cord2_str);
-    dout << "ifnew" << x11 << y11 << x12 << y12 << x21 << y21 << flag << "\n";
+    //dout << "ifnew" << x11 << y11 << x12 << y12 << x21 << y21 << flag << "\n";
     return flag;
 }
 /*
@@ -950,10 +951,10 @@ int reformCCSBams(String<BamAlignmentRecordLink> & bam_records,
         int f_compress = 0;
         int compress_count = 0;
         char compress_operation;
-        dout << "rcs2" << length(bam_records) << "\n";
+        //dout << "rcs2" << length(bam_records) << "\n";
         while (1)
         {
-        dout << "rcs1" << it << "\n";
+        //dout << "rcs1" << it << "\n";
             int j2 = 0;
             for (unsigned j1 = 0; j1 < length(bam_records[it].cigar); ++j1)
             {
@@ -982,7 +983,7 @@ int reformCCSBams(String<BamAlignmentRecordLink> & bam_records,
                         compress_count = 0; 
                     }
                 }
-                std::cout << "rcs4" << j1 << " " << j2 << " " << bam_records[it].cigar[j2 - 1].count<< bam_records[it].cigar[j2 - 1].operation << " " << new_count << new_operation << " " << compress_count<< compress_operation << " " << xy << "\n";
+                //std::cout << "rcs4" << j1 << " " << j2 << " " << bam_records[it].cigar[j2 - 1].count<< bam_records[it].cigar[j2 - 1].operation << " " << new_count << new_operation << " " << compress_count<< compress_operation << " " << xy << "\n";
                 if (j2 > 0 && bam_records[it].cigar[j2 - 1].operation == compress_operation)
                 {//merge to last operation
                     bam_records[it].cigar[j2 - 1].count += compress_count;
