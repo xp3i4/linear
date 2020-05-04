@@ -571,7 +571,7 @@ int print_align_sam_header_ (StringSet<CharString> & genomesId,
     if (fio_parms.read_group != "" && fio_parms.sample_name != "")
     {
         std::string sample_name = fio_parms.sample_name == "" ? "sample1" : fio_parms.sample_name;
-        of << "@RG\tID:" << fio_parms.read_group << "\tSM:" << sample_name << "\n";
+        of << "@RG\t ID:" << fio_parms.read_group << "\tSM:" << sample_name << "\n";
     }
     return 0;
 }
