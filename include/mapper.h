@@ -4,13 +4,16 @@
 #include "base.h"
 #include "index_util.h"
 #include "f_io.h"
+#include "gap.h"
+#include "parallel_io.h"
 //#include "mapparm.h"
 
 
-class Mapper 
+class Mapper : public P_Mapper 
 {
     PMRecord    record;
-    MapParm     parm;
+    MapParms     map_parms;
+    GapParms    gap_parms;
     IndexDynamic index_dynamic;
     StringSet<String<uint64_t> >  cordSet;
     StringSet<String<uint64_t> >  cordSet2;
@@ -19,6 +22,7 @@ class Mapper
     String<size_t> rlens;
     StringSet<String<uint64_t> > clip_set;
     StringSet<String<BamAlignmentRecordLink> > bam_records;
+    StringSet<FeaturesDynamic > f2; //features of genomes
     std::string outputPrefix;
     int feature_type;
     int of_type;
@@ -32,13 +36,19 @@ class Mapper
     int cord_size; //default cord size 
     FIOParms fio_parms;
 
+    //=== pipeline2 of parallel buffer 
+    //P_ReadsBuffer reads_buffer;
+    //P_ReadsIdsBuffer reads_ids_buffer; 
+    //P_CordsBuffer cords_buffer;
+    //P_BamLinkBuffer bam_link_buffer;
+
 public:
     Mapper();
     Mapper(Options & options);
     void loadOptions(Options & options);
     StringSet<String<Dna5> > & getReads() {return record.seq1;}             
     StringSet<String<Dna5> > & getGenomes() {return record.seq2;}             
-    MapParm & mapParm() {return parm;}
+    MapParms & getMapParms() {return map_parms;}
     IndexDynamic & getIndex() {return index_dynamic;}
     StringSet<String<uint64_t> > & getCords() {return cordSet;}             
     StringSet<String<uint64_t> > & getCords2() {return cordSet2;}            
@@ -48,7 +58,7 @@ public:
     void printCordsRaw2();
     int  print_vcf();
     int  createIndex(unsigned, unsigned, bool = false);
-    uint sens(){return parm.sensitivity;}
+    uint sens(){return map_parms.sensitivity;}
     uint & getThreads(){return _thread;}
     StringSet<CharString> & getReadsId(){return record.id1;}
     StringSet<CharString> & getGenomesId(){return record.id2;}
@@ -57,6 +67,7 @@ public:
     std::ofstream & getOf() {return of;}
     std::string & getOutputPrefix(){return outputPrefix;}
     StringSet<String<BamAlignmentRecordLink> > & getBamRecords() {return bam_records;}
+    StringSet<FeaturesDynamic > & getGenomesFeatures(){return f2;} //features of genomes
     int  getFeatureType();
     void setOfApp();
     void setOfNew();
@@ -71,18 +82,35 @@ public:
     FIOParms & getFIOParms(){return fio_parms;}
     void loadGenomes();
     void clearIndex();
+    GapParms & getGapParms(){return gap_parms;}
 
+    //=== pipeline2 of parallel buffer 
+    void initBuffers(int, int, P_Parms & parms);
+    int p_calRecords(int, int);
+    int p_printResults(int, int);
 };
 
 int map(Mapper & mapper, 
-        StringSet<FeaturesDynamic> & f2, 
         StringSet<String<short> > & buckets, 
         String<Position<SeqFileIn>::Type> & fin_pos,
         int gid, 
         int f_buckets_enabled,
         int p1,
         bool f_io_append = false);
-
-int filter(Mapper & mapper, StringSet<FeaturesDynamic> f2, StringSet<String<short> > & buckets, String<Position<SeqFileIn>::Type> & fin_pos, int p1);
+/*
+int map(Mapper & mapper, 
+        StringSet<FeaturesDynamic> & f2, 
+        StringSet<String<short> > & buckets, 
+        String<Position<SeqFileIn>::Type> & fin_pos,
+        P_Tasks & p_tasks,
+        P_Parms & p_parms,
+        int gid, 
+        int f_buckets_enabled,
+        int p1,
+        bool f_io_append = false);
+*/
+int filter(Mapper & mapper, StringSet<String<short> > & buckets, String<Position<SeqFileIn>::Type> & fin_pos, int p1);
+int print_mapper_results(Mapper & mapper, 
+    int f_p_mapper = 0, int p_in_id = 0, int p_out_id = 0); //parms to enable P_Mapper
 
 #endif

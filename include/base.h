@@ -7,6 +7,7 @@
 #include <iostream>
 
 using namespace seqan;
+using std::ostringstream;
 
 extern const float    base_alpha_;
 extern const unsigned base_shape_len_;
@@ -37,6 +38,7 @@ struct Options{
     uint aln_flag;
     uint sam_flag;
     uint reform_ccs_cigar_flag;
+    uint bal_flag;
 
     unsigned    sensitivity;
     unsigned    thread;
@@ -151,7 +153,7 @@ struct PMRes
  uint64_t _nStrand(uint64_t strand);
  uint64_t _flipCoord (uint64_t coord, uint64_t len, uint64_t strand);
 
-struct MapParm{
+struct MapParms{
     unsigned    blockSize;
     unsigned    delta;
     unsigned    threshold;
@@ -170,13 +172,13 @@ struct MapParm{
     float       senThr;
     float       clsThr;
       
-    MapParm();
-    MapParm(unsigned bs, unsigned dt, unsigned thr, 
+    MapParms();
+    MapParms(unsigned bs, unsigned dt, unsigned thr, 
             unsigned ks, unsigned sl, unsigned st,
             unsigned ad, unsigned mr, unsigned listn,
             unsigned listn2,
             float ap, float ap2, float alt, float rt, float ct, float sent, float clst);
-    MapParm(MapParm & parm);
+    MapParms(MapParms & parm);
     void setMapParm(Options & options);
     void print ();
 };
@@ -185,17 +187,30 @@ int readRecords_block (StringSet<CharString> & ids, StringSet<String<Dna5> > & r
 void _compltStr(String<Dna5> & str, String<Dna5> & res);
 void _compltRvseStr(String<Dna5> & str, String<Dna5> & res);
 
-struct Dout //debug cout utility
+/*----------  Debug ostream to replace cout: thread safe  ----------*/
+
+struct Gout //debug cout utility
 {
     std::ostringstream buffer;
-    Dout & operator << (int);
-    Dout & operator << (unsigned);
-    Dout & operator << (int64_t);
-    Dout & operator << (uint64_t);
-    Dout & operator << (CharString);
-    Dout & operator << (String<int64_t> &);
-    Dout & operator << (double);
+    Gout & operator << (int);
+    Gout & operator << (unsigned);
+    Gout & operator << (int64_t);
+    Gout & operator << (uint64_t);
+    Gout & operator << (CharString);
+    Gout & operator << (String<int64_t> &);
+    Gout & operator << (double);
+
+    void deleteThisNew(); // call to delete the object when it's created by new;
 };
+struct Dout 
+{};
+Gout & operator << (Dout & d, int n);
+Gout & operator << (Dout & d, unsigned n);
+Gout & operator << (Dout & d, int64_t n);
+Gout & operator << (Dout & d, uint64_t n);
+Gout & operator << (Dout & d, CharString n);
+Gout & operator << (Dout & d, String<int64_t> & n);
+Gout & operator << (Dout & d, double n);
 extern Dout dout;
 
 class ostreamWapper
@@ -238,7 +253,7 @@ void sort_ska(Iterator<String<uint64_t> >::Type it_str, Iterator<String<uint64_t
 int erf_1k(int64_t val);
 
 int print_seq(String<Dna5> & seq, uint64_t str, uint64_t end, std::string header);
-
+int mod(int a, int b);
 
 
 #endif

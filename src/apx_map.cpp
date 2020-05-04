@@ -1713,7 +1713,7 @@ unsigned getDIndexMatchAll (DIndex & index,
                             String<uint64_t> & set,
                             uint64_t read_str,   //map [read_str, read_end) of read
                             uint64_t read_end,
-                            MapParm & mapParm)
+                            MapParms & mapParm)
 {
     int dt = 0;
     LShape shape(index.getShape());
@@ -1788,7 +1788,7 @@ unsigned getDIndexMatchAll (DIndex & index,
                            String<uint64_t> & set,
                            uint64_t map_str,
                            uint64_t map_end,
-                           MapParm & mapParm)
+                           MapParms & mapParm)
 {   
     int dt = 0;
     LShape shape(index.shape);
@@ -2010,7 +2010,7 @@ uint64_t filterAnchors(Anchors & anchors, uint64_t shape_len, uint64_t thd_ancho
     return 0;
 }
 
-uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read_str, uint64_t read_end, MapParm & mapParm)
+uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read_str, uint64_t read_end, MapParms & mapParm)
 {
     float thd_err_rate = 0.2;
     float thd_anchor_accept_dens = 0.001; //todo::tune err, kmer step related
@@ -2071,7 +2071,7 @@ uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read
     return 0;
 }
 
-uint64_t getDHitList(String<uint64_t> & hits, String<int64_t> & list, Anchors & anchors, MapParm & mapParm, int thd_best_n)
+uint64_t getDHitList(String<uint64_t> & hits, String<int64_t> & list, Anchors & anchors, MapParms & mapParm, int thd_best_n)
 {
     uint64_t mask = (1ULL << 20) - 1;
     if (!empty(list))
@@ -2111,7 +2111,7 @@ uint64_t getDHitList(String<uint64_t> & hits, String<int64_t> & list, Anchors & 
     }
 }
 
-uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read_end, MapParm & mapParm, String<uint64_t> & hit, int thd_best_n)
+uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read_end, MapParms & mapParm, String<uint64_t> & hit, int thd_best_n)
 {
     String <int64_t> list;
     double t1 = sysTime();
@@ -2325,7 +2325,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
                        Anchors & anchors,
                        uint64_t map_str,
                        uint64_t map_end,
-                       MapParm & mapParm,
+                       MapParms & mapParm,
                        String<uint64_t> & hits,
                        int alg_type,
                        int thd_best_n)
@@ -2379,7 +2379,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
 uint64_t apxMap_ (IndexDynamic & index,
                   String<Dna5> & read,
                   Anchors & anchors,
-                  MapParm & mapParm,
+                  MapParms & mapParm,
                   String<uint64_t> & hits, 
                   StringSet<FeaturesDynamic> & f1,
                   StringSet<FeaturesDynamic> & f2,
@@ -2404,7 +2404,7 @@ uint64_t apxMap_ (IndexDynamic & index,
 uint64_t apxMap (IndexDynamic & index,
                  String<Dna5> & read,
                  Anchors & anchors,
-                 MapParm & mapParm,
+                 MapParms & mapParm,
                  String<uint64_t> & hit, 
                  StringSet<FeaturesDynamic> & f1,
                  StringSet<FeaturesDynamic> & f2,
@@ -2424,8 +2424,8 @@ uint64_t apxMap (IndexDynamic & index,
     clear(apx_gaps);
     if (f_chain)
     {
-        MapParm mapParm1 = mapParm;
-        MapParm mapParm2 = mapParm;
+        MapParms mapParm1 = mapParm;
+        MapParms mapParm2 = mapParm;
         mapParm2.alpha = 7;
         mapParm2.listN = mapParm2.listN2;
         thd_best_n = 999; //unlimited best hit;
@@ -2470,8 +2470,8 @@ uint64_t apxMap (IndexDynamic & index,
     else
     {
         float senThr = mapParm.senThr / thd_cord_size;  
-        MapParm mapParm1 = mapParm;
-        MapParm mapParm2 = mapParm;
+        MapParms mapParm1 = mapParm;
+        MapParms mapParm2 = mapParm;
         mapParm2.alpha = mapParm2.alpha2;
         mapParm2.listN = mapParm2.listN2;
 
@@ -2503,7 +2503,7 @@ uint64_t apxMap (IndexDynamic & index,
 uint64_t filterGenomes (IndexDynamic & index,
                  String<Dna5> & read,
                  Anchors & anchors,
-                 MapParm & mapParm,
+                 MapParms & mapParm,
                  String<uint64_t> & hit, 
                  StringSet<FeaturesDynamic> & f1,
                  StringSet<FeaturesDynamic> & f2,
@@ -2513,8 +2513,8 @@ uint64_t filterGenomes (IndexDynamic & index,
                  int f_chain)
 {
     int thd_best_n = 999; //unlimited best hit;
-    MapParm mapParm1 = mapParm;
-    MapParm mapParm2 = mapParm;
+    MapParms mapParm1 = mapParm;
+    MapParms mapParm2 = mapParm;
     mapParm2.alpha = mapParm2.alpha2;
     mapParm2.listN = mapParm2.listN2;
     int alg_type = 1;

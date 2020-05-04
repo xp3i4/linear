@@ -839,6 +839,35 @@ void cords2BamLink(String<uint64_t> & cords_str,
         }
     }
 }
+//serial without omp
+void cords2BamLink(StringSet<String<uint64_t> > & cords_str, 
+                   StringSet<String<uint64_t> > & cords_end,
+                   StringSet<String<BamAlignmentRecordLink> > & bam_link_records,
+                   StringSet<String<Dna5> > & reads,
+                   int thd_cord_size,
+                   uint64_t thd_large_X)
+{
+    String<BamAlignmentRecordLink> emptyRecords;
+    int ii = 0; //parallel 0-based i for each thread
+    for (int i = 0; i < length(cords_str); i++)
+    {
+        appendValue(bam_link_records, emptyRecords);
+        if (empty(cords_end) || empty(cords_end[i]))
+        {
+            String<uint64_t> tmp_end; 
+            for (int j = 0; j < length(cords_str[i]); j++)
+            {
+                appendValue(tmp_end, shift_cord(cords_str[i][j], thd_cord_size, thd_cord_size));
+            }
+            cords2BamLink (cords_str[i], tmp_end, bam_link_records[ii], reads[i], thd_large_X);
+        }
+        else
+        {
+            cords2BamLink (cords_str[i], cords_end[i], bam_link_records[ii], reads[i], thd_large_X);
+        }
+        ii++;
+    }
+}
 
 void cords2BamLink(StringSet<String<uint64_t> > & cords_str, 
                    StringSet<String<uint64_t> > & cords_end,
@@ -1035,9 +1064,18 @@ void print_cords_sam
      uint64_t thd_large_X,
      unsigned threads,
      int f_header,
-     FIOParms & fio_parms)
+     FIOParms & fio_parms,
+     int f_parallel)
 {
-    cords2BamLink (cordset_str, cordset_end, bam_records, reads, thd_cord_size, thd_large_X, threads);
+    //thd_large_X = 500;
+    if (f_parallel)
+    {
+        cords2BamLink (cordset_str, cordset_end, bam_records, reads, thd_cord_size, thd_large_X, threads);
+    }
+    else
+    {
+        cords2BamLink (cordset_str, cordset_end, bam_records, reads, thd_cord_size, thd_large_X);
+    }
     //shrink_cords_cigar(bam_records);
     fio_parms.f_print_seq = 1;
     if (fio_parms.f_reform_ccs)

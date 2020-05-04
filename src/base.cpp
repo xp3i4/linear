@@ -35,7 +35,8 @@ Options::Options():
         reform_ccs_cigar_flag(0),
         read_group(""),
         sample_name(""),
-        sequence_sam_flag(0)
+        sequence_sam_flag(0),
+        bal_flag(1)
         {
            date += __TIME__; 
            date += " ";
@@ -62,7 +63,7 @@ uint64_t _flipCoord (uint64_t coord, uint64_t len, uint64_t strand)
     return len * strand - _nStrand(strand) * coord;
 }
 
-MapParm::MapParm():
+MapParms::MapParms():
         blockSize(base_block_size_),
         delta(base_delta_),
         threshold(base_threshold_),
@@ -81,7 +82,7 @@ MapParm::MapParm():
         senThr(0.8),
         clsThr(0.1)
     {}
-MapParm::MapParm(unsigned bs, unsigned dt, unsigned thr, 
+MapParms::MapParms(unsigned bs, unsigned dt, unsigned thr, 
             unsigned ks, unsigned sl, unsigned st,
             unsigned ad, unsigned mr, unsigned listn,
             unsigned listn2,
@@ -104,7 +105,7 @@ MapParm::MapParm(unsigned bs, unsigned dt, unsigned thr,
         senThr(sent),
         clsThr(clst)
         {} 
-MapParm::MapParm(MapParm & parm):
+MapParms::MapParms(MapParms & parm):
         blockSize(parm.blockSize),
         delta(parm.delta),
         threshold(parm.threshold),
@@ -346,7 +347,7 @@ unsigned Anchors::length()
     return seqan::length(set);
 }
 
-void MapParm::print()
+void MapParms::print()
 {
     std::cerr << "blockSize " << blockSize << std::endl
               << "alpha " << alpha << std::endl
@@ -386,39 +387,84 @@ static const String<Dna5> _complt = "tgcan";
         //std::cout << (unsigned)ordValue(str[length(str) - k - 1]) << std::endl;
     }
 }
-
+/*----------  Debug ostream to replace ostream ----------*/
 Dout dout;
-Dout & Dout::operator << (int n)
+Gout & operator << (Dout & d, int n)
+{
+    Gout *p = new Gout;
+    *p << n;
+    return *p;
+}
+Gout & operator << (Dout & d, unsigned n)
+{
+    Gout *p = new Gout;
+    *p << n;
+    return *p;  
+}
+Gout & operator << (Dout & d, int64_t n)
+{
+    Gout *p = new Gout;
+    *p << n;
+    return *p;
+}
+Gout & operator << (Dout & d, uint64_t n)
+{
+    Gout *p = new Gout;
+    *p << n;
+    return *p;
+}
+Gout & operator << (Dout & d, CharString n)
+{
+    Gout *p = new Gout;
+    *p << n;
+    return *p;
+}
+Gout & operator << (Dout & d, String<int64_t> & n)
+{
+    Gout *p = new Gout;
+    *p << n;
+    return *p;
+}
+Gout & operator << (Dout & d, double n)
+{
+    Gout *p = new Gout;
+    *p << n;
+    return *p;
+}
+
+Gout & Gout::operator << (int n)
 {
     buffer << n << " "; 
     return *this;
 }
-Dout & Dout::operator << (unsigned n)
+Gout & Gout::operator << (unsigned n)
 {
     buffer << n << " "; 
     return *this;
 }
-Dout & Dout::operator << (int64_t n)
+Gout & Gout::operator << (int64_t n)
 {
     buffer << n << " "; 
     return *this;
 }
-Dout & Dout::operator << (uint64_t n)
+Gout & Gout::operator << (uint64_t n)
 {
     buffer << n << " "; 
     return *this;
 }
-Dout & Dout::operator << (CharString n)
+Gout & Gout::operator << (CharString n)
 {
     buffer << n << " ";
     if (n == "\n")
     {
         std::cout << buffer.str();
-        buffer.str("");
+        //buffer.str("");
+        delete this;
+        //return NULL;
     }
     return *this;
 }
-Dout & Dout::operator << (String<int64_t> & ns)
+Gout & Gout::operator << (String<int64_t> & ns)
 {
     for (auto n : ns)
     {
@@ -426,7 +472,7 @@ Dout & Dout::operator << (String<int64_t> & ns)
     }
     return * this;
 }
-Dout & Dout::operator << (double n)
+Gout & Gout::operator << (double n)
 {
     buffer << n << " " ;
     return * this;
@@ -540,4 +586,5 @@ int print_seq(String<Dna5> & seq, uint64_t str, uint64_t end, std::string header
     std::cout << "\n";
     return 0;
 }
+int mod(int a, int b){int c = a % b; return c >= 0 ? c : c + b;}
 

@@ -1,26 +1,26 @@
 #include <seqan/arg_parse.h>
 #include "args_parser.h"
 #include "pmpfinder.h"
+#include "parallel_io.h"
 #include "mapper.h"
 using namespace seqan; 
 
 
 int process1 (Mapper & mapper, Options & options, int p1)
 {
-    StringSet<FeaturesDynamic> f2;
     StringSet<String<short> > empty_buckets; 
     String<Position<SeqFileIn>::Type>   empty_fin_pos; 
 
     omp_set_num_threads(mapper.getThreads());
-    createFeatures(mapper.getGenomes(), f2, mapper.getFeatureType(), mapper.getThreads());
+    createFeatures(mapper.getGenomes(), mapper.getGenomesFeatures(), 
+        mapper.getFeatureType(), mapper.getThreads());
     mapper.createIndex(0, length(mapper.getGenomes()), false); 
-    return map (mapper, f2, empty_buckets, empty_fin_pos, 0, 0, p1);
+    return map (mapper, empty_buckets, empty_fin_pos, 0, 0, p1);
 }
 
 int process2(Mapper & mapper, Options & options, int p1)
 {
     //init filter mapper
-    StringSet<FeaturesDynamic> f2;
     StringSet<String<short> > buckets;
     String<Position<SeqFileIn>::Type> fin_pos; 
     Options filter_options = options;
@@ -35,8 +35,8 @@ int process2(Mapper & mapper, Options & options, int p1)
     omp_set_num_threads(mapper.getThreads());
     mapper.getIndex().setMIndex(); //enable filter index && disable mapper index (DIndex for filter by default)
     mapper.createIndex(0, length(mapper.getGenomes()), false); 
-    createFeatures(mapper.getGenomes(), f2, mapper.getFeatureType(), mapper.getThreads());
-    filter (mapper, f2, buckets, fin_pos, p1);
+    createFeatures(mapper.getGenomes(), mapper.getGenomesFeatures(), mapper.getFeatureType(), mapper.getThreads());
+    filter (mapper, buckets, fin_pos, p1);
     //<<ddebug
     for (int i = 0; i < length(buckets); i++)
     {
@@ -67,16 +67,31 @@ int process2(Mapper & mapper, Options & options, int p1)
         serr.print_message("\033[0m        ", 0, 1, std::cerr);
         //mapper.
         mapper.createIndex(i, i + 1, false); 
-        map (mapper, f2, buckets, fin_pos, i, 1, p1, f_io_append);
+        map (mapper, buckets, fin_pos, i, 1, p1, f_io_append);
         f_io_append = true;
         std::cerr << "\n";
     }
     return 0;
 }
 
+/*----------  Process 3  ----------/
+ * Dynamic balancing I/O: parallel dumping i/o to buffers 
+ */
 int process3(Mapper & mapper, Options & options, int p1)
 {
-
+    dout << "p3" << "\n";
+    P_Parms p_parms(1, 1, 1, 2);
+    mapper.initBuffers(2, 2, p_parms);
+    omp_set_num_threads(mapper.getThreads());
+    omp_set_num_threads(mapper.getThreads());
+    createFeatures(mapper.getGenomes(), mapper.getGenomesFeatures(), mapper.getFeatureType(), mapper.getThreads());
+    mapper.createIndex(0, length(mapper.getGenomes()), false); 
+    //std::cerr << "process3 done \n";
+    #pragma omp parallel
+    {
+        p_ThreadProcess(mapper, p_parms, omp_get_thread_num());
+    }
+    return 0;
 }
 
 int main(int argc, char const ** argv)
@@ -102,7 +117,14 @@ int main(int argc, char const ** argv)
     {
         */
         int p1 = 0; //temp var for test config
-        process1 (mapper, options, p1);
+        if (options.bal_flag)
+        {
+            process3 (mapper, options, p1);
+        }
+        else
+        {
+            process1 (mapper, options, p1);
+        }
     //}
     std::cerr << "Time in sum[s] " << sysTime() - time << "      \n";
     return 0;

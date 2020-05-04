@@ -32,12 +32,14 @@ add_library(linear_gap STATIC gap.cpp)
 add_library(linear_align_util STATIC align_util.cpp)
 add_library(linear_fio STATIC f_io.cpp)
 add_library(linear_align_interface STATIC align_interface.cpp)
+add_library(linear_parallel_io STATIC parallel_io.cpp)
 add_library(linear_mapper STATIC mapper.cpp)
 add_library(linear_test_units STATIC test_units.cpp)
 
 add_executable (linear linear.cpp) 
 target_link_libraries (linear
                        linear_mapper 
+                       linear_parallel_io
                        linear_test_units
                        linear_align_interface
                        linear_args_parser 

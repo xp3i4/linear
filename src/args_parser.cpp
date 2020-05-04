@@ -125,6 +125,10 @@ parseCommandLine(Options & options, int argc, char const ** argv)
         "ss", "sequence_sam", "Set -ss or -ss 1 to enable printing sequence segment in the sam for each read. This function is required in some SVs caller. Diabled (-ss 0) by default",
         seqan::ArgParseArgument::STRING, "STR"
         ));
+    addOption(parser, seqan::ArgParseOption(
+        "b", "bal_flag", "dynamic balancing tasks schedule 0 to diable(default) or 1 to enable ",
+            seqan::ArgParseArgument::INTEGER, "INT" 
+        ));   
 //    addDefaultValue(parser, "gap_len", "1");
 
 // Advanced parms for mapping
@@ -171,6 +175,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     getOptionValue(options.read_group, parser, "read_group");
     getOptionValue(options.sample_name, parser, "sample_name");
     getOptionValue(options.sequence_sam_flag, parser, "sequence_sam");
+    getOptionValue(options.bal_flag, parser, "bal_flag");
 
     //std::cerr << "xxxxx " << options.gap_len << isSet(parser, "gap_len") << "\n";
     std::vector<std::string> args;
