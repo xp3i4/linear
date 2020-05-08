@@ -124,7 +124,7 @@ struct Counters{
     
     void clearCounters(){
         counters[0] = counters[1] = counters[2] = 0;
-        timers[0] = timers[1] = timers[3] = 0;
+        timers[0] = timers[1] = timers[2] = 0;
     }
     void addCounters (Counters & b_counters)
     {

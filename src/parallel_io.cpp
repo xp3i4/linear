@@ -64,6 +64,7 @@ P_Tasks::P_Tasks()
 {}
 void P_Tasks::printInfos()
 {
+    //dout << "pinfo" << counters.getOutTimer() << "\n";
     std::cerr << "[status] I/O:" << counters.getInCounter()
               << ":" << counters.getInTimer()  
               << "[s] Processed " << counters.getCalCounter()
@@ -489,6 +490,7 @@ int p_PrintResults(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
         buffer32.nextOut();
         buffer4.nextOut();
     }
+    dout << "syst" << counters.getOutTimer() << sysTime() - time << "\n";
     counters.setOutTimer(counters.getOutTimer() + sysTime() - time);
     return 0; 
 }
