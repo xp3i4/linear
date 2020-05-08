@@ -271,10 +271,12 @@ void Mapper::clearIndex()
 //=== pipeline2 of parallel buffer 
 void Mapper::initBuffers(int buffer_size1, int buffer_size2, P_Parms & p_parms)
 {
-    P_Mapper::initBuffers(buffer_size1, buffer_size2, getGPaths(), getRPaths(), getThreads(), p_parms);
+    P_Mapper::initBuffers(buffer_size1, buffer_size2, getGPaths(), 
+        getRPaths(), getThreads(), p_parms);
 }
-int Mapper::p_calRecords(int in_id, int out_id) 
+int Mapper::p_calRecords(int in_id, int out_id, int thread_id) 
 {
+    Counters & counters = this->getPTask(thread_id).counters;
     StringSet<String<Dna5> > & reads = reads_buffer[in_id];
     StringSet<CharString> & reads_id = reads_ids_buffer[in_id]; 
     StringSet<String<uint64_t> > & cords_str = cords1_buffer[out_id];
@@ -325,17 +327,23 @@ int Mapper::p_calRecords(int in_id, int out_id)
             }
         }
     } 
+    counters.setCalCounter(counters.getCalCounter() + length(reads));
+
     return 0;
 }
-
-int Mapper::p_printResults(int it1, int it2)
+//it1->reads buffer
+//it2->cords buffer
+int Mapper::p_printResults(int it1, int it2, int thread_id)
 {
+    Counters & counters = this->getPTask(thread_id).counters;
     std::string path = this->getPReadsPathsBuffer()[it1];
     std::string prefix = getFileName(path, "/", ~0);
     this->outputPrefix = getFileName(prefix, ".", 0);
     //prefix = path;
     std::cout << "reads_path"  << this->outputPrefix << "\n"; // (this->outputPrefix) << "\n";
     print_mapper_results(*this, 1, it1, it2);
+    counters.setOutCounter(counters.getOutCounter() + length(this->getPReadsBuffer()[it1]));
+
     return 0;
 }
 

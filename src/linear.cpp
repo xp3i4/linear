@@ -91,6 +91,7 @@ int process3(Mapper & mapper, Options & options, int p1)
     {
         p_ThreadProcess(mapper, p_parms, omp_get_thread_num());
     }
+    //mapper.getTasks().printInfos();
     return 0;
 }
 

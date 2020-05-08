@@ -62,6 +62,15 @@ P_Tasks::P_Tasks(P_ReadsBuffer & reads_buffer,
 }
 P_Tasks::P_Tasks()
 {}
+void P_Tasks::printInfos()
+{
+    std::cerr << "[status] I/O:" << counters.getInCounter()
+              << ":" << counters.getInTimer()  
+              << "[s] Processed " << counters.getCalCounter()
+              << ":" << counters.getCalTimer()
+              << "[s] Printed " << counters.getOutCounter()
+              << ":" << counters.getOutTimer() << "\n";
+}
 void P_Tasks::nextGroup1In()
 {
     p_reads_buffer -> nextIn();
@@ -98,6 +107,14 @@ void P_Tasks::setTaskAllEnd()
 {
     //atomicCas(sgn_all_tasks_end, 0, 1);
     sgn_all_tasks_end = 1;
+}
+void P_Tasks::updateCounters()
+{
+    for (unsigned i = 0; i < length(tasks); i++)
+    {
+        counters.addCounters(tasks[i].counters);
+        tasks[i].counters.clearCounters();
+    }
 }
 //void P_Tasks::setAllOutBuffProtected()
 //{
@@ -184,12 +201,10 @@ int P_Tasks::assignCalRecords(P_Parms & p_parms, int thread_id)
         //buffer32.nextIn();
         //buffer4.nextIn();
         this->nextGroup2In();
-        dout << "acrs2" << assign_it2 << assign_it3 << buffer2.inIt() << buffer31.isEmpty() << "\n";
         this->nextAssignIt2(); //assign_it2 iterator
         this->nextAssignIt3();
     }
     int return_val = length(tasks[thread_id].p_ins) ? 0 : 1;
-    dout << "acrs1" << length(tasks[thread_id].p_ins) << n << "it" << buffer2.inIt() << assign_it2 << buffer2.inIt() << buffer2.outIt() << return_val << "\n";
     return return_val;
 }
 
@@ -218,6 +233,10 @@ void P_Parms::printParms()
 }
 
 /*----------  Class P_Mapper  ----------*/
+P_Task & P_Mapper::getPTask(int thread_id)
+{
+    return p_tasks.tasks[thread_id];
+}
 P_Tasks & P_Mapper::getPTasks()
 {
     return p_tasks;
@@ -298,6 +317,8 @@ int freeCurrentTask_(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_
         //dout << "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx4" << p_tasks.tasks[thread_id].task_type << "\n";
         //none
     }
+    //print status message
+
     return 0;
 }
 /*
@@ -319,18 +340,15 @@ int requestNewTask_(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_e
     {
         p_tasks.sgn_fetch = 1;
         p_tasks.setTaskFetchReads(thread_id);
-    dout << "fetch_t..........." << thread_id << p_tasks.sgn_fetch_end << p_tasks.p_reads_buffer->inIt() << "f" << p_tasks.sgn_fetch << p_tasks.isTaskFetchReads(0) << p_tasks.isTaskFetchReads(1) << "\n";
     }
     else if (!p_tasks.p_cords1_buffer-> isEmpty() &&
              p_tasks.sgn_print == 0)
     {
         p_tasks.sgn_print = 1;
-        dout << "is " << p_tasks.p_cords1_buffer->isEmpty() << "\n";
         p_tasks.setTaskPrintResults(thread_id);
     }
     else if (!p_tasks.assignCalRecords(p_parms, thread_id))
     {
-        dout << "cal" << thread_id << "\n";
         p_tasks.setTaskCalRecords(thread_id);
     }
     else
@@ -343,7 +361,6 @@ int requestNewTask_(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_e
             p_tasks.p_cords2_buffer -> isEmpty() &&
             p_tasks.p_bam_link_buffer -> isEmpty())
         {
-            dout << "$$$$$$$$$$$$$$$$$$$$$$" << "\n";
             p_tasks.setTaskEnd(thread_id);
         }
     }   
@@ -368,6 +385,8 @@ int p_RequestTask(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_err
 
 int p_FetchReads(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
 {
+    double time = sysTime();
+    Counters & counters = p_mapper.getPTask(thread_id).counters;
     P_Tasks & p_tasks = p_mapper.getPTasks(); 
     P_ReadsIdsBuffer & buffer1 = * p_tasks.p_reads_ids_buffer;
     P_ReadsBuffer & buffer2 = * p_tasks.p_reads_buffer;
@@ -392,24 +411,14 @@ int p_FetchReads(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
         clear(buffer2.in());
 
         std::ostringstream ss;
-        dout << "path2=============" << buffer1.inIt() << buffer1.physicalSize() << thread_id << p_tasks.tasks[0].task_type << p_tasks.tasks[1].task_type << "\n";
         //std::cout << ss.str();
         buffer3.in() = file_name;
+        int tmp_length = length(buffer1.in());
         readRecords(buffer1.in(), buffer2.in(), p_tasks.fin, p_parms.thd_buffer_block_size);
-        //<<debug
-        /*
-        for (int i = 0; i < length(buffer1.out()); i++)
-        {
-            dout << "p_se " << i <<  length(buffer2.out()[i]) << buffer2.usedSize() << length(buffer1.out()) << "\n";
-        }
-        buffer1.nextOut();
-        buffer2.nextOut();
-        */
-        //>>debug
+        counters.setInCounter(counters.getInCounter() + length(buffer1.in()) - tmp_length);
         buffer1.nextIn();
         buffer2.nextIn();
         buffer3.nextIn();
-        dout << "path3---------------" << buffer1.outIt() << buffer1.inIt() << thread_id << buffer1.isFull() << buffer1.usedSize() << "\n";
         if (atEnd(p_tasks.fin))
         {
             close(p_tasks.fin);
@@ -417,6 +426,7 @@ int p_FetchReads(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
             p_tasks.f_fin_open = 0;
         }
     }
+    counters.setInTimer(counters.getInTimer() + sysTime() - time);
     return 0;
 }
 /*
@@ -424,40 +434,37 @@ int p_FetchReads(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
  */
 int p_CalRecords(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
 {
+    double time = sysTime();
+    Counters & counters = p_mapper.getPTask(thread_id).counters;
     P_Tasks & p_tasks = p_mapper.getPTasks();
     //P_ReadsIdsBuffer & buffer1 = * p_tasks.p_reads_ids_buffer;
     //P_ReadsBuffer & buffer2 = * p_tasks.p_reads_buffer;
     P_CordsBuffer & buffer31 = * p_tasks.p_cords1_buffer;
     P_CordsBuffer & buffer32 = * p_tasks.p_cords2_buffer;
     P_BamLinkBuffer & buffer4 = * p_tasks.p_bam_link_buffer;
-    dout << "pcr2" << buffer31.inIt() << buffer31.outIt() << "\n";
-    /* 
-    if (buffer1.isEmpty() ) //|| buffer31.isFull())
-    {
-        return 0;   
-    }
-    */
     //p_tasks.p_reads_buffer -> nextOut();
     //p_tasks.p_reads_ids_buffer -> nextOut();
-    dout << "pcr1" << "\n";
     for (int i = 0; i < p_tasks.getTaskInBufferLen(thread_id); i++)
     {
         //add cal function here
         int i_out = p_tasks.getTaskOutBufferPtr(thread_id, i);
         int i_in = p_tasks.getTaskInBufferPtr(thread_id, i);
-        p_mapper.p_calRecords(i_in, i_out);
-        //dout << "p_calreocords" << i << length(p_tasks.tasks[thread_id].p_ins) << buffer1[p_tasks.tasks[thread_id].p_ins[i]][0] << "\n";
+        p_mapper.p_calRecords(i_in, i_out, thread_id);
         buffer31.unsetProtected(i_out);
         buffer32.unsetProtected(i_out);
         buffer4.unsetProtected(i_out);
-        dout << "i_out" << i_out << buffer31.isProtected(i_out) << "\n";
     }
-
+    p_mapper.getPTask(thread_id).counters.setCalTimer(counters.getCalTimer() + sysTime() - time);
+    dout << "timers" << sysTime() - time << "\n";
     return 0;
 }
-
+/*
+ * Not allowed to be called by >=2 threads simultaneously
+ */
 int p_PrintResults(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
 {   
+    double time = sysTime();
+    Counters & counters = p_mapper.getPTask(thread_id).counters;
     P_Tasks & p_tasks = p_mapper.getPTasks();
     P_ReadsPathsBuffer & buffer0 = * p_tasks.p_reads_paths_buffer;
     P_ReadsIdsBuffer & buffer1 = * p_tasks.p_reads_ids_buffer;
@@ -466,25 +473,23 @@ int p_PrintResults(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
     P_CordsBuffer & buffer32 = * p_tasks.p_cords2_buffer;
     P_BamLinkBuffer & buffer4 = * p_tasks.p_bam_link_buffer;
 
-    dout << "ppr1" << p_parms.thd_print_num << buffer31.isProtected(buffer31.outIt()) 
-        << buffer31.isEmpty() << buffer31.outIt() << "\n";
     //print result buffer in sequential order (1,2,...)
     for (int i = 0; i < p_parms.thd_print_num && !buffer31.isProtected(buffer31.outIt()) &&
         !buffer32.isProtected(buffer32.outIt()) && !buffer4.isProtected(buffer4.outIt()) 
         && !buffer31.isEmpty() && !buffer32.isEmpty() && !buffer4.isEmpty(); i++)
     {
         //add print_function here
-        //dout << "p_PrintResults <<<<<<" << buffer1[0][0] << buffer1.outIt() << buffer1.inIt() << "\n";
-        p_mapper.p_printResults(buffer1.outIt(), buffer31.outIt());
+        p_mapper.p_printResults(buffer1.outIt(), buffer31.outIt(), thread_id);
+        p_mapper.getPTasks().updateCounters();
+        p_mapper.getPTasks().printInfos();
         buffer0.nextOut();
         buffer1.nextOut(); //release one block in reads_buffer
         buffer2.nextOut();
         buffer31.nextOut();
         buffer32.nextOut();
         buffer4.nextOut();
-    dout << "ppr2" << buffer31.outIt() << buffer31.inIt() << buffer31.isProtected(buffer31.outIt())<< "\n";
     }
-    dout << "ppr3" << buffer31.outIt() << buffer31.inIt() << buffer31.isProtected(buffer31.outIt())<< "\n";
+    counters.setOutTimer(counters.getOutTimer() + sysTime() - time);
     return 0; 
 }
 
@@ -506,18 +511,15 @@ int p_ThreadProcess(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
         else if(p_tasks.isTaskFetchReads(thread_id)) 
         {
             f_error = p_FetchReads(p_mapper, p_parms, thread_id);
-            dout << "fe1" << f_error << "\n";
         }
         else if (p_tasks.isTaskCalRecords(thread_id))
         {
             f_error = p_CalRecords(p_mapper, p_parms, thread_id);
-            dout << "fe2" << f_error << "\n";
         }
         
         else if (p_tasks.isTaskPrintResults(thread_id))
         {
             f_error = p_PrintResults(p_mapper, p_parms, thread_id);
-            dout << "fe3" << f_error << "\n";
         }
     } 
     return 0;
