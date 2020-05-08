@@ -134,7 +134,6 @@ struct Counters{
         timers[0] += b_counters.timers[0];
         timers[1] += b_counters.timers[1];
         timers[2] += b_counters.timers[2];
-        dout << "times" << timers[0] << b_counters.timers[0] << "\n";
     }
 };
 

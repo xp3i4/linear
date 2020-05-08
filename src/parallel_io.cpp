@@ -456,7 +456,7 @@ int p_CalRecords(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
         buffer4.unsetProtected(i_out);
     }
     p_mapper.getPTask(thread_id).counters.setCalTimer(counters.getCalTimer() + sysTime() - time);
-    dout << "timers" << sysTime() - time << "\n";
+    //dout << "timers" << sysTime() - time << "\n";
     return 0;
 }
 /*
@@ -490,7 +490,7 @@ int p_PrintResults(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
         buffer32.nextOut();
         buffer4.nextOut();
     }
-    dout << "syst" << counters.getOutTimer() << sysTime() - time << "\n";
+    //dout << "syst" << counters.getOutTimer() << sysTime() - time << "\n";
     counters.setOutTimer(counters.getOutTimer() + sysTime() - time);
     return 0; 
 }

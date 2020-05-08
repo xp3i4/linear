@@ -71,7 +71,6 @@ int getBestChains(String<uint64_t>     & anchors, //todo:: anchor1 anchor2 of di
         //for (int j = j_str; j < i; j++)
         for (int j = i - 1; j>=0 && (j >=j_str || get_anchor_x(anchors[j]) - get_anchor_x(anchors[i]) < thd_chain_dx_depth); j--)
         {
-            dout << "new_score" << new_score << get_anchor_x(anchors[j]) << get_anchor_x(anchors[i]) << "\n";
             new_score = chn_metric.getScore(anchors[j], anchors[i], chn_metric.chn_score_parms);
             if (new_score > 0 && new_score + chains[j].score >= new_max_score)
             {
@@ -195,10 +194,6 @@ int traceBackChains(String<ChainElementType> & elements,  StringSet<String<Chain
 
     for (int j = 0; j < length(chain_records); j++)
     {
-        //<<debug
-        ChainsRecord cr = chain_records[j];
-        dout << "tb1" << cr.root_ptr << cr.score << cr.len << "\n";
-        //>>debug
         if (chain_records[j].isLeaf()) //create leaves list for each tree
         {
             int f_new = 1;
@@ -232,18 +227,15 @@ int traceBackChains(String<ChainElementType> & elements,  StringSet<String<Chain
     for (int i = 0; i < length(leaves); i++)
     {
         tree_score_ranks[i] = std::pair<int, int> (i, leaves[i][1]);
-        dout << "tb2" << leaves[i][1] << "\n";
     }
     std::sort (begin(tree_score_ranks), end(tree_score_ranks), 
         [](std::pair<int, int> & a, std::pair<int, int> & b){return a.second > b.second;});
-    dout << "tbc" << bestn << length(tree_score_ranks) << "\n";
     for (int i = 0; i < std::min(bestn, int(length(tree_score_ranks))); i++) 
     {
         int max_score = leaves[tree_score_ranks[i].first][1];
         int max_len = leaves[tree_score_ranks[i].first][2];
         int max_str = leaves[tree_score_ranks[i].first][3];
         int mean_score = max_len > 1 ? max_score / (max_len - 1) : _chain_abort_score + 1;
-        dout << "tb3" << tree_score_ranks[i].first << tree_score_ranks[i].second << max_len << _chain_min_len << mean_score << _chain_abort_score << "\n";
         if (max_len > _chain_min_len && mean_score > _chain_abort_score) //max_len is the number of anchors, ..-1 is the number of connection(interval) between anchors
         {
             for (int j = max_str; j != chain_end; j = chain_records[j].p2anchor)
@@ -343,13 +335,6 @@ int chainAnchorsHits(String<uint64_t> & anchors, String<uint64_t> & hits, String
     StringSet<String<uint64_t> > anchors_chains;
     std::sort(begin(anchors), end(anchors), 
         [](uint64_t & a, uint64_t & b){return getAnchorX(a) > getAnchorX(b);});
-    //<<debug
-    for (int i = 0; i < length(anchors); i++)
-    {
-        uint64_t h = _DefaultCord.hit2Cord_dstr(anchors[i]);
-        dout << "cahs" << i << get_cord_y(h) << get_cord_x(h) << "\n";
-    }
-    //>>debug
     int thd_best_n = 5;
     chainAnchorsBase(anchors, anchors_chains, hits_chains_score, 0, length(anchors), thd_chain_depth, 0, thd_best_n, chn_score, &getAnchorX);
     //additoinal filter and convert to hits
