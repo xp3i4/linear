@@ -62,15 +62,23 @@ P_Tasks::P_Tasks(P_ReadsBuffer & reads_buffer,
 }
 P_Tasks::P_Tasks()
 {}
+void P_Tasks::startRunTasks()
+{
+    start__time = sysTime();
+}
 void P_Tasks::printInfos()
 {
     //dout << "pinfo" << counters.getOutTimer() << "\n";
-    std::cerr << "[status] I/O:" << counters.getInCounter()
-              << ":" << counters.getInTimer()  
-              << "[s] Processed " << counters.getCalCounter()
-              << ":" << counters.getCalTimer()
-              << "[s] Printed " << counters.getOutCounter()
-              << ":" << counters.getOutTimer() << "\n";
+    double t_t = sysTime() - start__time;
+    //std::cerr << "\033[s";
+    std::cerr << "\r--I/O::in " << counters.getInCounter()
+              << " cpu:" << counters.getInTimer() << "[s]\n"
+              << "  I/O::out " << counters.getOutCounter()
+              << " cpu:" << counters.getOutTimer() << "[s]"
+              << " speed:" << counters.getOutCounter() / t_t << "[reads/s]\n"
+              << "  Processed: " << counters.getCalCounter()
+              << " cpu:" << counters.getCalTimer() << "[s]\n"
+              << "  total " << sysTime() - start__time << "\033[3A";
 }
 void P_Tasks::nextGroup1In()
 {

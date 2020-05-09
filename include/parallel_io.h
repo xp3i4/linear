@@ -148,6 +148,7 @@ struct P_Task{
 };
 
 struct P_Tasks{
+    double start__time;
     //buffers
     //Warn!!::make sure the in and out iterator of the Group are modified 
     //by at most one function at the same time
@@ -187,6 +188,7 @@ struct P_Tasks{
     P_Tasks(P_ReadsBuffer &, P_ReadsIdsBuffer &, P_ReadsPathsBuffer&, 
         P_CordsBuffer &, P_CordsBuffer &, P_BamLinkBuffer &, 
         StringSet<std::string> &, StringSet<std::string> &, int);
+    void startRunTasks();
     //printInfos
     void printInfos();
     //iterator
