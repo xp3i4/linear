@@ -46,6 +46,7 @@ void P_Tasks::initPTasks(P_ReadsBuffer & reads_buffer,
     sgn_print = 0;
     sgn_all_tasks_end = 0;
     f_fin_open = 0;
+    f_printRunningInfos = 0;
 }
 P_Tasks::P_Tasks(P_ReadsBuffer & reads_buffer, 
                  P_ReadsIdsBuffer & reads_ids_buffer, 
@@ -66,19 +67,29 @@ void P_Tasks::startRunTasks()
 {
     start__time = sysTime();
 }
-void P_Tasks::printInfos()
+void P_Tasks::printRunningInfos()
 {
     //dout << "pinfo" << counters.getOutTimer() << "\n";
     double t_t = sysTime() - start__time;
     //std::cerr << "\033[s";
-    std::cerr << "\r--I/O::in " << counters.getInCounter()
-              << " cpu:" << counters.getInTimer() << "[s]\n"
-              << "  I/O::out " << counters.getOutCounter()
-              << " cpu:" << counters.getOutTimer() << "[s]"
-              << " speed:" << counters.getOutCounter() / t_t << "[reads/s]\n"
-              << "  Processed: " << counters.getCalCounter()
-              << " cpu:" << counters.getCalTimer() << "[s]\n"
-              << "  total " << sysTime() - start__time << "\033[3A";
+    if (this->f_printRunningInfos)
+    {
+        std::cerr << "\033[5A";
+    }
+    this->f_printRunningInfos = 1;
+    std::cerr << "--\033[1;31m" << paths2[paths2_it] << "\033[0m\n"
+              << "\033[2K  I/O::in :" << counters.getInCounter() << "\t"
+              << " cpu:" << counters.getInTimer() << "[s]\t"
+              << " speed:" << counters.getInCounter() / counters.getInTimer() << "[rds/cpu/s]\033[7h\n"
+              << "\033[2K  I/O::out:" << counters.getOutCounter() << "\t"
+              << " cpu:" << counters.getOutTimer() << "[s]\t"
+              << " speed:" << counters.getOutCounter() / counters.getOutTimer() << "[rds/cpu/s]\033[7h\n"
+              << "\033[2K  Calculate:" << counters.getCalCounter() << ""
+              << " cpu:" << counters.getCalTimer() << "[s]"
+              << " speed:" << counters.getCalCounter() / counters.getCalTimer() << "[rds/cpu/s]\033[7h\n"
+              << "\033[2K  \033[1;31mProcessed:\033[0m" << counters.getOutCounter() << ""
+              << " time:" << sysTime() - start__time << "[s]" 
+              << " speed:" << counters.getOutCounter() / t_t << "[rds/s]\033[7h\n\r";
 }
 void P_Tasks::nextGroup1In()
 {
@@ -365,6 +376,7 @@ int requestNewTask_(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_e
         if (p_tasks.sgn_fetch_end == 1 && 
             p_tasks.p_reads_ids_buffer-> isEmpty() && 
             p_tasks.p_reads_buffer -> isEmpty() &&
+
             p_tasks.p_reads_paths_buffer -> isEmpty() &&
             p_tasks.p_cords1_buffer -> isEmpty() && // !!!Add here all the conditions of task end !!!
             p_tasks.p_cords2_buffer -> isEmpty() &&
@@ -490,7 +502,7 @@ int p_PrintResults(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
         //add print_function here
         p_mapper.p_printResults(buffer1.outIt(), buffer31.outIt(), thread_id);
         p_mapper.getPTasks().updateCounters();
-        p_mapper.getPTasks().printInfos();
+        p_mapper.getPTasks().printRunningInfos();
         buffer0.nextOut();
         buffer1.nextOut(); //release one block in reads_buffer
         buffer2.nextOut();

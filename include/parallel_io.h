@@ -180,6 +180,7 @@ struct P_Tasks{
     int sgn_print;
     int sgn_all_tasks_end;
     int f_fin_open;
+    int f_printRunningInfos;
     seqan::SeqFileIn fin;
     std::ofstream fout;
     void initPTasks(P_ReadsBuffer &,  P_ReadsIdsBuffer &, P_ReadsPathsBuffer &, P_CordsBuffer &, P_CordsBuffer &, P_BamLinkBuffer &, 
@@ -190,7 +191,7 @@ struct P_Tasks{
         StringSet<std::string> &, StringSet<std::string> &, int);
     void startRunTasks();
     //printInfos
-    void printInfos();
+    void printRunningInfos();
     //iterator
     void nextAssignIt2(){p_reads_buffer->nextIt(assign_it2);}
     void nextAssignIt3(){p_cords1_buffer->nextIt(assign_it3);}

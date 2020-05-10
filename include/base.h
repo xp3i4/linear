@@ -216,6 +216,7 @@ public:
     void print_message(std::string strs, size_t start, int end_type, std::ostream & os);
     void print_message(double data, size_t start, int end_type, std::ostream & os);
     void print_message(unsigned data, size_t start, int end_type, std::ostream & os);
+    void print_message(int data, size_t start, int end_type, std::ostream & os);
 };
 extern ostreamWapper serr;
 /*

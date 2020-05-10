@@ -515,6 +515,16 @@ void ostreamWapper::print_message(unsigned data,
     std::string str = strs.str();
     print_message(str, start, end_type, os);
 }
+void ostreamWapper::print_message(int data, 
+                                  size_t start, 
+                                  int end_type, 
+                                  std::ostream & os)
+{
+    std::ostringstream strs;
+    strs << data;
+    std::string str = strs.str();
+    print_message(str, start, end_type, os);
+}
 
 ostreamWapper serr;
 
