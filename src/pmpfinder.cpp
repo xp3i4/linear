@@ -1790,7 +1790,7 @@ unsigned getDIndexMatchAll (DIndex & index,
     uint64_t read_end = get_cord_y(map_end);
     uint64_t idx_str = _DefaultCord.getCordX(map_str); //NOTE:: id included = id|x
     uint64_t idx_end = _DefaultCord.getCordX(map_end);
-    for (unsigned k = read_str; k < read_end; k++)
+    for (unsigned k = read_str; k < read_end - shape.span; k++)
     {
         hashNexth(shape, begin(read) + k);
         uint64_t pre = ~0;
