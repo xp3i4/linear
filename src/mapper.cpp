@@ -318,7 +318,6 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
             //clear(f1[1].fs2_48);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
             createFeatures(begin(comStr), end(comStr), f1[1]);
-            dout << "pc2" << length(reads[j]) << anchors.length() << length(crhit) << length(cords_str[j]) << f_chain << "\n";
             apxMap(this->getIndex(), reads[j], anchors, this->getMapParms(), crhit, f1, f2, apx_gaps, cords_str[j], f_chain);
             if (fm_handler_.isMapGap(f_map))
             {
@@ -333,7 +332,6 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
                 //check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
             }
         }
-    dout << "p3c" << length(reads[j]) << anchors.length() << length(crhit) << length(cords_str[j]) << "\n";
 
     } 
     counters.setCalCounter(counters.getCalCounter() + length(reads));
@@ -649,7 +647,6 @@ int map_(IndexDynamic & index,
             _compltRvseStr(reads[j], comStr);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
             createFeatures(begin(comStr), end(comStr), f1[1]);
-            dout << "pc2" << length(reads[j]) << anchors.length() << length(crhit) << length(cordsTmp[c]) << f_chain << "\n";
             apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], f_chain);
             if (fm_handler_.isMapGap(f_map))
                 {
@@ -664,7 +661,6 @@ int map_(IndexDynamic & index,
                 //check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
             }
         }
-        dout  << "p3c" << length(reads[j]) << anchors.length() << length(crhit) << length(cordsTmp[c]) << "\n";
         c += 1;
     } 
     #pragma omp for ordered

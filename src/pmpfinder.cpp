@@ -1132,7 +1132,6 @@ bool extendWindow(FeaturesDynamic & f1,
     while ((new_cord = previousWindow(f1, f2, back(cords), score)) && get_cord_y(new_cord) >= cordy_str)
     {
         appendValue(cords, new_cord);
-        print_cord(new_cord, "newc1");
     } 
     uint cords_p_end = length(cords);
     for (unsigned k = cords_p_str; k < (cords_p_str + cords_p_end) / 2; k++) 
@@ -1142,7 +1141,6 @@ bool extendWindow(FeaturesDynamic & f1,
     while ((new_cord = nextWindow(f1, f2, back(cords), score)) && get_cord_y(new_cord) + window_size < cordy_end)
     {
         appendValue(cords, new_cord);
-        print_cord(new_cord, "newc2");
     }
     return true;    
 }
@@ -1389,11 +1387,6 @@ int path_dst_2(typename Iterator<String<uint64_t> >::Type hitBegin,
     unsigned distThd = getWindowThresholdReject(f2);
     int ii_move = 0;
     
-    for (auto a : hits)
-    {
-        dout << "hit1" << a << "\n";
-    }
-
     for (Iterator<String<uint64_t> >::Type it = beginHits(hits); it < endHits(hits); it++)
     {
         unsigned dist = _windowDist(f1[get_cord_strand(*it)], f2[get_cord_id(*it)], 
@@ -2417,7 +2410,6 @@ uint64_t apxMap (IndexDynamic & index,
         chainApxCordsBlocks (cords, str_ends_p, length(read), thd_chain_blocks_lower, thd_chain_blocks_upper, alg_type);
         t3 = sysTime() - t3;
         clean_blocks_ (cords, thd_drop_len);
-        dout << "f_chain" << f_chain << "\n";
     }
     else
     {

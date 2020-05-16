@@ -801,7 +801,6 @@ void cords2BamLink(String<uint64_t> & cords_str,
     int g_id, g_beginPos, r_beginPos, strand;
     int f_soft = 1; //soft clip in cigar;
     int f_new = 1;
-    dout << "thdx" << thd_large_X << "\n";
     for (int i = 1; i < length(cords_str); i++)
     {
         if (f_new) //initiate a record for new block 
