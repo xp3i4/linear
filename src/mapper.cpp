@@ -194,7 +194,7 @@ void Mapper::loadOptions(Options & options)
         }
         fm_handler_.setMapGapON(f_map);
     }
-    dout << "gap_len"<< gap_len_min << options.gap_len << "\n";
+    //dout << "gap_len"<< gap_len_min << options.gap_len << "\n";
     if (options.apx_chain_flag == 0)
     {
         fm_handler_.setApxChainOFF(f_map);
@@ -212,7 +212,7 @@ void Mapper::loadOptions(Options & options)
         fm_handler_.setAlignON(f_map);
         fp_handler_.setPrintSam(f_print);
     }
-    dout << "sam_flag " << options.sam_flag << f_print << options.apx_chain_flag << (f_map & 8) << "\n";
+    //dout << "sam_flag " << options.sam_flag << f_print << options.apx_chain_flag << (f_map & 8) << "\n";
     if (options.sam_flag)
     {
         fp_handler_.setPrintSam(f_print);
@@ -275,10 +275,12 @@ void Mapper::clearIndex()
 //=== pipeline2 of parallel buffer 
 void Mapper::initBuffers(int buffer_size1, int buffer_size2, P_Parms & p_parms)
 {
-    P_Mapper::initBuffers(buffer_size1, buffer_size2, getGPaths(), getRPaths(), getThreads(), p_parms);
+    P_Mapper::initBuffers(buffer_size1, buffer_size2, getGPaths(), 
+        getRPaths(), getThreads(), p_parms);
 }
-int Mapper::p_calRecords(int in_id, int out_id) 
+int Mapper::p_calRecords(int in_id, int out_id, int thread_id) 
 {
+    Counters & counters = this->getPTask(thread_id).counters;
     StringSet<String<Dna5> > & reads = reads_buffer[in_id];
     StringSet<CharString> & reads_id = reads_ids_buffer[in_id]; 
     StringSet<String<uint64_t> > & cords_str = cords1_buffer[out_id];
@@ -334,17 +336,23 @@ int Mapper::p_calRecords(int in_id, int out_id)
     dout << "p3c" << length(reads[j]) << anchors.length() << length(crhit) << length(cords_str[j]) << "\n";
 
     } 
+    counters.setCalCounter(counters.getCalCounter() + length(reads));
+
     return 0;
 }
-
-int Mapper::p_printResults(int it1, int it2)
+//it1->reads buffer
+//it2->cords buffer
+int Mapper::p_printResults(int it1, int it2, int thread_id)
 {
+    Counters & counters = this->getPTask(thread_id).counters;
     std::string path = this->getPReadsPathsBuffer()[it1];
     std::string prefix = getFileName(path, "/", ~0);
     this->outputPrefix = getFileName(prefix, ".", 0);
     //prefix = path;
-    std::cout << "reads_path"  << this->outputPrefix << "\n"; // (this->outputPrefix) << "\n";
+    //std::cout << "reads_path"  << this->outputPrefix << "\n"; // (this->outputPrefix) << "\n";
     print_mapper_results(*this, 1, it1, it2);
+    counters.setOutCounter(counters.getOutCounter() + length(this->getPReadsBuffer()[it1]));
+
     return 0;
 }
 
@@ -415,12 +423,14 @@ int print_cords_sam(Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
     {
         clear(mapper.getPBamLinksBuffer()[p_out_id]);
         f_parallel = 0;
+        /*
         dout << "pcss1" << length(mapper.getPCords1Buffer()[p_out_id])
                         << length(mapper.getPCords2Buffer()[p_out_id])
                         << length(mapper.getPBamLinksBuffer()[p_out_id])
                         << length(mapper.getPReadsIdBuffer()[p_in_id])
                         << length(mapper.getPReadsIdBuffer()[p_in_id])
                         << "\n";
+                        */
         print_cords_sam(mapper.getPCords1Buffer()[p_out_id],
                         mapper.getPCords2Buffer()[p_out_id],
                         mapper.getPBamLinksBuffer()[p_out_id],
@@ -438,7 +448,7 @@ int print_cords_sam(Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
     }
     else
     {
-        dout << "pcssd1" << length(mapper.getCords()) << length(mapper.getBamRecords()) << "\n";
+        //dout << "pcssd1" << length(mapper.getCords()) << length(mapper.getBamRecords()) << "\n";
         print_cords_sam(mapper.getCords(),
                         mapper.getCords2(),
                         mapper.getBamRecords(),
@@ -484,7 +494,7 @@ int print_mapper_results(Mapper & mapper,
 {
     ///.apf
     std::string file1 = mapper.getOutputPrefix() + ".apf";
-    std::cout << "file ====== "  << "\n";
+    //std::cout << "file ====== "  << "\n";
     open_mapper_of (mapper, file1);
     print_cords_apf(mapper, f_p_mapper, p_in_id, p_out_id);
     close_mapper_of(mapper);
@@ -575,7 +585,7 @@ int map_(IndexDynamic & index,
          int p1)
 {
     unsigned feature_window_size = getFeatureWindowSize(f2);
-    dout << "fe" << feature_window_size << "\n";
+    //dout << "fe" << feature_window_size << "\n";
     float senThr = mapParm.senThr / feature_window_size;  //map for 2 roun if cords cover len <
     float cordThr = 0.3 / feature_window_size; //cords cover length < are aborted
     uint thd_min_read_len = 200;
@@ -629,7 +639,8 @@ int map_(IndexDynamic & index,
     #pragma omp for
     for (unsigned j = 0; j < length(reads); j++)
     {
-        std::cout << "readid " << j << readsId[j] << "\n\n";
+        
+        //std::cout << "readid " << j << readsId[j] << "\n\n";
         double t1 = sysTime ();
         red_len[thd_id] += length(reads[j]);
         

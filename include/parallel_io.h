@@ -104,16 +104,51 @@ struct P_Parms
     void printParms();
 };
 
+struct Counters{
+    String<int> counters;
+    String<double> timers;
+    //add here the new counters 
+    Counters(){resize(counters, 3, 0); resize(timers, 3, 0);}
+    int getInCounter(){return counters[0];}
+    int getCalCounter(){return counters[1];}
+    int getOutCounter(){return counters[2];}
+    double getInTimer(){return timers[0];}
+    double getCalTimer(){return timers[1];}
+    double getOutTimer(){return timers[2];}
+    void setInCounter(int val){counters[0] = val;}
+    void setCalCounter(int val){counters[1] = val;}
+    void setOutCounter(int val){counters[2] = val;}
+    void setInTimer(double val){timers[0] = val;}
+    void setCalTimer(double val){timers[1] = val;}
+    void setOutTimer(double val){timers[2] = val;}
+    
+    void clearCounters(){
+        counters[0] = counters[1] = counters[2] = 0;
+        timers[0] = timers[1] = timers[2] = 0;
+    }
+    void addCounters (Counters & b_counters)
+    {
+        counters[0] += b_counters.counters[0];
+        counters[1] += b_counters.counters[1];
+        counters[2] += b_counters.counters[2];
+        timers[0] += b_counters.timers[0];
+        timers[1] += b_counters.timers[1];
+        timers[2] += b_counters.timers[2];
+    }
+};
+
 struct P_Task{
     //all input buffers are supposed to have the same length. This applies to the output buffers too.
     String<int> p_ins; //points to i_th element in buffer(input) for calculation
     String<int> p_outs; //points to cords and bam for buffering result during the calculation
+    Counters counters;
     int task_type;
     int thread_id;
     P_Task();
 };
 
 struct P_Tasks{
+    double start__time;
     //buffers
     //Warn!!::make sure the in and out iterator of the Group are modified 
     //by at most one function at the same time
@@ -128,6 +163,7 @@ struct P_Tasks{
 
     //tasks of each thread : tasks[thread_id] 
     String<P_Task> tasks;
+    Counters counters;
 
     //critical resources
     StringSet<std::string> paths1;
@@ -144,6 +180,7 @@ struct P_Tasks{
     int sgn_print;
     int sgn_all_tasks_end;
     int f_fin_open;
+    int f_printRunningInfos;
     seqan::SeqFileIn fin;
     std::ofstream fout;
     void initPTasks(P_ReadsBuffer &,  P_ReadsIdsBuffer &, P_ReadsPathsBuffer &, P_CordsBuffer &, P_CordsBuffer &, P_BamLinkBuffer &, 
@@ -152,6 +189,9 @@ struct P_Tasks{
     P_Tasks(P_ReadsBuffer &, P_ReadsIdsBuffer &, P_ReadsPathsBuffer&, 
         P_CordsBuffer &, P_CordsBuffer &, P_BamLinkBuffer &, 
         StringSet<std::string> &, StringSet<std::string> &, int);
+    void startRunTasks();
+    //printInfos
+    void printRunningInfos();
     //iterator
     void nextAssignIt2(){p_reads_buffer->nextIt(assign_it2);}
     void nextAssignIt3(){p_cords1_buffer->nextIt(assign_it3);}
@@ -164,6 +204,7 @@ struct P_Tasks{
     void setTaskPrintResults(int thread_id);
     void setTaskEnd(int thread_id);
     void setTaskAllEnd();
+    void updateCounters();
     //is
     int isTaskFetchReads(int thread_id);
     int isTaskCalRecords(int thread_id);
@@ -197,6 +238,7 @@ protected:
     P_BamLinkBuffer bam_link_buffer;
 
 public:
+    P_Task & getPTask(int);
     P_Tasks & getPTasks();
     P_ReadsBuffer & getPReadsBuffer();
     P_ReadsIdsBuffer & getPReadsIdBuffer();
@@ -207,8 +249,8 @@ public:
     void initBuffers(int reads_buffer_size, int cords_buffer_size, 
         StringSet<std::string> &, StringSet<std::string> &, int, P_Parms &);
 
-    virtual int p_calRecords(int, int){}; //input: in_buffer_id, out_buffer_id
-    virtual int p_printResults(int, int){};
+    virtual int p_calRecords(int, int, int){}; //input: in_buffer_id, out_buffer_id
+    virtual int p_printResults(int, int, int){};
 };
 
 int p_ThreadProcess(P_Mapper & mapper, P_Parms & p_parms, int thread_id);

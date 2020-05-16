@@ -86,8 +86,8 @@ public:
 
     //=== pipeline2 of parallel buffer 
     void initBuffers(int, int, P_Parms & parms);
-    int p_calRecords(int, int);
-    int p_printResults(int, int);
+    int p_calRecords(int, int, int);
+    int p_printResults(int, int, int);
 };
 
 int map(Mapper & mapper, 
