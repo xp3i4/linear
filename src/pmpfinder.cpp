@@ -53,6 +53,12 @@ void FeaturesDynamic::setFeatureType(int type)
         setFs2_48();
     }
 }
+unsigned FeaturesDynamic::getAbortScore()
+{
+    if (isFs1_16()){return apx_parm1_16 -> abort_score;}
+    if (isFs1_32()){return apx_parm1_32 -> abort_score;}
+    if (isFs2_48()){return apx_parm2_48 -> abort_score;}
+}
 ApxMapParm1_16 _apx_parm1_16;
 ApxMapParm1_32 _apx_parm1_32;
 ApxMapParm2_48 _apx_parm2_48;
@@ -481,9 +487,11 @@ int64_t __scriptDist63_31(int const & s1, int const & s2)
 int64_t _scriptDist63_31(int const & s11, int const & s12, int const & s13,
                          int const & s21, int const & s22, int const & s23)
 {
-    return __scriptDist63_31(s11, s21) +
-           __scriptDist63_31(s12, s22) +
-           __scriptDist63_31(s13, s23);
+    int64_t res = __scriptDist63_31(s11, s21) +
+                  __scriptDist63_31(s12, s22) +
+                  __scriptDist63_31(s13, s23);
+    return res;
+    
 }
 //wrapper into 96 bit integer.
 //Distance of one pair of scpirts(48mer of each)
@@ -557,6 +565,7 @@ int createFeatures2_48(TIter5 it_str, TIter5 it_end, String<int96> & f, ApxMapPa
         ii = addMod3[ii];
         next++;
     }
+    resize(f, next);
     return 0;
 }
 int createFeatures2_48(TIter5 it_str, TIter5 it_end, String<int96> & f, unsigned threads, ApxMapParm2_48 & parm)
@@ -645,7 +654,6 @@ unsigned __windowDist(FeaturesDynamic & f1,
 }
 
 //The wrapper is(only) used in the gap.cpp
-//Do not call this function frequently since the condition branch will drain the performance.
 //NOTE::boundary of features is checked in this function
 unsigned _windowDist(FeaturesDynamic & f1,
                      FeaturesDynamic & f2,
@@ -653,7 +661,8 @@ unsigned _windowDist(FeaturesDynamic & f1,
 {
     if (f1.isFs2_48())
     {
-        if (x1 < length(f1.fs2_48) && x2 < length(f2.fs2_48))
+        uint64_t d = f2.apx_parm2_48->scpt_num * (f2.apx_parm2_48->scpt_int_step  - 1);
+        if (x1 + d < length(f1.fs2_48) && x2 + d < length(f2.fs2_48))
         {
             return _windowDist2_48 (begin(f1.fs2_48) + x1, begin(f2.fs2_48) + x2, *(f2.apx_parm2_48));
         }
@@ -1379,12 +1388,18 @@ int path_dst_2(typename Iterator<String<uint64_t> >::Type hitBegin,
 {
     unsigned distThd = getWindowThresholdReject(f2);
     int ii_move = 0;
+    
+    for (auto a : hits)
+    {
+        dout << "hit1" << a << "\n";
+    }
+
     for (Iterator<String<uint64_t> >::Type it = beginHits(hits); it < endHits(hits); it++)
     {
         unsigned dist = _windowDist(f1[get_cord_strand(*it)], f2[get_cord_id(*it)], 
                                     _DefaultCord.cord2Cell(get_cord_y(*it)),
                                     _DefaultCord.cord2Cell(get_cord_x(*it)));
-        if(dist < distThd)
+        if(dist < distThd )//|| dist == f1[0].getAbortScore()) //keep kmers of abort score
         {
             *(it - ii_move) = *it;
         } 
@@ -1397,6 +1412,7 @@ int path_dst_2(typename Iterator<String<uint64_t> >::Type hitBegin,
             _DefaultHit.setBlockEnd(*(it - ii_move));
         }
     }
+    
     resize (hits, length(hits) - ii_move);
     return 0;
 }
@@ -2234,13 +2250,7 @@ int getAnchorHitsChains(Anchors & anchors, String<uint64_t> & hits, uint64_t sha
     uint64_t thd_anchor_accept_density, uint64_t thd_anchor_accept_min, uint64_t thd_large_gap, unsigned thd_anchor_err_bit, uint64_t thd_max_anchors_num, int64_t thd_anchor_accept_err, unsigned alg_type_filter) 
 {
     double t1 = sysTime();
-    //<<debug
-    for (int i = 0; i < length(anchors.set); i++)
-    {
-        uint64_t h = _DefaultCord.hit2Cord_dstr(anchors.set[i]);
-        dout << "gahcs" << i << get_cord_y(h) << get_cord_x(h) << "\n";
-    }
-    //>>debug
+    
     filterAnchors(anchors, shape_len, thd_anchor_accept_density, thd_anchor_accept_min, thd_anchor_err_bit, thd_max_anchors_num, thd_anchor_accept_err, alg_type_filter) ;
     t1 = sysTime() - t1;
     double t2 = sysTime();
@@ -2339,6 +2349,7 @@ uint64_t apxMap_ (IndexDynamic & index,
     clear (hits);
     anchors.init(1);
     initHits(hits);
+    
     mnMapReadList(index, read, anchors, map_str, map_end, mapParm, hits, alg_type, thd_best_n);
     uint64_t read_str = get_cord_y(map_str);
     uint64_t read_end = get_cord_y(map_end);

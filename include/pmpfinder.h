@@ -86,6 +86,7 @@ struct FeaturesDynamic
   void setFs1_32();
   void setFs2_48();
   void setFeatureType(int);
+  unsigned getAbortScore();
   int init(int type);
   unsigned length();
   FeaturesDynamic();
