@@ -77,7 +77,11 @@ void P_Tasks::printRunningInfos()
         std::cerr << "\033[5A";
     }
     this->f_printRunningInfos = 1;
-    std::cerr << "--\033[1;31m" << paths2[paths2_it] << "\033[0m\n"
+    //Warn::paths2_it is a critical variable
+    //hence assign it to path_it to keep consistency between length check and get value from paths2[path_it]
+    int path_it = paths2_it;
+    std::string current_in_path = (path_it >= length(paths2)) ? "Status::Fetch End" : paths2[paths2_it];
+    std::cerr << "--\033[1;31m" << current_in_path << "\033[0m\n"
               << "\033[2K  I/O::in :" << counters.getInCounter() << "\t"
               << " cpu:" << counters.getInTimer() << "[s]\t"
               << " speed:" << counters.getInCounter() / counters.getInTimer() << "[rds/cpu/s]\033[7h\n"
