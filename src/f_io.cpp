@@ -1076,7 +1076,7 @@ void print_cords_sam
         cords2BamLink (cordset_str, cordset_end, bam_records, reads, thd_cord_size, thd_large_X);
     }
     //shrink_cords_cigar(bam_records);
-    fio_parms.f_print_seq = 1;
+    //fio_parms.f_print_seq = 1;
     if (fio_parms.f_reform_ccs)
     {
         reformCCSBams(bam_records, fio_parms);
