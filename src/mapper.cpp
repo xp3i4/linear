@@ -345,9 +345,16 @@ int Mapper::p_printResults(int it1, int it2, int thread_id)
     Counters & counters = this->getPTask(thread_id).counters;
     std::string path = this->getPReadsPathsBuffer()[it1];
     std::string prefix = getFileName(path, "/", ~0);
-    this->outputPrefix = getFileName(prefix, ".", 0);
-    //prefix = path;
-    //std::cout << "reads_path"  << this->outputPrefix << "\n"; // (this->outputPrefix) << "\n";
+    std::string out_prefix  = getFileName(prefix, ".", 0);
+    if (this->outputPrefix != out_prefix)
+    {
+        this->setOfNew();
+        this->outputPrefix = out_prefix;
+    }
+    else
+    {
+        this->setOfApp();
+    }
     print_mapper_results(*this, 1, it1, it2);
     counters.setOutCounter(counters.getOutCounter() + length(this->getPReadsBuffer()[it1]));
 
