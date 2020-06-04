@@ -76,6 +76,7 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
  *  NOTE::addjacent cords, cord1 and cord2, will be break into different bams if cord1y > cord2y || cord1x >
     cord2x
  */
+/*
 void cords2BamLink(String<uint64_t> & cords_str, 
                    String<uint64_t> & cords_end,
                    String<BamAlignmentRecordLink> & bam_link_records);
@@ -84,6 +85,13 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
                    StringSet<String<uint64_t> > & cords_end,
                    StringSet<String<BamAlignmentRecordLink> > & bam_link_records,
                    int f_parallel);
+                   */
+void cords2BamLink(StringSet<String<uint64_t> > & cords_str, 
+                   StringSet<String<uint64_t> > & cords_end,
+                   StringSet<String<BamAlignmentRecordLink> > & bam_link_records,
+                   StringSet<String<Dna5> > & reads,
+                   int thd_cord_size,
+                   uint64_t thd_large_X);
 
 void print_cords_sam (StringSet<String<uint64_t> > & cordset_str,    
                       StringSet<String<uint64_t> > & cordset_end,    

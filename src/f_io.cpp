@@ -1050,8 +1050,7 @@ int reformCCSBams(StringSet<String<BamAlignmentRecordLink> > & bam_records,
 /*
  * Record containing operation 'X' > @thd_large_X is clipped as two records
  */
-void print_cords_sam
-    (StringSet<String<uint64_t> > & cordset_str,    
+void print_cords_sam (StringSet<String<uint64_t> > & cordset_str,    
      StringSet<String<uint64_t> > & cordset_end,    
      StringSet<String<BamAlignmentRecordLink> > & bam_records,
      StringSet<CharString> & genmsId, 
