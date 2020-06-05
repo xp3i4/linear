@@ -303,7 +303,8 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
     unsigned feature_window_size = getFeatureWindowSize(f2);
     float thd_err_rate = 0.2;    //todo::wrapper parms here
     uint thd_min_read_len = 200; //todo::wrapper parms here
-
+    uint64_t gap_len_min_tmp = gap_len_min;
+    GapParms gap_parms_tmp(0.1);
     resize(f1, 2);
     f1[0].init(f2[0].fs_type);
     f1[1].init(f2[0].fs_type);
@@ -322,9 +323,17 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
             if (fm_handler_.isMapGap(f_map))
             {
                 //<<debug
-                gap_parms.read_id = reads_id[j];
+                gap_parms_tmp.read_id = reads_id[j];
+                if (reads_id[j] == "SRR9001771.704150")
+                {
+                    //dout << reads_id[j] << length(f1) << length(f2) << gap_len_min_tmp << feature_window_size << thd_err_rate << "\n";
+                    for (int ii = 0; ii < length (apx_gaps); ii++)
+                    {
+                        dout << apx_gaps[ii].first << apx_gaps[ii].second << "\n";
+                    }
+                }
                 //>>debug
-                mapGaps(this->getGenomes(), reads[j], comStr, cords_str[j], cords_end[j], clips[j], apx_gaps, f1, f2, gap_len_min, feature_window_size, thd_err_rate, this->getGapParms());
+                mapGaps(this->getGenomes(), reads[j], comStr, cords_str[j], cords_end[j], clips[j], apx_gaps, f1, f2, gap_len_min_tmp, feature_window_size, thd_err_rate, gap_parms_tmp);
             }
             if (fm_handler_.isAlign(f_map))
             {
@@ -648,7 +657,16 @@ int map_(IndexDynamic & index,
                 {
                 //<<debug
                 gap_parms.read_id = readsId[j];
+                if (readsId[j] == "SRR9001771.704150")
+                {
+                    //dout << reads_id[j] << length(f1) << length(f2) << gap_len_min_tmp << feature_window_size << thd_err_rate << "\n";
+                    for (int ii = 0; ii < length (apx_gaps); ii++)
+                    {
+                        dout << apx_gaps[ii].first << apx_gaps[ii].second << "\n";
+                    }
+                }
                 //>>debug
+                dout << length(f1) << length(f2) << gap_len_min << feature_window_size << thd_err_rate << "\n";
                 mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], clipsTmp[c], apx_gaps, f1, f2, gap_len_min, feature_window_size, thd_err_rate, gap_parms);
                 }
             if (fm_handler_.isAlign(f_map))
