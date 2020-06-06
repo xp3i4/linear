@@ -78,27 +78,27 @@ GapParms::GapParms(float err_rate) : //estimated err_rate
     thd_max_extend2(5000)
 
 { 
-    clipChainParms(5, 3, 1, 0.9);
+    clipChainParms(5, 3, 1, 0.1);
 }
 //todo::fill in the parms 
 void GapParms::clipChainParms(int shape_len, int step1, int step2, float thd_err_rate)
 {
     thd_ccps_window_size = 5;
-    if (thd_err_rate > 0.20)
-    {
+    //if (thd_err_rate > 0.20)
+    //{
 
-    }
-    else if (thd_err_rate >=0.15 && thd_err_rate < 0.17)
-    {
+    //}
+    //else if (thd_err_rate >=0.15 && thd_err_rate < 0.17)
+    //{
 
-    }
-    else //regarded as err = 0.1
-    {
+    //}
+    //else //regarded as err = 0.1
+    //{
         thd_ccps_clip_min = std::min(thd_err_rate, float(0.1)) * int_precision;
         thd_ccps_clip_init =  thd_err_rate * int_precision; 
         thd_ccps_clip1_upper = 25 * int_precision / thd_ccps_window_size;
         thd_ccps_clip2_lower = 15 * int_precision / thd_ccps_window_size;
-    }
+    //}
 }
 
 //NOTE::clip & map direction:: towards left < 0, right > 0, both 0

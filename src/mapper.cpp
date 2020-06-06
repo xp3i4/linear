@@ -305,7 +305,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
     float thd_err_rate = 0.2;    //todo::wrapper parms here
     uint thd_min_read_len = 200; //todo::wrapper parms here
     uint64_t gap_len_min_tmp = gap_len_min;
-    GapParms gap_parms_tmp(0.1);
+    GapParms gap_parms_tmp(0.2);
     resize(f1, 2);
     f1[0].init(f2[0].fs_type);
     f1[1].init(f2[0].fs_type);
@@ -614,7 +614,7 @@ int map_(IndexDynamic & index,
 #pragma omp parallel
 {
     //GapParms gap_parms(0.85);
-    GapParms gap_parms(0.1);
+    GapParms gap_parms(0.2);
     unsigned size2 = length(reads) / threads;
     unsigned ChunkSize = size2;
     String<Dna5> comStr;
