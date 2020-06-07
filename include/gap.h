@@ -136,7 +136,6 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             StringSet<FeaturesDynamic> & f1,
             StringSet<FeaturesDynamic>& f2,
             int64_t thd_gap, 
-            int64_t thd_tileSize,
             float thd_err_rate,
             GapParms & gap_parms
            );

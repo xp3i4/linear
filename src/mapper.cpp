@@ -334,7 +334,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
                     }
                 }
                 //>>debug
-                mapGaps(this->getGenomes(), reads[j], comStr, cords_str[j], cords_end[j], clips[j], apx_gaps, f1, f2, gap_len_min_tmp, feature_window_size, thd_err_rate, gap_parms_tmp);
+                mapGaps(this->getGenomes(), reads[j], comStr, cords_str[j], cords_end[j], clips[j], apx_gaps, f1, f2, gap_len_min_tmp, thd_err_rate, gap_parms_tmp);
             }
             if (fm_handler_.isAlign(f_map))
             {
@@ -668,7 +668,7 @@ int map_(IndexDynamic & index,
                 }
                 //>>debug
                 dout << length(f1) << length(f2) << gap_len_min << feature_window_size << thd_err_rate << "\n";
-                mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], clipsTmp[c], apx_gaps, f1, f2, gap_len_min, feature_window_size, thd_err_rate, gap_parms);
+                mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], clipsTmp[c], apx_gaps, f1, f2, gap_len_min, thd_err_rate, gap_parms);
                 }
             if (fm_handler_.isAlign(f_map))
             {
