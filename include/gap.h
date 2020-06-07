@@ -116,6 +116,9 @@ struct GapParms
     int64_t thd_mg1_danc_indel;
     int64_t thd_max_extend2;
 
+    //mapGaps 
+    //int64_t thd_gap_len_min;
+
     GapParms(float thd_error_rate);
     void clipChainParms(int shape_len, int step1, int step2, float thd_err_rate);
 };
