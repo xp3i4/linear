@@ -139,9 +139,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             String<UPair> & apx_gaps,
             StringSet<FeaturesDynamic> & f1,
             StringSet<FeaturesDynamic>& f2,
-            float thd_err_rate,
-            GapParms & gap_parms
-           );
+            GapParms & gap_parms);
 
 int print_clips_gvf_(StringSet<String<uint64_t> > & clips, 
               StringSet<CharString> & readsId, 

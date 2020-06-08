@@ -308,7 +308,6 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
     StringSet<FeaturesDynamic> f1;
     StringSet<FeaturesDynamic> & f2 = this->getGenomesFeatures();
     unsigned feature_window_size = getFeatureWindowSize(f2);
-    float thd_err_rate = 0.2;    //todo::wrapper parms here
     uint thd_min_read_len = 200; //todo::wrapper parms here
     resize(f1, 2);
     f1[0].init(f2[0].fs_type);
@@ -338,7 +337,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
                     }
                 }
                 //>>debug
-                mapGaps(this->getGenomes(), reads[j], comStr, cords_str[j], cords_end[j], clips[j], apx_gaps, f1, f2, thd_err_rate, gap_parms_set[thread_id]);
+                mapGaps(this->getGenomes(), reads[j], comStr, cords_str[j], cords_end[j], clips[j], apx_gaps, f1, f2, gap_parms_set[thread_id]);
             }
             if (fm_handler_.isAlign(f_map))
             {
@@ -605,7 +604,6 @@ int map_(IndexDynamic & index,
     String<uint64_t> red_len;
     resize (gap_len, threads, 0);
     resize (red_len, threads, 0);
-    float thd_err_rate = 0.2;
     int f_chain = 1; 
     if (fm_handler_.isApxChain(f_map))
     {
@@ -657,7 +655,7 @@ int map_(IndexDynamic & index,
             apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], f_chain);
             if (fm_handler_.isMapGap(f_map))
             {
-                mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], clipsTmp[c], apx_gaps, f1, f2, thd_err_rate, gap_parms[thd_id]);
+                mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], clipsTmp[c], apx_gaps, f1, f2, gap_parms[thd_id]);
             }
             if (fm_handler_.isAlign(f_map))
             {
