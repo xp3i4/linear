@@ -117,10 +117,11 @@ struct GapParms
     int64_t thd_max_extend2;
 
     //mapGaps 
-    //int64_t thd_gap_len_min;
+    int64_t thd_gap_len_min;
 
     GapParms(float thd_error_rate);
     void clipChainParms(int shape_len, int step1, int step2, float thd_err_rate);
+    void printParms(std::string);
 };
 
 uint64_t extendClip(String<Dna5> & seq1, String<Dna5> & seq2, String<uint64_t> & tiles, uint64_t ext_str, uint64_t ext_end, int direction, GapParms & gap_parms);
@@ -138,7 +139,6 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             String<UPair> & apx_gaps,
             StringSet<FeaturesDynamic> & f1,
             StringSet<FeaturesDynamic>& f2,
-            int64_t thd_gap, 
             float thd_err_rate,
             GapParms & gap_parms
            );

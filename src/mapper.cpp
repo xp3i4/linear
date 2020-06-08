@@ -128,7 +128,6 @@ struct F_Map_
 
 Mapper::Mapper(Options & options):
                record(options),
-               gap_parms(0.1),
                index_dynamic(getGenomes())
 {
     loadOptions(options);
@@ -168,8 +167,9 @@ void Mapper::loadOptions(Options & options)
     feature_type = options.feature_t;
     of_type = OF_NEW;
     f_map = 0;
-    gap_len_min = options.gap_len;
     f_print = 0;
+    //-------gap_parms-----
+    GapParms gap_parms_template(0.2); //initial error rate 
     if (options.gap_len == 0)
     {
         fm_handler_.setMapGapOFF(f_map);
@@ -178,22 +178,27 @@ void Mapper::loadOptions(Options & options)
     {
         if (options.gap_len == 1)                  //set to default
         {
-            gap_len_min = thd_gap_default;       //set default 50
+            gap_parms_template.thd_gap_len_min = thd_gap_default; //set default 50
         }
         else if (options.gap_len == 2)      //just another default option
         {
-            gap_len_min = thd_gap_lower;
+            gap_parms_template.thd_gap_len_min = thd_gap_lower;
         }
         else if (options.gap_len < 10)
         {
-            gap_len_min = thd_gap_lower; 
+            gap_parms_template.thd_gap_len_min = thd_gap_lower; 
         }
         else
         {
-            gap_len_min = options.gap_len;
+            gap_parms_template.thd_gap_len_min = options.gap_len;
         }
         fm_handler_.setMapGapON(f_map);
     }
+    for (int i = 0; i < _thread; i++)
+    {
+        appendValue(gap_parms_set, gap_parms_template); //a copy for each thread
+    }
+    gap_parms_template.printParms("gap_parms");
     //dout << "gap_len"<< gap_len_min << options.gap_len << "\n";
     if (options.apx_chain_flag == 0)
     {
@@ -213,6 +218,7 @@ void Mapper::loadOptions(Options & options)
         fp_handler_.setPrintSam(f_print);
     }
     //dout << "sam_flag " << options.sam_flag << f_print << options.apx_chain_flag << (f_map & 8) << "\n";
+    //-------f_io parms-----
     if (options.sam_flag)
     {
         fp_handler_.setPrintSam(f_print);
@@ -304,8 +310,6 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
     unsigned feature_window_size = getFeatureWindowSize(f2);
     float thd_err_rate = 0.2;    //todo::wrapper parms here
     uint thd_min_read_len = 200; //todo::wrapper parms here
-    uint64_t gap_len_min_tmp = gap_len_min;
-    GapParms gap_parms_tmp(0.2);
     resize(f1, 2);
     f1[0].init(f2[0].fs_type);
     f1[1].init(f2[0].fs_type);
@@ -324,7 +328,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
             if (fm_handler_.isMapGap(f_map))
             {
                 //<<debug
-                gap_parms_tmp.read_id = reads_id[j];
+                gap_parms_set[thread_id].read_id = reads_id[j];
                 if (reads_id[j] == "SRR9001771.704150")
                 {
                     //dout << reads_id[j] << length(f1) << length(f2) << gap_len_min_tmp << feature_window_size << thd_err_rate << "\n";
@@ -334,7 +338,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
                     }
                 }
                 //>>debug
-                mapGaps(this->getGenomes(), reads[j], comStr, cords_str[j], cords_end[j], clips[j], apx_gaps, f1, f2, gap_len_min_tmp, thd_err_rate, gap_parms_tmp);
+                mapGaps(this->getGenomes(), reads[j], comStr, cords_str[j], cords_end[j], clips[j], apx_gaps, f1, f2, thd_err_rate, gap_parms_set[thread_id]);
             }
             if (fm_handler_.isAlign(f_map))
             {
@@ -583,8 +587,8 @@ int map_(IndexDynamic & index,
          StringSet<String<uint64_t> > & clips,
          StringSet<String<Dna5> > & seqs,
          StringSet<String<BamAlignmentRecordLink> >& bam_records,
+         String<GapParms> & gap_parms,
          uint f_map,   //control flags
-         uint gap_len_min,
          uint threads,
          int p1)
 {
@@ -613,8 +617,6 @@ int map_(IndexDynamic & index,
     }
 #pragma omp parallel
 {
-    //GapParms gap_parms(0.85);
-    GapParms gap_parms(0.2);
     unsigned size2 = length(reads) / threads;
     unsigned ChunkSize = size2;
     String<Dna5> comStr;
@@ -643,7 +645,6 @@ int map_(IndexDynamic & index,
     #pragma omp for
     for (unsigned j = 0; j < length(reads); j++)
     {
-        
         //std::cout << "readid " << j << readsId[j] << "\n\n";
         double t1 = sysTime ();
         red_len[thd_id] += length(reads[j]);
@@ -655,21 +656,9 @@ int map_(IndexDynamic & index,
             createFeatures(begin(comStr), end(comStr), f1[1]);
             apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], f_chain);
             if (fm_handler_.isMapGap(f_map))
-                {
-                //<<debug
-                gap_parms.read_id = readsId[j];
-                if (readsId[j] == "SRR9001771.704150")
-                {
-                    //dout << reads_id[j] << length(f1) << length(f2) << gap_len_min_tmp << feature_window_size << thd_err_rate << "\n";
-                    for (int ii = 0; ii < length (apx_gaps); ii++)
-                    {
-                        dout << apx_gaps[ii].first << apx_gaps[ii].second << "\n";
-                    }
-                }
-                //>>debug
-                dout << length(f1) << length(f2) << gap_len_min << feature_window_size << thd_err_rate << "\n";
-                mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], clipsTmp[c], apx_gaps, f1, f2, gap_len_min, thd_err_rate, gap_parms);
-                }
+            {
+                mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], clipsTmp[c], apx_gaps, f1, f2, thd_err_rate, gap_parms[thd_id]);
+            }
             if (fm_handler_.isAlign(f_map))
             {
                 align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
@@ -775,8 +764,8 @@ int map(Mapper & mapper,
                  mapper.getClips(),
                  mapper.getGenomes(),
                  mapper.getBamRecords(),
+                 mapper.getGapParms(),
                  mapper.getMapFlag(),
-                 mapper.getGapLenMin(),
                  mapper.getThreads(), 
                  p1);
             time2 = sysTime() - time2;
@@ -868,7 +857,6 @@ int filter_(IndexDynamic & index,
             StringSet<String<Dna5> > & seqs,
             StringSet<String<BamAlignmentRecordLink> > & bam_records,
             uint f_map,   //control flags
-            uint gap_len_min,
             uint threads,
             int p1)
 {
@@ -993,7 +981,6 @@ int filter(Mapper & mapper,
                  mapper.getGenomes(),
                  mapper.getBamRecords(),
                  mapper.getMapFlag(),
-                 mapper.getGapLenMin(),
                  mapper.getThreads(), 
                  p1);
             time2 = sysTime() - time2;

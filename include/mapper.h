@@ -13,7 +13,7 @@ class Mapper : public P_Mapper
 {
     PMRecord    record;
     MapParms     map_parms;
-    GapParms    gap_parms;
+    String<GapParms>  gap_parms_set; //each thread keep a copy of gap parms
     IndexDynamic index_dynamic;
     StringSet<String<uint64_t> >  cordSet;
     StringSet<String<uint64_t> >  cordSet2;
@@ -32,7 +32,6 @@ class Mapper : public P_Mapper
     Options::PathsType g_paths;
     uint f_map;     //map control flag 
     uint f_print;   //print control flag
-    uint64_t gap_len_min; //process gaps of length > this value
     int cord_size; //default cord size 
     FIOParms fio_parms;
 
@@ -77,12 +76,11 @@ public:
     Options::PathsType & getGPaths();
     uint & getMapFlag(){return f_map;}
     uint & getPrintFlag(){return f_print;}
-    uint getGapLenMin () {return gap_len_min;}
     int  getCordSize() {return cord_size;}
     FIOParms & getFIOParms(){return fio_parms;}
     void loadGenomes();
     void clearIndex();
-    GapParms & getGapParms(){return gap_parms;}
+    String<GapParms> & getGapParms(){return gap_parms_set;}
 
     //=== pipeline2 of parallel buffer 
     void initBuffers(int, int, P_Parms & parms);

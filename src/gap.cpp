@@ -100,7 +100,13 @@ void GapParms::clipChainParms(int shape_len, int step1, int step2, float thd_err
         thd_ccps_clip2_lower = 15 * int_precision / thd_ccps_window_size;
     //}
 }
-
+void GapParms::printParms(std::string header)
+{
+    dout << header 
+        << thd_err
+        << thd_gap_len_min
+        << "\n";
+}
 //NOTE::clip & map direction:: towards left < 0, right > 0, both 0
 int const g_sv_inv = 1;     
 int const g_sv_ins = 2;     
@@ -4016,7 +4022,6 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             String<UPair> & apx_gaps,
             StringSet<FeaturesDynamic > & f1,
             StringSet<FeaturesDynamic > & f2,
-            int64_t thd_gap, 
             float thd_err_rate,
             GapParms & gap_parms)
 {
@@ -4044,7 +4049,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
     int64_t block_size = gap_parms.thd_tile_size; 
     int64_t thd_cord_size = gap_parms.thd_tile_size; //NOTE::this is the cord size, may be different from thd_tile_size.
     int64_t thd_cord_remap = 100;
-    int64_t thd_cord_gap = thd_gap + block_size;
+    int64_t thd_cord_gap = gap_parms.thd_gap_len_min + block_size;
 
     clear(apx_gaps);
     gather_blocks_ (cords_str, str_ends, str_ends_p, 1, length(cords_str), length(read), thd_cord_gap, thd_cord_size, 0, &is_cord_block_end, &set_cord_end);
