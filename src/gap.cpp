@@ -3202,8 +3202,8 @@ int insert_tiles2Cords_(String<uint64_t> & cords_str,
     return 0;
 }
 /************************* START: Extend mapping for INS/DEL ***************************/
-/* An extendsion for the ins/del: Since many ins in databases like GIAB are repeated base pairs.
-   This part is to provide the customized way for such indels.*/ 
+/* An extendsion for the ins/del: Since many ins are repeats.
+   This part is to customize indels.*/ 
 /*
  *NOTE:Resut [pair.first, len1) of chain1, [0, pair.second) of chain2  having overlaps within the region
  */
@@ -3477,7 +3477,9 @@ int extendsIntervalMapOverlaps_(String<Dna5> & ref, String<Dna5> & read, String<
  * NOTE:If clip as ins or del are based on @gap_str1, @gap_end1, @gap_str2, @gap_end2.
    Hence make sure @gap_str[1/2] and @gap_end[1/2] can correctly indicate ins/del.
  */
-int extendsTilesFromAnchors (String<Dna5> & ref, String<Dna5> & read, String<Dna5> & comstr,
+int extendsTilesFromAnchors (String<Dna5> & ref, 
+                            String<Dna5> & read, 
+                            String<Dna5> & comstr,
                             String<uint64_t> & anchors1, String<uint64_t> & anchors2, 
                             String<uint64_t> & tiles1, String<uint64_t> & tiles2,
                             StringSet<FeaturesDynamic> & f1, 
@@ -3754,8 +3756,6 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         String<uint64_t> tiles_str2;
         String<uint64_t> tiles_end1;
         String<uint64_t> tiles_end2;
-        String<uint64_t> clips1;
-        String<uint64_t> clips2;
         int direction1 = g_map_rght;
         int direction2 = g_map_left;
 
@@ -3805,7 +3805,6 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         //return 1;
         //todo
     }
-
     else if (x1 < x2 && y1 < y2)
     {
         int64_t danc = x1 - x2 - y1 + y2;
@@ -3819,12 +3818,12 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
             gap_parms.chn_score1.getScore = &getGapAnchorsChainScore2;
             gap_parms.chn_score2.thd_abort_score = 0;
             gap_parms.chn_score2.getScore2 = &getGapBlocksChainScore3;
+
             String<uint64_t> tiles_str1;
             String<uint64_t> tiles_str2;
             String<uint64_t> tiles_end1;
             String<uint64_t> tiles_end2;
-            String<uint64_t> clips1;
-            String<uint64_t> clips2;
+            
             int direction1 = g_map_rght;
             int direction2 = g_map_left;
             uint64_t gap_str1, gap_str2, gap_end1, gap_end2;
