@@ -1133,7 +1133,8 @@ int chainTiles(String<uint64_t> & tiles, uint64_t read_len, uint64_t thd_gather_
     return 0;
 }
 int g_CreateChainsFromAnchors_(String<uint64_t> & anchors, String<uint64_t> & tiles,
-                             uint64_t & gap_str, uint64_t & gap_end, uint64_t read_len, GapParms & gap_parms)
+                             uint64_t & gap_str, uint64_t & gap_end, uint64_t read_len, 
+                             GapParms & gap_parms)
 {
     uint64_t thd_anchor_gap_size = 100; //warn::not the thd_gap_size
     StringSet<String<uint64_t> > anchors_chains;
@@ -1145,8 +1146,6 @@ int g_CreateChainsFromAnchors_(String<uint64_t> & anchors, String<uint64_t> & ti
     int thd_best_n = 20;
     chainAnchorsBase(anchors, anchors_chains, anchors_chains_score, 0, length(anchors), 
         thd_chain_depth, thd_chain_dx_depth, thd_best_n, gap_parms.chn_score1, &g_hs_anchor_getX);
-    //}
- 
     resize (tiles, lengthSum(anchors_chains)); 
     int it = 0;
     for (int i = 0; i < length(anchors_chains); i++)
@@ -1294,7 +1293,7 @@ int createTilesFromAnchors2_(String<uint64_t> & anchors,
 {
     String<uint64_t> tmp_tiles;
     g_CreateChainsFromAnchors_(anchors, tmp_tiles, gap_str, gap_end, read_len, gap_parms);
-    if (gap_parms.f_me_map_extend) //for MapExtend: most ins are tandem repeats, so extending part is restricted to those that can be well connected to the gap_str, or gap_end
+    if (gap_parms.f_me_map_extend) //for MapExtend: most ins are tandem repeats, extended part is limited to those that well connected to the gap_str, or gap_end
     {
         std::pair<int, int> its = getClosestExtensionChain_(tmp_tiles, gap_str, gap_end, false, gap_parms);
         g_CreateTilesFromChains_(tmp_tiles, tiles, f1, f2, gap_str, its.first, its.second, &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);    
@@ -1548,11 +1547,11 @@ int g_stream_(String<Dna5> & seq1, //genome
 }
 
 /**
- * Map interval [@gap_str, @gap_end) to create a chain of tiles to extend the
-   mapping area as long as possible.
+ * Map interval [@gap_str, @gap_end) to extend the
+   mapped region as long as possible.
  * @gap_str and @gap_end should have the same strand
  */
-int map_interval(String<Dna5> & seq1, //genome
+int mapInterval(String<Dna5> & seq1, //genome
                  String<Dna5> & seq2, //read
                  String<Dna5> & comstr,
                  String<uint64_t> & tiles,    //results
@@ -1650,7 +1649,7 @@ int try_dup(String<Dna5> & seq,
     uint64_t dup_str = gap_str;
     uint64_t dup_end = shift_tile (gap_str, shift_x, shift_y);
     int direction = 1;
-    map_interval(seq, read, comstr,  tiles_left, f1, f2, 
+    mapInterval(seq, read, comstr,  tiles_left, f1, f2, 
                  dup_str, dup_end, LLMIN, LLMAX, direction,
                  gap_parms);
     if (!empty(tiles_left))
@@ -1664,7 +1663,7 @@ int try_dup(String<Dna5> & seq,
     dup_str = shift_tile(gap_end, -shift_x, -shift_y);
     direction = -1;
     String<uint64_t> tiles2;
-    map_interval(seq, read, comstr, tiles_rght, f1, f2,
+    mapInterval(seq, read, comstr, tiles_rght, f1, f2,
                  dup_str, dup_end,LLMIN, LLMAX, direction,
                  gap_parms);
     if (!empty(tiles_rght))
@@ -3639,7 +3638,7 @@ int mapExtend_(StringSet<String<Dna5> > & seqs,
 
     String <Dna5> & ref = seqs[get_cord_id(gap_str)];
     String<uint64_t> sp_tiles; 
-    map_interval(ref, read, comstr, tiles_str, f1, f2, gap_str, gap_end, 0, 0, direction, gap_parms);
+    mapInterval(ref, read, comstr, tiles_str, f1, f2, gap_str, gap_end, 0, 0, direction, gap_parms);
     //filter out tiles of large gaps
     mapExtendResultFileter_(tiles_str, gap_str, gap_end, direction, gap_parms);
     if (!empty(tiles_str) && isClipTowardsRight(direction))
@@ -3808,7 +3807,7 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
     else if (x1 < x2 && y1 < y2)
     {
         int64_t danc = x1 - x2 - y1 + y2;
-        if (std::abs(danc) > gap_parms.thd_mg1_danc_indel) //signal of ins/del 
+        if (std::abs(danc) > gap_parms.thd_mg1_danc_indel) //ins/del 
         {
             //!add declaration of variables here
             ChainScoreMetric chn_score1_tmp = gap_parms.chn_score1; //used to restore the original parms after mapExtend
@@ -3878,18 +3877,16 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
             gap_parms.chn_score1 = chn_score1_tmp;
             return 0;
         }
-/*
         else 
         {
-            //<<debug
-            //return 0;
-            //>>    
-            map_interval(ref, read, comstr, tiles_str, f1, f2, gap_str, gap_end, LLMIN, LLMAX, direction, thd_tile_size, thd_err_rate, parm1, gap_parms);
+            //mapInterval(ref, read, comstr, tiles_str, f1, f2, gap_str, gap_end, LLMIN, LLMAX, direction, gap_parms);
+            /*
             reform_tiles(ref, read, comstr, 
                          tiles_str, tiles_end,
                          clips, sp_tiles,
                          gap_str, gap_end, direction, 
                          thd_cord_gap, thd_tile_size, thd_err_rate);
+                         */
             //try dup for each sp_tiles element.
             unsigned new_dups_count = 0;
             for (uint64_t i = 0; i < getClipsLen(sp_tiles); i++)
@@ -3941,7 +3938,6 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                 
             }
         }
-            */
     }
     else if (x1 > x2 && y1 < y2)
     {
