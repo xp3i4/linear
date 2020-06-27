@@ -3473,7 +3473,7 @@ int extendsIntervalMapOverlaps_(String<Dna5> & ref, String<Dna5> & read, String<
  * step2 remap of the overlap of the 2 chains of different direction : extendsIntervalMapOverlaps_
  * step3 clip the overlaps
  * step4 create tiles along the chains
- * NOTE:If clip as ins or del are based on @gap_str1, @gap_end1, @gap_str2, @gap_end2.
+ * NOTE:If clip is ins or del is according to @gap_str1, @gap_end1, @gap_str2, @gap_end2.
    Hence make sure @gap_str[1/2] and @gap_end[1/2] can correctly indicate ins/del.
  */
 int extendsTilesFromAnchors (String<Dna5> & ref, 
@@ -3509,11 +3509,7 @@ int extendsTilesFromAnchors (String<Dna5> & ref,
     trimTiles(tiles1, f1, f2, gap_str1, gap_end2, read_len - 1, direction1, gap_parms);
     g_CreateTilesFromChains_(tmp_tiles2, tiles2, f1, f2, gap_str2, 0, length(tmp_tiles2), &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);  
     trimTiles(tiles2, f1, f2, gap_str1, gap_end2, read_len - 1, direction2, gap_parms);
-    //<<debug
-    //if (get_cord_y(gap_str1) == 7761) 
-    //{
-    //}
-    //>>debug 
+
     gap_parms.direction = original_direction;
     return 0;
 }
@@ -3704,7 +3700,7 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
 
 /*----------------------  Gap main  ----------------------*/
 /*
- * Map any possible anchors within the gap
+ * Map and resolve the gap specified by [@gap_str, @gap_end)
  */
 int mapGap_ (StringSet<String<Dna5> > & seqs, 
              String<Dna5> & read, 
@@ -3876,6 +3872,7 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
             gap_parms.chn_score2 = chn_score2_tmp;
             gap_parms.chn_score1 = chn_score1_tmp;
             return 0;
+            dout << "gap_indel" << get_cord_y(gap_str1) << "\n";
         }
         else 
         {
