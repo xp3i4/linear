@@ -670,7 +670,7 @@ int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
             }   
         }
     }
-    else if (direction < 0) //towards left : only for mapping extend collect anchor of same strand and close to gap_str or gap_end, NOTE<red> anchors having different strand with gap_str or gap_end are skipped
+    else if (direction < 0) //towards left : only for mapping extend collect anchor of same strand and close to gap_str or gap_end, NOTE<red> anchors of different strands with gap_str or gap_end are skipped
     {
         int64_t y_end = get_cord_y(gap_end);
         int64_t anchor_base = g_hs_Cord2StrAnchor(gap_end);
@@ -3559,10 +3559,16 @@ int extendsInterval(String<Dna5> & ref, //genome
     uint64_t y2 = std::max(get_cord_y(gap_end1), get_cord_y(gap_end2));
     uint64_t stream_str = create_cord(id, x1, y1, strand);
     uint64_t stream_end = create_cord(id, x2, y2, strand);
-
+    double t1 = sysTime();
     g_stream_(ref, read, g_hs, stream_str, stream_end, shape_len, step1, step2, gap_parms);
+    t1 = sysTime() - t1;
+    double t2 = sysTime();
     g_CreateExtendAnchorsPair_(g_hs, g_hs_anchors1, g_hs_anchors2, shape_len, length(read) - 1, gap_str1, gap_end1, gap_str2, gap_end2, gap_parms);
+    t2 = sysTime() - t2;
+    double t3 = sysTime();
     extendsTilesFromAnchors(ref, read, comstr, g_hs_anchors1, g_hs_anchors2, tiles1, tiles2, fts_ref, fts_read, gap_str1, gap_end1, gap_str2, gap_end2, length(read), gap_parms);
+    t3 = sysTime() - t3;
+    dout << "times" << t1 << t2 << t3 << "\n";
     //--direction = 1 part;
     /*
     gap_parms.direction = direction1;
@@ -3871,7 +3877,6 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
             }
             gap_parms.chn_score2 = chn_score2_tmp;
             gap_parms.chn_score1 = chn_score1_tmp;
-            return 0;
             dout << "gap_indel" << get_cord_y(gap_str1) << "\n";
         }
         else 
@@ -3948,6 +3953,33 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
     {
 
     }
+    //if (direction == 0)
+    //{
+    dout << "mgg3" << length(tiles_str) << "\n";
+        for (uint i = 1; i < length(tiles_str); i++)
+        {
+            int64_t dx = get_tile_x(tiles_str[i]) - get_tile_x(tiles_str[i - 1]);
+            int64_t dy = get_tile_y(tiles_str[i]) - get_tile_y(tiles_str[i - 1]);
+            if(get_tile_strand(tiles_str[i] ^ tiles_str[i - 1]))
+            {
+
+            }
+            else
+            {
+                if (dx > 100 && dy > 100)
+                {
+                    String<uint64_t> tiles_str1;
+                    uint64_t t_gap_str = tiles_str[i - 1];
+                    uint64_t t_gap_end = tiles_end[i];
+                    int t_direction = 0;
+                    mapInterval(seqs[get_tile_id(gap_str)], read, comstr, tiles_str1, f1, f2,
+                        t_gap_str, t_gap_end, LLMIN, LLMAX, t_direction, gap_parms);  
+                    g_print_tiles_(tiles_str1, "tstr2");
+                    g_print_tile(t_gap_str, "tstr1");
+                }
+            }
+        }
+    //}
     return 0;
 }
 
