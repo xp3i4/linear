@@ -1293,7 +1293,7 @@ int createTilesFromAnchors2_(String<uint64_t> & anchors,
 {
     String<uint64_t> tmp_tiles;
     g_CreateChainsFromAnchors_(anchors, tmp_tiles, gap_str, gap_end, read_len, gap_parms);
-    if (gap_parms.f_me_map_extend) //for MapExtend: most ins are tandem repeats, extended part is limited to those that well connected to the gap_str, or gap_end
+    if (gap_parms.f_me_map_extend) //for MapExtend: many ins are tandem repeats, extended part is limited to those that well connected to the gap_str, or gap_end
     {
         std::pair<int, int> its = getClosestExtensionChain_(tmp_tiles, gap_str, gap_end, false, gap_parms);
         g_CreateTilesFromChains_(tmp_tiles, tiles, f1, f2, gap_str, its.first, its.second, &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);    
@@ -2150,7 +2150,7 @@ int getExtendClipScore(uint64_t const & anchor1, uint64_t const & anchor2, Chain
  * Simple accumlated score of counting matches, taking less computational complexity
  * @shape_len : length of shape to create the @chain
  * @_getX : pass getY if accumulate y 
- * Alway accumulate from left to right, clip direction is not considerd in the function(so do not use too large kmers).
+ * Always accumulate from left to right, clip direction is not considerd in the function(so do not use too large kmers to avoid introduced by length of kmers).
  */
 int accumulateSimpleGapScore1(String<uint64_t> & chain, String<int> & gaps_score, int shape_len, uint64_t(*_getX)(uint64_t), GapParms & gap_parms)
 {
@@ -2289,10 +2289,9 @@ int stickMainChain(String<uint64_t> & chain1, String<uint64_t> & chain2, uint64_
 }
 
 /*
- * Extend and clip a range specified by the @ext_str and @ext_end;
- * The result is a series of tiles;
-   for each @tiles_str, @tiles_end satisfies ext_str<= .. <ext_end.
- * Note<red>::The function uses single strand hash, thus seq2 should be on corresponding strand specified by @ext_str.
+ * To extend and clip within the range specified by @ext_str and @ext_end;
+ * The result is the @tiles_str and @tiles_end which ext_str<= .. <ext_end.
+ * Note<red>::The function uses single strand hash, thus seq2 is required have the same strand as the @ext_str.
  */
 uint64_t extendClipRange(String<Dna5> & seq1, String<Dna5> & seq2, 
     String<uint64_t> & tiles_str, String<uint64_t> & tiles_end, 
@@ -3703,6 +3702,35 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
     gap_parms.f_me_map_extend = 0;
     return 0;    
 }
+/*
+ * Map generic gap of [@gap_str, gap_end)
+ * Output one best @tiles_str1 and @tiles_end1 
+ * Map direction = 0 (closed)
+ */
+int MapGeneric(StringSet<String<Dna5> > & seqs, 
+               String<Dna5> & read, 
+               String<Dna5> & comstr,
+               StringSet<FeaturesDynamic > & f1, 
+               StringSet<FeaturesDynamic > & f2,
+               String<uint64_t> & tiles_str1, 
+               String<uint64_t> & tiles_end1,  
+               uint64_t gap_str, 
+               uint64_t gap_end, 
+               GapParms & gap_parms)
+{
+    int t_direction = 0;
+    uint64_t thd_gather_block_gap_size = 100; //warn::not the thd_gap_size
+    String<uint64_t> sp_tiles_inv;
+    mapInterval(seqs[get_tile_id(gap_str)], read, comstr, tiles_str1, f1, f2,
+                        gap_str, gap_end, LLMIN, LLMAX, t_direction, gap_parms);  
+    g_print_tile(gap_str, "mpgc2");
+    g_print_tile(gap_end, "mpgc3");
+    g_print_tiles_(tiles_str1, "mpgc1");
+    chainTiles(tiles_str1, length(read), thd_gather_block_gap_size, gap_parms);
+    reform_tiles(seqs[get_tile_id(gap_str)], read, comstr, tiles_str1, tiles_end1, 
+        sp_tiles_inv, gap_str, gap_end, t_direction, gap_parms);
+    return 0;
+}
 
 /*----------------------  Gap main  ----------------------*/
 /*
@@ -3969,13 +3997,30 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                 if (dx > 100 && dy > 100)
                 {
                     String<uint64_t> tiles_str1;
+                    String<uint64_t> tiles_end1;
+                    String<uint64_t> sp_tiles_inv;
                     uint64_t t_gap_str = tiles_str[i - 1];
                     uint64_t t_gap_end = tiles_end[i];
                     int t_direction = 0;
+                    /*
                     mapInterval(seqs[get_tile_id(gap_str)], read, comstr, tiles_str1, f1, f2,
                         t_gap_str, t_gap_end, LLMIN, LLMAX, t_direction, gap_parms);  
+                    reform_tiles(seqs[get_tile_id(gap_str)], read, comstr, tiles_str1, tiles_end1, sp_tiles_inv, 
+                        t_gap_str, t_gap_end, t_direction, gap_parms);
+                     */   
+                    MapGeneric (seqs, read, comstr, f1, f2, tiles_str1, tiles_end1, 
+                        t_gap_str, t_gap_end, gap_parms);
+                    if (!empty(tiles_str1))
+                    {
+                        remove_tile_sgn(back(tiles_str1));
+                        remove_tile_sgn(back(tiles_end1));
+                        insert(tiles_str, i, tiles_str1);
+                        insert(tiles_end, i, tiles_end1);
+                        i += length(tiles_str1);
+                    }
                     g_print_tiles_(tiles_str1, "tstr2");
                     g_print_tile(t_gap_str, "tstr1");
+                    g_print_tile(t_gap_end, "tstr3");
                 }
             }
         }
