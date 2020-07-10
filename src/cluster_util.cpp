@@ -39,7 +39,7 @@ int const chain_end = -1;
 /*
  * Warn:: anchors are required to be sorted by x in descending order.
    Don't manipulate the anchors by direct comparation, insertion in this function !
-   The @anchors is a abstract class (not defined), which can be cords, gaps, or hit.
+   The @anchors is an abstract class (not defined), which can be cords, gaps, or hit.
    It can only be handled by the corresponding @scoreFunc, which defines the @anchors.
  * chain anchors within [@it_str, @it_end)
  */ 
@@ -412,9 +412,9 @@ int getBestChains2(String<uint64_t> & hits,
 }
 
 /*
- * @scoreFunc is the score function passed to create chains of blocks of records of @records
- * @records is supposed to be the struct of cords
- * @chains[0] is supposed to be the best chain
+ * @scoreFunc is the score function to create chains of blocks of records of @records
+ * @records is supposed to be in the format of cords
+ * @chains[0] is the best chain
  */
 int chainBlocksBase(StringSet<String<UPair> > & chains, String<uint64_t> & records, String<UPair> & str_ends_p, String<int> & str_ends_p_score, uint64_t read_len, ChainScoreMetric & chn_metric, int thd_best_n, int f_sort = 1)
 {
@@ -597,7 +597,7 @@ int chainBlocksHits(String<uint64_t> & hits, String<UPair> & str_ends_p, String<
 }
 
 /*
- * Comment of functions of getForwardChainDxDy and getApxChainScore3
+ * Comment of getForwardChainDxDy and getApxChainScore3
  * Loosely chaining of cords blocks of different varints
  * cord blocks chaining  [+15, +16), [-80, -81), [-82, -83),[+21, +22), wher + - as forward and reversed 
  *          o1     o2     o3
@@ -636,7 +636,7 @@ int chainBlocksHits(String<uint64_t> & hits, String<UPair> & str_ends_p, String<
    block1, (10, 10) - (15, 15)
    block2, (11, 18) - (13, 20) 
  */
-int getForwarChainDxDy(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len, int64_t & dx, int64_t & dy)
+int getForwardChainDxDy(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len, int64_t & dx, int64_t & dy)
 {
     int f_type = 0;
     if (get_cord_strand(cord11))

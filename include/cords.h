@@ -182,4 +182,6 @@ uint64_t getAnchorX(uint64_t anchor);
 typedef std::pair<uint64_t, uint64_t> UPair;
 UPair getUPForwardy(UPair str_end, uint64_t read_len);
 
+void printAnchors(String<uint64_t> & anchors, CharString header);
+
 #endif

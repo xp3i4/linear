@@ -456,3 +456,17 @@ UPair getUPForwardy(UPair str_end, uint64_t read_len)
                      get_cord_y(str_end.second));
     }
 }
+
+void printAnchors(String<uint64_t> & anchors, CharString header)
+{
+    for (auto anchor : anchors)
+    {
+        uint64_t cord = _DefaultCord.hit2Cord_dstr(anchor);
+        std::cout << header << " "
+             << get_cord_x(cord) << " "
+             << get_cord_strand(cord) << " "
+             << get_cord_y(cord) << " " 
+             << get_cord_x(cord) - get_cord_y(cord) << " "
+             << "\n";
+    }
+}
