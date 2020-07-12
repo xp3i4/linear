@@ -2251,9 +2251,12 @@ int getAnchorHitsChains(Anchors & anchors, String<uint64_t> & hits, uint64_t sha
     String<int>   str_ends_p_score;
     String<int> hits_score; 
     initHitsScore(hits_score); //be sure hit_score has the same structure with Hits
+    printAnchors(anchors.set, "gach3");
     chainAnchorsHits(anchors.set, hits, hits_score);
+    print_cords(hits, "gahc1");
     gather_blocks_ (hits, str_ends, str_ends_p, 1, length(hits), read_len, thd_large_gap, 0, 0, & is_cord_block_end, & set_cord_end);
     preFilterChains1 (hits, hits_score, str_ends_p);
+    print_cords(hits, "gahc2");
     preFilterChains2 (hits, str_ends_p, &set_cord_end, &get_cord_y);
     preFilterChains2 (hits, str_ends_p, &set_cord_end, &get_cord_x);
     resize (str_ends_p_score, length(str_ends_p));
@@ -2399,6 +2402,7 @@ uint64_t apxMap (IndexDynamic & index,
             thd_best_n = 1; //best hit only
             map_str =  y1; 
             map_end =  create_cord(MAX_CORD_ID, MAX_CORD_X, y2, 0);
+            //dout << "apx1" << y1 << y2 << "\n";
             //apxMap_(index, read, anchors, mapParm2, hit, f1, f2, cords, map_str, map_end, alg_type, thd_best_n);
         }
         
@@ -2406,6 +2410,7 @@ uint64_t apxMap (IndexDynamic & index,
         clear (str_ends_p);
         gather_blocks_ (cords, str_ends, str_ends_p, 1, length(cords), length(read), thd_large_gap, thd_cord_size, 1, & is_cord_block_end, & set_cord_end);
         t2 = sysTime() - t2;
+        print_cords(cords, "apx2");
         double t3 = sysTime();
         chainApxCordsBlocks (cords, str_ends_p, length(read), thd_chain_blocks_lower, thd_chain_blocks_upper, alg_type);
         t3 = sysTime() - t3;

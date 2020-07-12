@@ -15,7 +15,6 @@ ChainScoreParms::ChainScoreParms()
     var_d = 1000;
 };
 
-
 int ChainsRecord::isLeaf(){return f_leaf;};
 
 //Chainning Score metric wrapper: including a score function with corresponding parms.
@@ -384,17 +383,11 @@ int getBestChains2(String<uint64_t> & hits,
         new_max_score = -1;
         for (int j = j_str; j < i; j++)
         {
-            //<<debug
-            int new_s = getChainBlocksScore1(hits[str_ends_p[j].first], hits[str_ends_p[j].second - 1],
-                             hits[str_ends_p[i].first], hits[str_ends_p[i].second - 1],
-                                   read_len, chn_metric.chn_score_parms);
-            //>>debug
             new_score = chn_metric.getScore2
                             (hits[str_ends_p[j].first], hits[str_ends_p[j].second - 1],
                              hits[str_ends_p[i].first], hits[str_ends_p[i].second - 1],
                                    read_len, chn_metric.chn_score_parms);
 
-            dout << "gcbs1" << new_s << new_score << "\n";
             if (new_score > 0 && new_score + chain_records[j].score + str_ends_p_score[i] >= new_max_score)
             {
                 max_j = j;
@@ -675,6 +668,8 @@ int getForwardChainDxDy(uint64_t const & cord11, uint64_t const & cord12, uint64
             dy = get_cord_y(cord11) - read_len + 1 + get_cord_y(cord21);
             dx = get_cord_x(cord11) - get_cord_x(cord22);
             f_type = 1;
+    dout << "gf1" << read_len << get_cord_strand(cord11) << get_cord_y(cord11) << get_cord_y(cord12) << get_cord_strand(cord21) << get_cord_y(cord21) << get_cord_y(cord22) << dy << dx << "\n";
+    
         }
         else
         {
@@ -857,7 +852,8 @@ int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p,
                 {
                     swap_str = j;
                 }
-                if (j == length(cords_chains[i]) - 1 || get_cord_strand(cords[cords_chains[i][j + 1].first]) == 0)
+                if (j == length(cords_chains[i]) - 1 || 
+                    get_cord_strand(cords[cords_chains[i][j + 1].first]) == 0)
                 {
                     for (int ii = swap_str; ii < (j + swap_str + 1) / 2; ii++)
                     {
@@ -868,7 +864,8 @@ int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p,
             strand_pre = strand_this;
         }
     }
-    _filterBlocksCords (cords_chains, cords, read_len, thd_major_limit, unsetEndFunc, setEndFunc, f_header);
+    _filterBlocksCords (cords_chains, cords, read_len, thd_major_limit, unsetEndFunc, 
+        setEndFunc, f_header);
     return 0;
 }
 
