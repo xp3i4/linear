@@ -8,7 +8,13 @@ using std::cout;
 using std::endl;
 
 /*__________________________________________________
-  ---------- @s::Generic chain funcs  ----------*/
+  ---------- @s::Generic funcs  ----------*/
+ChainScoreParms::ChainScoreParms()
+{
+    mean_d = 1000; 
+    var_d = 1000;
+};
+
 
 int ChainsRecord::isLeaf(){return f_leaf;};
 
@@ -378,10 +384,17 @@ int getBestChains2(String<uint64_t> & hits,
         new_max_score = -1;
         for (int j = j_str; j < i; j++)
         {
+            //<<debug
+            int new_s = getChainBlocksScore1(hits[str_ends_p[j].first], hits[str_ends_p[j].second - 1],
+                             hits[str_ends_p[i].first], hits[str_ends_p[i].second - 1],
+                                   read_len, chn_metric.chn_score_parms);
+            //>>debug
             new_score = chn_metric.getScore2
                             (hits[str_ends_p[j].first], hits[str_ends_p[j].second - 1],
                              hits[str_ends_p[i].first], hits[str_ends_p[i].second - 1],
                                    read_len, chn_metric.chn_score_parms);
+
+            dout << "gcbs1" << new_s << new_score << "\n";
             if (new_score > 0 && new_score + chain_records[j].score + str_ends_p_score[i] >= new_max_score)
             {
                 max_j = j;
@@ -678,23 +691,7 @@ int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t
     int64_t thd_min_dy = -80;
     int64_t thd_min_dx = -80;
     int64_t dx, dy, da, d_err; 
-    int f_type = getForwarChainDxDy(cord11, cord12, cord21, cord22, read_len, dx, dy);
-    /*
-    if (get_cord_strand(cord11 ^ cord22))
-    {
-        dy = std::max(int64_t(read_len - 1 - get_cord_y(cord12) - get_cord_y(cord22)),  //v1
-                      int64_t(get_cord_y(cord11) + get_cord_y(cord21) + 1 - read_len)); // v2
-                      //if not consider mappeing error, v1,v2,dy should satisify v1*v2 < 0 and dy > 0;
-        dx = get_cord_x(cord11) - get_cord_x(cord22);
-        f_type = 1;
-    }
-    else
-    {
-        dy = get_cord_y(cord11) - get_cord_y(cord22);
-        dx = get_cord_x(cord11) - get_cord_x(cord22);
-        f_type = 0;
-    }
-    */
+    int f_type = getForwardChainDxDy(cord11, cord12, cord21, cord22, read_len, dx, dy);
     
     int64_t thd_max_dy = 3000; 
     int64_t thd_max_dx = 15000;
@@ -721,12 +718,12 @@ int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t
     {
         if (dx > thd_dup_trigger) //ins
         {
-            score = 80 - score_dx; // any large dy is theoretically allowed
+            score = 80 - score_dx; // large dy is allowed
         }
         else //dup
         {
             //todo limit dx < read_len
-            score = 80 - score_dy; // different from ins the dy of dup is suppoesd to be close enough
+            score = 80 - score_dy; //  dy of dup is suppoesd to be close enough
         }
     }
     else if (da > std::max(dy / 4, int64_t(50))) //del
@@ -873,6 +870,131 @@ int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p,
     }
     _filterBlocksCords (cords_chains, cords, read_len, thd_major_limit, unsetEndFunc, setEndFunc, f_header);
     return 0;
+}
+
+class NumericalScore
+{
+    float erf_num[32];
+public:
+    NumericalScore();
+    float erf(float);
+};
+NumericalScore::NumericalScore():
+ erf_num{
+0,             //0     0
+0.022564575,   //0.02  1
+0.045111106,
+0.067621594,
+0.090078126,
+0.112462916,
+0.222702589,
+0.328626759,
+0.428392355,
+0.520499878,
+0.603856091,
+0.677801194,
+0.742100965,
+0.796908212,
+0.842700793,   //1     14
+0.88020507,    //1.1
+0.910313978,
+0.934007945,
+0.95228512,
+0.966105146,
+0.976348383,
+0.983790459,
+0.989090502,
+0.992790429,
+0.995322265,
+0.997020533,
+0.998137154,
+0.998856823,
+0.999311486,
+0.999593048,
+1} 
+{}
+/*
+ * Return numerical approximation of error function
+ * val \in [-3.5, 3.5], otherwise return 1;
+ */
+float NumericalScore::erf(float val)
+{
+    float abs_val = val < 0 ? -val : val;
+    float score = 0;
+    if (abs_val > 2.5)
+    {
+        score = 1;  
+    }
+    else if (abs_val < 0.1) 
+    {
+        unsigned i = abs_val / 0.02;
+        score = (erf_num[i] + erf_num[i + 1]) * 0.5;
+    }
+    else 
+    {
+        unsigned i =(5 + (abs_val - 0.1) / 0.1);
+        score = (erf_num[i] + erf_num[i + 1]) * 0.5;
+    }
+        dout << "erf" << abs_val << score << "\n";
+    return val < 0 ? -score:score;
+}
+NumericalScore num_score;
+/*
+ * return cdf function of normal function
+ */
+float cdfN(float val, float mean, float var)
+{
+    return (1 + num_score.erf((val - mean) / (var * 1.414))) * 0.5;
+}
+/*
+ * Return probability of variants 
+ * @strand: {0,1} same strand:=0; diff..:=1
+ */
+float variantsProb(int strand, int64_t dx, int64_t dy)
+{
+    int64_t da = dx - dy;
+    float p = 1;  
+    if (strand) //inv
+    {
+        p = 0.5;
+    }
+    if (da < -std::max(dx / 4, int64_t(50))) //ins, dup
+    {
+        if (dx > -50) //ins
+        {
+            p = 0.5; 
+        }
+        else 
+        {
+            p = 0.25;
+        }
+    }
+    else if (da > std::max(dy / 4, int64_t(50))) //del
+    {
+        p = 0.5;
+    }
+    return p;
+}
+/*
+ * Return score of chaining blocks of [cord11, cord12), and [cord21, cord22)
+ */
+int getChainBlocksScore1(uint64_t const & cord11, uint64_t const & cord12, 
+    uint64_t const & cord21, uint64_t const & cord22, 
+    uint64_t const & read_len, ChainScoreParms & chn_sc_parms)
+{
+    int64_t dx, dy;
+    int f_type = getForwardChainDxDy(cord11, cord12, cord21, cord22, read_len, dx, dy);
+    if (dy < -80)
+    {
+        return INT_MIN;
+    }
+    int64_t d = std::max(std::min(dx, dy), int64_t(0));
+    float p_0 = 1 - cdfN(d, chn_sc_parms.mean_d, chn_sc_parms.var_d); //p_0 = probability of dist > d
+    float p = variantsProb(f_type ? 1 : 0, dx, dy) * p_0;
+    int score = p * 100; //100: float accuracy 0.01 
+    dout << "gcbs1x" << 0 << cdfN(0.025, 0, 1) << cdfN(-0.025, 0, 1) << score << p << d << p_0 << "\n";
+
+    return score;
 }
 
 //End all mapper module
