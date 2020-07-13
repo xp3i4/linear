@@ -668,7 +668,12 @@ int getForwardChainDxDy(uint64_t const & cord11, uint64_t const & cord12, uint64
             dy = get_cord_y(cord11) - read_len + 1 + get_cord_y(cord21);
             dx = get_cord_x(cord11) - get_cord_x(cord22);
             f_type = 1;
-    dout << "gf1" << read_len << get_cord_strand(cord11) << get_cord_y(cord11) << get_cord_y(cord12) << get_cord_strand(cord21) << get_cord_y(cord21) << get_cord_y(cord22) << dy << dx << "\n";
+    dout << "gf1" << read_len << get_cord_strand(cord11) 
+        << get_cord_y(cord11) << get_cord_x(cord11) 
+        << get_cord_y(cord12) << get_cord_x(cord12) 
+        << get_cord_strand(cord21) 
+        << get_cord_y(cord21) << get_cord_x(cord21)
+        << get_cord_y(cord22) << get_cord_x(cord22) << dy << dx << "\n";
     
         }
         else
@@ -797,12 +802,50 @@ int _filterBlocksCords(StringSet<String<UPair> > & chains, String<uint64_t> & hi
     return 0;
 }
 
+int chainBlocksCordsStrand(String<uint64_t> & cords, String<UPair> & str_ends_p, 
+    StringSet<String<UPair> > & cords_chains, int strand, ChainScoreMetric & chn_score, 
+     uint64_t read_len, uint thd_init_cord_score)
+{
+    String<int> str_ends_p_score;
+    resize(str_ends_p_score, length(str_ends_p));
+    if (strand)
+    {
+        std::sort (begin(str_ends_p), end(str_ends_p), [&cords, &read_len](UPair & a, UPair &b){
+        uint64_t y1,y2;
+        y1 = !get_cord_strand(cords[a.first]) ? read_len - 1 - get_cord_y(cords[a.second - 1]) :
+            get_cord_y(cords[a.first]);
+        y2 = !get_cord_strand(cords[b.first]) ? read_len - 1 - get_cord_y(cords[b.second - 1]) :
+            get_cord_y(cords[b.first]);
+        return y1 > y2;
+        });
+    }
+    else
+    {
+        std::sort (begin(str_ends_p), end(str_ends_p), [&cords, &read_len](UPair & a, UPair &b){
+        uint64_t y1,y2;
+        y1 = get_cord_strand(cords[a.first]) ? read_len - 1 - get_cord_y(cords[a.second - 1]) :
+            get_cord_y(cords[a.first]);
+        y2 = get_cord_strand(cords[b.first]) ? read_len - 1 - get_cord_y(cords[b.second - 1]) :
+            get_cord_y(cords[b.first]);
+        return y1 > y2;
+        });
+    } 
+    for (unsigned i = 0; i < length(str_ends_p_score); i++) 
+    {
+        //init the score as the length of the blocks
+        str_ends_p_score[i] = (str_ends_p[i].second - str_ends_p[i].first) * thd_init_cord_score;
+    }
+    int thd_best_n1 = 3; //unlimited
+    chainBlocksBase(cords_chains, cords, str_ends_p, str_ends_p_score, read_len, chn_score, thd_best_n1, 0);
+}
+
 int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p, 
         ChainScoreMetric & chn_score,  uint64_t read_len,  uint thd_init_cord_score, uint64_t thd_major_limit,
         void (*unsetEndFunc)(uint64_t &), void(*setEndFunc)(uint64_t &), int f_header)
 {
     //return 0;
     //chain regular, ins, del duplication
+    /*
     String<int> str_ends_p_score;
     StringSet<String<UPair> > cords_chains; 
     resize(str_ends_p_score, length(str_ends_p));
@@ -822,6 +865,10 @@ int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p,
     int thd_best_n1 = 3; //unlimited
     int f_sort = 0; //disable sort in chainBlockBase()
     chainBlocksBase(cords_chains, cords, str_ends_p, str_ends_p_score, read_len, chn_score, thd_best_n1, f_sort);
+    */
+    StringSet<String<UPair> > cords_chains;
+    int strand = 0;
+    chainBlocksCordsStrand(cords, str_ends_p, cords_chains, strand, chn_score, read_len, thd_init_cord_score);
     uint64_t swap_str = 0;
     UPair cordy_pair_pre;
     UPair cordy_pair;
