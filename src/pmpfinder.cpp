@@ -2403,7 +2403,7 @@ uint64_t apxMap (IndexDynamic & index,
             map_str =  y1; 
             map_end =  create_cord(MAX_CORD_ID, MAX_CORD_X, y2, 0);
             //dout << "apx1" << y1 << y2 << "\n";
-            //apxMap_(index, read, anchors, mapParm2, hit, f1, f2, cords, map_str, map_end, alg_type, thd_best_n);
+            apxMap_(index, read, anchors, mapParm2, hit, f1, f2, cords, map_str, map_end, alg_type, thd_best_n);
         }
         
         clear (str_ends);

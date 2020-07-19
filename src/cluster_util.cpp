@@ -13,6 +13,7 @@ ChainScoreParms::ChainScoreParms()
 {
     mean_d = 1000; 
     var_d = 1000;
+    chn_block_strand = 0;
 };
 
 int ChainsRecord::isLeaf(){return f_leaf;};
@@ -641,57 +642,48 @@ int chainBlocksHits(String<uint64_t> & hits, String<UPair> & str_ends_p, String<
    ---can 
    block1, (10, 10) - (15, 15)
    block2, (11, 18) - (13, 20) 
- */
-int getForwardChainDxDy(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len, int64_t & dx, int64_t & dy)
+*/
+int getChainBlockDxDy(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len, int strand, int64_t & dx, int64_t & dy)
 {
-    int f_type = 0;
-    if (get_cord_strand(cord11))
+    uint64_t y1, y2; 
+    if (get_cord_strand(cord11) != strand)
     {
-        if (get_cord_strand(cord21))
+        if (get_cord_strand(cord22) != strand)
         {
             dy = get_cord_y(cord21) - get_cord_y(cord12);
             dx = get_cord_x(cord21) - get_cord_x(cord12);
-            f_type = 0;
         }
         else
         {
-            dy = read_len - 1 - get_cord_y(cord12) - get_cord_y(cord22);
-            //dx = get_cord_x(cord12) - get_cord_x(cord22);
+            dy = read_len - get_cord_y(cord12) - 1 - get_cord_y(cord22);
             dx = get_cord_x(cord11) - get_cord_x(cord22);
-            f_type = 1;
         }
     }
     else
     {
-        if (get_cord_strand(cord21))
+        if (get_cord_strand(cord22) != strand)
         {
             dy = get_cord_y(cord11) - read_len + 1 + get_cord_y(cord21);
             dx = get_cord_x(cord11) - get_cord_x(cord22);
-            f_type = 1;
-    dout << "gf1" << read_len << get_cord_strand(cord11) 
-        << get_cord_y(cord11) << get_cord_x(cord11) 
-        << get_cord_y(cord12) << get_cord_x(cord12) 
-        << get_cord_strand(cord21) 
-        << get_cord_y(cord21) << get_cord_x(cord21)
-        << get_cord_y(cord22) << get_cord_x(cord22) << dy << dx << "\n";
-    
         }
         else
         {
             dy = get_cord_y(cord11) - get_cord_y(cord22);
             dx = get_cord_x(cord11) - get_cord_x(cord22);
-            f_type = 0;
         }
     }
-    return f_type; 
+
+    return get_cord_strand(cord11 ^ cord22);
 }
+
 //Warn red>sychronize getGapChainScore2 of same logic  when modifiy this function  
 int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len, ChainScoreParms & chn_sc_parms)
 {
     int64_t thd_min_dy = -80;
     int64_t thd_min_dx = -80;
     int64_t dx, dy, da, d_err; 
-    int f_type = getForwardChainDxDy(cord11, cord12, cord21, cord22, read_len, dx, dy);
+    //int f_type = getForwardChainDxDy(cord11, cord12, cord21, cord22, read_len, dx, dy);
+    int f_type = getChainBlockDxDy(cord11, cord12, cord21, cord22, read_len, chn_sc_parms.chn_block_strand, dx, dy);
     
     int64_t thd_max_dy = 3000; 
     int64_t thd_max_dx = 15000;
@@ -702,38 +694,41 @@ int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t
     int score = 0;
     if (dy < thd_min_dy)// || (f_type == 0 && dy > thd_max_dy) || dx_ > thd_max_dx)
     {
-        return INT_MIN;
-        //score = INT_MIN;
+        score = INT_MIN;
     }
-    int64_t score_dy = dy_ > 2000 ? std::min(dy_ / 25 - 50, int64_t(70)): dy_ / 40;  
-    int64_t score_dx = dx_ > 2000 ? std::min(dx_ / 25 - 50, int64_t(70)): dx_ / 40;  
-    if (f_type == 1) //inv
+    else
     {
-        if (dx > thd_min_dx)
+        int64_t score_dy = dy_ > 2000 ? std::min(dy_ / 25 - 50, int64_t(70)): dy_ / 40;  
+        int64_t score_dx = dx_ > 2000 ? std::min(dx_ / 25 - 50, int64_t(70)): dx_ / 40;  
+        if (f_type == 1) //inv
         {
-            score = 75 - score_dy; 
+            if (dx > thd_min_dx)
+            {
+                score = 75 - score_dy; 
+            }
+        }
+        else if (da < -std::max(dx_ / 4, int64_t(50))) 
+        {
+            if (dx > thd_dup_trigger) //ins
+            {
+                score = 80 - score_dx; // large dy is allowed
+            }
+            else //dup
+            {
+                //todo limit dx < read_len
+                score = 80 - score_dy; //  dy of dup is suppoesd to be close enough
+            }
+        }
+        else if (da > std::max(dy / 4, int64_t(50))) //del
+        {
+            score = 80 - score_dy;
+        }
+        else //normal 
+        {
+            score = 100 - score_dy;
         }
     }
-    else if (da < -std::max(dx_ / 4, int64_t(50))) 
-    {
-        if (dx > thd_dup_trigger) //ins
-        {
-            score = 80 - score_dx; // large dy is allowed
-        }
-        else //dup
-        {
-            //todo limit dx < read_len
-            score = 80 - score_dy; //  dy of dup is suppoesd to be close enough
-        }
-    }
-    else if (da > std::max(dy / 4, int64_t(50))) //del
-    {
-        score = 80 - score_dy;
-    }
-    else //normal 
-    {
-        score = 100 - score_dy;
-    }
+    dout << "cs3" << dx << dy << chn_sc_parms.chn_block_strand << get_cord_y(cord11) << get_cord_y(cord22) << get_cord_x(cord11) << get_cord_x(cord22) << score << "\n";
     return score;
 }
 
@@ -801,13 +796,17 @@ int _filterBlocksCords(StringSet<String<UPair> > & chains, String<uint64_t> & hi
     hits = hits_tmp;  
     return 0;
 }
-
-int chainBlocksCordsStrand(String<uint64_t> & cords, String<UPair> & str_ends_p, 
-    StringSet<String<UPair> > & cords_chains, int strand, ChainScoreMetric & chn_score, 
+/*
+ * Chain blocks on one strand specified by @chn_score.chn_score_parms.chn_block_strand
+ * y of blocks of different strands are converted to y' of the same strand and chained
+ */
+int chainBlocksSingleStrand(String<uint64_t> & cords, String<UPair> & str_ends_p, 
+    StringSet<String<UPair> > & cords_chains, ChainScoreMetric & chn_score, 
      uint64_t read_len, uint thd_init_cord_score)
 {
     String<int> str_ends_p_score;
     resize(str_ends_p_score, length(str_ends_p));
+    int strand = chn_score.chn_score_parms.chn_block_strand;
     if (strand)
     {
         std::sort (begin(str_ends_p), end(str_ends_p), [&cords, &read_len](UPair & a, UPair &b){
@@ -838,81 +837,140 @@ int chainBlocksCordsStrand(String<uint64_t> & cords, String<UPair> & str_ends_p,
     int thd_best_n1 = 3; //unlimited
     chainBlocksBase(cords_chains, cords, str_ends_p, str_ends_p_score, read_len, chn_score, thd_best_n1, 0);
 }
-
-int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p, 
-        ChainScoreMetric & chn_score,  uint64_t read_len,  uint thd_init_cord_score, uint64_t thd_major_limit,
-        void (*unsetEndFunc)(uint64_t &), void(*setEndFunc)(uint64_t &), int f_header)
+/*
+ * Return best strand: 0 @cords_chains1, 1:@cords_chains2
+ */
+int getChainBlocksBestStrand(StringSet<String<UPair> > & cords_chains1, 
+                             StringSet<String<UPair> > & cords_chains2)
 {
-    //return 0;
-    //chain regular, ins, del duplication
-    /*
-    String<int> str_ends_p_score;
-    StringSet<String<UPair> > cords_chains; 
-    resize(str_ends_p_score, length(str_ends_p));
-    std::sort (begin(str_ends_p), end(str_ends_p), [&cords, &read_len](UPair & a, UPair &b){
-        uint64_t y1,y2;
-        y1 = get_cord_strand(cords[a.first]) ? read_len - 1 - get_cord_y(cords[a.second - 1]) :
-            get_cord_y(cords[a.first]);
-        y2 = get_cord_strand(cords[b.first]) ? read_len - 1 - get_cord_y(cords[b.second - 1]) :
-            get_cord_y(cords[b.first]);
-        return y1 > y2;
-    });
-    for (unsigned i = 0; i < length(str_ends_p_score); i++) //init the score as the length of the blocks
+    String <int> lens1, lens2; //@lens[i] = length sum of @chains_cords[k], k<=i
+    resize(lens1, length(cords_chains1));
+    resize(lens2, length(cords_chains2));
+    if (!empty(cords_chains1))
     {
-        str_ends_p_score[i] = (str_ends_p[i].second - str_ends_p[i].first) * thd_init_cord_score;
+        for (int i = 0; i < length(cords_chains1); i++)
+        {
+            lens1[i] = i == 0 ? 0 : lens2[i - 1];
+            for (int j = 0; j < length(cords_chains1[i]); j++)
+            {
+                lens1[i] += cords_chains1[i][j].second - cords_chains1[i][j].first;
+                dout << "gbs11" << i << cords_chains1[i][j].first << cords_chains1[i][j].second << "\n";
+            }
+        }
+    }  
+    if (!empty(cords_chains2))
+    {
+        for (int i = 0; i < length(cords_chains2); i++)
+        {
+            lens2[i] = i == 0 ? 0 : lens2[i - 1];
+            for (int j = 0; j < length(cords_chains2[i]); j++)
+            {
+                lens2[i] += cords_chains2[i][j].second - cords_chains2[i][j].first;
+                dout << "gbs12" << cords_chains2[i][j].first << cords_chains2[i][j].second << "\n";
+            }
+        }
     }
-
-    int thd_best_n1 = 3; //unlimited
-    int f_sort = 0; //disable sort in chainBlockBase()
-    chainBlocksBase(cords_chains, cords, str_ends_p, str_ends_p_score, read_len, chn_score, thd_best_n1, f_sort);
-    */
-    StringSet<String<UPair> > cords_chains;
-    int strand = 0;
-    chainBlocksCordsStrand(cords, str_ends_p, cords_chains, strand, chn_score, read_len, thd_init_cord_score);
+    for (int i = 0; i < std::min(length(lens1), length(lens2)); i++)
+    {
+        dout << "gbs" << length(cords_chains2) << lens1[i] << lens2[i] << "\n";
+        if (lens1[i] < lens2[i])
+        {
+            return 1;
+        }
+        else if (lens1[i] > lens2[i])
+        {
+            return 0;
+        }
+    }
+    return 0; 
+}
+/*
+ * Revert order of blocks in @cords_chains if strands is different from @strand
+ */
+int revertChainBlocktStrand(StringSet<String<UPair> > & cords_chains,
+                           String<uint64_t> & cords,
+                           int strand,
+                           uint64_t read_len)
+{
     uint64_t swap_str = 0;
+    uint64_t f_strand = strand ? 1 : 0;
     UPair cordy_pair_pre;
     UPair cordy_pair;
-    //NOTE::the following is to convert the order of reversed strand y to its original order.
-    //the reversed coordinates is due to sorting of y on forward strand.
-    //if it's chained (sort) according to the x coordinate, remove this part.
-    uint64_t t; 
+    dout << "cbrs" << f_strand << "\n";
     for (unsigned i = 0; i < length(cords_chains); i++) 
     {
+        appendValue(cords_chains[i], UPair(0,0));
         uint64_t strand_pre = 0;
-        for (unsigned j = 0; j < length(cords_chains[i]); j++)
+        uint64_t strand_this = 0;
+        for (unsigned j = 0; j < length(cords_chains[i]); j++) 
         {
-            cordy_pair = getUPForwardy(UPair(cords[cords_chains[i][j].first], cords[cords_chains[i][j].second - 1]), read_len);
-            if (j > 0 && cordy_pair.first < cordy_pair_pre.second && ++cords_chains[i][j].first == cords_chains[i][j].second)
+            if (j == length(cords_chains[i]) - 1 || 
+                get_cord_strand(cords[cords_chains[i][j].first]) == f_strand)
             {
-                continue; 
-                //some blocks has small overlaps where dy < 0 since the score function resitric dy > -80 rather than 
-                // dy > 0 to allow small errors caused by apx map.
-                //the overlapped cord is just removed in  this step for simplicity.
-                //++cords[i][j].first is to remove the cord pointer.
-                //if == ..second, then this block is empty, continue to avoid access seg fault value.
+                strand_this = 0;
             }
-            cordy_pair_pre = cordy_pair;
-            uint64_t strand_this = get_cord_strand(cords[cords_chains[i][j].first]); 
-            if (strand_this)
+            else 
             {
-                if (j == 0 || strand_pre == 0)
+                strand_this = 1;
+            }
+            if (strand_this && !strand_pre) 
+            {
+                swap_str = j;
+            }
+            if (!strand_this && strand_pre)
+            {
+                for (unsigned k = swap_str; k < (swap_str + j)/ 2; k++)
                 {
-                    swap_str = j;
-                }
-                if (j == length(cords_chains[i]) - 1 || 
-                    get_cord_strand(cords[cords_chains[i][j + 1].first]) == 0)
-                {
-                    for (int ii = swap_str; ii < (j + swap_str + 1) / 2; ii++)
-                    {
-                        std::swap(cords_chains[i][ii], cords_chains[i][j + swap_str - ii]);
-                    }
+                    std::swap(cords_chains[i][k], cords_chains[i][swap_str + j - 1 - k]);
                 }
             }
             strand_pre = strand_this;
         }
+        resize(cords_chains[i], length(cords_chains[i]) - 1);
     }
-    _filterBlocksCords (cords_chains, cords, read_len, thd_major_limit, unsetEndFunc, 
+    return 0;
+}
+/*
+ * chain blocks of @cords
+   start and end @cords of each block is specified in @str_ends_p
+ */
+int chainBlocksCords(String<uint64_t> & cords, 
+                     String<UPair> & str_ends_p, 
+                     ChainScoreMetric & chn_score,  
+                     uint64_t read_len,  
+                     uint thd_init_cord_score, 
+                     uint64_t thd_major_limit,
+                     void (*unsetEndFunc)(uint64_t &), 
+                     void(*setEndFunc)(uint64_t &), 
+                     int f_header)
+{
+    StringSet<String<UPair> > cords_chains1;
+    StringSet<String<UPair> > cords_chains2;
+    String<UPair> str_ends_p1(str_ends_p);
+    String<UPair> str_ends_p2(str_ends_p);
+    chn_score.chn_score_parms.chn_block_strand = 0;
+    dout << "cbs2" << length(str_ends_p1) << "\n";
+        print_cords(cords, "cbs1");
+    chainBlocksSingleStrand(cords, str_ends_p1, cords_chains1, chn_score, read_len, thd_init_cord_score);
+    chn_score.chn_score_parms.chn_block_strand = 1;
+    chainBlocksSingleStrand(cords, str_ends_p2, cords_chains2, chn_score, read_len, thd_init_cord_score);
+    int best_strand = getChainBlocksBestStrand(cords_chains1, cords_chains2);
+    if (best_strand == 0)
+    {
+        str_ends_p = str_ends_p1;
+        revertChainBlockStrand(cords_chains1, cords, best_strand, read_len);
+        _filterBlocksCords (cords_chains1, cords, read_len, thd_major_limit, unsetEndFunc, 
         setEndFunc, f_header);
+        print_cords(cords, "cbs4");
+    }
+    else
+    {
+        str_ends_p = str_ends_p2;
+        revertChainBlockStrand(cords_chains2, cords, best_strand, read_len);
+        _filterBlocksCords (cords_chains2, cords, read_len, thd_major_limit, unsetEndFunc, 
+        setEndFunc, f_header);  
+    }
+    print_cords(cords, "cbs3");
     return 0;
 }
 
@@ -923,38 +981,22 @@ public:
     NumericalScore();
     float erf(float);
 };
+/*
+ * Table of numerical approximation of error function
+ */
 NumericalScore::NumericalScore():
  erf_num{
-0,             //0     0
-0.022564575,   //0.02  1
-0.045111106,
-0.067621594,
-0.090078126,
-0.112462916,
-0.222702589,
-0.328626759,
-0.428392355,
-0.520499878,
-0.603856091,
-0.677801194,
-0.742100965,
-0.796908212,
-0.842700793,   //1     14
-0.88020507,    //1.1
-0.910313978,
-0.934007945,
-0.95228512,
-0.966105146,
-0.976348383,
-0.983790459,
-0.989090502,
-0.992790429,
-0.995322265,
-0.997020533,
-0.998137154,
-0.998856823,
-0.999311486,
-0.999593048,
+//0,   0.02, 0.04, 0.06, 0.08, 0.1, 
+//0.2, 0.3,  0.4,  0.5,  0.6,  0.7, 
+//0.8, 0.9,  1,    1.1,  1.2,  1.3, 
+//1.4, 1.5,  1.6,  1.7,  1.8,  1.9, 
+//2.0, 2.1,  2.2,  2.3,  2.4,  2.5
+//>2.5
+0,           0.022564575, 0.045111106, 0.067621594, 0.090078126, 0.112462916,
+0.222702589, 0.328626759, 0.428392355, 0.520499878, 0.603856091, 0.677801194,
+0.742100965, 0.796908212, 0.842700793, 0.88020507,  0.910313978, 0.934007945,
+0.95228512,  0.966105146, 0.976348383, 0.983790459, 0.989090502, 0.992790429,
+0.995322265, 0.997020533, 0.998137154, 0.998856823, 0.999311486, 0.999593048,
 1} 
 {}
 /*
@@ -1027,7 +1069,8 @@ int getChainBlocksScore1(uint64_t const & cord11, uint64_t const & cord12,
     uint64_t const & read_len, ChainScoreParms & chn_sc_parms)
 {
     int64_t dx, dy;
-    int f_type = getForwardChainDxDy(cord11, cord12, cord21, cord22, read_len, dx, dy);
+    //int f_type = getForwardChainDxDy(cord11, cord12, cord21, cord22, read_len, dx, dy);
+    int f_type = getChainBlockDxDy(cord11, cord12, cord21, cord22, read_len, chn_sc_parms.chn_block_strand, dx, dy);
     if (dy < -80)
     {
         return INT_MIN;

@@ -8,6 +8,7 @@ struct ChainScoreParms
 {
     int64_t mean_d;  //mean of distance of kmers
     int64_t var_d;
+    int chn_block_strand;
     ChainScoreParms();
 };
 
@@ -51,6 +52,7 @@ int getBestChains(String<uint64_t> & anchor, String<ChainsRecord> & chains,
 int chainAnchorsBase(String<uint64_t> &, StringSet<String<uint64_t> > &, String<int> &, uint, uint, uint,
  uint64_t, int, ChainScoreMetric &, uint64_t (*get_anchor_x)(uint64_t));
 int getForwardChainDxDy(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len, int64_t & dx, int64_t & dy);
+int getChainBlockDxDy(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len, int strand, int64_t & dx, int64_t & dy);
 int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p, ChainScoreMetric & chn_score,
    uint64_t read_len, uint thd_init_cord_score, uint64_t thd_major_limit, 
    void (*unsetEndFunc)(uint64_t &), void (*setEndFunc)(uint64_t &), int f_header);
