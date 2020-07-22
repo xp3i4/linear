@@ -522,19 +522,18 @@ int align_block (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
 }
 
 int cord2row_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
-                Row<Align<String<Dna5>, ArrayGaps> >::Type & row2,
-                String<Dna5> & genome,
-                String<Dna5> & read, 
-                String<Dna5> & comrevRead,
-                uint64_t cord_start,
-                uint64_t cord_end
-               )
+              Row<Align<String<Dna5>, ArrayGaps> >::Type & row2,
+              String<Dna5> & genome,
+              String<Dna5> & read, 
+              String<Dna5> & comrevRead,
+              uint64_t cord_str,
+              uint64_t cord_end)
 {
-    uint64_t genomeStart = get_cord_x(cord_start);
+    uint64_t genomeStart = get_cord_x(cord_str);
     uint64_t genomeEnd = get_cord_x(cord_end);
-    uint64_t readStart = get_cord_y(cord_start);
+    uint64_t readStart = get_cord_y(cord_str);
     uint64_t readEnd = get_cord_y(cord_end);
-    uint64_t strand = get_cord_strand (cord_start);   
+    uint64_t strand = get_cord_strand (cord_str);   
     if (genomeStart > genomeEnd || readStart > readEnd)
     {
         return 1;
@@ -560,14 +559,13 @@ int align_cord (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
                 String<Dna5> & genome,
                 String<Dna5> & read, 
                 String<Dna5> & comrevRead,
-                uint64_t cord_start,
+                uint64_t cord_str,
                 uint64_t cord_end,
                 int band,
                 int local_flag = 1,
-                Score<int> scheme = _default_scheme_
-               )
+                Score<int> scheme = _default_scheme_)
 {
-    cord2row_ (row1, row2, genome, read, comrevRead, cord_start, cord_end);
+    cord2row_ (row1, row2, genome, read, comrevRead, cord_str, cord_end);
     int score = 0;
     if (!local_flag)
     {
@@ -1358,11 +1356,10 @@ int check_cord_1_(uint64_t cord, unsigned lx, unsigned ly)
 {
     return get_cord_x(cord) >= lx || get_cord_y(cord) >= ly;
 }
-// return 1 for same strand cord if the pre-cord is bigger
+// return 1 for same strand cord if the pre-cord is larger 
 int check_cord_2_(uint64_t cord1, uint64_t cord2)
 {
-    if (!_DefaultCord.isBlockEnd(cord1) && 
-        !get_cord_strand(cord1 ^ cord2))
+    if (!_DefaultCord.isBlockEnd(cord1) && !get_cord_strand(cord1 ^ cord2))
     {
         if (get_cord_y(cord1) > get_cord_y(cord2) || 
             get_cord_x(cord1) > get_cord_x(cord2))
@@ -1419,24 +1416,62 @@ int check_align_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     }
     return 0;
 }
+/*
+ * Merge region S1=[@cord_str1, @cord_end1) and S2=[@cord_str2, @cord_end2)
+ * @band11, @band12 are lower and upper bands of S1 
+ * @band21, @band22 are lower and upper bands of S2 
+ * The diagnal of merged cord is required to be < d
+int mergeCordBand (uint64_t & cord_str1, uint64_t & cord_end1,
+               uint64_t & cord_str2, uint64_t & cord_end2,
+               int & band11, int & band12, 
+               int & band21, int & band22, 
+               int thd_max_band)
+{
+    uint64_t x1 = get_cord_x(cord_str1);
+    if (cord) 
+    {
+
+    }
+    return 0;
+}
+int mergeCordsBands(String<uint64_t> & cords_str,
+               String<uint64_t> & cords_end,
+               String<int> & bands1,
+               String<int> & bands2,
+               int thd_max_band)
+{
+    resize(bands1, length(cords_str))
+    resize(bands2, length(cords_end))
+    int ii = 0;
+    for (int i = 0; i < length(cords_str); i++)
+    {
+        if(mergeCordBand(cords_str[ii], cords_end[ii], cords_str[i], cords_ends[i], 
+                bands1[ii], bands2[ii], bands1[i], bands2[i], thd_max_band))
+        {
+            ++ii;
+        }
+    }
+    resize(cords_str, ii);
+    resize(cords_end, ii);
+    resize(bands1, ii);
+    resize(bands2, ii);
+    return 0;
+}
+*/
 /**
  * To filter out and customize cords to be aligned 
  */
 int trim_cords_(StringSet<String<Dna5> >& genomes,
-                 String<Dna5> & read, 
-                 String<Dna5> & comrevRead,
-                 String<uint64_t> & cords_r,
-                 String<uint64_t> & cords,
-                 float thd_err_rate,
-                 int thd_min_abort_anchor
-                 )
+                String<Dna5> & read, 
+                String<Dna5> & comrevRead,
+                String<uint64_t> & cords_r,
+                String<uint64_t> & cords,
+                float thd_err_rate,
+                int thd_min_abort_anchor)
 {
     int thd_drop_gap = 20; //drop all gap tiles of record if num of gap blocks > 
     uint64_t recd;
     int recd_str, recd_end; 
-        //<<debug
-        //resize (cords_r, 139);
-        //>>debug
     for (int i = 1; i < length(cords_r); i = recd_end)
     {
         recd = get_cord_recd (cords_r[i]);
@@ -1449,13 +1484,11 @@ int trim_cords_(StringSet<String<Dna5> >& genomes,
             {
                 ++n_bk;
             }
-            //std::cout << "tm1 " << get_cord_recd(cords_r[recd_end]) << " " << recd << "\n";
             if (get_cord_recd(cords_r[recd_end]) != recd)
             {
                 break;
             }
         }
-        //std::cout << "trim_cords_0 " << recd_str << " " << recd_end << " " << n_bk << "\n";
         int f_dg = (n_bk > thd_drop_gap) ? 1 : 0;
         for (int j = recd_str; j < recd_end; j++)
         {
@@ -1484,9 +1517,6 @@ int trim_cords_(StringSet<String<Dna5> >& genomes,
                         std::abs(danchor) > thd_min_abort_anchor) 
                     {
                         set_cord_block_end(back(cords));
-                        //cord_0 = (100,100)
-                        //cord_1 = (0, 50)
-                        //diff anchor set cord_1 to new block 
                     }
                     else
                     {
@@ -1495,9 +1525,6 @@ int trim_cords_(StringSet<String<Dna5> >& genomes,
                             set_cord_block_end(back(cords));
                         }
                         f_drop = 1;
-                        //cord_0 = (100,100)
-                        //cord_1 = (0, 0) 
-                        //cord_1 wil be aborted
                     }
                 }
             }
@@ -1511,11 +1538,6 @@ int trim_cords_(StringSet<String<Dna5> >& genomes,
             }
         }
     }
-    //<<debug
-    //resize(cords, 140);
-    //set_cord_block_end(back(cords));
-    //print_cords(cords, "aligcords");
-    //>>debug
 }
 /**
  * Main function to align cords and generate bam records.
@@ -1526,8 +1548,7 @@ int align_cords (StringSet<String<Dna5> >& genomes,
                  String<uint64_t> & cords_r, //raw cords
                  String<BamAlignmentRecordLink> & bam_records,
                  int block_size,
-                 int band 
-                ) 
+                 int band) 
 {
     if (length(cords_r) < 2) // empty cords
     {

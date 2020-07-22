@@ -254,7 +254,8 @@ int insertNewBamRecord (String<BamAlignmentRecordLink> & bam_records,
                         int r_beginPos,
                         int strand,
                         int insert_pos,
-                        int f_soft/*hard and soft clip flag*/
+                        int f_soft,/*hard and soft clip flag*/
+                        uint16_t flag
                         )
 {
     BamAlignmentRecordLink bam_record;
@@ -266,9 +267,10 @@ int insertNewBamRecord (String<BamAlignmentRecordLink> & bam_records,
     {
         bam_record.beginPos = g_beginPos; 
     }
+    bam_record.flag |=  flag;
     if (strand)
     {
-        bam_record.flag |= bam_flag_rvcmp | bam_flag_suppl;
+        bam_record.flag |= bam_flag_rvcmp ;
     }
     if (r_beginPos != 0)
     {
