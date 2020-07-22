@@ -5,6 +5,10 @@
 
 using namespace seqan;
 
+extern uint16_t bam_flag_rvcmp;
+extern uint16_t bam_flag_rvcmp_nxt;
+extern uint16_t bam_flag_suppl;
+
 class BamAlignmentRecordLink : public BamAlignmentRecord 
 { 
 public:
@@ -59,7 +63,8 @@ int insertNewBamRecord (String<BamAlignmentRecordLink> & bam_records,
                         int r_beginPos,
                         int strand,
                         int insert_pos = -1,
-                        int f_soft = 1 /*hard and soft clip flag*/
+                        int f_soft = 1, /*hard and soft clip flag*/
+                        uint16_t flag = 0
                         );
 
 int insertNewBamRecord (String<BamAlignmentRecordLink> & bam_records,
