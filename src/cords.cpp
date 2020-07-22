@@ -12,6 +12,10 @@ uint64_t INFI_CORD = shift_cord (0, (1ULL << 40) - 1,  (1ULL << 20) - 1);
 uint64_t MAX_CORD_ID = (1ULL << 10) - 1;
 uint64_t MAX_CORD_X  = (1ULL << 30) - 1;
 uint64_t MAX_CORD_Y  = (1ULL << 20) - 1;
+
+CordsParms::CordsParms()
+{
+}
  
 CordBase::CordBase():
         bit(20),
@@ -470,3 +474,186 @@ void printAnchors(String<uint64_t> & anchors, CharString header)
              << "\n";
     }
 }
+/*
+ * Generic function to reform cords
+ * @bands1 and @bands2 are the lower and upper bands
+ * CordsParms thread unsafe. Declare it for each thread
+ * reformCordFunc(uint64_t & cord11, uint64_t & cord12,
+                  uint64_t & cord21, uint64_t & cord22, 
+                  int & band11, & band12, int & band21, int band22, 
+                  CordsParms & cords_parms)
+    return 1 if not merged else return 0;
+ */
+int reformCordsBands(String<uint64_t> & cords_str,
+                     String<uint64_t> & cords_end,
+                     String<int> & bands1,
+                     String<int> & bands2,
+                     int (*reformCordFunc) (uint64_t &, uint64_t &, 
+                            uint64_t &, uint64_t &, 
+                            int &, int &, int &, int, CordsParms &),
+                     CordsParms & cords_parms)
+{
+    if (!(length(bands1) == length(bands2) == length(cords_str)))
+    {
+        clear(bands1);
+        clear(bands2);
+        resize(bands1, length(cords_str));
+        resize(bands2, length(cords_str));
+    }
+    int ii = 0;
+    for (int i = 1; i < length(cords_str); i++)
+    {
+        if (get_cord_strand (cords_str[ii] ^ cords_str[i]) || 
+            _DefaultCord.isBlockEnd(cords_str[ii]))
+        {
+            ++ii;
+            continue;
+        }
+        if(reformCordFunc(cords_str[ii], cords_end[ii], cords_str[i], cords_end[i], 
+                bands1[ii], bands2[ii], bands1[i], bands2[i], cords_parms))
+        {
+            ++ii;
+        }
+    }
+    resize(cords_str, ii);
+    resize(cords_end, ii);
+    resize(bands1, ii);
+    resize(bands2, ii);
+    return 0;
+}
+/*
+ * Without bands
+ */
+int reformCords(String<uint64_t> & cords_str,
+                String<uint64_t> & cords_end,
+                int (*reformCordFunc) (uint64_t &, uint64_t &, uint64_t &, uint64_t &, 
+                    CordsParms &),
+                CordsParms & cords_parms)
+{
+    int ii = 0;
+    std::cout << "rfcds" << "\n";
+    if (length(cords_str) != length(cords_end))
+    {
+        std::cout << "rfcds12" << length(cords_str) << " " << length(cords_end) << "\n";
+        return 0;
+    }
+    for (int i = 1; i < length(cords_str); i++)
+    {
+        print_cord(cords_str[i], "rfcds1");
+        if (get_cord_strand (cords_str[ii] ^ cords_str[i]) || 
+            _DefaultCord.isBlockEnd(cords_str[ii]))
+        {
+            ++ii;
+            continue;
+        }
+        if(reformCordFunc(cords_str[ii], cords_end[ii], cords_str[i], cords_end[i], 
+                cords_parms))
+        {
+            ++ii;
+        }
+    }
+    resize(cords_str, ii);
+    resize(cords_end, ii);
+    return 0;
+}
+/*
+ * CordsParms thread unsafe. Declare it for each thread
+ */
+int reformCordsSet(StringSet<String<uint64_t> > & cords_str,
+                   StringSet<String<uint64_t> > & cords_end,
+                   int (*reformCordFunc) (uint64_t &, uint64_t &, uint64_t &, uint64_t &, 
+                        CordsParms &),
+                   CordsParms & cords_parms)
+{
+    for (int i = 0; i < length(cords_str); i++)
+    {
+        reformCords(cords_str[i], cords_end[i], reformCordFunc, cords_parms);
+    print_cords(cords_str[i], "rcsss");
+    }
+    return 0;
+}
+/*
+ * Scale @d1, @d2 such that 
+   @dx/@dy=@d1/@d2  and @d2_new >= @d2_old, @d1_new >= @d1_old
+ * @dx@dy >= 0 and @d1@d2 >= 0 and @dx@d1 >= 0 and !(dx=d1=dy=d2=0) are required
+ */
+int scaleDxDy_(int64_t & dx, int64_t &d1, int64_t & dy, int64_t & d2)
+{
+    if ((d1 >= 0 && d2 >= 0) || (d1 <= 0 && d2 <=0) && (d1 || d2))
+    {
+        std::cout << "sdxy " << dx << " " << d1 << " " << dy << " " << d2 << "\n";
+        int64_t c1 = std::abs(d1 * dy), c2 = std::abs(d2 * dx);
+        if (c1 > c2)
+        {
+            d2 = d1 * dy / dx;
+        }
+        else if (c1 < c2)
+        {
+            d1 = d2 * dx / dy;
+        } 
+        return 0;
+    }
+    return 1;
+}
+/*
+ * Scale region [@cord_str, @cord_end) proportionally
+   -> [@cord_str + scale(d11, d12), cord_end + scale(d21, d22))
+ */
+int scaleRegion(uint64_t & cord_str, uint64_t & cord_end, 
+                int64_t d11, int64_t d12, int64_t d21, int64_t d22)
+{
+    int64_t dx = get_cord_x(cord_end) - get_cord_x(cord_str);
+    int64_t dy = get_cord_y(cord_end) - get_cord_y(cord_str);
+
+        std::cout << "scaler1 " << get_cord_y(cord_str)   << " " << d11 << " " << d12 << " " << d21 << " "<< d22 << "\n";
+    scaleDxDy_(dx, d11, dy, d12);
+    scaleDxDy_(dx, d21, dy, d22);
+    uint64_t new_cord_str = shift_cord(cord_str, d11, d12);
+    uint64_t new_cord_end = shift_cord(cord_end, d21, d22);
+    if (get_cord_x(new_cord_str) <= get_cord_x(new_cord_end) &&
+        get_cord_y(new_cord_str) <= get_cord_y(new_cord_end))
+    {
+        std::cout << "scaler1 " << get_cord_y(cord_str) << " " << get_cord_x(cord_str)  << " " << get_cord_x(new_cord_str) << " " << get_cord_x(new_cord_end) << " " << d11 << " " << d12 << " " << d21 << " "<< d22 << "\n";
+        cord_str = new_cord_str;
+        cord_end = new_cord_end;
+        return 0;
+    }
+    return 1; 
+}
+/*
+ * Eliminate small negetive dx or dy of adjacent cords
+ * cords are supposed to have the same strand 
+ */
+int reformCordsDxDy1(uint64_t & cord_str1, uint64_t & cord_end1,
+                     uint64_t & cord_str2, uint64_t & cord_end2, 
+                     CordsParms & cords_parms)
+{
+    uint64_t cord11 = cord_str1, cord12 = cord_end1;
+    uint64_t cord21 = cord_str2, cord22 = cord_end2;
+        //print_cord(cord11, "rcdxy2");
+    if (get_cord_strand(cord11 ^ cord22))
+    {
+        return 1; 
+    }
+    int64_t dx = get_cord_x(cord21) - get_cord_x(cord11) - 1;
+    int64_t dy = get_cord_y(cord21) - get_cord_y(cord11) - 1;
+    int f = 0;
+    if ((dx < 0 && dx > cords_parms.thd_rcdxdy_min_dx) || 
+        (dy < 0 && dy > cords_parms.thd_rcdxdy_min_dy))
+    {
+        int f1 = scaleRegion(cord11, cord12, 
+             std::min(dx / 2, int64_t(0)), std::min(dy / 2, int64_t(0)), 0, 0);
+        int f2 = scaleRegion(cord21, cord22, 
+            -std::min(dx / 2, int64_t(0)), -std::min(dy / 2, int64_t(0)), 0, 0);
+        std::cout << "rcdxy1 " << get_cord_y(cord11) << " " << f1 << " " << f2 << " " << get_cord_x(cord11) << "\n";
+        if (!(f1 || f2))
+        {
+            cord_str1 = cord11; cord_end1 = cord12;
+            cord_str2 = cord21; cord_end2 = cord22;
+        }
+    }
+    return 1;
+}
+
+
+

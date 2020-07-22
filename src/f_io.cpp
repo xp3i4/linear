@@ -175,7 +175,7 @@ void print_cords_apf(CordsSetType & cords,
                 std::string mark = "| ";
                 if (icon_strand != main_icon_strand)
                 {
-                    mark = (icon_strand == '+') ? "|**+++++++++++ " :"|**----------- ";
+                    mark = (icon_strand == '+') ? "|+++++++++++ " :"|----------- ";
                 }
                 int64_t d1 = 0;//_DefaultCord.getCordY(cords[k][1]);
                 int64_t d2 = 0;
@@ -780,13 +780,12 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
     //dout << "next_cigar_str" << get_cord_y(next_cigar_str) << get_cord_y(cord2_str) << "\n";
     return next_cigar_str;
 }
-
 /*
- *  Function to convert cords to bam
- *  WARN::The @cords_str[0] and back(@cords_str) are required to have block end sign
-    Otherwise will cause seg fault. 
- *  NOTE::addjacent cords, cord1 and cord2, will be break into different bams if cord1y > cord2y || cord1x >
-    cord2x
+ * Function to convert cords to bam
+ * WARN::The @cords_str[0] and back(@cords_str) are required to have sign of block end 
+   Otherwise will cause seg fault. 
+ * NOTE::addjacent cords, cord1 and cord2, will be splitted into different bams 
+   if !(cord1 < cord2)
  */
 void cords2BamLink(String<uint64_t> & cords_str, 
                    String<uint64_t> & cords_end,
@@ -801,6 +800,7 @@ void cords2BamLink(String<uint64_t> & cords_str,
     int g_id, g_beginPos, r_beginPos, strand;
     int f_soft = 1; //soft clip in cigar;
     int f_new = 1;
+    int flag = 0;
     for (int i = 1; i < length(cords_str); i++)
     {
         if (f_new) //initiate a record for new block 
@@ -810,8 +810,9 @@ void cords2BamLink(String<uint64_t> & cords_str,
             g_beginPos = get_cord_x(cords_str[i]);
             r_beginPos = get_cord_y(cords_str[i]);
             strand = get_cord_strand (cords_str[i]);
-            insertNewBamRecord (bam_link_records, g_id, g_beginPos, r_beginPos, strand, -1, 1);
+            insertNewBamRecord (bam_link_records, g_id, g_beginPos, r_beginPos, strand, -1, 1, flag);
             cigar_str = cords_str[i];
+            flag = 0;
         }
         if (i == length(cords_str) - 1 ||
             ifCreateNew_ (cords_str[i], cords_end[i], 
@@ -822,6 +823,7 @@ void cords2BamLink(String<uint64_t> & cords_str,
             cord1_end = cords_end[i];
             cord2_str = cords_end[i];
             f_new = 1; //next cord[i + 1] will start a new recordd
+            flag = bam_flag_suppl;
         }
         else
         {
@@ -838,7 +840,7 @@ void cords2BamLink(String<uint64_t> & cords_str,
         }
     }
 }
-//serial without omp
+//serial
 void cords2BamLink(StringSet<String<uint64_t> > & cords_str, 
                    StringSet<String<uint64_t> > & cords_end,
                    StringSet<String<BamAlignmentRecordLink> > & bam_link_records,

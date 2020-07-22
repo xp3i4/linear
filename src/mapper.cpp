@@ -314,6 +314,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
     f1[1].init(f2[0].fs_type);
     resize (clips, length(cords_str));
     int f_chain = fm_handler_.isApxChain(f_map) ? 1 : 0; 
+    CordsParms cords_parms;
     for (unsigned j = 0; j < length(reads); j++)
     {
         if (length(reads[j]) > thd_min_read_len)
@@ -323,7 +324,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
             //clear(f1[1].fs2_48);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
             createFeatures(begin(comStr), end(comStr), f1[1]);
-            apxMap(this->getIndex(), reads[j], anchors, this->getMapParms(), crhit, f1, f2, apx_gaps, cords_str[j], f_chain);
+            apxMap(this->getIndex(), reads[j], anchors, this->getMapParms(), crhit, f1, f2, apx_gaps, cords_str[j], cords_end[j], f_chain);
             if (fm_handler_.isMapGap(f_map))
             {
                 //<<debug
@@ -338,6 +339,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
                 }
                 //>>debug
                 mapGaps(this->getGenomes(), reads[j], comStr, cords_str[j], cords_end[j], clips[j], apx_gaps, f1, f2, gap_parms_set[thread_id]);
+                reformCords(cords_str[j], cords_end[j], &reformCordsDxDy1, cords_parms);
             }
             if (fm_handler_.isAlign(f_map))
             {
@@ -638,7 +640,7 @@ int map_(IndexDynamic & index,
     f1[0].init(f2[0].fs_type);
     f1[1].init(f2[0].fs_type);
     unsigned c = 0;
-    
+    CordsParms cords_parms;    
     String<UPair> apx_gaps; 
     #pragma omp for
     for (unsigned j = 0; j < length(reads); j++)
@@ -652,10 +654,11 @@ int map_(IndexDynamic & index,
             _compltRvseStr(reads[j], comStr);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
             createFeatures(begin(comStr), end(comStr), f1[1]);
-            apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], f_chain);
+            apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c],cordsTmp2[c], f_chain);
             if (fm_handler_.isMapGap(f_map))
             {
                 mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], clipsTmp[c], apx_gaps, f1, f2, gap_parms[thd_id]);
+                reformCords(cordsTmp[c], cordsTmp2[c], &reformCordsDxDy1, cords_parms);
             }
             if (fm_handler_.isAlign(f_map))
             {
@@ -902,7 +905,7 @@ int filter_(IndexDynamic & index,
             _compltRvseStr(reads[j], comStr);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
             createFeatures(begin(comStr), end(comStr), f1[1]);
-            apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], f_chain);
+            apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordsTmp2[c], f_chain);
             //filterGenomes(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordLenThr, f_chain);
         }
         c += 1;

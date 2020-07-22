@@ -39,6 +39,13 @@ extern uint64_t MAX_CORD_Y ;
 typedef uint64_t CordType;
 typedef String<CordType> CordsType;
 typedef StringSet<CordsType > CordsSetType;
+struct CordsParms
+{
+    int64_t const thd_rcdxdy_min_dx = -20;
+    int64_t const thd_rcdxdy_min_dy = -20;
+
+    CordsParms();
+};
 struct CordBase
 {
     typedef unsigned Bit;
@@ -183,5 +190,17 @@ typedef std::pair<uint64_t, uint64_t> UPair;
 UPair getUPForwardy(UPair str_end, uint64_t read_len);
 
 void printAnchors(String<uint64_t> & anchors, CharString header);
-
+int reformCords(String<uint64_t> & cords_str,
+                String<uint64_t> & cords_end,
+                int (*reformCordFunc) (uint64_t &, uint64_t &, uint64_t &, uint64_t &, 
+                    CordsParms &),
+                CordsParms & cords_parms);
+int reformCordsSet(StringSet<String<uint64_t> > & cords_str,
+                   StringSet<String<uint64_t> > & cords_end,
+                   int (*reformCordFunc) (uint64_t &, uint64_t &, uint64_t &, uint64_t &, 
+                        CordsParms &),
+                   CordsParms & cords_parms);
+int reformCordsDxDy1(uint64_t & cord11, uint64_t & cord12,
+                     uint64_t & cord21, uint64_t & cord22, 
+                     CordsParms & cords_parms);
 #endif
