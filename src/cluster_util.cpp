@@ -887,7 +887,7 @@ int getChainBlocksBestStrand(StringSet<String<UPair> > & cords_chains1,
 /*
  * Revert order of blocks in @cords_chains if strands is different from @strand
  */
-int revertChainBlocktStrand(StringSet<String<UPair> > & cords_chains,
+int revertChainBlockStrand(StringSet<String<UPair> > & cords_chains,
                            String<uint64_t> & cords,
                            int strand,
                            uint64_t read_len)
