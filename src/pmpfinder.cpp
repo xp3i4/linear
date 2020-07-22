@@ -2360,7 +2360,8 @@ uint64_t apxMap (IndexDynamic & index,
                  StringSet<FeaturesDynamic> & f1,
                  StringSet<FeaturesDynamic> & f2,
                  String<UPair> & apx_gaps,
-                 String<uint64_t> & cords, 
+                 String<uint64_t> & cords_str, 
+                 String<uint64_t> & cords_end,
                  int f_chain)
 {
     double tts = sysTime();
@@ -2384,14 +2385,14 @@ uint64_t apxMap (IndexDynamic & index,
         uint64_t map_str = 0ULL;
         uint64_t map_end = create_cord (MAX_CORD_ID, MAX_CORD_X, length(read), 0);
         double t1 = sysTime();
-        apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, map_str, map_end, alg_type, thd_best_n);
+        apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords_str, map_str, map_end, alg_type, thd_best_n);
         t1 = sysTime() - t1;
         double t2 = sysTime();
         String<UPair> str_ends;
         String<UPair> str_ends_p;
-        clean_blocks_ (cords, thd_drop_len);
-        gather_blocks_ (cords, str_ends, str_ends_p, 1, length(cords), length(read), thd_large_gap, thd_cord_size, 1, &is_cord_block_end, &set_cord_end);
-        gather_gaps_y_ (cords, str_ends, apx_gaps, length(read), thd_large_gap);
+        clean_blocks_ (cords_str, thd_drop_len);
+        gather_blocks_ (cords_str, str_ends, str_ends_p, 1, length(cords_str), length(read), thd_large_gap, thd_cord_size, 1, &is_cord_block_end, &set_cord_end);
+        gather_gaps_y_ (cords_str, str_ends, apx_gaps, length(read), thd_large_gap);
         uint64_t map_d = thd_cord_size >> 1; // cords + to map areas
         uint64_t str_y = 0;                  //stry y of interval between two consecutive blocks
         for (int i = 0; i < length(apx_gaps); i++) //check large gap and remap the gaps
@@ -2403,18 +2404,18 @@ uint64_t apxMap (IndexDynamic & index,
             map_str =  y1; 
             map_end =  create_cord(MAX_CORD_ID, MAX_CORD_X, y2, 0);
             //dout << "apx1" << y1 << y2 << "\n";
-            apxMap_(index, read, anchors, mapParm2, hit, f1, f2, cords, map_str, map_end, alg_type, thd_best_n);
+            apxMap_(index, read, anchors, mapParm2, hit, f1, f2, cords_str, map_str, map_end, alg_type, thd_best_n);
         }
         
         clear (str_ends);
         clear (str_ends_p);
-        gather_blocks_ (cords, str_ends, str_ends_p, 1, length(cords), length(read), thd_large_gap, thd_cord_size, 1, & is_cord_block_end, & set_cord_end);
+        gather_blocks_ (cords_str, str_ends, str_ends_p, 1, length(cords_str), length(read), thd_large_gap, thd_cord_size, 1, & is_cord_block_end, & set_cord_end);
         t2 = sysTime() - t2;
-        print_cords(cords, "apx2");
+        print_cords(cords_str, "apx2");
         double t3 = sysTime();
-        chainApxCordsBlocks (cords, str_ends_p, length(read), thd_chain_blocks_lower, thd_chain_blocks_upper, alg_type);
+        chainApxCordsBlocks (cords_str, str_ends_p, length(read), thd_chain_blocks_lower, thd_chain_blocks_upper, alg_type);
         t3 = sysTime() - t3;
-        clean_blocks_ (cords, thd_drop_len);
+        clean_blocks_ (cords_str, thd_drop_len);
     }
     else
     {
@@ -2425,25 +2426,27 @@ uint64_t apxMap (IndexDynamic & index,
         mapParm2.listN = mapParm2.listN2;
 
         int alg_type = 1;
-        apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, 0, length(read), alg_type, thd_best_n);
-        if (_DefaultCord.getMaxLen(cords) < length(read) * senThr)
+        apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords_str, 0, length(read), alg_type, thd_best_n);
+        if (_DefaultCord.getMaxLen(cords_str) < length(read) * senThr)
         {
-            clear(cords);
-            apxMap_ (index, read, anchors, mapParm2, hit, f1, f2, cords, 0, length(read), alg_type, thd_best_n);
+            clear(cords_str);
+            apxMap_ (index, read, anchors, mapParm2, hit, f1, f2, cords_str, 0, length(read), alg_type, thd_best_n);
         }   
-        clean_blocks_ (cords, thd_drop_len);
+        clean_blocks_ (cords_str, thd_drop_len);
     }
-
+    resize(cords_end, length(cords_str));
     //Mark signs used in the alignment part
     int seg = 0; //add sgn to cords 
-    for (int i = 0; i < length(cords); i++)
+    int64_t d = shift_cord (0ULL, int64_t(thd_cord_size), int64_t(thd_cord_size));
+    for (int i = 0; i < length(cords_str); i++)
     {
-        set_cord_recd(cords[i], seg);
-        set_cord_main(cords[i]);
-        if (_DefaultCord.isBlockEnd(cords[i]))
+        set_cord_recd(cords_str[i], seg);
+        set_cord_main(cords_str[i]);
+        if (_DefaultCord.isBlockEnd(cords_str[i]))
         {
             seg = 1 - seg;
         }
+        cords_end[i] = cords_str[i] + d;
     }
     tts = sysTime() - tts;
     return 0;
