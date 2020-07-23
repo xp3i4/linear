@@ -43,6 +43,8 @@ struct CordsParms
 {
     int64_t const thd_rcdxdy_min_dx = -20;
     int64_t const thd_rcdxdy_min_dy = -20;
+    int64_t const thd_rcdxdy_merge_min_dx = 10;
+    int64_t const thd_rcdxdy_merge_min_dy = 10;
 
     CordsParms();
 };
@@ -192,15 +194,17 @@ UPair getUPForwardy(UPair str_end, uint64_t read_len);
 void printAnchors(String<uint64_t> & anchors, CharString header);
 int reformCords(String<uint64_t> & cords_str,
                 String<uint64_t> & cords_end,
-                int (*reformCordFunc) (uint64_t &, uint64_t &, uint64_t &, uint64_t &, 
-                    CordsParms &),
+                int (*reformCordFunc) (String<uint64_t> &, String<uint64_t> &, String<int> &,
+                    String<int> &, String<int> &, String<int> &, unsigned &, unsigned &,  CordsParms &),
                 CordsParms & cords_parms);
-int reformCordsSet(StringSet<String<uint64_t> > & cords_str,
-                   StringSet<String<uint64_t> > & cords_end,
-                   int (*reformCordFunc) (uint64_t &, uint64_t &, uint64_t &, uint64_t &, 
-                        CordsParms &),
-                   CordsParms & cords_parms);
-int reformCordsDxDy1(uint64_t & cord11, uint64_t & cord12,
-                     uint64_t & cord21, uint64_t & cord22, 
+
+int reformCordsDxDy1(String<uint64_t> & cords_str,
+                     String<uint64_t> & cords_end,
+                     String<int> & bands11,
+                     String<int> & bands12,
+                     String<int> & bands21,
+                     String<int> & bands22,
+                     unsigned & i1,
+                     unsigned & i2,
                      CordsParms & cords_parms);
 #endif
