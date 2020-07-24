@@ -391,7 +391,7 @@ int writeSam(std::ofstream & target,
     appendNumber(target, static_cast<__uint16>(record.mapQ));
     writeValue(target, '\t');
     //initiate it1 it2 to print seq 
-    Iterator<String<Dna5> >::Type it1 = begin(genome) + record.beginPos + 1; 
+    Iterator<String<Dna5> >::Type it1 = begin(genome) + record.beginPos; 
     Iterator<String<Dna5> >::Type it2 = begin(read); 
     String<Dna5> comp_reverse;
     if (int(record.flag) & int(16))
