@@ -672,12 +672,12 @@ int ifCreateNew_(uint64_t cord1_str, uint64_t cord1_end, uint64_t cord2_str, uin
     uint64_t y21 = get_cord_y(cord2_str);
     (void) cord2_end;
     int flag = is_cord_block_end (cord1_str) ||  
-                                 (x11 > x21) || 
-                                 (y11 > y21) ||
+               x11 > x21 || 
+               y11 > y21 ||
                //     (x12 > x21 && y12 < y21) ||
                //     (x12 < x21 && y12 > x21) ||
                 (int64_t(x21 - x12) > int64_t(thd_large_X) && int64_t(y21 - y12) > int64_t(thd_large_X)) ||
-                    get_cord_strand (cord1_str ^ cord2_str);
+                get_cord_strand (cord1_str ^ cord2_str);
     //dout << "ifnew" << x11 << y11 << x12 << y12 << x21 << y21 << flag << "\n";
     return flag;
 }
