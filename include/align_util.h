@@ -8,16 +8,57 @@ using namespace seqan;
 extern uint16_t bam_flag_rvcmp;
 extern uint16_t bam_flag_rvcmp_nxt;
 extern uint16_t bam_flag_suppl;
-
+struct SAZTag
+{
+    String<unsigned> bam_records_i;
+    String<bool> bam_records_is_chimeric;
+    String<bool> bam_records_is_block_end;
+};
 class BamAlignmentRecordLink : public BamAlignmentRecord 
 { 
 public:
+    //the heads refers to the first record of each line 
+    //line refers to each line in.sam
+    //line is compsed of several records in the String<bamAlig...>
     int next_id; //next records id
+    String<CigarElement<> > saz_cigar;
+    String<unsigned> heads_table; //table pointing to first record of each line in .sam 
+    CharString genome_id;
+    int nm_i; //nm:i tag in .sam, the heads holds the whole(sum of) value of the line
 
     BamAlignmentRecordLink();
     void addNext(int id);
     int isEnd() const;
     int next() const;
+};
+/*
+ * The set of functions to manipulate String<BamAlignmentRecordLink> 
+ * The functions are supposed to wrapper with String<BamAlignmentRecordLink> to
+   make s new class. However the String<BamAlignmentRecordLink> is used in the 
+   interface of many functions. To avoid the modification of interface this struct 
+   is declared.
+ */
+struct BamLinkStringOperator
+{
+    int updateHeadsTable(String<BamAlignmentRecordLink> & bam_records);
+    int getHeadNum(String<BamAlignmentRecordLink> & bam_records);
+    int getHead(String<BamAlignmentRecordLink> & bam_records, int i);
+    int writeBamRecordLinkCigar(
+            std::ofstream target,
+            String<BamAlignmentRecordLink> & bam_records,
+            int it);
+    int createSAZTagCigarOneChimeric(
+            String<BamAlignmentRecordLink> & bam_records,
+            String<CigarElement<> > & cigar,
+            int it,
+            bool f_force);
+    int createSAZTagOneChimeric(
+            String<BamAlignmentRecordLink> & bam_records,
+            CharString & saz_tag, 
+            int it);
+    int createSAZTagOneLine(
+            String<BamAlignmentRecordLink> & bam_records,
+            int it);
 };
 
 void align2cigar(String<CigarElement< > > &cigar,

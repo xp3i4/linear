@@ -357,9 +357,13 @@ void writeSam(std::ofstream & target,
     writeValue(target, '\n');
 }
 
-//Lightweight sam function of Seqan::write(bamAlignmentRecord)
+/*
+ *Lightweight sam function of Seqan::write(bamAlignmentRecord)
+  @it is the entrance (no predecessort record) of the link of the records.
+  The function iterate all the records of the link and print as one record in .sam
+ */
 int writeSam(std::ofstream & target,
-             String<BamAlignmentRecordLink>  & records,
+             String<BamAlignmentRecordLink> & records,
              String<Dna5> & genome,
              String<Dna5> & read,
              int & it,
@@ -464,7 +468,8 @@ int writeSam(std::ofstream & target,
     if (!empty(record.tags))
     {
         writeValue(target, '\t');
-        appendTagsBamToSam(target, record.tags);
+        //appendTagsBamToSam(target, record.tags);
+        write(target, record.tags);
     }
 
     writeValue(target, '\n');
@@ -603,24 +608,34 @@ int print_align_sam_record_(StringSet<String<BamAlignmentRecordLink> > & records
                             FIOParms & fio_parms
                             )
 {
+    BamLinkStringOperator fs;
     for (int i = 0; i < length(records); i++)
     {
+        fs.updateHeadsTable(records[i]);
+        for (int j = 0; j < fs.getHeadNum(records[i]); j++)
+        {
+            int it = fs.getHead(records[i], j);
+            records[i][it].genome_id = genomesId[records[i][it].rID];
+        }
         for (int j = 0; j < length(records[i]); j++)
         {
             records[i][j].qName = readsId[i];
             CharString g_id = genomesId[records[i][j].rID];
             if (length(records[i][j].cigar) == 0 ||
-                ((length(records[i][j].cigar) == 1) && (records[i][j].cigar[0].operation == 'S' || records[i][j].cigar[0].operation == 'H')))
+                ((length(records[i][j].cigar) == 1) && 
+                    (records[i][j].cigar[0].operation == 'S' || 
+                        records[i][j].cigar[0].operation == 'H')))
             {
                 continue;
             }
             CharString gnext = "*";
-            int dt = writeSam(of, records[i], genomes[records[i][j].rID], reads[i], j, g_id, gnext, fio_parms);
+            fs.createSAZTagOneLine(records[i], j);
+            writeSam(of, records[i], genomes[records[i][j].rID], reads[i], j, 
+                g_id, gnext, fio_parms);
         }
     }
     return 0;
 }
-
 int print_align_sam (StringSet<String<Dna5> > & genms,
                      StringSet<String<Dna5> > & reads,
                      StringSet<CharString> & genmsId,
