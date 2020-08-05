@@ -850,7 +850,7 @@ int getChainBlocksBestStrand(StringSet<String<UPair> > & cords_chains1,
     {
         for (int i = 0; i < length(cords_chains1); i++)
         {
-            lens1[i] = i == 0 ? 0 : lens2[i - 1];
+            lens1[i] = i == 0 ? 0 : lens1[i - 1];
             for (int j = 0; j < length(cords_chains1[i]); j++)
             {
                 lens1[i] += cords_chains1[i][j].second - cords_chains1[i][j].first;
