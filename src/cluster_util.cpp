@@ -728,7 +728,6 @@ int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t
             score = 100 - score_dy;
         }
     }
-    dout << "cs3" << dx << dy << chn_sc_parms.chn_block_strand << get_cord_y(cord11) << get_cord_y(cord22) << get_cord_x(cord11) << get_cord_x(cord22) << score << "\n";
     return score;
 }
 
@@ -854,7 +853,6 @@ int getChainBlocksBestStrand(StringSet<String<UPair> > & cords_chains1,
             for (int j = 0; j < length(cords_chains1[i]); j++)
             {
                 lens1[i] += cords_chains1[i][j].second - cords_chains1[i][j].first;
-                dout << "gbs11" << i << cords_chains1[i][j].first << cords_chains1[i][j].second << "\n";
             }
         }
     }  
@@ -866,13 +864,11 @@ int getChainBlocksBestStrand(StringSet<String<UPair> > & cords_chains1,
             for (int j = 0; j < length(cords_chains2[i]); j++)
             {
                 lens2[i] += cords_chains2[i][j].second - cords_chains2[i][j].first;
-                dout << "gbs12" << cords_chains2[i][j].first << cords_chains2[i][j].second << "\n";
             }
         }
     }
     for (int i = 0; i < std::min(length(lens1), length(lens2)); i++)
     {
-        dout << "gbs" << length(cords_chains2) << lens1[i] << lens2[i] << "\n";
         if (lens1[i] < lens2[i])
         {
             return 1;
@@ -896,7 +892,6 @@ int revertChainBlockStrand(StringSet<String<UPair> > & cords_chains,
     uint64_t f_strand = strand ? 1 : 0;
     UPair cordy_pair_pre;
     UPair cordy_pair;
-    dout << "cbrs" << f_strand << "\n";
     for (unsigned i = 0; i < length(cords_chains); i++) 
     {
         appendValue(cords_chains[i], UPair(0,0));
@@ -949,8 +944,6 @@ int chainBlocksCords(String<uint64_t> & cords,
     String<UPair> str_ends_p1(str_ends_p);
     String<UPair> str_ends_p2(str_ends_p);
     chn_score.chn_score_parms.chn_block_strand = 0;
-    dout << "cbs2" << length(str_ends_p1) << "\n";
-        print_cords(cords, "cbs1");
     chainBlocksSingleStrand(cords, str_ends_p1, cords_chains1, chn_score, read_len, thd_init_cord_score);
     chn_score.chn_score_parms.chn_block_strand = 1;
     chainBlocksSingleStrand(cords, str_ends_p2, cords_chains2, chn_score, read_len, thd_init_cord_score);
@@ -961,7 +954,6 @@ int chainBlocksCords(String<uint64_t> & cords,
         revertChainBlockStrand(cords_chains1, cords, best_strand, read_len);
         _filterBlocksCords (cords_chains1, cords, read_len, thd_major_limit, unsetEndFunc, 
         setEndFunc, f_header);
-        print_cords(cords, "cbs4");
     }
     else
     {
@@ -970,7 +962,6 @@ int chainBlocksCords(String<uint64_t> & cords,
         _filterBlocksCords (cords_chains2, cords, read_len, thd_major_limit, unsetEndFunc, 
         setEndFunc, f_header);  
     }
-    print_cords(cords, "cbs3");
     return 0;
 }
 
@@ -1021,7 +1012,6 @@ float NumericalScore::erf(float val)
         unsigned i =(5 + (abs_val - 0.1) / 0.1);
         score = (erf_num[i] + erf_num[i + 1]) * 0.5;
     }
-        dout << "erf" << abs_val << score << "\n";
     return val < 0 ? -score:score;
 }
 NumericalScore num_score;
@@ -1079,7 +1069,6 @@ int getChainBlocksScore1(uint64_t const & cord11, uint64_t const & cord12,
     float p_0 = 1 - cdfN(d, chn_sc_parms.mean_d, chn_sc_parms.var_d); //p_0 = probability of dist > d
     float p = variantsProb(f_type ? 1 : 0, dx, dy) * p_0;
     int score = p * 100; //100: float accuracy 0.01 
-    dout << "gcbs1x" << 0 << cdfN(0.025, 0, 1) << cdfN(-0.025, 0, 1) << score << p << d << p_0 << "\n";
 
     return score;
 }
