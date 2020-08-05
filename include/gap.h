@@ -120,7 +120,7 @@ struct GapParms
     int64_t thd_gap_len_min;
 
     GapParms(float thd_error_rate);
-    void clipChainParms(int shape_len, int step1, int step2, float thd_err_rate);
+    void clipChainParms(int shape_len, float thd_err_rate);
     void printParms(std::string);
 };
 
