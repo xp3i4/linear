@@ -4188,7 +4188,8 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
     else if (x1 < x2 && y1 < y2)
     {
         int64_t danc = x1 - x2 - y1 + y2;
-        if (std::abs(danc) > gap_parms.thd_mg1_danc_indel) //ins/del 
+        if (std::abs(danc) > gap_parms.thd_mg1_danc_indel &&
+            direction == g_map_closed) //ins/del 
         {
             //!add declaration of variables here
             ChainScoreMetric chn_score1_tmp = gap_parms.chn_score1; //used to restore the original parms after mapExtend
