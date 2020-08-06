@@ -4556,13 +4556,17 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             g_cmpll.min(shift_y, block_size) << int64_t(length(read) - 1 - get_cord_y(cords_str[i]));
             uint64_t gap_end = shift_cord(cords_str[i], shift_x, shift_y);
             uint64_t gap_str = cords_str[i - 1]; 
-            direction = g_map_closed;
-            _DefaultHit.unsetBlockEnd(gap_str);
-            _DefaultHit.unsetBlockEnd(gap_end);
-            
-            mapGap_(seqs, read, comstr, gap_str, gap_end, f1, f2, tiles_str, tiles_end,
-                    clips, direction, thd_dxy_min, gap_parms);
-            insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size, thd_max_segs_num);
+            if (std::abs(int64_t(get_cord_x(gap_str) - get_cord_x(gap_end))) < thd_max_extend && 
+                std::abs(int64_t(get_cord_y(gap_str) - get_cord_y(gap_end))) < thd_max_extend)
+            {
+                direction = g_map_closed;
+                _DefaultHit.unsetBlockEnd(gap_str);
+                _DefaultHit.unsetBlockEnd(gap_end);
+                
+                mapGap_(seqs, read, comstr, gap_str, gap_end, f1, f2, tiles_str, tiles_end,
+                        clips, direction, thd_dxy_min, gap_parms);
+                insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size, thd_max_segs_num);
+            }
         }
         if (_DefaultHit.isBlockEnd(cords_str[i]))  ///right clip end cord
         {
