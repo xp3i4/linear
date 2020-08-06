@@ -680,7 +680,7 @@ int getChainBlockDxDy(uint64_t const & cord11, uint64_t const & cord12, uint64_t
 int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len, ChainScoreParms & chn_sc_parms)
 {
     int64_t thd_min_dy = -80;
-    int64_t thd_min_dx = -80;
+    int64_t thd_min_dx = - int64_t(read_len);
     int64_t dx, dy, da, d_err; 
     //int f_type = getForwardChainDxDy(cord11, cord12, cord21, cord22, read_len, dx, dy);
     int f_type = getChainBlockDxDy(cord11, cord12, cord21, cord22, read_len, chn_sc_parms.chn_block_strand, dx, dy);
@@ -692,7 +692,7 @@ int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t
     int64_t dy_ = std::abs(dy);
     da = dx - dy;
     int score = 0;
-    if (dy < thd_min_dy)// || (f_type == 0 && dy > thd_max_dy) || dx_ > thd_max_dx)
+    if (dy < thd_min_dy || dy > thd_max_dy || dx < thd_min_dx || dx_ > thd_max_dx)
     {
         score = INT_MIN;
     }

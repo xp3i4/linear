@@ -4474,6 +4474,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
     int thd_max_segs_num = 1000; //max segs num allowed in each gap, gaps > this will abort all tiles
 
     uint64_t thd_max_extend = 2000;  //Important::tune::whether process in gap or pmpfiner.h
+    uint64_t thd_max_gap = 3000;
     uint64_t thd_max_extend_x = thd_max_extend;
     uint64_t thd_max_extend_y = thd_max_extend; //>large gaps are supposed to be handled during the apx part.
     int64_t thd_dxy_min = 80;
@@ -4557,8 +4558,8 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             g_cmpll.min(shift_y, block_size) << int64_t(length(read) - 1 - get_cord_y(cords_str[i]));
             uint64_t gap_end = shift_cord(cords_str[i], shift_x, shift_y);
             uint64_t gap_str = cords_str[i - 1]; 
-            if (std::abs(int64_t(get_cord_x(gap_str) - get_cord_x(gap_end))) < thd_max_extend && 
-                std::abs(int64_t(get_cord_y(gap_str) - get_cord_y(gap_end))) < thd_max_extend)
+            if (std::abs(int64_t(get_cord_x(gap_str) - get_cord_x(gap_end))) < thd_max_gap && 
+                std::abs(int64_t(get_cord_y(gap_str) - get_cord_y(gap_end))) < thd_max_gap)
             {
                 direction = g_map_closed;
                 _DefaultHit.unsetBlockEnd(gap_str);
