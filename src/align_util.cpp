@@ -647,8 +647,9 @@ int BamLinkStringOperator::createSAZTagOneLine(
     {
         return 0;
     }
-    CharString saz_tag("SA:Z:");
     updateHeadsTable(bam_records);
+    CharString saz_tag("SA:Z:");
+    CharString empty_tag = saz_tag;
     for (int i = 0; i < getHeadNum(bam_records); i++)
     {
         int j = getHead(bam_records, i);
@@ -657,6 +658,9 @@ int BamLinkStringOperator::createSAZTagOneLine(
             createSAZTagOneChimeric(bam_records, saz_tag, j);
         }
     }
-    append(bam_records[it].tags, saz_tag);
+    if (saz_tag != empty_tag)
+    {
+        append(bam_records[it].tags, saz_tag);
+    }
     return 0;
 }
