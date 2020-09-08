@@ -1738,41 +1738,59 @@ int alignCords (StringSet<String<Dna5> >& genomes,
         int f_clip_head = 1;
         int f_clip_tail = 1;
         int check_flag = 0;
-        int g_id = get_cord_id(cords[i]);
-        uint64_t strand = get_cord_strand(cords[i]);
-        cord_str = cords[i];
-        cord_end = shift_cord(cord_str, block_size, block_size);
-        if (_DefaultCord.isBlockEnd(cords[i - 1])) 
+        int g_id = get_cord_id(cords_str[i]);
+        uint64_t strand = get_cord_strand(cords_str[i]);
+        cord_str = cords_str[i];
+        //cord_end = shift_cord(cord_str, block_size, block_size);
+        cord_end = cords_end[i];
+        if (_DefaultCord.isBlockEnd(cords_str[i - 1])) 
         {
             flag = flag_pre = 0;
             pre_cord_str = pre_cord_end = emptyCord;
             gap_str_cord = gap_end_cord = emptyCord;
             f_gap_merge = 0;
-            int dy = std::min(thd_max_dshift, (int)get_cord_y(cords[i]));
+            int dy = std::min(thd_max_dshift, (int)get_cord_y(cords_str[i]));
             int dx = dy;
-            cord_str = shift_cord (cords[i], -dx, -dy);
+            cord_str = shift_cord (cords_str[i], -dx, -dy);
             check_flag = -1;
         }
-        else if (get_cord_strand (cords[i] ^ cords[i - 1]))
+        else if (get_cord_strand (cords_str[i] ^ cords_str[i - 1]))
         {
-            int dx = std::min ((int)get_cord_x (cords[i] - cords[i - 1]), thd_max_dshift);
-            int dy = std::min ((int)get_cord_y(cords[i]), dx);
-            cord_str = _DefaultCord.shift(cords[i], -dx, -dy);
+            int dx = std::min ((int)get_cord_x (cords_str[i] - cords_str[i - 1]), thd_max_dshift);
+            int dy = std::min ((int)get_cord_y(cords_str[i]), dx);
+            cord_str = _DefaultCord.shift(cords_str[i], -dx, -dy);
             check_flag = -1;
         }
-        if (_DefaultCord.isBlockEnd(cords[i]))
+        if (_DefaultCord.isBlockEnd(cords_str[i]) || i == length(cords_str) - 1)
         {
             int dy = length(read) - get_cord_y(cord_end) - 1;
             dy = std::min(dy, thd_max_dshift);
             int dx = dy;
             cord_end = shift_cord (cord_end, dx, dy);
             check_flag = 1;
+            dout << "shift1" << get_cord_y(cord_str) << get_cord_y(cord_end) << dy << "\n";
         }
-        else if (get_cord_strand(cords[i] ^ cords[i + 1]))
+        else if (get_cord_strand(cords_str[i] ^ cords_str[i + 1]))
         {
-            int dx = std::min((int)get_cord_x (cords[i + 1] - cords[i]), thd_max_dshift);
-            int dy = std::min(dx, int(length(read) - get_cord_y(cords[i])));
+            int dx = std::min((int)get_cord_x (cords_str[i + 1] - cords_str[i]), thd_max_dshift);
+            int dy = std::min(dx, int(length(read) - get_cord_y(cords_str[i])));
             cord_end = _DefaultCord.shift(cord_end, dx, dy);
+            check_flag = 1;
+        }
+        if (i > 1 && std::abs(int64_t(get_cord_x(cords_str[i]) - get_cord_x(cords_str[i - 1]) - 
+            get_cord_y(cords_str[i]) + get_cord_y(cords_str[i - 1]))) > thd_d_anchor)
+        { //ins, del right cord
+            //cord_str = shift_cord(cord_str, -50, -50);
+            print_cord(cord_str, "inshit1");
+            f_clip_head = 0;
+            check_flag = -1; 
+        }
+        if (i + 1 < length(cords_str) && std::abs(int64_t(get_cord_x(cords_str[i]) - get_cord_x(cords_str[i + 1]) - 
+            get_cord_y(cords_str[i]) + get_cord_y(cords_str[i + 1]))) > thd_d_anchor)
+        {//ins, del left cord
+            //cord_end = shift_cord(cord_end, 50, 50);
+            f_clip_tail = 0;
+            print_cord(cord_end, "inshit2");
             check_flag = 1;
         }
         if (check_cord_1_(cord_str, length(genomes[g_id]), length(read)) ||
