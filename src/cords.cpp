@@ -141,8 +141,8 @@ uint64_t Cord::shift(uint64_t const & val, int64_t x, int64_t y, unsigned const 
 
 bool Cord::isCordsOverlap(uint64_t & val1, uint64_t & val2, int64_t thd)
 {
-    int64_t dx = _DefaultCord.getCordX(val2 - val1);
-    int64_t dy = get_cord_y(val2 - val1);
+    int64_t dx = get_cord_x(val2) - get_cord_x(val1);
+    int64_t dy = get_cord_y(val2) - get_cord_y(val1);
     return (dx >= 0) && (dx < thd) && (dy >= 0) && (dy < thd);
 }
 
