@@ -762,22 +762,16 @@ int clip_tail_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     setClippedEndPosition(row2, maxxp);
     return 0;
 }
-
-/**
- * Merge any size of two blocks which starts from cord1 and cord2.
- * @rowij are supposed to contain the alignment of the two blocks.
- * @rowij rows are compared and merged stating from clippedBeginPosition() 
- * to clippedEndPosition() of each
- */
-int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
-				 Row<Align<String<Dna5>,ArrayGaps> >::Type & row12,
-				 Row<Align<String<Dna5>,ArrayGaps> >::Type & row21,
-				 Row<Align<String<Dna5>,ArrayGaps> >::Type & row22,
-				 uint64_t & cord1,  
-				 uint64_t & cord2
-				 )
+int mergeAlignCheck_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
+                 Row<Align<String<Dna5>,ArrayGaps> >::Type & row12,
+                 Row<Align<String<Dna5>,ArrayGaps> >::Type & row21,
+                 Row<Align<String<Dna5>,ArrayGaps> >::Type & row22,
+                 uint64_t & cord1,  
+                 uint64_t & cord2)
 {
     int r_flag = 0;
+    int64_t dx = get_cord_x(cord2) - get_cord_x(cord1);
+    int64_t dy = get_cord_y(cord2) - get_cord_y(cord1);
     if (cord1 == emptyCord)
     {
         return 32;
@@ -785,51 +779,67 @@ int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     int thd_cord_overlap = std::max(endPosition(row11), endPosition(row12));
     if (get_cord_strand(cord1 ^ cord2))
     {
-        r_flag |= 2;
-        return r_flag;
+        return  2;
     }
-    else if (!_DefaultCord.isCordsOverlap(cord1, cord2, thd_cord_overlap))  //sv: gap or reverse
+    //else if (!_DefaultCord.isCordsOverlap(cord1, cord2, thd_cord_overlap))  //sv: gap or reverse
+    else if ((dx > thd_cord_overlap && dy > thd_cord_overlap)||
+            (dx < 0 || dy < 0))
     {
-        r_flag |= 64 | 1;
+        print_cord(cord1, "man111");
+        print_cord(cord2, "man111");
+        dout << "man111" << thd_cord_overlap << get_cord_x(cord1) + endPosition(row11) << get_cord_x(cord2) + endPosition(row21) << "\n";
+        //return 64 | 1;
     }
-    if (r_flag)
+     
+    int64_t delta1 = get_cord_x(cord2) - get_cord_x(cord1);
+    int64_t delta2 = get_cord_y(cord2) - get_cord_y(cord1);
+    if (endPosition(row11) < beginPosition(row21) + delta1 &&
+        endPosition(row12) < beginPosition(row22) + delta2)
     {
-        return r_flag;
-    } 
-    int bit = 20, bit2 = 40;
-    uint64_t start11 = get_cord_x(cord1);
-    uint64_t start21 = get_cord_x(cord2);
-    uint64_t start12 = get_cord_y(cord1);
-    uint64_t start22 = get_cord_y(cord2);
-    int64_t mask = (1ULL << bit) - 1;
-	int64_t delta1 = start21 - start11;
-	int64_t delta2 = start22 - start12;
-	String<int64_t> align1, align2; 
-    TRowIterator it1, it2;
-    if (endPosition(row11) < beginPosition(row21) + delta1)
-    {
-        return 1;
-    }
-    if (endPosition(row12) < beginPosition(row22) + delta2)
-    {
+        print_cord(cord1, "manx");
+        print_cord(cord2, "manx");
+//        return 1;
+        print_cord(cord1, "many");
+        print_cord(cord2, "many");
+        std::cout << "many " << row11 << "\n";
+        std::cout << "many " << row12 << "\n";
+        std::cout << "many " << row21 << "\n";
+        std::cout << "many " << row22 << "\n";
         return 1|4096;
     }
     if (beginPosition(row11) > beginPosition(row21) + delta1)
     {
-        return 1|128;
+        //return 1|128;
     }
     if (beginPosition(row12) > beginPosition(row22) + delta2)
     {
-        return 1|256;
+        //return 1|256;
     }
     if (endPosition(row11) > endPosition(row21) + delta1)
     {
-        return 1|1024;
+        //return 1|1024;
     }
     if (endPosition(row12) > endPosition(row22) + delta2)
     {
-        return 1|2048;
+        //return 1|2048;
     }
+    return 0;
+}
+
+int mergeAlignCache1_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
+                 Row<Align<String<Dna5>,ArrayGaps> >::Type & row12,
+                 Row<Align<String<Dna5>,ArrayGaps> >::Type & row21,
+                 Row<Align<String<Dna5>,ArrayGaps> >::Type & row22,
+                 String<int64_t> & align1,
+                 String<int64_t> & align2,
+                 uint64_t & cord1,  
+                 uint64_t & cord2)
+{
+    int bit = 20, bit2 = 40;
+    int64_t mask = (1ULL << bit) - 1;
+    int64_t delta1 = get_cord_x(cord2) - get_cord_x(cord1);
+    int64_t delta2 = get_cord_y(cord2) - get_cord_y(cord1);
+    TRowIterator it1, it2;
     //cache source coordinates of align row1
     int64_t src1 = beginPosition(row21) + delta1;  //cord1_x
     int64_t intersect_view_Begin = toViewPosition(row11, src1);
@@ -837,12 +847,12 @@ int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     int64_t intersect_view_End = clippedEndPosition(row11) - clippedBeginPosition(row11);
     it1 = begin(row11) + intersect_view_Begin;
     it2 = begin(row12) + intersect_view_Begin;
-	for (int64_t i = intersect_view_Begin; i < intersect_view_End; i++)
-	{
-		if (*it1 == *it2)
-		{
-			appendValue (align1, ((i + clippedBeginPosition(row11))<< bit2) + (src1 << bit) + src2);
-		}
+    for (int64_t i = intersect_view_Begin; i < intersect_view_End; i++)
+    {
+        if (*it1 == *it2)
+        {
+            appendValue (align1, ((i + clippedBeginPosition(row11))<< bit2) + (src1 << bit) + src2);
+        }
         if (!isGap(it1))
         {
             src1++;
@@ -851,14 +861,14 @@ int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
         {
             src2++;
         }
-		it1++; 
+        it1++; 
         it2++;
-	}
+    }
 
     src1 = beginPosition(row21); //cord1_x
     src2 = beginPosition(row22);
     intersect_view_Begin = 0;
-
+    
     //cache source coordinates of align row2
     it1 = begin(row21) + intersect_view_Begin;
     it2 = begin(row22) + intersect_view_Begin;
