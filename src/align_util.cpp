@@ -258,6 +258,7 @@ int insertNewBamRecord (String<BamAlignmentRecordLink> & bam_records,
                         uint16_t flag
                         )
 {
+    dout << "ib3" << g_beginPos << r_beginPos << "\n";
     BamAlignmentRecordLink bam_record;
     if (g_id >= 0)
     {
@@ -663,4 +664,94 @@ int BamLinkStringOperator::createSAZTagOneLine(
         append(bam_records[it].tags, saz_tag);
     }
     return 0;
+}
+/*----------  row viewer customize  ----------*/
+int64_t RowPosViewer::init(TRow5A & row) //cordxy:coordinates of x or y
+{
+    rp = &row ;
+    src = 0;
+    array_i = 0;
+    f_array = 0;
+    view_bucket_sum = empty(rp->_array) ? 0 : rp->_array[0];
+    uc_view = (view_bucket_sum == 0) ? 0 : view_bucket_sum - 1;
+    return 0;
+}
+RowPosViewer::RowPosViewer(TRow5A & row)
+{
+    init (row);
+}
+int64_t RowPosViewer::nextView()
+{
+    ++uc_view;
+    if (uc_view > view_bucket_sum) 
+    {
+        ++array_i;
+        view_bucket_sum += rp->_array[array_i];
+        f_array = 1 - f_array;
+    }
+    if (f_array)
+    {
+        ++src;
+    }
+    dout << "nextView" << uc_view << array_i << length(rp->_array) << src << endPosition(*rp) << "\n";
+    return 0;
+}
+int64_t RowPosViewer::findSrc(int64_t find_src)
+{
+    init(*rp);
+    //rp->_clippingBeginPos = 25;
+    for (; array_i < length(rp->_array); )
+    {
+        if (f_array && src >= find_src)
+        {
+            uc_view -= src - find_src;
+            src = find_src;
+            break;
+        }
+        if (++array_i < length(rp->_array))
+        {
+            view_bucket_sum += rp->_array[array_i];
+            uc_view = view_bucket_sum - 1;
+            f_array = 1 - f_array;
+            src = f_array ? src + rp->_array[array_i] - 1 : src + 1;
+        }
+    }
+    return 1;
+}
+int64_t RowPosViewer::findView(int64_t find_view)
+{
+    init(*rp);
+    for (;array_i < length(rp->_array);)
+    {
+        
+        if (uc_view - rp->_clippingBeginPos >= find_view)
+        {
+            if (f_array)
+            {
+                src -= uc_view - find_view - rp->_clippingBeginPos;
+            }
+            uc_view = find_view + rp->_clippingBeginPos;
+            break;
+        }
+        if (++array_i < length(rp->_array))
+        {
+            view_bucket_sum += rp->_array[array_i];
+            uc_view = view_bucket_sum - 1;
+            f_array = 1- f_array;
+            src = f_array ? src + rp->_array[array_i] - 1: src + 1;
+        }
+    }
+    return 0;
+}
+int64_t RowPosViewer::getView()
+{
+    return uc_view - rp->_clippingBeginPos;
+}
+int64_t RowPosViewer::getSrc()
+{
+    return src;
+}
+int64_t RowPosViewer::getUCView()
+{
+    return uc_view;
 }

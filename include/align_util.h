@@ -120,4 +120,24 @@ int insertNewBamRecord (String<BamAlignmentRecordLink> & bam_records,
                         );
 
 
+/*----------  Viewer of pos of rows ----------*/
+class RowPosViewer
+{
+  public:
+    TRow5A *rp; 
+    int64_t uc_view;
+    int64_t src;
+    int64_t array_i; //points to _array[array_i] 
+    int f_array; //0 array_i point to gap bucket otherwise1 to sequence bucket
+    int64_t view_bucket_sum;
+    int64_t init(TRow5A & row);
+    //uint64_t nextArrayBucket();
+    int64_t nextView();
+    int64_t findSrc(int64_t src);
+    int64_t findView(int64_t view);
+    int64_t getView();
+    int64_t getSrc();
+    int64_t getUCView();
+    RowPosViewer(TRow5A & row);
+};
 #endif
