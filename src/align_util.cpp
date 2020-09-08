@@ -1015,8 +1015,6 @@ int findBestMerge_(AlignCache & align1,
 {
     int bit = 20, bit2 = 40;
     int64_t mask = (1ULL << bit) - 1;
-    int64_t x1 = align1.getGSrcX(0);
-    int64_t y1 = align1.getGSrcY(0);
     int64_t gaps_sum = 0; //sum of gap in row11 and row12
     int64_t merge_score = 0;
     unsigned l = align2.length() - 1;
@@ -1031,8 +1029,8 @@ int findBestMerge_(AlignCache & align1,
     dout << "ma4<<<<<<<<" << "\n";
     for (unsigned i = 0; i < align1.length() - 1; i++)    
     {
-        int64_t x1_next = align1.getGSrcX(i + 1);
-        int64_t y1_next = align1.getGSrcY(i + 1);
+        int64_t x1 = align1.getGSrcX(i);
+        int64_t y1 = align1.getGSrcY(i);
         for (; j < align2.length(); j++)  
         {
             int64_t x2 = align2.getGSrcX(j);
@@ -1072,8 +1070,6 @@ int findBestMerge_(AlignCache & align1,
                 break;
             }
         }
-        x1 = x1_next;
-        y1 = y1_next;
     }
     dout << "fm" << min_gaps_len << min_clip2 << f_min << "\n";
     return f_min ? 0 : (16 | 1);
