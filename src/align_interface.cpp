@@ -19,7 +19,7 @@ typedef Align<String<Dna5>, ArrayGaps> TAlign;
 typedef Row<TAlign>::Type TRow; 
 typedef Iterator<TRow>::Type TRowIterator;
 
-unsigned _default_block_size_ = 192; // make sure the its equal to window_size in pmpfinder.h
+unsigned _default_block_size_ = 96; // make sure the its equal to window_size in pmpfinder.h
 /**
  * debug util
  */
