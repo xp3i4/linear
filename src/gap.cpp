@@ -4383,15 +4383,17 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                         erase(tiles_end1, 0);
                         eraseBack(tiles_str1);
                         eraseBack(tiles_end1);
-                        remove_tile_sgn(back(tiles_str1));
-                        remove_tile_sgn(back(tiles_end1));
- //                       erase(tiles_str, i - 1);
- //                       erase(tiles_end, i - 1);
-                        insert(tiles_str, i, tiles_str1);
-                        insert(tiles_end, i, tiles_end1);
-//                        erase(tiles_str, i + length(tiles_str1) - 1);
-//                        erase(tiles_end, i + length(tiles_str1) - 1);
-
+                        if (!empty(tiles_str1))
+                        {
+                            remove_tile_sgn(back(tiles_str1));
+                            remove_tile_sgn(back(tiles_end1));
+     //                       erase(tiles_str, i - 1);
+     //                       erase(tiles_end, i - 1);
+                            insert(tiles_str, i, tiles_str1);
+                            insert(tiles_end, i, tiles_end1);
+    //                        erase(tiles_str, i + length(tiles_str1) - 1);
+    //                        erase(tiles_end, i + length(tiles_str1) - 1);
+                        }
                         i += length(tiles_str1);
                     }
                 }
