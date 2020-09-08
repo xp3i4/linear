@@ -300,11 +300,12 @@ int insertNewBamRecord (String<BamAlignmentRecordLink> & bam_records,
                         int r_beginPos,
                         int strand,
                         int insert_pos,
-                        int f_soft 
+                        int f_soft,
+                        uint16_t flag 
                         )
 {
     BamAlignmentRecordLink bam_record;
-    insertNewBamRecord(bam_records, g_id, g_beginPos, r_beginPos, strand, insert_pos, f_soft);
+    insertNewBamRecord(bam_records, g_id, g_beginPos, r_beginPos, strand, insert_pos, f_soft, flag);
     int i = insert_pos;
     if (insert_pos < 0)
     {

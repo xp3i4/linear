@@ -117,7 +117,8 @@ int insertNewBamRecord (String<BamAlignmentRecordLink> & bam_records,
                         int r_beginPos,
                         int strand,
                         int insert_pos = -1,
-                        int f_soft = 1 
+                        int f_soft = 1,
+                        uint16_t flag = 0
                         );
 /*----------  align pos cache  ----------*
  * Tempory struct to buffer coordinates of rows

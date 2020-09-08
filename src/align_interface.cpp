@@ -1223,15 +1223,15 @@ int insertGaps(GapRecords & gaps,
     return flag;
 }
 int insertGaps(GapRecords & gaps,
-                  uint64_t cord_str, //start cord 
-                  uint64_t cord_end, //end cord 
-                  Row<Align<String<Dna5>, ArrayGaps> >::Type & row11,
-                  Row<Align<String<Dna5>, ArrayGaps> >::Type & row12,
-                  Row<Align<String<Dna5>, ArrayGaps> >::Type & row21,
-                  Row<Align<String<Dna5>, ArrayGaps> >::Type & row22,
-                  int bam_segs_id,
-                  int thd_merge_gap,
-                  int f_merge
+               uint64_t cord_str, //start cord 
+               uint64_t cord_end, //end cord 
+               Row<Align<String<Dna5>, ArrayGaps> >::Type & row11,
+               Row<Align<String<Dna5>, ArrayGaps> >::Type & row12,
+               Row<Align<String<Dna5>, ArrayGaps> >::Type & row21,
+               Row<Align<String<Dna5>, ArrayGaps> >::Type & row22,
+               int bam_segs_id,
+               int thd_merge_gap,
+               int f_merge
                  )
 {
     int flag = 1;
@@ -1566,7 +1566,7 @@ int align_gap (GapRecordHolder & gap,
             int bam_start_y = clips_src2[i].first;
             int bam_strand = get_cord_strand(str_cord);
             setClippedPositions(row1, row2, clips[i].first, clips[i].second);
-            insertNewBamRecord(bam_records, row1, row2, g_id, bam_start_x, bam_start_y, bam_strand, tmp++); 
+            insertNewBamRecord(bam_records, row1, row2, g_id, bam_start_x, bam_start_y, bam_strand, tmp++, 1, 2048); 
             dout << "ag4" << get_cord_y(str_cord) <<  "\n";
         }
         //realign and clip interval between each clip[i].second and clip[i + 1].second
@@ -1598,7 +1598,7 @@ int align_gap (GapRecordHolder & gap,
                 int bam_start_y = seg_clips_src2[j].first;
                 int bam_strand = get_cord_strand(seg_str_cord);
                 setClippedPositions(row1, row2, seg_clips[j].first, seg_clips[j].second);
-                insertNewBamRecord(bam_records, row1, row2, g_id, bam_start_x, bam_start_y, bam_strand, tmp3++); 
+                insertNewBamRecord(bam_records, row1, row2, g_id, bam_start_x, bam_start_y, bam_strand, tmp3++, 1, 2048); 
             }
         }
     }
@@ -2074,10 +2074,12 @@ int alignCords (StringSet<String<Dna5> >& genomes,
         if (_DefaultCord.isBlockEnd(pre_cord_str))
         {
             clip_segs(rstr[ri], rstr[ri + 1], cord_str, _gap_parm, -1);
+            uint64_t bam_flag = i == 1 ? 0 : 2048;
             insertNewBamRecord(bam_records, g_id,
                             get_cord_x(cord_str) + beginPosition(rstr[ri]),
                             get_cord_y(cord_str) + beginPosition(rstr[ri + 1]),
-                            get_cord_strand(cords_str[i]));
+                            get_cord_strand(cords_str[i]),
+                            -1, 1, bam_flag);
             //dout << "ib13" << get_cord_y(cord_str) + beginPosition(rstr[ri + 1]) << get_cord_y(cord_str) << get_cord_y(cords_str[i]) << get_cord_y(pre_cord_str) << get_cord_y(pre_cord_end)<< "\n";
  
             pre_cord_str = cord_str;
@@ -2142,7 +2144,8 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                                   length(bam_records) - 1,
                                   thd_merge_gap, f_gap_merge))
                     {
-                        insertNewBamRecord(bam_records, g_id, bam_start_x, bam_start_y, bam_strand); 
+                        insertNewBamRecord(bam_records, g_id, bam_start_x, bam_start_y, 
+                            bam_strand, -1, 1, 2048); 
                         dout << "ib11" << bam_start_y << "\n";
                     }      
                     f_gap_merge = 1;
@@ -2166,7 +2169,7 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                                   length(bam_records) - 1,
                                   thd_merge_gap, f_gap_merge))
                     {
-                        insertNewBamRecord(bam_records, g_id, bam_start_x, bam_start_y, bam_strand); 
+                        insertNewBamRecord(bam_records, g_id, bam_start_x, bam_start_y, bam_strand, -1, 1, 2048); 
                         dout << "ib17" << bam_start_y << "\n";
                     }               
                     f_gap_merge = 1;
@@ -2186,7 +2189,8 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                 insertNewBamRecord(bam_records, 
                                    rstr[ri_pre], 
                                    rstr[ri_pre + 1],
-                                   g_id, bam_start_x, bam_start_y, bam_strand);
+                                   g_id, bam_start_x, bam_start_y, bam_strand,
+                                   -1, 1, 2048);
                         dout << "ib18" << bam_start_y << "\n";
                 f_gap_merge = 0;                     
 
@@ -2203,7 +2207,8 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                 bam_start_y = get_cord_y(pre_cord_str) +
                               beginPosition(rstr[ri_pre + 1]);
                 insertNewBamRecord(bam_records, 
-                                   g_id, bam_start_x, bam_start_y, bam_strand);
+                                   g_id, bam_start_x, bam_start_y, bam_strand,
+                                   -1, 1, 2048);
                         dout << "ib19" << bam_start_y << "\n";
                 f_gap_merge = 0;
             }
@@ -2218,7 +2223,8 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                 insertNewBamRecord(bam_records, 
                                    rstr[ri_pre], 
                                    rstr[ri_pre + 1],
-                                   g_id, bam_start_x, bam_start_y, bam_strand);  
+                                   g_id, bam_start_x, bam_start_y, bam_strand,
+                                   -1, 1, 2048);  
 
                         dout << "ib15" << bam_start_y << "\n";
                 f_gap_merge = 0;
@@ -2248,7 +2254,8 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                 insertNewBamRecord(bam_records, 
                                    rstr[ri], 
                                    rstr[ri + 1],
-                                   g_id, bam_start_x, bam_start_y, bam_strand);
+                                   g_id, bam_start_x, bam_start_y, bam_strand,
+                                   -1, 1, 2048);
                         dout << "ib14" << bam_start_y << "\n";
 
             }
@@ -2264,7 +2271,8 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                 insertNewBamRecord(bam_records, 
                                    rstr[ri], 
                                    rstr[ri + 1],
-                                   g_id, bam_start_x, bam_start_y, bam_strand);               
+                                   g_id, bam_start_x, bam_start_y, bam_strand,
+                                   -1, 1, 2048);               
                                                 dout << "ib12" << bam_start_y << "\n";
 
             }
