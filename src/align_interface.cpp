@@ -198,6 +198,39 @@ void set_clip_tail_flag (int &flag) {flag |= flag_clip_tail;}
 int is_clip_head_set (int flag){return flag & flag_clip_head;}
 int is_clip_tail_set (int flag){return flag & flag_clip_tail;}
 
+struct AlignCords
+{
+    String<uint64_t> cords_str;
+    String<uint64_t> cords_end;
+    String<uint64_t> bands;
+    String<int> status;
+    //if head of alignment of cords_str[i] cords_end[i] need to be clipped
+    int if2ClipHead(int i)
+    {
+        return is_clip_head_set(status[i]);
+    }
+    int if2ClipTail(int i)
+    {
+        return is_clip_tail_set(status[i]);
+    }
+    //set head of alignment of cords_str[i] cords_end[i] to be clipped
+    void set2ClipHead(int i)
+    {
+        set_clip_head_flag(status[i]);
+    }
+    void set2ClipTail(int i)
+    {
+        set_clip_tail_flag(status[i]);
+    }
+    int createAlignCords(StringSet<String<Dna5> >& genomes,
+                String<Dna5> & read, 
+                String<Dna5> & comrev_read,
+                String<uint64_t> & cords_str_map,
+                String<uint64_t> & cords_end_map,
+                float thd_err_rate,
+                int thd_min_abort_anchor);
+
+};
 
 typename GapRecords::TCPair & GapRecords::get_c_pair(int i) {return c_pairs[i];}  
 typename GapRecords::TRPair & GapRecords::get_r1_pair(int i) 
@@ -1602,12 +1635,17 @@ int align_cords (StringSet<String<Dna5> >& genomes,
     uint64_t pre_cord_end;
     uint64_t gap_str_cord;
     uint64_t gap_end_cord;
-    String<uint64_t> cords;
-    appendValue(cords, cords_r[0]);
-    trim_cords_(genomes, read, comrevRead, cords_r, cords, 
-                thd_err_rate, thd_min_abort_anchor);
-    for (int i = 1; i < (int)length(cords); i++)
+    AlignCords align_cords; 
+    
+    align_cords.createAlignCords(genomes, read, comrev_read, cords_str_map, cords_end_map, 
+        thd_err_rate, thd_min_abort_anchor);
+    String<uint64_t> & cords_str = align_cords.cords_str;
+    String<uint64_t> & cords_end = align_cords.cords_end;
+    String<uint64_t> & bands = align_cords.bands;
+    for (int i = 1; i < (int)length(cords_str); i++)
     {
+        int f_clip_head = 1;
+        int f_clip_tail = 1;
         int check_flag = 0;
         int g_id = get_cord_id(cords[i]);
         uint64_t strand = get_cord_strand(cords[i]);
