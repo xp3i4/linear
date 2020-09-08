@@ -8,6 +8,7 @@ using namespace seqan;
 extern uint16_t bam_flag_rvcmp;
 extern uint16_t bam_flag_rvcmp_nxt;
 extern uint16_t bam_flag_suppl;
+typedef Row<Align<String<Dna5>,ArrayGaps> >::Type TRow5A;  
 struct SAZTag
 {
     String<unsigned> bam_records_i;
@@ -118,8 +119,28 @@ int insertNewBamRecord (String<BamAlignmentRecordLink> & bam_records,
                         int insert_pos = -1,
                         int f_soft = 1 
                         );
-
-
+/*----------  align pos cache  ----------*
+ * Tempory struct to buffer coordinates of rows
+   to reduce times of translation of coordinates of rows.
+ */
+struct AlignCache_
+{
+    int64_t _uc_view;
+    int64_t _g_src_x;
+    int64_t _g_src_y;
+    AlignCache_(int64_t uc_view, int64_t g_src_x, int64_t g_src_y, int64_t cord_0);
+};
+class AlignCache
+{
+    String<AlignCache_> cache;
+public:
+    void appendValue(int64_t uc_view, int64_t g_src_x, int64_t g_src_y, int64_t cord_0);
+    int64_t getUCView(int i);
+    int64_t getGSrcX(int i);
+    int64_t getGSrcY(int i);
+    unsigned length();
+    bool empty();
+};
 /*----------  Viewer of pos of rows ----------*/
 class RowPosViewer
 {
@@ -140,4 +161,15 @@ class RowPosViewer
     int64_t getUCView();
     RowPosViewer(TRow5A & row);
 };
+int mergeAlign2_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
+                 Row<Align<String<Dna5>,ArrayGaps> >::Type & row12,
+                 Row<Align<String<Dna5>,ArrayGaps> >::Type & row21,
+                 Row<Align<String<Dna5>,ArrayGaps> >::Type & row22,
+                 AlignCache & align1,
+                 AlignCache & align2,
+                 String<Dna5> & ref,
+                 String<Dna5> & read,
+                 String<Dna5> & comrev_read,
+                 uint64_t & cord1,
+                 uint64_t & cord2);
 #endif

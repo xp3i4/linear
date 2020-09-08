@@ -343,7 +343,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
             }
             if (fm_handler_.isAlign(f_map))
             {
-                align_cords(this->getGenomes(), reads[j], comStr, cords_str[j], bam_records[j]);
+                alignCords(this->getGenomes(), reads[j], comStr, cords_str[j], cords_end[j], bam_records[j]);
                 //check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
             }
         }
@@ -662,7 +662,7 @@ int map_(IndexDynamic & index,
             }
             if (fm_handler_.isAlign(f_map))
             {
-                align_cords(seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
+                alignCords(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], bam_records_tmp[c]);
                 //check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
             }
         }

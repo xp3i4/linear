@@ -755,3 +755,407 @@ int64_t RowPosViewer::getUCView()
 {
     return uc_view;
 }
+/*----------  align pos cache  ----------*/
+AlignCache_::AlignCache_(int64_t uc_view, int64_t g_src_x, 
+    int64_t g_src_y, int64_t cord_0)
+{
+    _uc_view = uc_view;
+    _g_src_x = g_src_x + get_cord_x(cord_0);
+    _g_src_y = g_src_y + get_cord_y(cord_0);
+}
+void AlignCache::appendValue(int64_t uc_view, int64_t g_src_x, int64_t g_src_y, 
+    int64_t cord_0)
+{
+    seqan::appendValue(cache, AlignCache_(uc_view, g_src_x, g_src_y, cord_0));
+}
+int64_t AlignCache::getUCView(int i)
+{
+    return cache[i]._uc_view;
+}
+int64_t AlignCache::getGSrcX(int i)
+{
+    return cache[i]._g_src_x;
+}
+int64_t AlignCache::getGSrcY(int i)
+{
+    return cache[i]._g_src_y;
+}
+unsigned AlignCache::length()
+{
+    return seqan::length(cache);
+}
+bool AlignCache::empty()
+{
+    return seqan::empty(cache);
+}
+
+/*----------  mergeAlign2_  ----------*/
+/* WARN:!
+ * Remove row (._source and ._array) from left to @view_pos. 
+ * This function depends on the definition of seqan::ArrayGaps of seqan 2
+   Hence keep the function consitent with ArrayGaps in seqan
+ *
+   seqan::Gaps._array definition: 
+   even bucket is count of chars, odd bucket is count of gaps.
+   The first and the last bucket are for gaps.
+ * 
+   The function keeps clipped view pos unchanged,
+   namley they point to the original bucket.
+ */
+int64_t seqanRemoveHead_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row)
+{
+    uint64_t view_pos = clippedBeginPosition(row);
+    unsigned pos = 0; 
+    unsigned src_count = row._sourceBeginPos;
+    /*
+    RowPosViewer rp(row);
+    rp.findView(view_pos);
+    row._array[rp.array_i] = rp.view_bucket_sum - view_pos;
+    if (rp.array_i % 2 == 0)
+    {
+        erase(row._array, 0, rp.array_i);
+    }
+    else
+    {
+        if (row._array[rp.array_i] == 0)
+        {
+            erase(row._array, 0, rp.array_i + 1);
+        }
+        else
+        {
+            erase(row._array, 0, rp.array_i - 1);
+            row._array[0] = 0;
+        }
+    }
+    if (length(row._array) < 3)
+    {
+        resize (row._array, 3);
+        row._array[0] = 0;
+        row._array[1] = 0;
+        row._array[2] = 0;
+    }
+    setValue(row._source, infix(value(row._source), row._sourceBeginPos, length(value(row._source))));
+    src_count = row._sourceBeginPos;
+    row._sourceEndPos -= row._sourceBeginPos;
+    row._sourceBeginPos = 0;  //0
+    row._clippingEndPos -= row._clippingBeginPos;
+    row._clippingBeginPos -= 0; //0
+    dout << "srh1" << row._sourceBeginPos << " " << row._sourceEndPos << " " << row._clippingBeginPos << " " << row._clippingEndPos << " " << src_count << " " << view_pos << length(row._array) << "\n"; 
+    return src_count;
+    */
+    
+    for (int i = 0 ; i < length(row._array); i++) 
+    {
+        pos += row._array[i];
+        //std::cerr << pos << " "<< view_pos << " " << i << " " << length(row._array) << "\n";
+        int f_g = (i + 1) % 2; //if i is the gap bucket
+        if (pos > view_pos)
+        {
+            row._array[i] = pos - view_pos;
+            if (!f_g)
+            {
+                //src_count -= row._array[i];
+                erase(row._array, 0, i - 1);
+                row._array[0] = 0;
+            }
+            else
+            {
+                erase(row._array, 0, i);
+            }
+            setValue(row._source, infix(value(row._source), row._sourceBeginPos, length(value(row._source))));
+            row._sourceEndPos -= row._sourceBeginPos;
+            row._sourceBeginPos = 0;  //0
+            row._clippingEndPos -= row._clippingBeginPos;
+            row._clippingBeginPos = 0; //0
+            dout << "srh1" << row._sourceBeginPos << " " << row._sourceEndPos << " " << row._clippingBeginPos << " " << row._clippingEndPos << " " << src_count << " " << view_pos << "\n";
+            break;
+        }
+    }
+    std::cout << row << "\n";
+            dout << "srh11" << row._sourceBeginPos << " " << row._sourceEndPos << " " << row._clippingBeginPos << " " << row._clippingEndPos << " " << src_count << " " << view_pos << length(row._array) << "\n";
+    return src_count;
+    
+    /*
+    int d = 0;
+    for (int i = 0; i < length(row._array); i++)
+    {
+        if (i%2 ==1)
+        d += row._array[i];
+        std::cerr << "row " << row._array[i] << "\n" ;
+    }
+    std::cerr << "d" << d << " " << row._sourceEndPos << " " << row._sourceBeginPos << " " << length(value(row._source)) << "\n";
+    std::cerr << value(row._source) << "\n";
+    return src_count;
+    */
+}
+/*
+ * Same as the seqanRemoveHead_
+ * Extend leftward from clippedBeginPosition(@row) with character in @seq by @extend_len
+ * @extend_len > beginSource,
+ * The function keeps clipped view pos unchanged.
+ */
+int64_t seqanExtendHead_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row,
+                     String<Dna5> & seq, 
+                     uint64_t extend_len,
+                     uint64_t src_cord_0)
+{
+    if (empty(row._array) || row._sourceBeginPos > extend_len)
+    {
+        return 0;
+    }
+    for (int i = 0; i < length(row._array); i++)
+    {
+        dout << "seq1" << row._array[i] << "\n";
+    }
+    uint64_t seq_pos = src_cord_0 + row._sourceBeginPos - extend_len;
+    std::cout << "seq1" << value(row._source) << "\n";
+    setValue(row._source, infix(seq, seq_pos, seq_pos + length(value(row._source)) + extend_len - row._sourceBeginPos));
+    std::cout << "seq2" << value(row._source) << "\n";
+    if (row._array[0] == 0)
+    {
+        row._array[1] += extend_len - row._sourceBeginPos; 
+    }
+    else
+    {
+        typename seqan::Gaps<String<Dna5>, ArrayGaps>::TArray_ new_array;
+        appendValue(new_array, 0);
+        appendValue(new_array, extend_len - row._sourceBeginPos);
+        insert(row._array, 0, new_array);
+    } 
+    row._sourceEndPos += extend_len - row._sourceBeginPos;
+    row._clippingEndPos += extend_len - row._sourceBeginPos;
+    for (int i = 0; i < length(row._array); i++)
+    {
+        dout << "seq2" << row._array[i] << "\n";
+    }
+    return -extend_len + row._sourceBeginPos;
+}
+/*
+ * The function replace row (._source, ._array) from left to @view_pos with continuous gaps 
+   in @row and continuous seqs in row2
+ * This transformation keeps the orignial view pos of @row1 @row2 same.
+ * @row1 @row2 are supposed to be the rows of the alignment
+   namely, their unclipped coordinates are of the same size,
+   and the clippedBeginPos and clippedEndPos of @row1 @row2 are required to be equivalent
+ * @src_cord_0 is the coordinates in @seq of the value(@row2._source[0])
+    just used to transform the unclipped coordinates to the coodinates in @seq
+ */
+int replaceHead_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
+                 Row<Align<String<Dna5>,ArrayGaps> >::Type & row2,
+                 String<Dna5> & seq,
+                 int64_t gaps_len,
+                 uint64_t src_cord_0,
+                 int64_t & src_shift1,
+                 int64_t & src_shift2)
+{
+    if (gaps_len > 0)
+    {
+        src_shift1 = 0;
+        src_shift2 = 0;
+        ///insertGaps at head of row1
+        src_shift1 = seqanRemoveHead_(row1);
+            dout << "rh11" << length(row1._array) << gaps_len << "\n";
+        if (!empty(row1._array))
+        {
+
+            seqan::insertGaps(row1, 0, gaps_len);
+            //row1._array[0] += gaps_len;
+            //row1._clippingEndPos += gaps_len;
+        }
+        else
+        {
+        //    dout << "rh11" << length(row1._array) << "\n";
+        } 
+        ///insert source at head of row2;
+        src_shift2 = seqanRemoveHead_(row2);
+        src_cord_0 += src_shift2;
+        src_shift2 += seqanExtendHead_(row2, seq, gaps_len, src_cord_0); 
+        setClippedBeginPosition(row2, 0);
+        std::cout << "rh1 " << src_shift1 << " " << src_shift2 << "\n";
+        std::cout << "\nrh1 " << gaps_len << " " << row1 << "\n";
+        std::cout << "\nrh2 " << gaps_len << " " << row2 << "\n";
+        return 0;
+    }
+    else
+    {
+        return 1;
+    }
+}
+/*
+ * Simple score
+   > 50 (ins or del)
+   todo::benchmark and regress the score 
+ */
+int64_t mergeScore1_(int64_t gaps_sum, int64_t dx, int64_t dy)
+{
+    int64_t score = 0; 
+    int64_t precision = 10000;  //precision = 1/10000 float to int
+    if (dx < 50 && dy < 50)
+    {
+        score += gaps_sum + dx + dy;
+    }
+    else
+    {
+        score += gaps_sum;
+    }
+    score *= precision;
+    return score;
+}
+int64_t mergeScore_(int64_t gaps_sum, int64_t dx, int64_t dy)
+{
+    return mergeScore1_(gaps_sum, dx, dy);
+}
+int findBestMerge_(AlignCache & align1,
+                  AlignCache & align2,
+                  int64_t & min_clip1,
+                  int64_t & min_clip2,
+                  int64_t & min_gaps_len,
+                  int64_t & f_xy_min)
+{
+    int bit = 20, bit2 = 40;
+    int64_t mask = (1ULL << bit) - 1;
+    int64_t x1 = align1.getGSrcX(0);
+    int64_t y1 = align1.getGSrcY(0);
+    int64_t gaps_sum = 0; //sum of gap in row11 and row12
+    int64_t merge_score = 0;
+    unsigned l = align2.length() - 1;
+    int64_t gaps_sum_const = 
+        - align1.getUCView(0) * 2 + align1.getGSrcX(0) + align1.getGSrcY(0)
+        + align2.getUCView(l) * 2 - align2.getGSrcX(l) - align2.getGSrcY(l);
+    int64_t min_gap_sum = 1LL << 60; //just a large number
+    int64_t min_merge_score = 1LL << 60;
+    int64_t f_min = 0;
+    int64_t f_xy;
+    unsigned j = 0;
+    dout << "ma4<<<<<<<<" << "\n";
+    for (unsigned i = 0; i < align1.length() - 1; i++)    
+    {
+        int64_t x1_next = align1.getGSrcX(i + 1);
+        int64_t y1_next = align1.getGSrcY(i + 1);
+        for (; j < align2.length(); j++)  
+        {
+            int64_t x2 = align2.getGSrcX(j);
+            int64_t y2 = align2.getGSrcY(j);
+            int64_t dx = x2 - x1;
+            int64_t dy = y2 - y1;
+            dout << "ma4" << min_gap_sum << i << j << dx << dy << x1 << y1 << x2 << y2 << "\n";
+            if ((dx == 0 || dy == 0) && dx >= 0 && dy >= 0)
+            {
+                int clip1 = align1.getUCView(i);
+                int clip2 = align2.getUCView(j);
+                gaps_sum =  gaps_sum_const + clip1 * 2  - clip2 * 2 + dx + dy;
+                dout << "ma3" << gaps_sum << gaps_sum_const << clip1 << clip2 << "\n";
+                merge_score = mergeScore_(gaps_sum, dx, dy);
+                if (dx == 0)
+                {
+                    min_gaps_len = dy;
+                    f_xy = 1;
+                }
+                else if (dy == 0)
+                {
+                    min_gaps_len = dx;
+                    f_xy = 2;
+                }
+                if (min_merge_score > merge_score)
+                {
+                   min_merge_score = merge_score; 
+                   min_clip1 = clip1;
+                   min_clip2 = clip2;
+                   f_xy_min = f_xy;
+                   f_min = 1;
+                   dout << "ma333" << min_clip2 << "\n";
+                }
+            }
+            else if (dx > 0 && dy > 0)
+            {
+                break;
+            }
+        }
+        x1 = x1_next;
+        y1 = y1_next;
+    }
+    dout << "fm" << min_gaps_len << min_clip2 << f_min << "\n";
+    return f_min ? 0 : (16 | 1);
+}
+int createMergedRows_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
+                      Row<Align<String<Dna5>,ArrayGaps> >::Type & row12,
+                      Row<Align<String<Dna5>,ArrayGaps> >::Type & row21,
+                      Row<Align<String<Dna5>,ArrayGaps> >::Type & row22,
+                      String<Dna5> & ref,
+                      String<Dna5> & read,
+                      String<Dna5> & comrev_read,
+                      int64_t min_clip1,
+                      int64_t min_clip2,
+                      int64_t min_gaps_len,
+                      int64_t f_xy_min,
+                      uint64_t & cord1,
+                      uint64_t & cord2)
+{
+    print_cord(cord2, "rh1c");
+
+    dout << "min1" << min_clip1 << min_clip2 << min_gaps_len << "\n";
+    print_cord(cord1, "min1");
+    print_cord(cord2, "min1");
+    setClippedEndPosition(row11, min_clip1);
+    setClippedEndPosition(row12, min_clip1); 
+    setClippedBeginPosition(row21, min_clip2);
+    setClippedBeginPosition(row22, min_clip2);
+    int64_t src_shift1 = 0, src_shift2 = 0;
+    if (f_xy_min == 1) // dx == 1 ins
+    {
+        String<Dna5> & seq = !get_cord_strand(cord2) ? read : comrev_read;
+        if (!replaceHead_(row21, row22, seq, min_gaps_len, get_cord_y(cord2), src_shift1, src_shift2))
+        
+        {
+            cord2 = shift_cord(cord2, src_shift1, src_shift2);
+            dout << "shiftm1" << length(seq) << src_shift1 << src_shift2  << "\n";
+        }
+    }
+    else // dy == 1 del
+    {
+        String<Dna5> & seq = ref;
+        if(!replaceHead_(row22, row21, seq, min_gaps_len, get_cord_x(cord2), src_shift1, src_shift2))
+        {
+            cord2 = shift_cord(cord2, src_shift1, src_shift2);
+            dout << "shiftm2" << length(seq) << src_shift1 << src_shift2  << "\n";
+        }
+    }
+    print_cord(cord2, "rh2c");
+    //dout << "fmin1 " << min_gaps_len << " " << beginPosition(row21) << endPosition(row21) << clippedBeginPosition(row21) << clippedEndPosition(row21) << "\n";
+    //std::cout << "fmin11" << row21 << "\n";
+    //std::cout << "fmin11" << row22 << "\n";
+    return 0;
+}
+/*
+ * @cord2 is coordinates of value(@row21._source)[0] and value(@row22._source)[0] 
+   in sequences.
+   if (only if) mergeAling2_ succeed (return 0) then the
+   @cord2 is no longer the coordinates of value(...), since new sequence of length min_gaps_len has been inserted into @row21 and @row22 
+ */
+int mergeAlign2_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
+                 Row<Align<String<Dna5>,ArrayGaps> >::Type & row12,
+                 Row<Align<String<Dna5>,ArrayGaps> >::Type & row21,
+                 Row<Align<String<Dna5>,ArrayGaps> >::Type & row22,
+                 AlignCache & align1,
+                 AlignCache & align2,
+                 String<Dna5> & ref,
+                 String<Dna5> & read,
+                 String<Dna5> & comrev_read,
+                 uint64_t & cord1,
+                 uint64_t & cord2)
+{
+    int64_t min_clip1;
+    int64_t min_clip2;
+    int64_t min_gaps_len;
+    int64_t f_xy_min;
+    int f_flag = findBestMerge_(align1, align2, min_clip1, min_clip2, min_gaps_len, f_xy_min);
+    dout << "ma2" << get_cord_y(cord2) << f_flag << "\n";
+    if (!f_flag)
+    {
+        f_flag |= createMergedRows_(row11, row12, row21, row22,  
+            ref, read, comrev_read, min_clip1, min_clip2, min_gaps_len, f_xy_min,
+            cord1, cord2);
+    }
+    dout << "ma2_f" << f_flag << "\n";
+    return f_flag;
+}

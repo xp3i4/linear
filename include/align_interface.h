@@ -50,15 +50,14 @@ struct GapParm
 };
 extern GapParm _gap_parm;
 extern unsigned _default_block_size_;
-int align_cords (StringSet<String<Dna5> >& genomes,
+int alignCords (StringSet<String<Dna5> >& genomes,
                  String<Dna5> & read, 
                  String<Dna5> & comrevRead,
-                 String<uint64_t> & cords,
+                 String<uint64_t> & cords_str_map,
+                 String<uint64_t> & cords_end_map,
                  String<BamAlignmentRecordLink> & bam_records,
                  int block_size = _default_block_size_,
                  int band = _default_block_size_ / 2
                 );
 void printCigar(String<CigarElement< > > &, std::string);
-
-
 #endif
