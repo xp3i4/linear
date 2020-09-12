@@ -1111,7 +1111,7 @@ int createMergedRows_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     else // dy == 1 del
     {
         String<Dna5> & seq = ref;
-        if(!replaceHead_(row22, row21, seq, min_gaps_len, get_cord_x(cord2), src_shift1, src_shift2))
+        if(!replaceHead_(row22, row21, seq, min_gaps_len, get_cord_x(cord2), src_shift2, src_shift1))
         {
             cord2 = shift_cord(cord2, src_shift1, src_shift2);
             dout << "shiftm2" << length(seq) << src_shift1 << src_shift2  << "\n";
