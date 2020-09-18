@@ -2143,6 +2143,9 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                                   length(bam_records) - 1,
                                   thd_merge_gap, f_gap_merge))
                     {
+                        bam_start_x = get_cord_x(cord_str) + beginPosition(rstr[ri]);
+                        bam_start_y = get_cord_y(cord_str) + beginPosition(rstr[ri + 1]);
+                        bam_strand = get_cord_strand(cord_str);
                         insertNewBamRecord(bam_records, g_id, bam_start_x, bam_start_y, 
                             bam_strand, -1, 1, 2048); 
                         dout << "ib11" << bam_start_y << "\n";
