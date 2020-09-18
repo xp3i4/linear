@@ -1025,6 +1025,7 @@ int findBestMerge_(AlignCache & align1,
     int64_t min_merge_score = 1LL << 60;
     int64_t f_min = 0;
     int64_t f_xy;
+    int64_t gaps_len = 0;
     unsigned j = 0;
     dout << "ma4<<<<<<<<" << "\n";
     for (unsigned i = 0; i < align1.length() - 1; i++)    
@@ -1043,16 +1044,18 @@ int findBestMerge_(AlignCache & align1,
                 int clip1 = align1.getUCView(i);
                 int clip2 = align2.getUCView(j);
                 gaps_sum =  gaps_sum_const + clip1 * 2  - clip2 * 2 + dx + dy;
-                dout << "ma3" << gaps_sum << gaps_sum_const << clip1 << clip2 << "\n";
+                dout << "ma3" << gaps_sum << gaps_sum_const << clip1 << clip2 << x1 << x2 << y1 << y2 << "\n";
                 merge_score = mergeScore_(gaps_sum, dx, dy);
                 if (dx == 0)
                 {
-                    min_gaps_len = dy;
+                    //min_gaps_len = dy;
+                    gaps_len = dy;
                     f_xy = 1;
                 }
                 else if (dy == 0)
                 {
-                    min_gaps_len = dx;
+                    //min_gaps_len = dx;
+                    gaps_len = dx;
                     f_xy = 2;
                 }
                 if (min_merge_score > merge_score)
@@ -1060,9 +1063,10 @@ int findBestMerge_(AlignCache & align1,
                    min_merge_score = merge_score; 
                    min_clip1 = clip1;
                    min_clip2 = clip2;
+                   min_gaps_len = gaps_len;
                    f_xy_min = f_xy;
                    f_min = 1;
-                   dout << "ma333" << min_clip2 << "\n";
+                   dout << "ma333" << min_clip2 << min_gaps_len << x1 << x2 << "\n";
                 }
             }
             else if (dx > 0 && dy > 0)

@@ -19,7 +19,7 @@ typedef Align<String<Dna5>, ArrayGaps> TAlign;
 typedef Row<TAlign>::Type TRow; 
 typedef Iterator<TRow>::Type TRowIterator;
 
-unsigned _default_block_size_ = 96; // make sure the its equal to window_size in pmpfinder.h
+unsigned _default_block_size_ = 96; // make sure the value == window_size in pmpfinder.h
 /**
  * debug util
  */
@@ -181,7 +181,6 @@ int const s3 = -1; //gap extend
 int const s4 = -1; //gap open
 float s_score_density_thd = 2; //if < the value alignment of cords will be dropped
 float s_score_window_thd = 0.75;
-int thd_align_score = 350 /*depends on score_scheme*/;
 
 uint64_t CORD_NULL = _DefaultCord.makeBlockEndVal(~0);
 uint64_t emptyCord = CORD_NULL - 1;
