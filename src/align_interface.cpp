@@ -792,8 +792,8 @@ int mergeAlignCheck_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
      
     int64_t delta1 = get_cord_x(cord2) - get_cord_x(cord1);
     int64_t delta2 = get_cord_y(cord2) - get_cord_y(cord1);
-    if (endPosition(row11) < beginPosition(row21) + delta1 &&
-        endPosition(row12) < beginPosition(row22) + delta2)
+    if (int64_t(endPosition(row11) - beginPosition(row21)) < delta1 &&
+        int64_t(endPosition(row12) - beginPosition(row22)) < delta2)
     {
         print_cord(cord1, "manx");
         print_cord(cord2, "manx");
@@ -806,19 +806,19 @@ int mergeAlignCheck_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
         std::cout << "many " << row22 << "\n";
         return 1|4096;
     }
-    if (beginPosition(row11) > beginPosition(row21) + delta1)
+    if (int64_t(beginPosition(row11) - beginPosition(row21)) > delta1)
     {
         //return 1|128;
     }
-    if (beginPosition(row12) > beginPosition(row22) + delta2)
+    if (int64_t(beginPosition(row12) - beginPosition(row22)) > delta2)
     {
         //return 1|256;
     }
-    if (endPosition(row11) > endPosition(row21) + delta1)
+    if (int64_t(endPosition(row11) - endPosition(row21)) > delta1)
     {
         //return 1|1024;
     }
-    if (endPosition(row12) > endPosition(row22) + delta2)
+    if (int64_t(endPosition(row12) - endPosition(row22)) > delta2)
     {
         //return 1|2048;
     }
@@ -2042,9 +2042,14 @@ int alignCords (StringSet<String<Dna5> >& genomes,
         {
             f2 = clip_tail_ (rstr[ri], rstr[ri + 1], tail_start);
         }
-        f3 = check_align_(rstr[ri], rstr[ri + 1], score_align, check_flag, thd_min_window, thd_min_score);
+        if (f_clip_head && f_clip_tail)
+        {
+            f3 = check_align_(rstr[ri], rstr[ri + 1], score_align, check_flag, thd_min_window, thd_min_score);
+        }
         flag = f1 | f2 | f3;
+
     print_cord(cord_str, "ags4");
+
             //std::cout << "ags4 " << rstr[ri] << "\n";
             //std::cout << "ags4 " << rstr[ri+1] << "\n";
         dout << "ags2" << get_cord_x(cord_str) << get_cord_x(cord_end) << get_cord_y(cord_str) << get_cord_y(cord_end) << flag << f1 << f2 << f3 << f_clip_head << f_clip_tail << beginPosition(rstr[ri]) << beginPosition(rstr[ri + 1]) << "\n";
