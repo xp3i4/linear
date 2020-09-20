@@ -16,6 +16,7 @@ FIOParms::FIOParms()
     thd_rcb_xy = 15;
     f_reform_ccs = 0;
     f_print_seq = 0;
+    f_is_align = 1;
 }
 
 void print_cords_paf(CordsSetType & cords, 
@@ -205,59 +206,92 @@ void print_cords_apf(CordsSetType & cords,
 ===================================================*/
 //infer seq bases (10th column) of SAM according to the given cigar element
 void cigar2SamSeq(CigarElement<> & cigar, IupacString & result, 
-    Iterator<String<Dna5> >::Type & it1, Iterator<String<Dna5> >::Type & it2)
+    Iterator<String<Dna5> >::Type & it1, Iterator<String<Dna5> >::Type & it2,
+    int f_is_align)
 {
-    if (cigar.operation == 'D')
+    dout << "c2s" << f_is_align << "\n";
+    if (!f_is_align)
     {
-        it1 += cigar.count;
-    }
-    else if (cigar.operation == 'I')
-    {
-        for (int i = 0; i < cigar.count; i++)
+        if (cigar.operation == 'D')
         {
-            //appendValue(result, 'N');
-            appendValue(result, *it2);
-            it2++;
+            it1 += cigar.count;
+        }
+        else if (cigar.operation == 'I')
+        {
+            for (int i = 0; i < cigar.count; i++)
+            {
+                //appendValue(result, 'N');
+                appendValue(result, *it2);
+                it2++;
+            }
+        }
+        else if (cigar.operation == 'M')
+        {
+            for (int i = 0; i < cigar.count; i++)
+            {
+                appendValue(result, *it1);
+                it1++;
+                it2++;
+            }
+        }
+        else if (cigar.operation == '=')
+        {
+            for (int i = 0; i < cigar.count; i++)
+            {
+                appendValue(result, *it1);
+                it1++;
+                it2++;
+            }
+        }
+        else if (cigar.operation == 'X')
+        {
+            for (int i = 0; i < cigar.count; i++)
+            {
+                appendValue(result, 'N');
+                it1++;
+                it2++;
+            }
+        }
+        else if (cigar.operation == 'S')
+        {
+            for (int i = 0; i < cigar.count; i++)
+            {
+                appendValue(result, *it2);
+                it2++;
+            }
+        }
+        else if (cigar.operation == 'H')
+        {
+            it2 += cigar.count;
         }
     }
-    else if (cigar.operation == 'M')
+    else
     {
-        for (int i = 0; i < cigar.count; i++)
+        if (cigar.operation == 'D')
         {
-            appendValue(result, *it1);
-            it1++;
-            it2++;
+            it1 += cigar.count;
         }
-    }
-    else if (cigar.operation == '=')
-    {
-        for (int i = 0; i < cigar.count; i++)
+        else if (cigar.operation == 'I' || cigar.operation == 'M' ||
+                 cigar.operation == '=' || cigar.operation == 'X')
         {
-            appendValue(result, *it1);
-            it1++;
-            it2++;
+            for (int i = 0; i < cigar.count; i++)
+            {
+                appendValue(result, *it2);
+                it2++;
+            }
         }
-    }
-    else if (cigar.operation == 'X')
-    {
-        for (int i = 0; i < cigar.count; i++)
+        else if (cigar.operation == 'S')
         {
-            appendValue(result, 'N');
-            it1++;
-            it2++;
+            for (int i = 0; i < cigar.count; i++)
+            {
+                appendValue(result, *it2);
+                it2++;
+            }
         }
-    }
-    else if (cigar.operation == 'S')
-    {
-        for (int i = 0; i < cigar.count; i++)
+        else if (cigar.operation == 'H')
         {
-            appendValue(result, *it2);
-            it2++;
+            it2 += cigar.count;
         }
-    }
-    else if (cigar.operation == 'H')
-    {
-        it2 += cigar.count;
     }
 }
 
@@ -413,7 +447,7 @@ int writeSam(std::ofstream & target,
             {
                 if (fio_parms.f_print_seq)
                 {
-                    cigar2SamSeq(records[it].cigar[i], record.seq, it1, it2);
+                    cigar2SamSeq(records[it].cigar[i], record.seq, it1, it2, fio_parms.f_is_align);
                 }
                 appendNumber(target, records[it].cigar[i].count);
                 writeValue(target, records[it].cigar[i].operation);

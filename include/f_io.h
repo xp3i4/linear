@@ -16,6 +16,7 @@ struct FIOParms
     int f_reform_ccs;
     int f_print_seq;
     int f_sequence_sam;
+    int f_is_align;
 
     std::string read_group;
     std::string sample_name;

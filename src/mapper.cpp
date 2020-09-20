@@ -227,6 +227,7 @@ void Mapper::loadOptions(Options & options)
     fio_parms.read_group = options.read_group;
     fio_parms.sample_name = options.sample_name;
     fio_parms.f_print_seq = options.sequence_sam_flag;
+    fio_parms.f_is_align = options.aln_flag;
     dout << "par" << options.sequence_sam_flag << fio_parms.f_sequence_sam << "\n";
 }
 int Mapper::createIndex(unsigned gstr, unsigned gend, bool efficient)
