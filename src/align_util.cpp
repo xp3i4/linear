@@ -240,6 +240,7 @@ int insertBamRecordCigar (BamAlignmentRecord & bam_record,
         }
         String<CigarElement< > > tmp;
         align2cigar(tmp, row1, row2);
+        
         insertCigar(bam_record.cigar, pos, tmp);
     }
     return 0;
@@ -1095,6 +1096,16 @@ int createMergedRows_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     print_cord(cord2, "rh1c");
 
     dout << "min1" << min_clip1 << min_clip2 << min_gaps_len << "\n";
+                if (min_gaps_len > 100)
+            {
+                dout << "shiftm5" << min_clip1 << min_clip2 << min_gaps_len << get_cord_x(cord1) + endPosition(row11) << get_cord_x(cord2) + beginPosition(row21)  << "\n";
+            print_cord(cord1, "shiftm5");
+            print_cord(cord2, "shiftm5");
+            std::cout << "shiftm5" << row11 << "\n";
+            std::cout << "shiftm5" << row12 << "\n";
+            std::cout << "shiftm5" << row21 << "\n";
+            std::cout << "shiftm5" << row22 << "\n";
+            }
     print_cord(cord1, "min1");
     print_cord(cord2, "min1");
     setClippedEndPosition(row11, min_clip1);
@@ -1102,25 +1113,67 @@ int createMergedRows_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     setClippedBeginPosition(row21, min_clip2);
     setClippedBeginPosition(row22, min_clip2);
     int64_t src_shift1 = 0, src_shift2 = 0;
+    //<<debug
+    String<Dna5> & seqr = !get_cord_strand(cord2) ? read : comrev_read;
+    std::cout << "malign21 " << value(row11._source)[0] << ref[get_cord_x(cord1)] << " " << value(row21._source)[0] << ref[get_cord_x(cord2)] << " " << value(row12._source)[0]<< seqr[get_cord_y(cord1)] << " " << value(row22._source)[0] << seqr[get_cord_y(cord2)] << "\n";
+    //>>debug
     if (f_xy_min == 1) // dx == 1 ins
     {
         String<Dna5> & seq = !get_cord_strand(cord2) ? read : comrev_read;
         if (!replaceHead_(row21, row22, seq, min_gaps_len, get_cord_y(cord2), src_shift1, src_shift2))
         
         {
+            //<<debug
+            //dout << "shiftm1" << min_gaps_len << "\n";
+            if (min_gaps_len > 100)
+            {
+            print_cord(cord1, "shiftm1");
+            print_cord(cord2, "shiftm1");
+            std::cout << "shiftm1" << row11 << "\n";
+            std::cout << "shiftm1" << row12 << "\n";
+            std::cout << "shiftm1" << row21 << "\n";
+            std::cout << "shiftm1" << row22 << "\n";
+            }
+            //>>debug 
             cord2 = shift_cord(cord2, src_shift1, src_shift2);
-            dout << "shiftm1" << length(seq) << src_shift1 << src_shift2  << "\n";
         }
     }
     else // dy == 1 del
     {
         String<Dna5> & seq = ref;
+        //<<debug
+            //std::cout << "malign22 " << value(row11._source)[0] << ref[get_cord_x(cord1)] << " " << value(row21._source)[0] << ref[get_cord_x(cord2)]<< "\n";
+        //>>debug
+       if (min_gaps_len > 100)
+            {
+                dout << "shiftm4" << min_clip1 << min_clip2 << min_gaps_len << get_cord_x(cord1) + endPosition(row11) << get_cord_x(cord2) + beginPosition(row21) << "\n";
+            print_cord(cord1, "shiftm4");
+            print_cord(cord2, "shiftm4");
+            std::cout << "shiftm4" << row11 << "\n";
+            std::cout << "shiftm4" << row12 << "\n";
+            std::cout << "shiftm4" << row21 << "\n";
+            std::cout << "shiftm4" << row22 << "\n";
+            } 
+
         if(!replaceHead_(row22, row21, seq, min_gaps_len, get_cord_x(cord2), src_shift2, src_shift1))
         {
+                        //<<debug
+            //dout << "shiftm1" << min_gaps_len << "\n";
+            if (min_gaps_len > 100)
+            {
+                dout << "shiftm2" << min_clip1 << min_clip2 << min_gaps_len << get_cord_x(cord1) + endPosition(row11) << get_cord_x(cord2) + beginPosition(row21)  << "\n";
+            print_cord(cord1, "shiftm2");
+            print_cord(cord2, "shiftm2");
+            std::cout << "shiftm2" << row11 << "\n";
+            std::cout << "shiftm2" << row12 << "\n";
+            std::cout << "shiftm2" << row21 << "\n";
+            std::cout << "shiftm2" << row22 << "\n";
+            }
+            //>>debug 
             cord2 = shift_cord(cord2, src_shift1, src_shift2);
-            dout << "shiftm2" << length(seq) << src_shift1 << src_shift2  << "\n";
+            dout << "shiftm22" << length(seq) << src_shift1 << src_shift2 << get_cord_x(cord1) + endPosition(row11) << "\n";
         }
-    }
+    }   
     print_cord(cord2, "rh2c");
     //dout << "fmin1 " << min_gaps_len << " " << beginPosition(row21) << endPosition(row21) << clippedBeginPosition(row21) << clippedEndPosition(row21) << "\n";
     //std::cout << "fmin11" << row21 << "\n";
@@ -1150,13 +1203,14 @@ int mergeAlign2_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     int64_t min_gaps_len;
     int64_t f_xy_min;
     int f_flag = findBestMerge_(align1, align2, min_clip1, min_clip2, min_gaps_len, f_xy_min);
-    dout << "ma2" << get_cord_y(cord2) << f_flag << "\n";
+    dout << "ma2x" << get_cord_y(cord2) << f_flag << min_clip1 << min_clip2 << min_gaps_len << "\n";
     if (!f_flag)
     {
         f_flag |= createMergedRows_(row11, row12, row21, row22,  
             ref, read, comrev_read, min_clip1, min_clip2, min_gaps_len, f_xy_min,
             cord1, cord2);
     }
+        std::cout << " merged2 " << get_cord_x(cord1) << " " << f_flag <<" "<< row11 << "\n";
     dout << "ma2_f" << f_flag << "\n";
     return f_flag;
 }
