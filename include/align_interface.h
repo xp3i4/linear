@@ -38,7 +38,7 @@ public:
     int clear_();
 };
 
-struct GapParm
+struct AlignGapParms
 {
     int thd_clip_score;
     int thd_reject_score;
@@ -46,9 +46,15 @@ struct GapParm
     int thd_min_interval;
     float thd_accept_density;
     Score<int, Simple> thd_clip_scheme;
-    GapParm ();
+
+    int cbrlht_thd_src_d_bps;
+
+    int cs_thd_window_size;
+    int cs_thd_dens_lower;
+    int cs_thd_dens_upper;
+    AlignGapParms ();
 };
-extern GapParm _gap_parm;
+extern AlignGapParms _gap_parm;
 extern unsigned _default_block_size_;
 int alignCords (StringSet<String<Dna5> >& genomes,
                  String<Dna5> & read, 

@@ -173,4 +173,7 @@ int mergeAlign2_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
                  String<Dna5> & comrev_read,
                  uint64_t & cord1,
                  uint64_t & cord2);
+std::pair<int, int> cigar2SeqLen(CigarElement<> & cigar);
+std::pair<int, int> cigars2SeqsLen(String<CigarElement<> > & cigars,
+                                   unsigned c_str, unsigned c_end);
 #endif

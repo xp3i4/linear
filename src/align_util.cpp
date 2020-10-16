@@ -1214,3 +1214,38 @@ int mergeAlign2_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     dout << "ma2_f" << f_flag << "\n";
     return f_flag;
 }
+std::pair<int, int> cigar2SeqLen(CigarElement<> & cigar)
+{
+    std::pair<int, int> seq_len(0, 0);
+    if (cigar.operation == 'D')
+    {
+        seq_len.first += cigar.count;
+    }
+    else if (cigar.operation == 'I')
+    {
+        seq_len.second += cigar.count;
+    }
+    else if (cigar.operation == 'X' || 
+             cigar.operation == 'M' || 
+             cigar.operation == '=')
+    {
+        seq_len.first += cigar.count;
+        seq_len.second += cigar.count;
+    }  
+    return seq_len;
+}
+/*
+ * Calculate ref and read len of cigars in [@c_str, @c_end)
+ */
+std::pair<int, int> cigars2SeqsLen(String<CigarElement<> > & cigars,
+                                   unsigned c_str, unsigned c_end)
+{
+    std::pair<int, int> seqs_len(0, 0);
+    for (unsigned i = c_str; i < c_end; i++)
+    {
+        std::pair<int, int> tmp = cigar2SeqLen(cigars[i]);
+        seqs_len.first += tmp.first;
+        seqs_len.second += tmp.second;
+    }
+    return seqs_len;
+}

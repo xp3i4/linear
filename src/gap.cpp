@@ -5,7 +5,6 @@
 #include "cords.h"
 #include "gap.h"
 
-using std::endl;
 /*=============================================
 =               Glaobal Variables             =
 =============================================*/
