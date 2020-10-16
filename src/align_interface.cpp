@@ -2358,7 +2358,7 @@ int alignCords (StringSet<String<Dna5> >& genomes,
             uint64_t tmp1 = pre_cord_str, tmp2= cord_str;
         if (_DefaultCord.isBlockEnd(pre_cord_str))
         {
-            clip_segs(rstr[ri], rstr[ri + 1], cord_str, _gap_parm, -1);
+            //clip_segs(rstr[ri], rstr[ri + 1], cord_str, _gap_parm, -1);
             uint64_t bam_flag = i == 1 ? 0 : 2048;
             insertNewBamRecord(bam_records, g_id,
                             get_cord_x(cord_str) + beginPosition(rstr[ri]),
@@ -2413,8 +2413,8 @@ int alignCords (StringSet<String<Dna5> >& genomes,
             }
             else if (flag & 2)
             {
-                clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
-                          pre_cord_str, _gap_parm, 1); 
+                //clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
+                //          pre_cord_str, _gap_parm, 1); 
                 insertBamRecordCigar(back(bam_records), 
                                      rstr[ri_pre], 
                                      rstr[ri_pre + 1]);            
@@ -2451,8 +2451,8 @@ int alignCords (StringSet<String<Dna5> >& genomes,
             }
             else if (flag & 2)
             {
-                clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
-                          pre_cord_str, _gap_parm, 1); 
+                //clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
+                //          pre_cord_str, _gap_parm, 1); 
                 gap_end_cord = shift_cord(pre_cord_str, 
                                           endPosition(rstr[ri_pre]), 
                                           endPosition(rstr[ri_pre + 1]));
@@ -2477,8 +2477,8 @@ int alignCords (StringSet<String<Dna5> >& genomes,
         {
             if (!flag)
             {
-                clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
-                          pre_cord_str, _gap_parm, -1);
+                //clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
+                //          pre_cord_str, _gap_parm, -1);
                 bam_start_x = get_cord_x(pre_cord_str) + 
                               beginPosition(rstr[ri_pre]);
                 bam_start_y = get_cord_y(pre_cord_str) + 
@@ -2497,8 +2497,8 @@ int alignCords (StringSet<String<Dna5> >& genomes,
             }
             else if (flag & 1)
             {
-                clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
-                          pre_cord_str, _gap_parm, -1);     
+                //clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
+                //          pre_cord_str, _gap_parm, -1);     
                 gap_str_cord = shift_cord(pre_cord_str,
                                           beginPosition(rstr[ri_pre]),
                                           beginPosition(rstr[ri_pre + 1]));
@@ -2514,8 +2514,8 @@ int alignCords (StringSet<String<Dna5> >& genomes,
             }
             else if (flag & 2)
             {
-                clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
-                          pre_cord_str, _gap_parm, 0); 
+                //clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
+                //          pre_cord_str, _gap_parm, 0); 
                 bam_start_x = get_cord_x(pre_cord_str) +
                               beginPosition(rstr[ri_pre]);
                 bam_start_y = get_cord_y(pre_cord_str) +
@@ -2536,16 +2536,16 @@ int alignCords (StringSet<String<Dna5> >& genomes,
             if (!flag)
             {
                 //todo::clipping last 30 bases.
-                clip_segs(rstr[ri], rstr[ri + 1], 
-                          cord_str, _gap_parm, 1); 
+                //clip_segs(rstr[ri], rstr[ri + 1], 
+                //          cord_str, _gap_parm, 1); 
                 insertBamRecordCigar(back(bam_records), rstr[ri], rstr[ri + 1]);                 
             }
             else if (flag & 1)
             {
                 //For similicity just clip and insert new bam
                 //but todo::better to add gaps.
-                clip_segs(rstr[ri], rstr[ri + 1], 
-                          cord_str, _gap_parm, 0); 
+                //clip_segs(rstr[ri], rstr[ri + 1], 
+                //          cord_str, _gap_parm, 0); 
                 bam_start_x = get_cord_x(cord_str) +
                               beginPosition(rstr[ri]);
                 bam_start_y = get_cord_y(cord_str) +
@@ -2561,8 +2561,8 @@ int alignCords (StringSet<String<Dna5> >& genomes,
             }
             else if (flag & 2)
             {
-                clip_segs(rstr[ri], rstr[ri + 1], 
-                          cord_str, _gap_parm, 0); 
+                //clip_segs(rstr[ri], rstr[ri + 1], 
+                //          cord_str, _gap_parm, 0); 
                 bam_start_x = get_cord_x(cord_str) +
                               beginPosition(rstr[ri]);
                 bam_start_y = get_cord_y(cord_str) +
