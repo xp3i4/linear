@@ -4,6 +4,7 @@
 #include "align_util.h"
 //#include "f_io.h"
 #include "align_interface.h"
+#include "new_funcs.h"
 //TODO seqand::setclippedpositoin retrieve source postion that's not efficient
 //TODO make holder to rows, so set clip postion can be iteratored.
 using namespace seqan;
@@ -311,9 +312,7 @@ AlignGapParms::AlignGapParms ():
         thd_min_interval(20),
         thd_accept_density(4.5),
         cbrlht_thd_src_d_bps(200),
-        cs_thd_window_size(),
-        cs_thd_dens_lower(),
-        cs_thd_dens_upper()
+        thd_clip_view_len(1000)
 {
     thd_clip_scheme = Score<int> (1, -1, -1, -1);
 }
@@ -1503,46 +1502,87 @@ int clip_segs(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
 /*-------  To clip head and tail of records in String<BamRecordLink>  -------*/
 struct AlignClipScores
 {
+    int precision;
     int thd_window_size;
-    int thd_dens_lower;
-    int thd_dens_upper;
+    int thd_edge_window_size;
+    int thd_dens_match_lower;
+    int thd_dens_match_upper;
     String<int> scores; 
+    String<int> views;
+    String<int> matches;
 
     AlignClipScores();
-    int _cigar2Score(CigarElement<> & cigar);
-
+    int & operator [](int);
+    int cigar2Score(CigarElement<> & cigar);
+    int appendNew(CigarElement<> & cigar);
 };
 AlignClipScores::AlignClipScores():
-    thd_window_size (20),
-    thd_dens_lower(-6),
-    thd_dens_upper(-4)
+    precision(1000),
+    thd_window_size (50),
+    thd_edge_window_size(10),
+    thd_dens_match_lower(0.65 * precision),
+    thd_dens_match_upper(0.75 * precision)
 {}
+int & AlignClipScores::operator [](int i)
+{
+    return scores[i];
+}
 /*
  * 'M' of cigar not allowed, '=' and 'X' required.
  */
-int AlignClipScores::_cigar2Score(CigarElement<> & cigar)
+int AlignClipScores::cigar2Score(CigarElement<> & cigar)
 {
     int score = 0;
     if (cigar.operation == 'X')
     {
-        score = cigar.count;
+        score = -15 - cigar.count;
     }
     else if (cigar.operation == 'I' || cigar.operation == 'D')
     {
-        if (cigar.count < 50)
+        if (cigar.count < 20)
         {
-            score = 5 + cigar.count;
+            score = -10 - cigar.count / 5;
         }
         else
         {
-            score = 5 + cigar.count / 2;
+            score = -10 - cigar.count / 10;
         }
+    }
+    else if (cigar.operation == '=')
+    {
+        score = cigar.count;
     }
     else 
     {
         score = 0;
     }
-    return -score; 
+    return score * precision; 
+}
+int AlignClipScores::appendNew(CigarElement<> & cigar)
+{
+    dout << "acs" << "\n";
+    int new_score, new_match, new_view;
+    if (empty(scores))
+    {
+        new_score = new_view = new_match = 0;
+    }
+    else
+    {
+        new_score = back(scores);
+        new_view = back(views);
+        new_match = back(matches);
+    }
+    new_score += cigar2Score(cigar);
+    new_view += cigar.count;
+    if (cigar.operation == '=')
+    {
+        new_match += cigar.count * precision;
+    }
+    appendValue(scores, new_score);
+    appendValue(views, new_view);
+    appendValue(matches, new_match);
+    dout << "acs1" << back(views) << "\n";
+    return 0;
 }
 int _bamRecordLlink2Score(String<BamAlignmentRecordLink> & records,
                           AlignClipScores & scores,
@@ -1551,21 +1591,28 @@ int _bamRecordLlink2Score(String<BamAlignmentRecordLink> & records,
                           int it)
 {
     int new_score = 0;
-    int new_src1 = 0;
+    int new_src1 = records[it].beginPos;
     int new_src2 = 0;
-    std::pair<int, int> tmp;
+    int new_view = 0;
+    dout << "brl2s<<<" << "\n";
     while(true)
     {
         for (int i = 0; i < length(records[it].cigar); i++)
         {
-            int score = 0;
-            new_score += scores._cigar2Score(records[it].cigar[i]);
-            appendValue(scores.scores, new_score);
-            tmp = cigar2SeqLen(records[it].cigar[i]);
-            new_src1 += tmp.first;
-            new_src2 += tmp.second;
+            scores.appendNew(records[it].cigar[i]);
+            //<<debug
+            char o = records[it].cigar[i].operation;
+            if (o == 'X' || o == 'D' || o == '=')
+            {
+                new_src1 += records[it].cigar[i].count;
+            }
             appendValue(src1, new_src1);
+            if (o == 'X' || o == 'I' || o == '=' || o == 'S')
+            {
+                new_src2 += records[it].cigar[i].count;
+            }
             appendValue(src2, new_src2);
+            //>>debug
         }
         if (records[it].isEnd())
         {
@@ -1581,66 +1628,99 @@ int _bamRecordLlink2Score(String<BamAlignmentRecordLink> & records,
 /*
  * @f_ht<0 clip head, >0 to clip tail
  */
-int _clipScore(AlignClipScores & scores,
-               String<int> & src1,
-               String<int> & src2,
-               int src_str, 
-               int src_end,
-               int f_ht,
-               AlignGapParms & align_gap_parms)
+int _clipAlignScore(AlignClipScores & scores,
+                    String<int> & src1,
+                    String<int> & src2,
+                    int view_str, 
+                    int view_end,
+                    int f_ht,
+                    AlignGapParms & align_gap_parms)
 {
-    if (length(scores.scores) != length(src1) ||length(scores.scores) != length(src2))
+    dout << "csc" << length(scores.scores) << "\n";
+    if (length(scores.scores) < 3)
     {
-        return f_ht < 0 ? src_str : src_end; //error and do nothing
+        return f_ht < 0 ? view_str : view_end; //error and do nothing
     }
-    int dens_left = 0;
-    int dens_rght = 0;
     int clip = 0;
     if (f_ht < 0)
     {
         f_ht = -1;
-        clip = src_str;
+        clip = view_str;
     }
     else if (f_ht > 0)
     {
         f_ht = 1;
-        clip = src_end;
+        clip = view_end - 1;
     }
     int max_d_dens = INT_MIN;
-    int i0 = src_str, i1 = src_str;
-    int i2 = std::min(i1 + scores.thd_window_size, src_end);
-    for (i1 = src_str; i1 < src_end; i1++)
+    int i0 = view_str, i1 = view_str, i2 = view_str;
+    for (i1 = view_str; i1 < view_end; i1++)
     {
-        dens_left = (scores.scores[i1] - scores.scores[i0]) / (src1[i1] - src2[i0]);
-        dens_rght = (scores.scores[i2] - scores.scores[i1]) / (src1[i2] - src2[i1]);
-
-        if ((f_ht == -1 && 
-            dens_left < scores.thd_dens_lower &&
-            dens_rght > scores.thd_dens_upper) ||
-            (f_ht == 1 &&
-            dens_left > scores.thd_dens_upper &&
-            dens_rght < scores.thd_dens_lower))
+        //dout << "cbx2" << scores.views[i0] << scores.views[i1] << scores.views[i2] << scores.thd_window_size << "\n";
+        int f1 = 0, f2 = 0;
+        while(i0 < i1 && scores.views[i1] - scores.views[i0] >= scores.thd_edge_window_size)
         {
-            int d_dens = (dens_left -dens_rght) * f_ht;
-            if (d_dens > max_d_dens)
+            if ((scores.views[i1] - scores.views[i0] >= scores.thd_window_size &&
+                 scores.views[i1] - scores.views[i0 + 1] < scores.thd_window_size) ||
+                (scores.views[i1] - scores.views[i0] <  scores.thd_window_size && i0 == view_str))
             {
-                max_d_dens = d_dens;
-                clip = i1;
+                f1 = 1;
+                break;
             }
-        }
-        if (i1 - i0 > scores.thd_window_size)
-        {
             i0++;
         }
-        if (i2 - i1 > scores.thd_window_size && i2 < src_end)
+        while (i2 < view_end)
         {
+            if (scores.views[i2] - scores.views[i1] >= scores.thd_window_size || 
+               (scores.views[i2] - scores.views[i1] >  scores.thd_edge_window_size && 
+                scores.views[i2] - scores.views[i1] <  scores.thd_window_size && i2 == view_end - 1))
+            {
+                f2 = 1;
+                break;
+            }
             i2++;
         }
+        if (f1 && f2)
+        {
+            int dens_left = (scores.scores[i1] - scores.scores[i0]) / 
+                            (scores.views[i1] - scores.views[i0]);
+            int dens_rght = (scores.scores[i2] - scores.scores[i1]) / 
+                            (scores.views[i2] - scores.views[i1]);
+            int dense_match_left = (scores.matches[i1] - scores.matches[view_str]) / (scores.views[i1] - scores.views[view_str]);
+            int dense_match_rght = (scores.matches[view_end - 1] - scores.matches[i1]) / (scores.views[view_end - 1] - scores.views[i1]);
+            dout << "cbx1" << scores.views[i0] << scores.views[i1] << scores.views[i2] << i1 << (dens_left - dens_rght) * f_ht << dens_left << dens_rght << scores.scores[i1] - scores.scores[i0] << scores.scores[i2] - scores.scores[i1] << src1[i1] << src2[i1] << "match" <<scores.matches[i1] - scores.matches[i0] << scores.matches[view_end - 1] - scores.matches[i1] << dense_match_left << dense_match_rght << "\n";
+
+            if (f_ht < 0)
+            {
+                int ddens = dens_rght - dens_left;
+                if (ddens > max_d_dens && ddens > 0 &&
+                    dense_match_left < scores.thd_dens_match_lower &&
+                    dense_match_rght > scores.thd_dens_match_upper)
+                {
+                    max_d_dens = ddens;
+                    clip = i1;
+                }
+            }
+            else if (f_ht > 0)
+            {
+                int ddens = dens_left - dens_rght;
+                if (ddens > max_d_dens && ddens > 0 &&
+                    dense_match_rght < scores.thd_dens_match_upper &&
+                    dense_match_left > scores.thd_dens_match_lower)
+                {
+                    max_d_dens = ddens;
+                    clip = i1 + 1;
+                }
+            }
+        }
     }
+    dout << "cbx3" << clip << src1[clip] << src2[clip] << view_end << "\n";
     return clip;
 }
 /*
- * 
+ * Operator function to manipulate(erase) head of the @records[@it] 
+   given the head position @cigar_clip
+   region [head, @cigar_clip) is clipped
  */
 int _clipBamRecordLinkCigarHead(String<BamAlignmentRecordLink> & records,
                                 int cigar_clip,
@@ -1650,15 +1730,50 @@ int _clipBamRecordLinkCigarHead(String<BamAlignmentRecordLink> & records,
     std::pair<int, int> seqs_len = std::pair<int, int>(0, 0);
     std::pair<int, int> tmp;
     int first_it = it;
+    int read_str = 0;
+    int cigar_erased = 0;
+    char read_opt = 'S';
+    if (!empty(records[it].cigar))
+    {
+        CigarElement<> & cigar0 = records[it].cigar[0];
+        if (cigar0.operation == 'S' || cigar0.operation == 'H')
+        {
+            read_str = cigar0.count;
+            read_opt = cigar0.operation;
+        }
+    }
     while (true)
     {
         l += length(records[it].cigar);
-        if (l >= cigar_clip)
+        if (l > cigar_clip)
         {
-            erase(records[it].cigar, 0, cigar_clip - l + length(records[it].cigar));
             tmp = cigars2SeqsLen(records[it].cigar, 0, cigar_clip);
             seqs_len.first += tmp.first;
             seqs_len.second += tmp.second;
+            dout << "cbx6" << cigar_clip - l + length(records[it].cigar) << "\n";
+            if (cigar_clip - l + length(records[it].cigar) <= 1)
+            {
+                if (records[it].cigar[0].operation == 'S' || records[it].cigar[0].operation == 'H')
+                {
+                    std::cout << "cbx5" << read_opt << " " << read_str + seqs_len.second << "\n";
+                    records[it].cigar[0].count = read_str + seqs_len.second;
+                }
+                else if (read_str + seqs_len.second != 0)
+                {
+                    std::cout << "cbx4" << read_opt << " " << read_str + seqs_len.second << "\n";
+                    insertValue(records[it].cigar, 0, CigarElement<>(read_opt, read_str + seqs_len.second));
+                    cigar_erased += -1;
+                }
+            }
+            else if (cigar_clip - l + length(records[it].cigar) > 1)
+            {
+                cigar_erased += cigar_clip - l + length(records[it].cigar) - 1;
+                erase(records[it].cigar, 1, cigar_clip - l + length(records[it].cigar));
+                records[it].cigar[0] = CigarElement<>(read_opt, read_str + seqs_len.second);
+            }
+
+            dout << "cliphead" << cigar_clip << l << length(records[it].cigar) << cigar_clip - l + length(records[it].cigar) << "\n";
+            //insertValue(records[it].cigar, 0, CigarElement<>(read_opt, read_str + seqs_len.second));
             break;
         }
         else
@@ -1673,21 +1788,30 @@ int _clipBamRecordLinkCigarHead(String<BamAlignmentRecordLink> & records,
         }
         else
         {
+            cigar_erased += length(records[it].cigar);
             clear(records[it].cigar);
             it = records[it].next();
         }
     }
-    records[first_it].beginPos -= seqs_len.first;
-    return 0;
+    dout << "ch2" << seqs_len.first << records[first_it].beginPos << cigar_erased << "\n";
+    records[first_it].beginPos += seqs_len.first;
+    return cigar_erased;
 }
+/*
+ * Operator function to manipulate(erase) tail of the @records[@it] 
+   given the tail position @cigar_clip
+   region [@cigar_clip, end) is clipped
+ */
 int _clipBamRecordLinkCigarTail(String<BamAlignmentRecordLink> & records,
                                 int cigar_clip,
                                 int it)
 {
     int f_clear = 0;
     int l = 0;
+    dout << "cct1" << cigar_clip << "\n";
     while (true)
     {
+        dout << "cct3" << l << cigar_clip << length(records[it].cigar)<< "\n";
         l += length(records[it].cigar);
         if (f_clear)
         {
@@ -1695,6 +1819,7 @@ int _clipBamRecordLinkCigarTail(String<BamAlignmentRecordLink> & records,
         }
         else if (l >= cigar_clip)
         {
+            dout << "cct2" << cigar_clip << cigar_clip - l + length(records[it].cigar) << "\n";
             erase(records[it].cigar, cigar_clip - l + length(records[it].cigar), 
                 length(records[it].cigar));
             f_clear = 1;
@@ -1711,7 +1836,7 @@ int _clipBamRecordLinkCigarTail(String<BamAlignmentRecordLink> & records,
     return 0;
 }
 /*
- * clip head in region [str, str+@src_d_bps) or tail [end - @src_d_bps, end).
+ * clip head in region [str, str+@src_d_bps) and tail [end - @src_d_bps, end).
  * @src_d_bps short for source shift d base pairs, it's the length of bps going to be 
    clipped
  */
@@ -1722,28 +1847,33 @@ int _clipBamRecordLinkHeadTail(String<BamAlignmentRecordLink> & records,
                                int it,
                                AlignGapParms & align_gap_parms)
 {
-    if (length(scores.scores) != length(src1) ||length(scores.scores) != length(src2))
+    if (length(scores.scores) != length(scores.views))
     {
         return -1; //error 
     }
-    for (int i = 0; i < length(src1); i++)
+    
+    int cigar_erased = 0;
+    int clip_head = 0;
+    for (int i = 0; i < length(scores.scores); i++)
     {
-        if (src1[i] - src1[0] >= align_gap_parms.cbrlht_thd_src_d_bps &&
-            src2[i] - src2[0] >= align_gap_parms.cbrlht_thd_src_d_bps)
+        dout << "cbrht3" << scores.views[i] << scores.views[0] << "\n";
+        if (scores.views[i] - scores.views[0] >= align_gap_parms.thd_clip_view_len  || 
+            i == length(scores.scores) - 1)
         {
-            int clip = _clipScore(scores, src1, src2, 0, i, -1, align_gap_parms);
-            _clipBamRecordLinkCigarHead(records, clip, it);
+            dout << "cbrht1" << i << align_gap_parms.cbrlht_thd_src_d_bps << length(scores.scores) <<  scores.views[0] << scores.views[i] << "\n";
+            int clip = _clipAlignScore(scores, src1, src2, 0, i, -1, align_gap_parms);
+            dout << "cbrht2" << clip << "\n";
+            cigar_erased = _clipBamRecordLinkCigarHead(records, clip, it);
+            dout << "ce1" <<cigar_erased << "\n";
+            clip_head = clip;
             break;
         }
     }
-    for (int i = length(src1) - 1; i > 0; i--)
+    for (int i = length(scores.scores) - 1; i > clip_head; i--)
     {
-        if (src1[length(src1) - 1] - src1[i] >= 
-                align_gap_parms.cbrlht_thd_src_d_bps &&
-            src2[length(src2) - 1] - src2[i] >= 
-                align_gap_parms.cbrlht_thd_src_d_bps)
+        if (back(scores.views) - scores.views[i] >= align_gap_parms.thd_clip_view_len || i == 1)
         {
-            int clip = _clipScore(scores, src1, src2, 0, i, 1, align_gap_parms);
+            int clip = _clipAlignScore(scores, src1, src2, i, length(scores.views), 1, align_gap_parms) - cigar_erased;
             _clipBamRecordLinkCigarTail(records, clip, it);
             break;                
         }
@@ -1764,8 +1894,11 @@ int clipBamRecordLinksHeadTail(String<BamAlignmentRecordLink> & records,
                                AlignGapParms & align_gap_parms)
 {
     BamLinkStringOperator bs;
+    bs.updateHeadsTable(records);
+    dout << "cbr2" << bs.getHeadNum(records) << "\n";
     for (int i = 0; i < bs.getHeadNum(records); i++)
     {
+        dout << "cbr1" << bs.getHead(records, i) << i << "\n";
         clipBamRecordLinkHeadTail(records, bs.getHead(records, i), align_gap_parms);
     }
     return 0;
@@ -2600,6 +2733,7 @@ int alignCords (StringSet<String<Dna5> >& genomes,
     int thd_accept_density = 16;
     */
     align_gaps(bam_records, gaps, genomes, read, comrev_read, score_scheme, _gap_parm); 
+    clipBamRecordLinksHeadTail(bam_records, _gap_parm);
     //printCigarSrcLen(bam_records, "pscr_gaps1 ");
     return 0;
 }

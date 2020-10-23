@@ -48,10 +48,7 @@ struct AlignGapParms
     Score<int, Simple> thd_clip_scheme;
 
     int cbrlht_thd_src_d_bps;
-
-    int cs_thd_window_size;
-    int cs_thd_dens_lower;
-    int cs_thd_dens_upper;
+    int thd_clip_view_len;
     AlignGapParms ();
 };
 extern AlignGapParms _gap_parm;
