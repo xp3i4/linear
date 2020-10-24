@@ -1871,7 +1871,8 @@ int _clipBamRecordLinkHeadTail(String<BamAlignmentRecordLink> & records,
     }
     for (int i = length(scores.scores) - 1; i > clip_head; i--)
     {
-        if (back(scores.views) - scores.views[i] >= align_gap_parms.thd_clip_view_len || i == 1)
+        if (back(scores.views) - scores.views[i] >= align_gap_parms.thd_clip_view_len || 
+            i == clip_head + 1)
         {
             int clip = _clipAlignScore(scores, src1, src2, i, length(scores.views), 1, align_gap_parms) - cigar_erased;
             _clipBamRecordLinkCigarTail(records, clip, it);
