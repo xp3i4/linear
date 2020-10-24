@@ -1686,8 +1686,8 @@ int _clipAlignScore(AlignClipScores & scores,
                             (scores.views[i1] - scores.views[i0]);
             int dens_rght = (scores.scores[i2] - scores.scores[i1]) / 
                             (scores.views[i2] - scores.views[i1]);
-            int dense_match_left = (scores.matches[i1] - scores.matches[view_str]) / (scores.views[i1] - scores.views[view_str]);
-            int dense_match_rght = (scores.matches[view_end - 1] - scores.matches[i1]) / (scores.views[view_end - 1] - scores.views[i1]);
+            int dense_match_left = (scores.matches[i1] - scores.matches[i0]) / (scores.views[i1] - scores.views[i0]);
+            int dense_match_rght = (scores.matches[i2] - scores.matches[i1]) / (scores.views[i2] - scores.views[i1]);
             dout << "cbx1" << scores.views[i0] << scores.views[i1] << scores.views[i2] << i1 << (dens_left - dens_rght) * f_ht << dens_left << dens_rght << scores.scores[i1] - scores.scores[i0] << scores.scores[i2] - scores.scores[i1] << src1[i1] << src2[i1] << "match" <<scores.matches[i1] - scores.matches[i0] << scores.matches[view_end - 1] - scores.matches[i1] << dense_match_left << dense_match_rght << "\n";
 
             if (f_ht < 0)
