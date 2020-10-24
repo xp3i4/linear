@@ -502,7 +502,7 @@ int BamLinkStringOperator::getHead(String<BamAlignmentRecordLink> & bam_records,
 }
 /*
  *  Update heads table of @bam_records.
-    The heads table is store in @bam_records[0].
+    The heads table is stored in @bam_records[0].
  */
 int BamLinkStringOperator::updateHeadsTable(String<BamAlignmentRecordLink> & bam_records)
 {
@@ -599,6 +599,10 @@ int BamLinkStringOperator::createSAZTagCigarOneChimeric(
     if (nm_i_sum != neg_infi)
     {
         record.nm_i = nm_i_sum - neg_infi;
+    }
+    else
+    {
+        record.nm_i = 0;
     }
     return it;
 }
