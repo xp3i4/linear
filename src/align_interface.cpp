@@ -118,8 +118,9 @@ void printAlignment(Align<String<Dna5>, ArrayGaps> & aligner)
 {
     printAlign_(row(aligner, 0), row(aligner, 1));
 }
-void printCigar(String<CigarElement< > > &cigar, std::string header)
+void printCigars(String<CigarElement< > > &cigar, std::string header)
 {
+    std::cout << header;
     for (int i = 0; i < length(cigar); i++)
     {
         std::cout << cigar[i].count <<cigar[i].operation;
