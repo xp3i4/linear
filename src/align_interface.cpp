@@ -1508,21 +1508,27 @@ struct AlignClipScores
     int thd_edge_window_size;
     int thd_dens_match_lower;
     int thd_dens_match_upper;
+    int thd_ddens_lower;
     String<int> scores; 
     String<int> views;
+    String<int> src1;
+    String<int> src2;
     String<int> matches;
 
     AlignClipScores();
     int & operator [](int);
     int cigar2Score(CigarElement<> & cigar);
     int appendNew(CigarElement<> & cigar);
+    int addNew(CigarElement<> & cigar, int i);
+    void resize(int len);
 };
 AlignClipScores::AlignClipScores():
     precision(1000),
     thd_window_size (50),
     thd_edge_window_size(10),
     thd_dens_match_lower(0.65 * precision),
-    thd_dens_match_upper(0.75 * precision)
+    thd_dens_match_upper(0.75 * precision),
+    thd_ddens_lower(0 * precision) //relate to function cigar2Score
 {}
 int & AlignClipScores::operator [](int i)
 {
@@ -1695,7 +1701,7 @@ int _clipAlignScore(AlignClipScores & scores,
             if (f_ht < 0)
             {
                 int ddens = dens_rght - dens_left;
-                if (ddens > max_d_dens && ddens > 0 &&
+                if (ddens > max_d_dens && ddens > scores.thd_ddens_lower &&
                     dense_match_left < scores.thd_dens_match_lower &&
                     dense_match_rght > scores.thd_dens_match_upper)
                 {
@@ -1706,7 +1712,7 @@ int _clipAlignScore(AlignClipScores & scores,
             else if (f_ht > 0)
             {
                 int ddens = dens_left - dens_rght;
-                if (ddens > max_d_dens && ddens > 0 &&
+                if (ddens > max_d_dens && ddens > scores.thd_ddens_lower &&
                     dense_match_rght < scores.thd_dens_match_upper &&
                     dense_match_left > scores.thd_dens_match_lower)
                 {
