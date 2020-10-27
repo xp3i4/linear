@@ -1561,7 +1561,7 @@ int AlignClipScores::cigar2Score(CigarElement<> & cigar)
 }
 int AlignClipScores::appendNew(CigarElement<> & cigar)
 {
-    dout << "acs" << "\n";
+    //dout << "acs" << "\n";
     int new_score, new_match, new_view;
     if (empty(scores))
     {
@@ -1592,11 +1592,11 @@ int _bamRecordLlink2Score(String<BamAlignmentRecordLink> & records,
                           String<int> & src2,
                           int it)
 {
+    dout << "brl2s<<<" << "\n";
     int new_score = 0;
     int new_src1 = records[it].beginPos;
     int new_src2 = 0;
     int new_view = 0;
-    dout << "brl2s<<<" << "\n";
     while(true)
     {
         for (int i = 0; i < length(records[it].cigar); i++)
@@ -2522,10 +2522,10 @@ int alignCords (StringSet<String<Dna5> >& genomes,
             //<<debug
             dout << "acf1" << get_cord_x(cord_str) << get_cord_x(cord_end) << get_cord_y(tmp1) << get_cord_y(tmp2) << flag << "\n";
             std::cout << "macons1 " << genomes[g_id][get_cord_x(pre_cord_str)] << " " << value(rstr[ri_pre]._source)[0] << "\n";
-            print_cord(pre_cord_str, "map11");
-            print_cord(pre_cord_end, "map12");
-            print_cord(cord_str, "map13");
-            print_cord(cord_end, "map14");
+            //print_cord(pre_cord_str, "map11");
+            //print_cord(pre_cord_end, "map12");
+            //print_cord(cord_str, "map13");
+            //print_cord(cord_end, "map14");
             //>>debug
         }
         uint64_t bam_start_x = get_cord_x(pre_cord_str) + 
@@ -2533,8 +2533,8 @@ int alignCords (StringSet<String<Dna5> >& genomes,
         uint64_t bam_start_y = get_cord_y(pre_cord_str) + 
                                beginPosition(rstr[ri_pre + 1]);
         uint64_t bam_strand = get_cord_strand(pre_cord_str); 
-        std::cout << "dac11 " << flag_pre << flag << " " << bam_start_x << " " << rstr[ri_pre]._sourceEndPos - rstr[ri_pre]._sourceBeginPos << " " << rstr[ri_pre] << "\n";
-        std::cout << "dac12 " << flag_pre << flag << " " << bam_start_x << " " << rstr[ri_pre]._sourceEndPos - rstr[ri_pre]._sourceBeginPos << " " << rstr[ri_pre + 1] << "\n";
+        //std::cout << "dac11 " << flag_pre << flag << " " << bam_start_x << " " << rstr[ri_pre]._sourceEndPos - rstr[ri_pre]._sourceBeginPos << " " << rstr[ri_pre] << "\n";
+        //std::cout << "dac12 " << flag_pre << flag << " " << bam_start_x << " " << rstr[ri_pre]._sourceEndPos - rstr[ri_pre]._sourceBeginPos << " " << rstr[ri_pre + 1] << "\n";
         if (!flag_pre)
         {
             if (!flag)
