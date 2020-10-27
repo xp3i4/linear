@@ -1747,7 +1747,6 @@ int _clipBamRecordLinkCigarHead(String<BamAlignmentRecordLink> & records,
         l += length(records[it].cigar);
         if (l > cigar_clip)
         {
-            tmp = cigars2SeqsLen(records[it].cigar, 0, cigar_clip);
             tmp = cigars2SeqsLen(records[it].cigar, 0, cigar_clip - l + length(records[it].cigar));
             seqs_len.first += tmp.first;
             seqs_len.second += tmp.second;
