@@ -585,7 +585,7 @@ int cord2row_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
         infix2 = infix(read, readStart, std::min(readEnd, length(read)));  
     }
     infix1 = infix(genome, genomeStart, std::min(genomeEnd, length(genome)));       
-    std::cout << "rowsize " << length(infix1) << " " << length(infix2) << "\n";
+    //std::cout << "rowsize " << length(infix1) << " " << length(infix2) << "\n";
     assignSource (row1, infix1);  
     assignSource (row2, infix2); 
     return 0;
@@ -609,9 +609,9 @@ int align_cord (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     }
     else
     {
-        double time = sysTime();
+     //   double time = sysTime();
         score = globalAlignment (row1, row2, scheme, AlignConfig<true, true, true, true>(), -band, band);
-        std::cout << "atime " << sysTime() - time << "\n";
+    //    std::cout << "atime " << sysTime() - time << "\n";
     }
     return score;
 }
@@ -641,8 +641,8 @@ int clip_head_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
 			   int g_end //view coordinates
 			  )
 {
-    std::cout << "ch" << row1 << "\n";
-    std::cout << "ch" << row2 << "\n";
+    //std::cout << "ch" << row1 << "\n";
+    //std::cout << "ch" << row2 << "\n";
     int window = 6;   //sliding window size
     int thd_clip = 5; //5 matches in the window
     int x = 0;
@@ -788,9 +788,9 @@ int mergeAlignCheck_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     else if ((dx > thd_cord_overlap && dy > thd_cord_overlap)||
             (dx < 0 || dy < 0))
     {
-        print_cord(cord1, "man111");
-        print_cord(cord2, "man111");
-        dout << "man111" << thd_cord_overlap << get_cord_x(cord1) + endPosition(row11) << get_cord_x(cord2) + endPosition(row21) << "\n";
+        //print_cord(cord1, "man111");
+        //print_cord(cord2, "man111");
+        //dout << "man111" << thd_cord_overlap << get_cord_x(cord1) + endPosition(row11) << get_cord_x(cord2) + endPosition(row21) << "\n";
         //return 64 | 1;
     }
      
@@ -799,18 +799,18 @@ int mergeAlignCheck_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     if (int64_t(endPosition(row11) - beginPosition(row21)) < delta1 &&
         int64_t(endPosition(row12) - beginPosition(row22)) < delta2)
     {
-        print_cord(cord1, "manh");
-        print_cord(cord2, "manh");
+        //print_cord(cord1, "manh");
+        //print_cord(cord2, "manh");
 //        return 1;
-        print_cord(cord1, "manh");
-        print_cord(cord2, "manh");
-        std::cout << "manh " << row11 << "\n";
-        std::cout << "manh " << row12 << "\n";
-        std::cout << "manh " << row21 << "\n";
-        std::cout << "manh " << row22 << "\n";
-        dout << "manh " << delta1 << endPosition(row11) << beginPosition(row21) << 
-        delta2 << endPosition(row12) << beginPosition(row22)  << "\n";
-        std::cout << "manh " << endPosition(row12) << " " << beginPosition(row22) + delta2 << "\n";
+        //print_cord(cord1, "manh");
+        //print_cord(cord2, "manh");
+        //std::cout << "manh " << row11 << "\n";
+        //std::cout << "manh " << row12 << "\n";
+        //std::cout << "manh " << row21 << "\n";
+        //std::cout << "manh " << row22 << "\n";
+        //dout << "manh " << delta1 << endPosition(row11) << beginPosition(row21) << 
+        //delta2 << endPosition(row12) << beginPosition(row22)  << "\n";
+        //std::cout << "manh " << endPosition(row12) << " " << beginPosition(row22) + delta2 << "\n";
         return 1|4096;
     }
     if (int64_t(beginPosition(row11) - beginPosition(row21)) > delta1)
@@ -1033,7 +1033,7 @@ int alignCachePos_(TRow5A & row1, TRow5A & row2, AlignCache & align,
         //appendValue (align, (rpv1.getUCView()<< bit2)
         //    + ((rpv1.getSrc() + delta1) << bit)
         //    + (rpv2.getSrc() + delta2));
-        dout << "capos1" << rpv1.getUCView() << rpv1.getView() << toViewPosition(*rpv1.rp, rpv1.getSrc())  << "\n";
+        //dout << "capos1" << rpv1.getUCView() << rpv1.getView() << toViewPosition(*rpv1.rp, rpv1.getSrc())  << "\n";
 
         rpv1.nextView();
         rpv2.nextView();
@@ -1093,7 +1093,7 @@ int mergeAlignCache_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     uint64_t intersect_src_2yu = std::max(intersect_cord__yu, r2yl) - y2;
     f_a |= alignCachePos_(row21, row22, align2, intersect_src_2xl, intersect_src_2xu, 
         intersect_src_2yl, intersect_src_2yu, cord2);
-    dout << "macs" << intersect_src_2xl << intersect_src_2xu << intersect_src_2yl << intersect_src_2yu << beginPosition(row21) << "\n";
+    //dout << "macs" << intersect_src_2xl << intersect_src_2xu << intersect_src_2yl << intersect_src_2yu << beginPosition(row21) << "\n";
     dout << "macs2" << f_a << "\n";
     return f_a; 
 }
@@ -1121,15 +1121,15 @@ int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     uint64_t c1 = cord1, c2 = cord2;
     dout << "maa1" << beginPosition(r3) << beginPosition(r4) << "\n";
     //if (get_cord_y(cord2) == 2957 || get_cord_y(cord2) == 3255)
-    {
-        print_cord(get_cord_y(cord2), "ins");
-        std::cout << "ins11" << r1 << "\n";
-        std::cout << "ins12" << r2 << "\n";
-        std::cout << "ins21" << r3 << "\n";
-        std::cout << "ins22" << r4 << "\n";
-    }
-    print_cord(cord1, "man11");
-    print_cord(cord2, "man12");
+    //{
+     //   print_cord(get_cord_y(cord2), "ins");
+     //   std::cout << "ins11" << r1 << "\n";
+     //   std::cout << "ins12" << r2 << "\n";
+      //  std::cout << "ins21" << r3 << "\n";
+       // std::cout << "ins22" << r4 << "\n";
+    //}
+    //print_cord(cord1, "man11");
+    //print_cord(cord2, "man12");
     //>>debug
     int r_flag = 0;
     
@@ -1137,9 +1137,9 @@ int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     int f_c = mergeAlignCheck_(row11, row12, row21, row22, cord1, cord2);
     if (f_c)
     {
-        dout << "manx2<<" << f_c << get_cord_y(cord1) << get_cord_y(cord2) << "\n";
-        print_cord(cord1, "manx2");
-        print_cord(cord2, "manx2");
+        //dout << "manx2<<" << f_c << get_cord_y(cord1) << get_cord_y(cord2) << "\n";
+        //print_cord(cord1, "manx2");
+        //print_cord(cord2, "manx2");
 
         return f_c;
     }
@@ -1149,26 +1149,26 @@ int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     f_c = mergeAlignCache_(row11, row12, row21, row22, align1, align2, cord1, cord2);
     if (f_c)
     {
-        dout << "manx3" << f_c << get_cord_y(cord1) << get_cord_y(cord2) << "\n";
-        print_cord(cord1, "manx3");
-        print_cord(cord2, "manx3");
+        //dout << "manx3" << f_c << get_cord_y(cord1) << get_cord_y(cord2) << "\n";
+        //print_cord(cord1, "manx3");
+        //print_cord(cord2, "manx3");
         return f_c;
     }
 
     //<<debug
-    print_cord(cord1, "man60");
-    print_cord(cord2, "man61");
-    String<int64_t> a1, a2;
+    //print_cord(cord1, "man60");
+    //print_cord(cord2, "man61");
+    //String<int64_t> a1, a2;
     //int f_ = mergeAlignCache_(r1, r2, r3, r4, a1, a2, cord1, cord2);
     //if (!f_)
-    {
+    //{
     //    mergeAlign2_(r1, r2, r3, r4, a1, a2, ref, read, comrev_read, c1, c2);
-    }
+    //}
     //>>debug
     //f_c = mergeAlign1_(row11, row12, row21, row22, align1, align2);
     f_c = mergeAlign2_(row11, row12, row21, row22, align1, align2, ref, read, comrev_read, cord1, cord2);
-    print_cord(cord1, "man11");
-    print_cord(cord2, "man12");
+    //print_cord(cord1, "man11");
+    //print_cord(cord2, "man12");
     
     //std::cout << "man13" << row11 << "\n";
     //std::cout << "man13" << row12 << "\n";
@@ -1177,17 +1177,17 @@ int merge_align_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     //<<debug
         //printAlign_(row11, row12);
     //if (get_cord_y(c1) == 2957 || get_cord_y(c2) == 3255)
-    {
+    //{
 
         //Align<String<Dna5>,ArrayGaps> align1; 
-        std::cout << "m11" << r1 << "\n";
-        std::cout << "m11" << r2 << "\n";
-        std::cout << "m11" << r3 << "\n";
-        std::cout << "m11" << r4 << "\n";
+     //   std::cout << "m11" << r1 << "\n";
+     //   std::cout << "m11" << r2 << "\n";
+      //  std::cout << "m11" << r3 << "\n";
+      //  std::cout << "m11" << r4 << "\n";
 
-    }
+    //}
         //>>debug
-    dout << "manx1" << f_c << clippedBeginPosition(row11) - clippedBeginPosition(row12) << "\n";
+    //dout << "manx1" << f_c << clippedBeginPosition(row11) - clippedBeginPosition(row12) << "\n";
     return f_c;
 }
 
@@ -1582,7 +1582,8 @@ int AlignClipScores::appendNew(CigarElement<> & cigar)
     appendValue(scores, new_score);
     appendValue(views, new_view);
     appendValue(matches, new_match);
-    dout << "acs1" << back(views) << "\n";
+    //dout << "acs1" << back(views) << "\n";
+    //dout << "appendnew" << back(scores) << back(views) << back(matches) << length(scores) << "\n";
     return 0;
 }
 int _bamRecordLlink2Score(String<BamAlignmentRecordLink> & records,
@@ -1689,7 +1690,7 @@ int _clipAlignScore(AlignClipScores & scores,
                             (scores.views[i2] - scores.views[i1]);
             int dense_match_left = (scores.matches[i1] - scores.matches[i0]) / (scores.views[i1] - scores.views[i0]);
             int dense_match_rght = (scores.matches[i2] - scores.matches[i1]) / (scores.views[i2] - scores.views[i1]);
-            dout << "cbx1" << scores.views[i0] << scores.views[i1] << scores.views[i2] << i1 << (dens_left - dens_rght) * f_ht << dens_left << dens_rght << scores.scores[i1] - scores.scores[i0] << scores.scores[i2] - scores.scores[i1] << src1[i1] << src2[i1] << "match" <<scores.matches[i1] - scores.matches[i0] << scores.matches[view_end - 1] - scores.matches[i1] << dense_match_left << dense_match_rght << "\n";
+            //dout << "cbx1" << scores.views[i0] << scores.views[i1] << scores.views[i2] << i1 << (dens_left - dens_rght) * f_ht << dens_left << dens_rght << scores.scores[i1] - scores.scores[i0] << scores.scores[i2] - scores.scores[i1] << src1[i1] << src2[i1] << "match" <<scores.matches[i1] - scores.matches[i0] << scores.matches[view_end - 1] - scores.matches[i1] << dense_match_left << dense_match_rght << "\n";
 
             if (f_ht < 0)
             {
@@ -1715,7 +1716,7 @@ int _clipAlignScore(AlignClipScores & scores,
             }
         }
     }
-    dout << "cbx3" << clip << src1[clip] << src2[clip] << view_end << "\n";
+    //dout << "cbx3" << clip << src1[clip] << src2[clip] << view_end << "\n";
     return clip;
 }
 /*
@@ -1751,12 +1752,13 @@ int _clipBamRecordLinkCigarHead(String<BamAlignmentRecordLink> & records,
             tmp = cigars2SeqsLen(records[it].cigar, 0, cigar_clip - l + length(records[it].cigar));
             seqs_len.first += tmp.first;
             seqs_len.second += tmp.second;
-            dout << "cbx6" << cigar_clip - l + length(records[it].cigar) << "\n";
+            //std::cout << records[it].cigar[]
+            //dout << "cbx6" << cigar_clip - l + length(records[it].cigar) << "\n";
             if (cigar_clip - l + length(records[it].cigar) <= 1)
             {
                 if (records[it].cigar[0].operation == 'S' || records[it].cigar[0].operation == 'H')
                 {
-                    std::cout << "cbx5" << read_opt << " " << read_str + seqs_len.second << "\n";
+                    ////std::cout << "cbx5" << read_opt << " " << read_str + seqs_len.second << "\n";
                     records[it].cigar[0].count = read_str + seqs_len.second;
                 }
                 else if (read_str + seqs_len.second != 0)
@@ -1794,8 +1796,8 @@ int _clipBamRecordLinkCigarHead(String<BamAlignmentRecordLink> & records,
             it = records[it].next();
         }
     }
-    dout << "ch2" << seqs_len.first << records[first_it].beginPos << cigar_erased << "\n";
     records[first_it].beginPos += seqs_len.first;
+    //dout << "chhh2" << seqs_len.first << records[first_it].beginPos << cigar_erased << "\n";
     return cigar_erased;
 }
 /*
@@ -1857,19 +1859,16 @@ int _clipBamRecordLinkHeadTail(String<BamAlignmentRecordLink> & records,
     int clip_head = 0;
     for (int i = 0; i < length(scores.scores); i++)
     {
-        dout << "cbrht3" << scores.views[i] << scores.views[0] << "\n";
         if (scores.views[i] - scores.views[0] >= align_gap_parms.thd_clip_view_len  || 
             i == length(scores.scores) - 1)
         {
-            dout << "cbrht1" << i << align_gap_parms.cbrlht_thd_src_d_bps << length(scores.scores) <<  scores.views[0] << scores.views[i] << "\n";
             int clip = _clipAlignScore(scores, src1, src2, 0, i, -1, align_gap_parms);
-            dout << "cbrht2" << clip << "\n";
             cigar_erased = _clipBamRecordLinkCigarHead(records, clip, it);
-            dout << "ce1" <<cigar_erased << "\n";
             clip_head = clip;
             break;
         }
     }
+    dout << "chh1" << length(scores.scores) << clip_head << "\n";
     for (int i = length(scores.scores) - 1; i > clip_head; i--)
     {
         if (back(scores.views) - scores.views[i] >= align_gap_parms.thd_clip_view_len || 
@@ -1889,6 +1888,12 @@ int clipBamRecordLinkHeadTail(String<BamAlignmentRecordLink> & records,
     AlignClipScores scores;
     String<int> src1, src2;
     _bamRecordLlink2Score(records, scores, src1, src2, it);
+    //<<debug
+    //for (int i = 0; i < length(scores.scores); i++)
+    //{
+    //    dout << "bascore2" << scores.scores[i] << scores.views[i] << scores.matches[i] << "\n";
+    //}
+    //>>debug
     _clipBamRecordLinkHeadTail(records, scores, src1, src2, it, align_gap_parms);
     return 0;
 }
@@ -1925,8 +1930,8 @@ int align_gap (GapRecordHolder & gap,
     int thd_alg_extnd = 20;
     uint64_t str_cord = gap.getCords().first;
     uint64_t end_cord = gap.getCords().second;
-    print_cord(str_cord, "ag11");
-    print_cord(end_cord, "ag12");
+    //print_cord(str_cord, "ag11");
+    //print_cord(end_cord, "ag12");
     if (get_cord_strand(str_cord ^ end_cord))
     {
         return 1;
@@ -1949,9 +1954,9 @@ int align_gap (GapRecordHolder & gap,
     clip_rows_segs (row1, row2, clips, clips_src1, clips_src2, str_cord, align_gap_parms);
     //std::cout << "ag11" << row1 << "\n";
     //std::cout << "ag12" << row2 << "\n";
-    dout << "ag2" << length(clips) << get_cord_y(str_cord) << get_cord_y(end_cord) << "\n";
-    std::cout << "ag2" << row1 << "\n";
-    std::cout << "ag2" << row2 << "\n";
+    //dout << "ag2" << length(clips) << get_cord_y(str_cord) << get_cord_y(end_cord) << "\n";
+    //std::cout << "ag2" << row1 << "\n";
+    //std::cout << "ag2" << row2 << "\n";
     if (empty(clips))
     {
         return 1;
@@ -1979,7 +1984,7 @@ int align_gap (GapRecordHolder & gap,
             int bam_strand = get_cord_strand(str_cord);
             setClippedPositions(row1, row2, clips[i].first, clips[i].second);
             insertNewBamRecord(bam_records, row1, row2, g_id, bam_start_x, bam_start_y, bam_strand, tmp++, 1, 2048); 
-            dout << "ag4" << get_cord_y(str_cord) <<  "\n";
+            //dout << "ag4" << get_cord_y(str_cord) <<  "\n";
         }
         //realign and clip interval between each clip[i].second and clip[i + 1].second
         for (int i = 0; i < length(clips) - 1; i++) 
@@ -2318,7 +2323,7 @@ int AlignCords::createAlignCords(StringSet<String<Dna5> >& genomes,
             }
         }
     }
-    print_cords(cords_str, "trmc1");
+    //print_cords(cords_str, "trmc1");
     return 0;
 }
 /**
@@ -2401,7 +2406,7 @@ int alignCords (StringSet<String<Dna5> >& genomes,
             int dx = dy;
             cord_end = shift_cord (cord_end, dx, dy);
             check_flag = 1;
-            dout << "shift1" << get_cord_y(cord_str) << get_cord_y(cord_end) << dy << "\n";
+            //dout << "shift1" << get_cord_y(cord_str) << get_cord_y(cord_end) << dy << "\n";
         }
         else if (get_cord_strand(cords_str[i] ^ cords_str[i + 1]))
         {
@@ -2416,7 +2421,7 @@ int alignCords (StringSet<String<Dna5> >& genomes,
             !get_cord_strand(cords_str[i] ^ cords_str[i - 1]))
         { //ins, del right cord
             cord_str = shift_cord(cord_str, -50, -50);
-            print_cord(cord_str, "inshit1");
+            //print_cord(cord_str, "inshit1");
             f_clip_head = 0;
             check_flag = -1; 
         }
@@ -2426,7 +2431,7 @@ int alignCords (StringSet<String<Dna5> >& genomes,
         {//ins, del left cord
             cord_end = shift_cord(cord_end, 50, 50);
             f_clip_tail = 0;
-            print_cord(cord_end, "inshit2");
+            //print_cord(cord_end, "inshit2");
             check_flag = 1;
         }
         if (check_cord_1_(cord_str, length(genomes[g_id]), length(read)) ||
@@ -2445,8 +2450,8 @@ int alignCords (StringSet<String<Dna5> >& genomes,
         int score_align = align_cord (rstr[ri], rstr[ri + 1], genomes[g_id], 
                                       read, comrev_read, 
                                       cord_str, cord_end, band);
-    print_cord(cord_str, "ags31");
-    print_cord(cord_end, "ags32");
+    //print_cord(cord_str, "ags31");
+    //print_cord(cord_end, "ags32");
             //std::cout << "ags3 " << rstr[ri] << "\n";
             //std::cout << "ags3 " << rstr[ri+1] << "\n";
     int f1,f2,f3;
@@ -2464,11 +2469,11 @@ int alignCords (StringSet<String<Dna5> >& genomes,
         }
         flag = f1 | f2 | f3;
 
-    print_cord(cord_str, "ags4");
+    //print_cord(cord_str, "ags4");
 
             //std::cout << "ags4 " << rstr[ri] << "\n";
             //std::cout << "ags4 " << rstr[ri+1] << "\n";
-        dout << "ags2" << get_cord_x(cord_str) << get_cord_x(cord_end) << get_cord_y(cord_str) << get_cord_y(cord_end) << flag << f1 << f2 << f3 << f_clip_head << f_clip_tail << beginPosition(rstr[ri]) << beginPosition(rstr[ri + 1]) << "\n";
+        //dout << "ags2" << get_cord_x(cord_str) << get_cord_x(cord_end) << get_cord_y(cord_str) << get_cord_y(cord_end) << flag << f1 << f2 << f3 << f_clip_head << f_clip_tail << beginPosition(rstr[ri]) << beginPosition(rstr[ri + 1]) << "\n";
         //TODO!!check_align for first or last cord are differnet from middle cords
         if (check_flag != 0)
         {
@@ -2477,19 +2482,19 @@ int alignCords (StringSet<String<Dna5> >& genomes,
             //std::cout << "ags3 " << rstr[ri+1] << "\n";
         }
         //if (get_cord_y(cord_str) == 3255)
-            {
-                std::cout << "ags2" << rstr[ri] << "\n";
-                std::cout << "ags2" << rstr[ri + 1] << "\n";
-            }
+            //{
+                //std::cout << "ags2" << rstr[ri] << "\n";
+                //std::cout << "ags2" << rstr[ri + 1] << "\n";
+            //}
         if (flag)
         {
             
             continue; //alignment quality check, drop poorly aligned 
         }
-            dout << "ib13" << get_cord_y(cord_str) + beginPosition(rstr[ri + 1]) << get_cord_y(cord_str) << get_cord_y(cord_end) << get_cord_y(cords_str[i]) << get_cord_y(pre_cord_str) << get_cord_y(pre_cord_end)<< "\n";
+         //   dout << "ib13" << get_cord_y(cord_str) + beginPosition(rstr[ri + 1]) << get_cord_y(cord_str) << get_cord_y(cord_end) << get_cord_y(cords_str[i]) << get_cord_y(pre_cord_str) << get_cord_y(pre_cord_end)<< "\n";
         uint64_t cord_str_before_merge = cord_str;
-        print_cord(pre_cord_str, "mcx1");
-        print_cord(cord_str, "mcx2");
+        //print_cord(pre_cord_str, "mcx1");
+        //print_cord(cord_str, "mcx2");
             uint64_t tmp1 = pre_cord_str, tmp2= cord_str;
         if (_DefaultCord.isBlockEnd(pre_cord_str))
         {

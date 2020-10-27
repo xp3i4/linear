@@ -1326,7 +1326,7 @@ int createTilesFromAnchors2_(String<Dna5> & ref,
 {
     String<uint64_t> tmp_tiles;
     g_CreateChainsFromAnchors_(anchors, tmp_tiles, gap_str, gap_end, read_len, gap_parms);
-    g_print_tiles_(tmp_tiles, "ctfa2");
+    //g_print_tiles_(tmp_tiles, "ctfa2");
     if (gap_parms.f_me_map_extend) //for MapExtend: many ins are tandem repeats, extended part is limited to those that well connected to the gap_str, or gap_end
     {
         std::pair<int, int> its = getClosestExtensionChain_(tmp_tiles, gap_str, gap_end, false, gap_parms);

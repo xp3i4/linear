@@ -209,7 +209,7 @@ void cigar2SamSeq(CigarElement<> & cigar, IupacString & result,
     Iterator<String<Dna5> >::Type & it1, Iterator<String<Dna5> >::Type & it2,
     int f_is_align)
 {
-    dout << "c2s" << f_is_align << "\n";
+    //dout << "c2s" << f_is_align << "\n";
     if (!f_is_align)
     {
         if (cigar.operation == 'D')
@@ -1133,3 +1133,4 @@ void print_cords_sam (StringSet<String<uint64_t> > & cordset_str,
     }
     print_align_sam (genms, reads, genmsId, readsId, bam_records, of, f_header, fio_parms);
 }   
+
