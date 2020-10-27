@@ -1592,6 +1592,38 @@ int AlignClipScores::appendNew(CigarElement<> & cigar)
     //dout << "appendnew" << back(scores) << back(views) << back(matches) << length(scores) << "\n";
     return 0;
 }
+int AlignClipScores::addNew(CigarElement<> & cigar, int i)
+{
+    //dout << "acs" << "\n";
+    int new_score, new_match, new_view;
+    if (empty(scores))
+    {
+        new_score = new_view = new_match = 0;
+    }
+    else
+    {
+        new_score = scores[i - 1];
+        new_view = views[i - 1];
+        new_match = matches[i - 1];
+    }
+    new_score += cigar2Score(cigar);
+    new_view += cigar.count;
+    if (cigar.operation == '=')
+    {
+        new_match += cigar.count * precision;
+    }
+    scores[i] = new_score;
+    views[i] = new_view;
+    matches[i] = new_match;
+    //dout << "addnew" << scores[i] << views[i] << matches[i] << i + 1<< "\n";
+    return 0;
+}
+void AlignClipScores::resize(int len)
+{
+    seqan::resize (scores, len);
+    seqan::resize (views, len);
+    seqan::resize (matches, len);
+}
 int _bamRecordLlink2Score(String<BamAlignmentRecordLink> & records,
                           AlignClipScores & scores,
                           String<int> & src1,
@@ -1603,11 +1635,31 @@ int _bamRecordLlink2Score(String<BamAlignmentRecordLink> & records,
     int new_src1 = records[it].beginPos;
     int new_src2 = 0;
     int new_view = 0;
+    int it_origin = it;
+    int len = 0;
+    
+    while(true)
+    {
+        printCigars(records[it].cigar, "brcigar1");
+        len += length(records[it].cigar);
+        if (records[it].isEnd())
+        {
+            break;
+        }
+        else
+        {
+            it = records[it].next();
+        }
+    }
+    scores.resize(len);
+    
+    it = it_origin;
+    int ii = 0;
     while(true)
     {
         for (int i = 0; i < length(records[it].cigar); i++)
         {
-            scores.appendNew(records[it].cigar[i]);
+            scores.addNew(records[it].cigar[i], ii++);
             //<<debug
             char o = records[it].cigar[i].operation;
             if (o == 'X' || o == 'D' || o == '=')
