@@ -2033,17 +2033,23 @@ int align_gap (GapRecordHolder & gap,
         int bam_start_x = get_cord_x (str_cord) + beginPosition(row1);
         int bam_start_y = get_cord_y (str_cord) + beginPosition(row2);
         insertBamRecord(bam_records[bam_next_id], row1, row2, g_id, bam_start_x, bam_start_y, 0);
-        int tmp = bam_next_id;
-        int tmp2 = tmp + 1;
+        //int tmp = bam_next_id;
+        //int tmp2 = tmp + 1;
+        int pre_bam_id = bam_id;
         for (int i = 1; i < length(clips) - 1; i++)
         {
             int bam_start_x = clips_src1[i].first;
             int bam_start_y = clips_src2[i].first;
             int bam_strand = get_cord_strand(str_cord);
             setClippedPositions(row1, row2, clips[i].first, clips[i].second);
-            insertNewBamRecord(bam_records, row1, row2, g_id, bam_start_x, bam_start_y, bam_strand, tmp++, 1, 2048); 
-            //dout << "ag4" << get_cord_y(str_cord) <<  "\n";
+            insertNewBamRecord(bam_records, row1, row2, g_id, bam_start_x, bam_start_y, bam_strand, -1, 1, 2048); 
+            //addNextBamLink(bam_records, pre_bam_id, length(bam_records) - 1);
+            //dout << "ag4" << tmp - 1 << bam_next_id << get_cord_x(str_cord) << get_cord_x(end_cord) <<  "\n";
+            //std::cerr << "it=====" << pre_bam_id << length(bam_records) - 1 << "\n";
+            pre_bam_id = i;
         }
+        //addNextBamLink(bam_records, length(bam_records) - 1, bam_next_id);
+            //std::cerr << "it=====" << length(bam_records) - 1 << bam_next_id << "\n";
         //realign and clip interval between each clip[i].second and clip[i + 1].second
         for (int i = 0; i < length(clips) - 1; i++) 
         {
@@ -2066,14 +2072,15 @@ int align_gap (GapRecordHolder & gap,
                             seg_clips_src1, 
                             seg_clips_src2,
                             seg_str_cord,align_gap_parms);
-            int tmp3 = tmp2;
+            //int tmp3 = tmp2;
             for (int j = 0; j < length(seg_clips); j++)
             {
                 int bam_start_x = seg_clips_src1[j].first;
                 int bam_start_y = seg_clips_src2[j].first;
                 int bam_strand = get_cord_strand(seg_str_cord);
                 setClippedPositions(row1, row2, seg_clips[j].first, seg_clips[j].second);
-                insertNewBamRecord(bam_records, row1, row2, g_id, bam_start_x, bam_start_y, bam_strand, tmp3++, 1, 2048); 
+                insertNewBamRecord(bam_records, row1, row2, g_id, bam_start_x, bam_start_y, bam_strand, -1, 1, 2048); 
+            //dout << "ag5" << tmp3 - 1 << bam_next_id << get_cord_x(str_cord) << get_cord_x(end_cord) <<  "\n";
             }
         }
     }

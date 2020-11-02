@@ -277,6 +277,10 @@ void cigar2SamSeq(CigarElement<> & cigar, IupacString & result,
             for (int i = 0; i < cigar.count; i++)
             {
                 appendValue(result, *it2);
+                if (cigar.operation != 'I')
+                {
+                    it1++;
+                }
                 it2++;
             }
         }
@@ -651,20 +655,21 @@ int print_align_sam_record_(StringSet<String<BamAlignmentRecordLink> > & records
             int it = fs.getHead(records[i], j);
             records[i][it].genome_id = genomesId[records[i][it].rID];
         }
-        for (int j = 0; j < length(records[i]); j++)
+        for (int j = 0; j < fs.getHeadNum(records[i]); j++)
         {
-            records[i][j].qName = readsId[i];
-            CharString g_id = genomesId[records[i][j].rID];
-            if (length(records[i][j].cigar) == 0 ||
-                ((length(records[i][j].cigar) == 1) && 
-                    (records[i][j].cigar[0].operation == 'S' || 
-                        records[i][j].cigar[0].operation == 'H')))
+            int it = fs.getHead(records[i], j);
+            records[i][it].qName = readsId[i];
+            CharString g_id = genomesId[records[i][it].rID];
+            if (length(records[i][it].cigar) == 0 ||
+                ((length(records[i][it].cigar) == 1) && 
+                    (records[i][it].cigar[0].operation == 'S' || 
+                        records[i][it].cigar[0].operation == 'H')))
             {
                 continue;
             }
             CharString gnext = "*";
-            fs.createSAZTagOneLine(records[i], j);
-            writeSam(of, records[i], genomes[records[i][j].rID], reads[i], j, 
+            fs.createSAZTagOneLine(records[i], it);
+            writeSam(of, records[i], genomes[records[i][it].rID], reads[i], it, 
                 g_id, gnext, fio_parms);
         }
     }

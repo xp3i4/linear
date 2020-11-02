@@ -644,7 +644,7 @@ int BamLinkStringOperator::createSAZTagOneChimeric(
  *  create  sa:z tag for one line, whcih here refers to line in .sam format;
  *  The function simple makes all supplement alignments as chimeric alignments 
     and insert them to the sa:z tag.
- *  @it is supposed to be pointing to head.
+ *  @it is supposed to be pointer to head.
  */
 int BamLinkStringOperator::createSAZTagOneLine(
         String<BamAlignmentRecordLink> & bam_records,
