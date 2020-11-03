@@ -1528,7 +1528,11 @@ AlignClipScores::AlignClipScores():
     thd_edge_window_size(10),
     thd_dens_match_lower(0.65 * precision),
     thd_dens_match_upper(0.75 * precision),
-    thd_ddens_lower(0 * precision) //relate to function cigar2Score
+    //the minium ddens that will be accepted
+    //suppose lower side >40% gaps, upper sider < 20% gaps;
+    //-10 per gaps and 1 per match in average, 
+    //thd_ddens_lower= -(0.4*(-10)+0.6) + (0.2*(-10)+0.8))  = 2.2
+    thd_ddens_lower(2.2 * precision) //relate to function cigar2Score
 {}
 int & AlignClipScores::operator [](int i)
 {
@@ -1712,7 +1716,7 @@ int _clipAlignScore(AlignClipScores & scores,
         f_ht = 1;
         clip = view_end - 1;
     }
-    int max_d_dens = INT_MIN;
+    int max_d_dens = scores.thd_ddens_lower;
     int i0 = view_str, i1 = view_str, i2 = view_str;
     for (i1 = view_str; i1 < view_end; i1++)
     {
@@ -1748,12 +1752,12 @@ int _clipAlignScore(AlignClipScores & scores,
                             (scores.views[i2] - scores.views[i1]);
             int dense_match_left = (scores.matches[i1] - scores.matches[i0]) / (scores.views[i1] - scores.views[i0]);
             int dense_match_rght = (scores.matches[i2] - scores.matches[i1]) / (scores.views[i2] - scores.views[i1]);
-            //dout << "cbx1" << scores.views[i0] << scores.views[i1] << scores.views[i2] << i1 << (dens_left - dens_rght) * f_ht << dens_left << dens_rght << scores.scores[i1] - scores.scores[i0] << scores.scores[i2] - scores.scores[i1] << src1[i1] << src2[i1] << "match" <<scores.matches[i1] - scores.matches[i0] << scores.matches[view_end - 1] - scores.matches[i1] << dense_match_left << dense_match_rght << "\n";
+            dout << "cbx1" << scores.views[i0] << scores.views[i1] << scores.views[i2] << i1 << (dens_left - dens_rght) * f_ht << dens_left << dens_rght << scores.scores[i1] - scores.scores[i0] << scores.scores[i2] - scores.scores[i1] << src1[i1] << src2[i1] << "match" <<scores.matches[i1] - scores.matches[i0] << scores.matches[view_end - 1] - scores.matches[i1] << "left" << dense_match_left << dense_match_rght << scores.thd_dens_match_lower << scores.thd_dens_match_upper << i1 << clip << "\n";
 
             if (f_ht < 0)
             {
                 int ddens = dens_rght - dens_left;
-                if (ddens > max_d_dens && ddens > scores.thd_ddens_lower &&
+                if (ddens > max_d_dens &&
                     dense_match_left < scores.thd_dens_match_lower &&
                     dense_match_rght > scores.thd_dens_match_upper)
                 {
@@ -1764,7 +1768,7 @@ int _clipAlignScore(AlignClipScores & scores,
             else if (f_ht > 0)
             {
                 int ddens = dens_left - dens_rght;
-                if (ddens > max_d_dens && ddens > scores.thd_ddens_lower &&
+                if (ddens > max_d_dens && 
                     dense_match_rght < scores.thd_dens_match_upper &&
                     dense_match_left > scores.thd_dens_match_lower)
                 {
