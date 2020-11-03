@@ -409,7 +409,7 @@ int print_align_sam (Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
     if (f_p_mapper)
     {
         print_align_sam(mapper.getGenomes(),
-                        mapper.getReads(),
+                        mapper.getPReadsBuffer()[p_in_id],
                         mapper.getGenomesId(),
                         mapper.getPReadsIdBuffer()[p_in_id],
                         mapper.getPBamLinksBuffer()[p_out_id],
