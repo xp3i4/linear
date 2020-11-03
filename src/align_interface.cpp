@@ -1752,7 +1752,7 @@ int _clipAlignScore(AlignClipScores & scores,
                             (scores.views[i2] - scores.views[i1]);
             int dense_match_left = (scores.matches[i1] - scores.matches[i0]) / (scores.views[i1] - scores.views[i0]);
             int dense_match_rght = (scores.matches[i2] - scores.matches[i1]) / (scores.views[i2] - scores.views[i1]);
-            dout << "cbx1" << scores.views[i0] << scores.views[i1] << scores.views[i2] << i1 << (dens_left - dens_rght) * f_ht << dens_left << dens_rght << scores.scores[i1] - scores.scores[i0] << scores.scores[i2] - scores.scores[i1] << src1[i1] << src2[i1] << "match" <<scores.matches[i1] - scores.matches[i0] << scores.matches[view_end - 1] - scores.matches[i1] << "left" << dense_match_left << dense_match_rght << scores.thd_dens_match_lower << scores.thd_dens_match_upper << i1 << clip << "\n";
+            //dout << "cbx1" << scores.views[i0] << scores.views[i1] << scores.views[i2] << i1 << (dens_left - dens_rght) * f_ht << dens_left << dens_rght << scores.scores[i1] - scores.scores[i0] << scores.scores[i2] - scores.scores[i1] << src1[i1] << src2[i1] << "match" <<scores.matches[i1] - scores.matches[i0] << scores.matches[view_end - 1] - scores.matches[i1] << "left" << dense_match_left << dense_match_rght << scores.thd_dens_match_lower << scores.thd_dens_match_upper << i1 << clip << "\n";
 
             if (f_ht < 0)
             {
@@ -1884,7 +1884,7 @@ int _clipBamRecordLinkCigarTail(String<BamAlignmentRecordLink> & records,
         }
         else if (l >= cigar_clip)
         {
-            dout << "cct2" << cigar_clip << cigar_clip - l + length(records[it].cigar) << "\n";
+            dout << "cct2" << cigar_clip << cigar_clip - l + length(records[it].cigar) << length(records[it].cigar)<< "\n";
             erase(records[it].cigar, cigar_clip - l + length(records[it].cigar), 
                 length(records[it].cigar));
             f_clear = 1;
@@ -1930,7 +1930,7 @@ int _clipBamRecordLinkHeadTail(String<BamAlignmentRecordLink> & records,
             break;
         }
     }
-    dout << "chh1" << length(scores.scores) << clip_head << "\n";
+    dout << "chh1" << length(scores.scores) << clip_head << cigar_erased << "\n";
     for (int i = length(scores.scores) - 1; i > clip_head; i--)
     {
         if (back(scores.views) - scores.views[i] >= align_gap_parms.thd_clip_view_len || 
@@ -1938,6 +1938,7 @@ int _clipBamRecordLinkHeadTail(String<BamAlignmentRecordLink> & records,
         {
             int clip = _clipAlignScore(scores, src1, src2, i, length(scores.views), 1, align_gap_parms) - cigar_erased;
             _clipBamRecordLinkCigarTail(records, clip, it);
+            dout << "cht1" << clip << "\n";
             break;                
         }
     }
