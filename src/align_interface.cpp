@@ -1600,7 +1600,7 @@ int AlignClipScores::addNew(CigarElement<> & cigar, int i)
 {
     //dout << "acs" << "\n";
     int new_score, new_match, new_view;
-    if (empty(scores))
+    if (empty(scores) || i == 0)
     {
         new_score = new_view = new_match = 0;
     }
