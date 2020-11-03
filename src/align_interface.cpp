@@ -1664,7 +1664,7 @@ int _bamRecordLlink2Score(String<BamAlignmentRecordLink> & records,
         for (int i = 0; i < length(records[it].cigar); i++)
         {
             scores.addNew(records[it].cigar[i], ii++);
-            //<<debug
+            /*
             char o = records[it].cigar[i].operation;
             if (o == 'X' || o == 'D' || o == '=')
             {
@@ -1676,7 +1676,7 @@ int _bamRecordLlink2Score(String<BamAlignmentRecordLink> & records,
                 new_src2 += records[it].cigar[i].count;
             }
             appendValue(src2, new_src2);
-            //>>debug
+            */
         }
         if (records[it].isEnd())
         {
