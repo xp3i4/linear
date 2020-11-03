@@ -1967,7 +1967,7 @@ int clipBamRecordLinksHeadTail(String<BamAlignmentRecordLink> & records,
     dout << "cbr2" << bs.getHeadNum(records) << "\n";
     for (int i = 0; i < bs.getHeadNum(records); i++)
     {
-        dout << "cbr1" << bs.getHead(records, i) << i << "\n";
+        //dout << "cbr1=======" << bs.getHead(records, i) << i << "\n";
         clipBamRecordLinkHeadTail(records, bs.getHead(records, i), align_gap_parms);
     }
     return 0;
