@@ -441,32 +441,32 @@ int writeSam(std::ofstream & target,
         _compltRvseStr(read, comp_reverse);
         it2 = begin(comp_reverse);
     }
-    if (empty(record.cigar))
-        writeValue(target, '*');
-    else
+    int cigar_line_len = 0;
+    while (1)
     {
-        while (1)
+        cigar_line_len += length(records[it].cigar);
+        for (unsigned i = 0; i < length(records[it].cigar); ++i)
         {
-            for (unsigned i = 0; i < length(records[it].cigar); ++i)
+            if (fio_parms.f_print_seq)
             {
-                if (fio_parms.f_print_seq)
-                {
-                    cigar2SamSeq(records[it].cigar[i], record.seq, it1, it2, fio_parms.f_is_align);
-                }
-                appendNumber(target, records[it].cigar[i].count);
-                writeValue(target, records[it].cigar[i].operation);
+                cigar2SamSeq(records[it].cigar[i], record.seq, it1, it2, fio_parms.f_is_align);
             }
-            it_count++;
-            if (records[it].isEnd())
-            {
-                break;
-            }
-            else 
-            {
-                it = records[it].next();
-            }
+            appendNumber(target, records[it].cigar[i].count);
+            writeValue(target, records[it].cigar[i].operation);
         }
-        //std::cout << "[]::print_sam " << end << "\n";
+        it_count++;
+        if (records[it].isEnd())
+        {
+            break;
+        }
+        else 
+        {
+            it = records[it].next();
+        }
+    }
+    if (cigar_line_len == 0)
+    {
+        writeValue(target, '*');
     }
     writeValue(target, '\t');
 
@@ -660,13 +660,6 @@ int print_align_sam_record_(StringSet<String<BamAlignmentRecordLink> > & records
             int it = fs.getHead(records[i], j);
             records[i][it].qName = readsId[i];
             CharString g_id = genomesId[records[i][it].rID];
-            if (length(records[i][it].cigar) == 0 ||
-                ((length(records[i][it].cigar) == 1) && 
-                    (records[i][it].cigar[0].operation == 'S' || 
-                        records[i][it].cigar[0].operation == 'H')))
-            {
-                continue;
-            }
             CharString gnext = "*";
             fs.createSAZTagOneLine(records[i], it);
             writeSam(of, records[i], genomes[records[i][it].rID], reads[i], it, 
