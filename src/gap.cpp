@@ -2280,13 +2280,19 @@ int clipChain(String<uint64_t> & chain, int shape_len, int direction, bool f_cli
 }
 
 /*
- * Generic func
+ * Generic function
    to filter records in @chain1 that located around the records of @chain2.
  * chain1 are required to be sorted by x in DESCENDING order already, It's supposed to be the reversely sorted anchors before chaning
  * chain2 are required to be sorted by x in AESCENDING order already, It's supposed to be the sorted chain after chaining.
  * @chain1 is the chain to be filtered, @chain2 is the main chain
  */
-int stickMainChain(String<uint64_t> & chain1, String<uint64_t> & chain2, uint64_t(*getX1)(uint64_t), uint64_t(*getY1)(uint64_t), uint64_t(*getX2)(uint64_t), uint64_t(*getY2)(uint64_t), GapParms & gap_parms)
+int stickMainChain(String<uint64_t> & chain1, 
+                   String<uint64_t> & chain2, 
+                   uint64_t(*getX1)(uint64_t), 
+                   uint64_t(*getY1)(uint64_t), 
+                   uint64_t(*getX2)(uint64_t), 
+                   uint64_t(*getY2)(uint64_t), 
+                   GapParms & gap_parms)
 {
     if (empty(chain1) || empty(chain2))
     {
@@ -2327,15 +2333,20 @@ int stickMainChain(String<uint64_t> & chain1, String<uint64_t> & chain2, uint64_
     resize (chain1, length(chain1) - di);
     return 0;
 }
-
 /*
- * To extend and clip within the range specified by @ext_str and @ext_end;
- * The result is the @tiles_str and @tiles_end which ext_str<= .. <ext_end.
- * Note<red>::The function uses single strand hash, thus seq2 is required have the same strand as the @ext_str.
+ * Extend and clip within the range specified by @ext_str and @ext_end;
+ * The result is the @tiles_str and @tiles_end within ext_str<= .. <ext_end.
+ * Note<red>::The function uses single strand hash, thus seq2 is required to
+   be on the same strand of the @ext_str.
  */
-uint64_t extendClipRange(String<Dna5> & seq1, String<Dna5> & seq2, 
-    String<uint64_t> & tiles_str, String<uint64_t> & tiles_end, 
-    uint64_t ext_str, uint64_t ext_end, int direction, GapParms & gap_parms)
+uint64_t extendClipRange(String<Dna5> & seq1, 
+                         String<Dna5> & seq2, 
+                         String<uint64_t> & tiles_str, 
+                         String<uint64_t> & tiles_end, 
+                         uint64_t ext_str, 
+                         uint64_t ext_end, 
+                         int direction, 
+                         GapParms & gap_parms)
 {
     //ext_str = shift_tile(ext_str, -50, -50);
     if (get_cord_strand(ext_str ^ ext_end))
@@ -3241,13 +3252,19 @@ int insert_tiles2Cords_(String<uint64_t> & cords_str,
     return 0;
 }
 /********************* START: Extend mapping for INS/DEL **********************/
-/* An extendsion for the ins/del: Since many ins are repeats.
-   This part is to customize indels.*/ 
+/* The section is the extendsion for the ins/del. 
+   Since many ins are repeats. 
+   This part is to customize indels.
+*/ 
 /*
- *NOTE:Resut [pair.first, len1) of chain1, [0, pair.second) of chain2  having overlaps within the region
+ * Get the overalpped regions of @chain1 and @chain2 
+ * NOTE:Resut [pair.first, len1) of chain1, [0, pair.second) of chain2  having overlaps within the region
  */
-std::pair<int, int> getExtendsIntervalChainsOverlaps(String<uint64_t> & chain1, String<uint64_t> & chain2, 
-    uint64_t(*getX)(uint64_t), uint64_t(*getY)(uint64_t), GapParms & gap_parms)
+std::pair<int, int> getExtendsIntervalChainsOverlaps(String<uint64_t> & chain1, 
+            String<uint64_t> & chain2, 
+            uint64_t(*getX)(uint64_t), 
+            uint64_t(*getY)(uint64_t), 
+            GapParms & gap_parms)
 {
     if (empty(chain1) || empty(chain2))
     {
@@ -3284,17 +3301,25 @@ std::pair<int, int> getExtendsIntervalChainsOverlaps(String<uint64_t> & chain1, 
     return std::pair<int, int> (i1, i2);
 }
 /* 
- * Generic func
- * Given chain @chains, map almost continously with smaller patterns along @chains.
- * @map_str, @map_end required to be on the same strand
- * @chains is on the single strand,(different strand of values within the chain aren't allowed) 
+ * Generic function
+ * Given @chains, map continously with smaller patterns along @chains
+ * @map_str, @map_end are required to be on the same strand
+ * @chains is on the single strand,(values of different strand of @chain aren't allowed) 
  * Map along @chains[i], where i within [@i_str, @i_end) 
    the result is written to the @tiles
  */
-int mapAlongChain(String<Dna5> & seq1, String<Dna5> & seq2, String<uint64_t> & chains, String<uint64_t> & tiles,  
-    int i_str, int i_end, int shape_len, int step1, int step2, 
-    uint64_t(*getX)(uint64_t), uint64_t(*getY)(uint64_t), uint64_t(*mac_chain2Tile)(uint64_t), 
-    GapParms & gap_parms)
+int mapAlongChain(String<Dna5> & seq1, 
+                  String<Dna5> & seq2, 
+                  String<uint64_t> & chains, 
+                  String<uint64_t> & tiles,  
+                  int i_str, int i_end, 
+                  int shape_len, 
+                  int step1, 
+                  int step2, 
+                  uint64_t(*getX)(uint64_t), 
+                  uint64_t(*getY)(uint64_t), 
+                  uint64_t(*mac_chain2Tile)(uint64_t), 
+                  GapParms & gap_parms)
 {
     if (empty(chains) || i_str < 0 || i_end > length(chains) || i_end <= i_str)
     {
@@ -3332,11 +3357,21 @@ int mapAlongChain(String<Dna5> & seq1, String<Dna5> & seq2, String<uint64_t> & c
 }
 /*
  * Find and clip the breakpoint of two chains as ins/del.
- * NOTE: getX and getY are abstract operations. Swap getX and getY to clip by y, namely
- * extendsIn..laps(chain1, chain2, getY, getX): choose y as the main coordinate in case of del
+   The function keeps x of the breakpoint two chains in case of ins and y of breakpoint two chains
+   in case of dels closed to each other and finding the breakpoint such that the score is
+   maxmized.
+ * NOTE: getX and getY are abstract operations. Swap getX and getY to clip by y, namely call
+   extendsIn..laps(chain1, chain2, getY, getX): choose y as the main coordinate in case of del
  */
-int __extendsIntervalClipOverlapsInsDel_(String<uint64_t> & chain1, String<uint64_t> &
-     chain2, int shape_len, int step1, int step2, bool f_clip, uint64_t(*getX)(uint64_t), uint64_t(*getY)(uint64_t), GapParms & gap_parms)
+int __extendsIntervalClipOverlapsInsDel_(String<uint64_t> & chain1, 
+            String<uint64_t> & chain2, 
+            int shape_len, 
+            int step1, 
+            int step2, 
+            bool f_clip, 
+            uint64_t(*getX)(uint64_t), 
+            uint64_t(*getY)(uint64_t), 
+            GapParms & gap_parms)
 {
     if (empty(chain1) || empty(chain2))
     {
@@ -3427,12 +3462,18 @@ int __extendsIntervalClipOverlapsInsDel_(String<uint64_t> & chain1, String<uint6
     }
     else
     {
-//        return std::pair<int, int> (i_clip, j_clip);
+        //return std::pair<int, int> (i_clip, j_clip);
         return 0;
     }
     return 0;
 }
-int extendsIntervalClipOverlapsInsDel_(String<uint64_t> & chain1, String<uint64_t> & chain2, int shape_len, int step1, int step2, uint64_t(*getX)(uint64_t), uint64_t(*getY)(uint64_t), GapParms & gap_parms)
+/*
+ * Wrapper to clip the overlaps of @chain1 and @chain2.
+   The method is specifically for ins and dels.
+ */
+int extendsIntervalClipOverlapsInsDel_(String<uint64_t> & chain1, String<uint64_t> & chain2, 
+    int shape_len, int step1, int step2, uint64_t(*getX)(uint64_t), uint64_t(*getY)(uint64_t),
+     GapParms & gap_parms)
 {
     if (empty(chain1) && empty(chain2))
     {
@@ -3558,7 +3599,8 @@ int extendsIntervalMapOverlaps_(String<Dna5> & ref, String<Dna5> & read, String<
     if (!empty(tiles1))
     {
         String<Dna5> & seq2 = get_tile_strand(tiles1[0]) ? comstr : read;
-        mapAlongChain(ref, seq2, tiles1, overlap_tiles1, overlaps.first, length(tiles1), shape_len, step1, step2, &get_tile_x, &get_tile_y, &g_hs_anchor2Tile, gap_parms);
+        mapAlongChain(ref, seq2, tiles1, overlap_tiles1, overlaps.first, length(tiles1), shape_len, 
+            step1, step2, &get_tile_x, &get_tile_y, &g_hs_anchor2Tile, gap_parms);
     }
     if (!empty(tiles2))
     {
@@ -3841,7 +3883,7 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
     }
     reform_tiles(ref, read, comstr, tiles_str1, tiles_end1, sp_tiles1, 
                  gap_str1, gap_end1, direction1, gap_parms);
-    //directiond = -1 part
+    //direction = -1 part
     gap_parms.direction = direction2; 
     mapExtendResultFilter_(tiles_str2, gap_str2, gap_end2, direction2, gap_parms);
     reform_tiles(ref, read, comstr, tiles_str2, tiles_end2, sp_tiles2, 
