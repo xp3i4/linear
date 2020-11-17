@@ -2213,7 +2213,14 @@ int accumulateSimpleGapScore1(String<uint64_t> & chain, String<int> & gaps_score
  * Method: ds(b) = max{s(b - dx) - s(b + dx)}
  * Namely clip at the point where the difference of score of two windows at the two sides of the point reaches the maximum.
  */
-int clipChain_(String<uint64_t> & chain, String<int> & gaps_score_x, String<int> & gaps_score_y, int direction, bool f_clip,  uint64_t (*_get_x)(uint64_t), uint64_t (*_get_y)(uint64_t), GapParms & gap_parms)
+int clipChain_(String<uint64_t> & chain, 
+               String<int> & gaps_score_x, 
+               String<int> & gaps_score_y, 
+               int direction, 
+               bool f_clip,  
+               uint64_t (*_get_x)(uint64_t), 
+               uint64_t (*_get_y)(uint64_t), 
+               GapParms & gap_parms)
 {
     if (empty(chain))
     {
@@ -3005,7 +3012,7 @@ int reform_tiles_(String<Dna5> & seq1,
         {
             it += reformExtendClipTile (seq1, seq2, comstr, tiles_str, tiles_end, it, g_sv_l, gap_parms);
         }
-/*
+        /*
         else if (it > 0)
         {
             uint64_t x11 = get_tile_x(tiles_str[it - 1]);
@@ -3502,40 +3509,10 @@ int extendsIntervalClipOverlapsInsDel_(String<uint64_t> & chain1, String<uint64_
     return 0;
 }
 /*
-int extendClipChain_(String<Dna5> & ref, 
-                     String<Dna5> & read, 
-                     String<Dna5> & comstr, 
-                     String<uint64_t> & chain,
-                     int i_str,
-                     int i_end,
-                     int direction,
-                     GapParms & gap_parms)
-{
-    if (!direction)
-    {
-        return 0;
-    }
-    int shape_len = gap_parms.thd_etfas_shape_len;
-    int step1 = gap_parms.thd_etfas_step1;
-    int step2 = gap_parms.thd_etfas_step2;
-    dropChainGapX(chain, &get_tile_x, &get_tile_y, direction, true, gap_parms);
-    if (!empty(chain))
-    {
-        String<Dna5> & seq2 = get_tile_strand(chain1[0]) ? comstr : read;
-        String<uint64_t> chain2 //used to rechain with small patterns
-        mapAlongChain(ref, seq2, chain, chain2, i_str, i_end, shape_len, step1,
-             step2, &get_tile_x, &get_tile_y, &g_hs_anchor2Tile, gap_parms);
-        clipChain(chain2, shape_len, direction, true, &get_tile_x, &get_tile_y, gap_parms);
-        chain = chain2;
-    }
-    return 0;
-}
-*/
-/*
  * @direction < 0, find the record chain[i] in chain that x-x0 > dx andd y-y0> dy
    Then rechain the records from chain[0] to chain[i] and clip the new chain.
  *
-int extendClipChain(String<Dna5> & ref, 
+int extendClipChainGaps(String<Dna5> & ref, 
                     String<Dna5> & read, 
                     String<Dna5> & comstr, 
                     String<uint64_t> & chain,
@@ -3581,14 +3558,24 @@ int extendClipChain(String<Dna5> & ref,
     return 0;
 }
 */
+
 /*
  *Drop at the breakpoints of two overlapped chains as ins or dels such that the score is maximized
  *@chains1 direction = right, @chains direction = left
  */
-int extendsIntervalMapOverlaps_(String<Dna5> & ref, String<Dna5> & read, String<Dna5> & comstr, 
-    String<uint64_t> & tiles1, String<uint64_t> & tiles2, 
-    uint64_t gap_str1, uint64_t gap_end1, uint64_t gap_str2, uint64_t gap_end2,
-    int shape_len, int step1, int step2, GapParms & gap_parms)
+int extendsIntervalMapOverlaps_(String<Dna5> & ref, 
+                                String<Dna5> & read, 
+                                String<Dna5> & comstr, 
+                                String<uint64_t> & tiles1, 
+                                String<uint64_t> & tiles2, 
+                                uint64_t gap_str1, 
+                                uint64_t gap_end1, 
+                                uint64_t gap_str2, 
+                                uint64_t gap_end2,
+                                int shape_len, 
+                                int step1, 
+                                int step2, 
+                                GapParms & gap_parms)
 {
     dropChainGapX(tiles1, &get_tile_x, &get_tile_y, g_map_rght, true, gap_parms);
     dropChainGapX(tiles2, &get_tile_x, &get_tile_y, g_map_left, true, gap_parms);
@@ -3628,29 +3615,6 @@ int extendsIntervalMapOverlaps_(String<Dna5> & ref, String<Dna5> & read, String<
         insert(tiles2, 0, overlap_tiles2);
     }
 
-    return 0;
-}
-/*
- * Extend the tiles according to the existing anchors for one direction
- */
-int extendTilesFromAnchors2(String<Dna5> & ref,
-                            String<Dna5> & read,
-                            String<Dna5> & comstr,
-                            String<uint64_t> & anchors, 
-                            String<uint64_t> & tiles,
-                            StringSet<FeaturesDynamic> & f1,
-                            StringSet<FeaturesDynamic> & f2,
-                            uint64_t gap_str,
-                            uint64_t gap_end,
-                            uint64_t read_len,
-                            int direction,
-                            GapParms & gap_parms)
-{
-    String<uint64_t> tmp_tiles;
-    g_CreateChainsFromAnchors_(anchors, tmp_tiles, gap_str, gap_end, read_len, gap_parms);
-    std::pair<int, int> its = getClosestExtensionChain_(tmp_tiles, gap_str, gap_end, false, gap_parms);
-        //extendClipInterval(ref, read, comstr, tmp_tiles, direction, gap_parms);
-    g_CreateTilesFromChains_(tmp_tiles, tiles, f1, f2, gap_str, its.first, its.second, &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);    
     return 0;
 }
 /*
@@ -3706,7 +3670,7 @@ int extendsTilesFromAnchors (String<Dna5> & ref,
 }
 
 /**
- *  [@gap_str, @gap_end) to create a chain of tiles to extend the
+ * [@gap_str, @gap_end) to create a chain of tiles to extend the
    mapping area as long as possible.
  * @gap_str and @gap_end should have the same strand
  */
