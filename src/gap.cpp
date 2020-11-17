@@ -3734,6 +3734,131 @@ int extendsInterval(String<Dna5> & ref, //genome
     gap_parms.direction = original_direction;
     return 0;
 }
+/*
+ * Remap the chain towards one direction with shorter patterns and clip the well mapped part
+   @direction < 0: remap region [@chain[0], @chain[i_end]);
+   @direction > 0: remap region [@chain[i_str], back(@chian));
+ */
+int remapChainOneSide(String<Dna5> & ref, 
+                      String<Dna5> & read, 
+                      String<Dna5> & comstr, 
+                      String<uint64_t> & chain, 
+                      int shape_len, 
+                      int step1, 
+                      int step2, 
+                      int direction,
+                      uint64_t (*getChainX) (uint64_t),
+                      uint64_t (*getChainY) (uint64_t),
+                      uint64_t (*getChainStrand) (uint64_t),
+                      uint64_t (*anchor2Chain) (uint64_t),
+                      GapParms & gap_parms)
+{
+    int thd_max_remap_tile_num = 150;
+    if (!direction || empty(chain))
+    {
+        return 0;
+    }
+    dropChainGapX(chain, getChainX, getChainY, direction, true, gap_parms);
+    String<Dna5> & seq2 = getChainStrand(chain[0]) ? comstr : read;
+    String<uint64_t> remap_chain; 
+    int i_str, i_end;
+    if (isClipTowardsLeft(direction))
+    {
+        i_str = std::max(0, int(length(chain) - thd_max_remap_tile_num));
+        i_end = length(chain);
+    }
+    else if (isClipTowardsLeft(direction))
+    {
+        i_str = 0;
+        i_end = std::min(int(length(chain)), thd_max_remap_tile_num);
+    }
+    mapAlongChain(ref, seq2, chain, remap_chain, i_str, i_end, shape_len, step1,
+             step2, getChainX, getChainY, anchor2Chain, gap_parms); 
+    clipChain(remap_chain, shape_len, direction, true, getChainX, getChainY, gap_parms);
+    if (isClipTowardsLeft(direction))
+    {
+        erase(chain, 0, i_end);
+        if (!empty(remap_chain))
+        {
+            insert(chain, 0, remap_chain);
+        }
+    }
+    else if (isClipTowardsRight(direction))
+    {
+        if (!empty(remap_chain))
+        {
+            resize(chain, i_str);
+            append(chain, remap_chain);
+        }
+    }
+    return 0;
+}
+/*
+ * extends tiles in single direction
+ */
+int extendTilesOneSide(String<Dna5> & ref, 
+                       String<Dna5> & read, 
+                       String<Dna5> & comstr,
+                       String<uint64_t> & anchors, 
+                       String<uint64_t> & tiles1, 
+                       StringSet<FeaturesDynamic> & f1, 
+                       StringSet<FeaturesDynamic> & f2,
+                       uint64_t gap_str, 
+                       uint64_t gap_end, 
+                       uint64_t read_len,
+                       int direction,
+                       GapParms & gap_parms)
+{
+    int original_direction = gap_parms.direction;
+    String<uint64_t> chain;
+    gap_parms.direction = direction;
+    g_CreateChainsFromAnchors_(anchors, chain, gap_str, gap_end, read_len, gap_parms);
+    getClosestExtensionChain_(chain, gap_str, gap_end, true, gap_parms);
+
+    //!find and clip at the common breakpoint of the left and right chains
+    int shape_len = gap_parms.thd_etfas_shape_len;
+    int step1 = gap_parms.thd_etfas_step1;
+    int step2 = gap_parms.thd_etfas_step2;
+    remapChainOneSide(ref, read, comstr, chain, shape_len, step1, step2, 
+        direction, &get_tile_x, &get_tile_y, &get_tile_strand, &g_hs_anchor2Tile, gap_parms);
+    g_CreateTilesFromChains_(chain, tiles1, f1, f2, gap_str, 0, length(chain), &get_tile_x, &
+        get_tile_y, &get_tile_strand, gap_parms);    
+    trimTiles(tiles1, f1, f2, gap_str, gap_end, read_len - 1, direction, gap_parms);
+    gap_parms.direction = original_direction;
+    return 0;
+}
+int extendIntervalOneSide(String<Dna5> & ref, //genome
+                 String<Dna5> & read, //read
+                 String<Dna5> & comstr,
+                 String<uint64_t> & tiles,    //results
+                 StringSet<FeaturesDynamic > & fts_ref,  
+                 StringSet<FeaturesDynamic > & fts_read,
+                 uint64_t gap_str,
+                 uint64_t gap_end,
+                 int direction, 
+                 GapParms & gap_parms) // extern parm
+{
+    if (get_cord_strand (gap_str ^ gap_end))
+    {
+        return 1;
+    }
+    int original_direction = gap_parms.direction;
+    int shape_len = gap_parms.thd_eis_shape_len; 
+    int step1 = gap_parms.thd_eis_step1; //seq1 pattern step
+    int step2 = gap_parms.thd_eis_step2; //seq2...
+    gap_parms.direction = direction;
+    String<uint64_t> g_hs;
+    String<uint64_t> g_hs_anchors;
+    reserve(g_hs, 2048);
+    reserve(g_hs_anchors, 2048);
+
+    g_stream_(ref, read, g_hs, gap_str, gap_end, shape_len, step1, step2, gap_parms);
+    g_create_anchors_(g_hs, g_hs_anchors, shape_len, direction, 0, 0, length(read) - 1, gap_str, gap_end, gap_parms);
+    extendTilesOneSide(ref, read, comstr, g_hs_anchors, tiles, fts_ref, fts_read, 
+        gap_str, gap_end, length(read), direction, gap_parms);
+    gap_parms.direction = original_direction;
+    return 0;
+}
 
 int mapExtendResultFilter_(String<uint64_t> & tiles_str, uint64_t gap_str, uint64_t gap_end, int direction, GapParms & gap_parms)
 {
@@ -3770,16 +3895,20 @@ int mapExtendResultFilter_(String<uint64_t> & tiles_str, uint64_t gap_str, uint6
 
     return 0;
 }
-int mapExtend_(StringSet<String<Dna5> > & seqs, 
-               String<Dna5> & read, String<Dna5> & comstr,
-               StringSet<FeaturesDynamic > & f1, 
-               StringSet<FeaturesDynamic > & f2,
-               String<uint64_t> & tiles_str, 
-               String<uint64_t> & tiles_end, 
-               uint64_t gap_str, 
-               uint64_t gap_end, 
-               int direction,
-               GapParms & gap_parms)
+/*
+ * map from @gap_str to @gap_end if direction > 0
+   or from @gap_end to @gap_str if direction < 0  
+ */
+int mapExtend(StringSet<String<Dna5> > & seqs, 
+              String<Dna5> & read, String<Dna5> & comstr,
+              StringSet<FeaturesDynamic > & f1, 
+              StringSet<FeaturesDynamic > & f2,
+              String<uint64_t> & tiles_str, 
+              String<uint64_t> & tiles_end, 
+              uint64_t gap_str, 
+              uint64_t gap_end, 
+              int direction,
+              GapParms & gap_parms)
 {
     /*--Specify gap parms map extending--*/
     float d_anchor_rate_origin = gap_parms.thd_gmsa_d_anchor_rate;
@@ -3794,7 +3923,9 @@ int mapExtend_(StringSet<String<Dna5> > & seqs,
     print_cord(gap_end, "me2");
     String <Dna5> & ref = seqs[get_cord_id(gap_str)];
     String<uint64_t> sp_tiles; 
-    mapInterval(ref, read, comstr, tiles_str, f1, f2, gap_str, gap_end, 0, 0, direction, gap_parms);
+    //mapInterval(ref, read, comstr, tiles_str, f1, f2, gap_str, gap_end, 0, 0, direction, gap_parms);
+    extendIntervalOneSide(ref, read, comstr, tiles_str, f1, f2, gap_str, gap_end,
+                  direction, gap_parms);
     //filter out tiles of large gaps
     g_print_tiles_(tiles_str, "me3");
     mapExtendResultFilter_(tiles_str, gap_str, gap_end, direction, gap_parms);
