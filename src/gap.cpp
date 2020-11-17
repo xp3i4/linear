@@ -4210,7 +4210,7 @@ int mapGapGlobal(String<uint64_t> & tiles1,
  * Output one best @tiles_str1 and @tiles_end1 
  * Map direction = 0 (closed)
  */
-int MapGeneric(StringSet<String<Dna5> > & seqs, 
+int mapGeneric(StringSet<String<Dna5> > & seqs, 
                String<Dna5> & read, 
                String<Dna5> & comstr,
                StringSet<FeaturesDynamic > & f1, 
@@ -4501,7 +4501,7 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                     reform_tiles(seqs[get_tile_id(gap_str)], read, comstr, tiles_str1, tiles_end1, sp_tiles_inv, 
                         t_gap_str, t_gap_end, t_direction, gap_parms);
                      */   
-                    MapGeneric (seqs, read, comstr, f1, f2, tiles_str1, tiles_end1, 
+                    mapGeneric (seqs, read, comstr, f1, f2, tiles_str1, tiles_end1, 
                         t_gap_str, t_gap_end, gap_parms);
                     if (!empty(tiles_str1))
                     {
