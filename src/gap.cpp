@@ -4290,36 +4290,26 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         shift_x = (x2 - x1 > 0) ? 
             std::min({thd_max_extend2, int64_t(length(ref) - 1 - get_cord_x(gap_str)), x2 - x1}) : thd_max_extend1; 
         g_cmpll.min(shift_y, (x2 - x1) * (1 + gap_parms.thd_err)) << int64_t(length(read) - 1 - get_cord_y(gap_str));
-        if (shift_x < 0){shift_x = 0;}
-        if (shift_y < 0){shift_y = 0;}
+        shift_x = std::max(shift_x, int64_t(0));
+        shift_y = std::max(shift_y, int64_t(0));
         uint64_t gap_str1 = gap_str;
         uint64_t gap_end1 = shift_cord (gap_str, shift_x, shift_y);
-            
-        uint64_t anchor_base = g_hs_Cord2StrAnchor(gap_str);
-        uint64_t anchor_lower = anchor_base - 101;
-        uint64_t anchor_upper = anchor_base + 101;
         //gap_parms.thd_gmsa_d_anchor_rate = 0.1;
-        
-        mapExtend_ (seqs, read, comstr, f1, f2, tiles_str1, tiles_end1, 
+        mapExtend (seqs, read, comstr, f1, f2, tiles_str1, tiles_end1, 
                     gap_str1, gap_end1, direction1, gap_parms);
-
         //g_cmpll.min(shift_x, x2 - x1) << int64_t(get_cord_x(gap_end)) << int64_t(5000);
         shift_x = (x2 - x1 > 0) ? std::min({x2 - x1, int64_t(get_cord_x(gap_end)), thd_max_extend2}) : thd_max_extend1;
         //g_cmpll.min(shift_x, x2 - x1) << int64_t(get_cord_x(gap_end));
         g_cmpll.min(shift_y, (x2 - x1) * (1 + gap_parms.thd_err)) << int64_t(get_cord_y(gap_end));
         uint64_t gap_str2 = shift_cord (gap_end, -shift_x, -shift_y);
         uint64_t gap_end2 = gap_end;
-        anchor_base = g_hs_Cord2StrAnchor(gap_end);
-        anchor_lower = anchor_base - 101; 
-        anchor_upper = anchor_base + 101;
-        mapExtend_ (seqs, read, comstr, f1, f2, tiles_str2, tiles_end2, 
+        mapExtend (seqs, read, comstr, f1, f2, tiles_str2, tiles_end2, 
                     gap_str2, gap_end2, direction2, gap_parms);
 
         if (!empty(tiles_str1))
         {
             append(tiles_str, tiles_str1);
             append(tiles_end, tiles_end1);
-
         }
         if (!empty(tiles_str2))
         {
