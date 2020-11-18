@@ -2342,7 +2342,8 @@ int stickMainChain(String<uint64_t> & chain1,
 }
 /*
  * Extend and clip within the range specified by @ext_str and @ext_end;
- * The result is the @tiles_str and @tiles_end within ext_str<= .. <ext_end.
+ * The @tiles_str and @tiles_end are empty string to store the result
+   which is within ext_str<= .. <ext_end.
  * Note<red>::The function uses single strand hash, thus seq2 is required to
    be on the same strand of the @ext_str.
  */
@@ -3035,13 +3036,12 @@ int reform_tiles_(String<Dna5> & seq1,
                 //return 0;
             }
         }
-        
+        */ 
         if (direction == g_map_rght && (is_tile_end(tiles_str[it]) || it == length(tiles_str) - 1))
         {
             it += reformExtendClipTile (seq1, seq2, comstr, tiles_str, tiles_end, it, g_sv_r, gap_parms);
         }
 
-        */
     }
 
     return 0;
@@ -3064,6 +3064,7 @@ int reform_tiles(String<Dna5> & seq1,
 {
     //step.1 init tiles_str, tiles_end;
     //Insert head_tile and tail tile at the front and end for each block of tiles
+    
     uint64_t head_tile = gap_str;
     uint64_t tail_tile = shift_tile(gap_end, -gap_parms.thd_tile_size, -gap_parms.thd_tile_size); 
     if (get_tile_x(gap_end) > gap_parms.thd_tile_size && get_tile_y (gap_end) > gap_parms.thd_tile_size)
@@ -3076,59 +3077,27 @@ int reform_tiles(String<Dna5> & seq1,
     }
     remove_tile_sgn(head_tile);
     remove_tile_sgn(tail_tile);
-    String<uint64_t> tiles_str_tmp;
-    String<uint64_t> tiles_end_tmp;
-    if (direction != g_map_left)
+    if (!empty(tiles_str))
     {
-        appendValue (tiles_str_tmp, head_tile);
-    }
-    if (empty(tiles_str))
-    {
-        if (direction != g_map_rght)
-        {
-            appendValue (tiles_str_tmp, tail_tile);
-        }
-    }
-    else
-    {
-        for (int i = 0; i < length(tiles_str); i++)
-        {
-            appendValue(tiles_str_tmp, tiles_str[i]);
-            if (is_tile_end(tiles_str[i]) || i == length(tiles_str) - 1)
-            {
-                if (direction != g_map_rght)
-                {
-                    copy_tile_sgn(back(tiles_str_tmp), tail_tile);
-                    remove_tile_sgn(back(tiles_str_tmp));
-                    appendValue(tiles_str_tmp, tail_tile);
-                }
-                if (i != length(tiles_str) - 1 && direction != g_map_left)
-                {
-                    copy_tile_sgn(tiles_str[i + 1], head_tile);
-                    appendValue(tiles_str_tmp, head_tile);
-                }
-            }
-        }
+        copy_tile_sgn(back(tiles_str), tail_tile);
+        copy_tile_sgn(tiles_str[0], head_tile);
+        remove_tile_sgn(back(tiles_str));
+        remove_tile_sgn(tiles_str[0]);
+        insertValue(tiles_str, 0, head_tile);
+        appendValue(tiles_str, tail_tile);
     }
     int64_t d = shift_tile (0ULL, gap_parms.thd_tile_size, gap_parms.thd_tile_size);
-    resize(tiles_end_tmp, length(tiles_str_tmp));
-    for (int i = 0; i < length(tiles_str_tmp); i++)
+    resize(tiles_end, length(tiles_str));
+    for (int i = 0; i < length(tiles_str); i++)
     {
-        tiles_end_tmp[i] = tiles_str_tmp[i] + d;
+        tiles_end[i] = tiles_str[i] + d;
     }
-
     //step.2 reform tiles:clip and break block if necessary
     if (gap_parms.f_rfts_clip)
     {
-        reform_tiles_(seq1, seq2, comstr, 
-                    tiles_str_tmp,
-                    tiles_end_tmp,
-                    sp_tiles,
-                    direction, 
+        reform_tiles_(seq1, seq2, comstr, tiles_str_tmp, tiles_end_tmp, sp_tiles, direction, 
                     gap_parms);
     }
-    tiles_str = tiles_str_tmp;
-    tiles_end = tiles_end_tmp;
     return 0;
 }
 
@@ -3603,7 +3572,7 @@ int extendsIntervalMapOverlaps_(String<Dna5> & ref,
     {
         extendsIntervalClipOverlapsInsDel_(overlap_tiles1, overlap_tiles2, shape_len, step1, step2, &get_tile_y, &get_tile_x, gap_parms); //del
     }
-
+    dout << "ovlap" << length(overlap_tiles1) << length(overlap_tiles2) << get_cord_x(gap_str1) << get_cord_x(gap_end2) << "\n";
     resize(tiles1, overlaps.first);
     if (!empty(overlap_tiles1))
     {
@@ -3963,7 +3932,7 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
     int original_direction = gap_parms.direction;
     int original_f_rfts_clip = gap_parms.f_rfts_clip;
     int direction1 = g_map_rght, direction2 = g_map_left;
-    gap_parms.f_rfts_clip = 0;
+    gap_parms.f_rfts_clip = 0; //disable clip in when reform tiles.
     String<Dna5> & ref = seqs[get_cord_id(gap_str1)];
     String<uint64_t> sp_tiles1; 
     String<uint64_t> sp_tiles2; 
@@ -3978,6 +3947,12 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
     }
     reform_tiles(ref, read, comstr, tiles_str1, tiles_end1, sp_tiles1, 
                  gap_str1, gap_end1, direction1, gap_parms);
+    //<<debug
+    if (!empty(tiles_end1))
+    {
+    //    back(tiles_end1) = shift_tile(back(tiles_end1), -95, -95);
+    }
+    //>>debug
     //direction = -1 part
     gap_parms.direction = direction2; 
     mapExtendResultFilter_(tiles_str2, gap_str2, gap_end2, direction2, gap_parms);
@@ -4250,7 +4225,6 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
              int64_t thd_dxy_min,
              GapParms & gap_parms)
 {
-
     CmpInt64 g_cmpll;
     float thd_da_zero = gap_parms.thd_err; 
     float thd_da_rate = 0.1;
