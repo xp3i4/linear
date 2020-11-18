@@ -1327,37 +1327,32 @@ int createTilesFromAnchors2_(String<Dna5> & ref,
     String<uint64_t> tmp_tiles;
     g_CreateChainsFromAnchors_(anchors, tmp_tiles, gap_str, gap_end, read_len, gap_parms);
     //g_print_tiles_(tmp_tiles, "ctfa2");
-    if (gap_parms.f_me_map_extend) //for MapExtend: many ins are tandem repeats, extended part is limited to those that well connected to the gap_str, or gap_end
+    int pre_i = 0;
+    for (int i = 0; i < length(tmp_tiles); i++)
     {
-        std::pair<int, int> its = getClosestExtensionChain_(tmp_tiles, gap_str, gap_end, false, gap_parms);
-        //extendClipInterval(ref, read, comstr, tmp_tiles, direction, gap_parms);
-        g_CreateTilesFromChains_(tmp_tiles, tiles, f1, f2, gap_str, its.first, its.second, &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);    
-    }
-    else
-    {
-        int pre_i = 0;
-        for (int i = 0; i < length(tmp_tiles); i++)
+        if (is_tile_end(tmp_tiles[i]))
         {
-            if (is_tile_end(tmp_tiles[i]))
+            String<Dna5> seq2 = get_tile_strand(tmp_tiles[pre_i]) ? comstr : read;
+            String<uint64_t> ext_clip_tiles_str;
+            String<uint64_t> ext_clip_tiles_end;
+            uint64_t ext_clip_str;
+            //extendClipRange(ref, seq2, ext_clip_tiles_str, ext_clip_tiles_end, )
+            g_CreateTilesFromChains_(tmp_tiles, tiles, f1, f2, gap_str, pre_i, i + 1, &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);
+            pre_i = i + 1;
+        }
+        else if (i < length(tmp_tiles) - 1 && 
+            get_tile_strand(tmp_tiles[i] ^ tmp_tiles[i + 1]))
+        {
+            int len = length(tiles);
+            ///extendClipInterval(ref, read, comstr, tmp_tiles, direction, gap_parms);
+            g_CreateTilesFromChains_(tmp_tiles, tiles, f1, f2, gap_str, pre_i, i + 1, &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);
+            if (len != length(tiles))
             {
-                g_CreateTilesFromChains_(tmp_tiles, tiles, f1, f2, gap_str, pre_i, i + 1, &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);
-                pre_i = i + 1;
+                remove_tile_sgn_end(back(tiles));
             }
-            else if (i < length(tmp_tiles) - 1 && 
-                get_tile_strand(tmp_tiles[i] ^ tmp_tiles[i + 1]))
-            {
-                int len = length(tiles);
-        ///extendClipInterval(ref, read, comstr, tmp_tiles, direction, gap_parms);
-                g_CreateTilesFromChains_(tmp_tiles, tiles, f1, f2, gap_str, pre_i, i + 1, &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);
-                if (len != length(tiles))
-                {
-                    remove_tile_sgn_end(back(tiles));
-                }
-                pre_i = i + 1;    
-            }
-        }    
+            pre_i = i + 1;    
+        }
     }    
-
     return 0;
 }
 
