@@ -29,6 +29,8 @@ add_library(linear_index_util STATIC index_util.cpp)
 add_library(linear_args_parser STATIC args_parser.cpp)
 add_library(linear_cluster_util STATIC cluster_util.cpp)
 add_library(linear_pmpfinder STATIC pmpfinder.cpp)
+add_library(linear_gap_util STATIC gap_util.cpp)
+add_library(linear_gap_extra STATIC gap_extra.cpp)
 add_library(linear_gap STATIC gap.cpp)
 add_library(linear_align_util STATIC align_util.cpp)
 add_library(linear_fio STATIC f_io.cpp)
@@ -47,6 +49,8 @@ target_link_libraries (linear
                        linear_pmpfinder 
                        linear_cluster_util
                        linear_gap 
+                       linear_gap_extra
+                       linear_gap_util
                        linear_fio 
                        linear_align_util
                        linear_index_util 
