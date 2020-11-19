@@ -4,7 +4,7 @@
 #include "align_util.h"
 //#include "f_io.h"
 #include "align_interface.h"
-#include "new_funcs.h"
+//#include "new_funcs.h"
 //TODO seqand::setclippedpositoin retrieve source postion that's not efficient
 //TODO make holder to rows, so set clip postion can be iteratored.
 using namespace seqan;
