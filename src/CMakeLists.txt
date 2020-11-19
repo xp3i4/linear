@@ -22,7 +22,7 @@ set (CMAKE_BUILD_TYPE Release)
 
 
 add_library(linear_base STATIC base.cpp)
-add_library(lienar_new_funcs STATIC new_funcs.cpp)
+#add_library(lienar_new_funcs STATIC new_funcs.cpp)
 add_library(linear_cords STATIC cords.cpp)
 add_library(linear_shape_extend STATIC shape_extend.cpp)
 add_library(linear_index_util STATIC index_util.cpp)
@@ -52,7 +52,7 @@ target_link_libraries (linear
                        linear_index_util 
                        linear_shape_extend
                        linear_cords 
-                       lienar_new_funcs
+                       #lienar_new_funcs
                        linear_base
                       ${SEQAN_LIBRARIES})
 
