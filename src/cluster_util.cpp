@@ -835,6 +835,7 @@ int chainBlocksSingleStrand(String<uint64_t> & cords, String<UPair> & str_ends_p
     }
     int thd_best_n1 = 3; //unlimited
     chainBlocksBase(cords_chains, cords, str_ends_p, str_ends_p_score, read_len, chn_score, thd_best_n1, 0);
+    return 0;
 }
 /*
  * Return best strand: 0 @cords_chains1, 1:@cords_chains2
