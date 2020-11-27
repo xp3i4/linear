@@ -2893,14 +2893,21 @@ int reform_tiles(String<Dna5> & seq1,
         tail_tile = head_tile;
     }
     remove_tile_sgn(head_tile);
-    remove_tile_sgn(tail_tile);
+    //remove_tile_sgn(tail_tile);
+    set_tile_end(tail_tile);
     if (!empty(tiles_str))
     {
         copy_tile_sgn(back(tiles_str), tail_tile);
         copy_tile_sgn(tiles_str[0], head_tile);
         remove_tile_sgn(back(tiles_str));
         remove_tile_sgn(tiles_str[0]);
+    }
+    if (direction != g_map_left)
+    {
         insertValue(tiles_str, 0, head_tile);
+    }
+    if (direction != g_map_rght)
+    {
         appendValue(tiles_str, tail_tile);
     }
     int64_t d = shift_tile (0ULL, gap_parms.thd_tile_size, gap_parms.thd_tile_size);
