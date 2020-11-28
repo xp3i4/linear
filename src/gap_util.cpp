@@ -3118,6 +3118,8 @@ int mapAlongChain(String<Dna5> & seq1,
                   int step2, 
                   uint64_t(*getX)(uint64_t), 
                   uint64_t(*getY)(uint64_t), 
+                  uint64_t(*getStrand)(uint64_t),
+                  void    (*setStrand) (uint64_t &),
                   uint64_t(*mac_chain2Tile)(uint64_t), 
                   GapParms & gap_parms)
 {
@@ -3147,9 +3149,14 @@ int mapAlongChain(String<Dna5> & seq1,
         thd_chain_depth, thd_chain_dx_depth, thd_best_n, gap_parms.chn_ext_clip_metric1, &g_hs_anchor_getX); 
     if (!empty (anchors_chains))
     {//choose the first chain
+        int f_strand = getStrand(chains[0]);
         for (int i = 0; i < length(anchors_chains[0]); i++)
         {
             uint64_t new_tile = mac_chain2Tile(anchors_chains[0][i]);
+            if (f_strand)
+            {
+                setStrand(new_tile);
+            }
             appendValue (tiles, new_tile);
         }
     }
@@ -3380,13 +3387,15 @@ int extendsIntervalMapOverlaps_(String<Dna5> & ref,
     {
         String<Dna5> & seq2 = get_tile_strand(tiles1[0]) ? comstr : read;
         mapAlongChain(ref, seq2, tiles1, overlap_tiles1, overlaps.first, length(tiles1), shape_len, 
-            step1, step2, &get_tile_x, &get_tile_y, &g_hs_anchor2Tile, gap_parms);
+            step1, step2, &get_tile_x, &get_tile_y, &get_tile_strand, &set_tile_strand,
+             &g_hs_anchor2Tile, gap_parms);
     }
     if (!empty(tiles2))
     {
         String<Dna5> & seq2 = get_tile_strand(tiles2[0]) ? comstr : read;
         mapAlongChain(ref, seq2, tiles2, overlap_tiles2, 0,  overlaps.second, shape_len, step1, step2, 
-            &get_tile_x, &get_tile_y, &g_hs_anchor2Tile, gap_parms);
+            &get_tile_x, &get_tile_y, &get_tile_strand, &set_tile_strand,
+             &g_hs_anchor2Tile, gap_parms);
     }
     if (get_tile_x(gap_str1) - get_tile_y(gap_str1) > get_tile_x(gap_end2) - get_tile_y(gap_end2))
     {
@@ -3544,6 +3553,7 @@ int remapChainOneEnd(String<Dna5> & ref,
                      uint64_t (*getChainX) (uint64_t),
                      uint64_t (*getChainY) (uint64_t),
                      uint64_t (*getChainStrand) (uint64_t),
+                     void     (*setChainStrand) (uint64_t &),
                      uint64_t (*anchor2Chain) (uint64_t),
                      GapParms & gap_parms)
 {
@@ -3566,7 +3576,7 @@ int remapChainOneEnd(String<Dna5> & ref,
         i_end = std::min(int(length(chain)), remap_num);
     }
     mapAlongChain(ref, seq2, chain, remap_chain, i_str, i_end, shape_len, step1,
-             step2, getChainX, getChainY, anchor2Chain, gap_parms); 
+             step2, getChainX, getChainY, getChainStrand, setChainStrand, anchor2Chain, gap_parms); 
     clipChain(remap_chain, shape_len, direction, true, getChainX, getChainY, gap_parms);
     if (isClipTowardsLeft(direction))
     {
@@ -3613,11 +3623,11 @@ int reExtendChainOneSide(String<Dna5> & ref,
                         uint64_t (*getChainX) (uint64_t),
                         uint64_t (*getChainY) (uint64_t),
                         uint64_t (*getChainStrand) (uint64_t),
+                        void     (*setChainStrand) (uint64_t &),
                         uint64_t (*shiftChain)(uint64_t const &, int64_t, int64_t),
                         uint64_t (*anchor2Chain) (uint64_t),
                         GapParms & gap_parms)
 {
-    return 0;
     if (empty(chain) || i_ptr_str < 0 || i_ptr_end < 0)
     {
         return 0;
@@ -3672,7 +3682,7 @@ int reExtendChainOneSide(String<Dna5> & ref,
     }
     remapChainOneEnd(ref, read, comstr, reextend_chain, shape_len, step1, step2, 
             length(reextend_chain), direction,
-            getChainX, getChainY, getChainStrand, anchor2Chain, gap_parms);
+            getChainX, getChainY, getChainStrand, setChainStrand, anchor2Chain, gap_parms);
     erase(chain, i_str, i_end);
     insert(chain, i_str, reextend_chain);
     dout << "ers1 " << i_ptr_str << i_ptr_end  << " s " << int(length(chain) - len) << " " << direction << i_str << i_end << length(reextend_chain) << "\n";
@@ -3706,7 +3716,8 @@ int extendTilesOneSide(String<Dna5> & ref,
     int step2 = gap_parms.thd_etfas_step2;
     int remap_num = 50;
     remapChainOneEnd(ref, read, comstr, chain, shape_len, step1, step2, remap_num,
-        direction, &get_tile_x, &get_tile_y, &get_tile_strand, &g_hs_anchor2Tile, gap_parms);
+        direction, &get_tile_x, &get_tile_y, &get_tile_strand, &set_tile_strand,
+         &g_hs_anchor2Tile, gap_parms);
     g_CreateTilesFromChains_(chain, tiles1, f1, f2, gap_str, 0, length(chain), &get_tile_x, &
         get_tile_y, &get_tile_strand, gap_parms);    
     trimTiles(tiles1, f1, f2, gap_str, gap_end, read_len - 1, direction, gap_parms);
@@ -3900,7 +3911,8 @@ int reExtendClipOneSide(String<Dna5> & ref,
     int step2 = gap_parms.thd_etfas_step2;
     return reExtendChainOneSide(ref, read, comstr, chain, i_ptr_str, i_ptr_end, lower, upper, 
                 shape_len, step1, step2, direction, 
-                &get_tile_x, &get_tile_y, &get_tile_strand, &shift_tile, &g_hs_anchor2Tile, 
+                &get_tile_x, &get_tile_y, &get_tile_strand, &set_tile_strand, &shift_tile, 
+                &g_hs_anchor2Tile, 
                 gap_parms);
 }
 int createTilesFromAnchors2_(String<Dna5> & ref,
