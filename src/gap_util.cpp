@@ -2163,6 +2163,9 @@ int stickMainChain(String<uint64_t> & chain1,
    which is within ext_str<= .. <ext_end.
  * Note<red>::The function uses single strand hash, thus seq2 is required to
    be on the same strand of the @ext_str.
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+   ERROR::Don't use this function cause the c_stream doesn't contain strand.
+   The newly inserted chain thus doesn't have strand.
  */
 uint64_t extendClipRange(String<Dna5> & seq1, 
                          String<Dna5> & seq2, 
