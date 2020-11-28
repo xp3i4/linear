@@ -3628,9 +3628,9 @@ int reExtendChainOneSide(String<Dna5> & ref,
 
     if (isClipTowardsLeft(direction))
     {
-        int d = std::min({int64_t(length(ref) - get_cord_x(chain[i_ptr_str]) - 1),
-                          int64_t(length(read) - get_cord_y(chain[i_ptr_str]) - 1), 
-                          int64_t(upper)}); 
+        int64_t d = -std::min({int64_t(get_cord_x(chain[i_ptr_str])), 
+                              int64_t(get_tile_y(chain[i_ptr_str])),
+                              int64_t(lower)});
         for (ii = i_ptr_str; ii < i_ptr_end; ii++)
         {
             if (get_tile_x(chain[ii]) - get_cord_x(chain[i_ptr_str]) >= upper) 
@@ -3650,9 +3650,9 @@ int reExtendChainOneSide(String<Dna5> & ref,
     }
     else if (isClipTowardsRight(direction))
     {
-        int64_t d = -std::min({int64_t(get_cord_x(chain[i_ptr_end])), 
-                              int64_t(get_tile_y(chain[i_ptr_end])),
-                              int64_t(lower)});
+        int d = std::min({int64_t(length(ref) - get_cord_x(chain[i_ptr_end]) - 1),
+                          int64_t(length(read) - get_cord_y(chain[i_ptr_end]) - 1), 
+                          int64_t(upper)}); 
         for (ii = i_ptr_end; ii > i_ptr_str; ii--)
         {
             if (get_tile_x(chain[i_ptr_end]) - get_tile_x(chain[ii]) >= lower)
