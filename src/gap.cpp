@@ -267,7 +267,7 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                     String<uint64_t> tiles_end1;
                     String<uint64_t> sp_tiles_inv;
                     uint64_t t_gap_str = tiles_str[i - 1];
-                    uint64_t t_gap_end = tiles_end[i];
+                    uint64_t t_gap_end = tiles_str[i];
                     int t_direction = 0;
                     /*
                     mapInterval(seqs[get_tile_id(gap_str)], read, comstr, tiles_str1, f1, f2,
