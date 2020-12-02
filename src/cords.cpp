@@ -274,8 +274,8 @@ void print_cords(String<uint64_t> & cords, CharString header)
                   << get_cord_strand(cords[i]) << " "
                   << get_cord_x(cords[i])  << " "
                   << get_cord_y (cords[i]) << " " 
-                  << get_cord_x(cords[i]) - prex << " "
-                  << get_cord_y(cords[i]) - prey << " "
+                  << int64_t(get_cord_x(cords[i]) - prex) << " "
+                  << int64_t(get_cord_y(cords[i]) - prey) << " "
                   << length(cords) << "\n";
         prex = get_cord_x(cords[i]);
         prey = get_cord_y(cords[i]);

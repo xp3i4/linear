@@ -42,7 +42,8 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
     int64_t da = x2 - x1 - y2 + y1;
     int64_t shift_x, shift_y;
     String<uint64_t> sp_tiles; 
-
+    g_print_tile(gap_str, "mgs11");
+    g_print_tile(gap_end, "mgs12");
     if (get_cord_strand(gap_str ^ gap_end))
     {
         dout << "mg2" << get_cord_y(gap_str) << direction << "\n";
@@ -263,11 +264,15 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
             {
                 if (dx > 100 && dy > 100)
                 {
+                    dout << "mg2xxxx" << "\n";
                     String<uint64_t> tiles_str1;
                     String<uint64_t> tiles_end1;
                     String<uint64_t> sp_tiles_inv;
                     uint64_t t_gap_str = tiles_str[i - 1];
                     uint64_t t_gap_end = tiles_str[i];
+                    g_print_tile(t_gap_str, "mg51");
+                    g_print_tile(tiles_str[i], "mg53");
+                    g_print_tile(t_gap_end, "mg52");
                     int t_direction = 0;
                     /*
                     mapInterval(seqs[get_tile_id(gap_str)], read, comstr, tiles_str1, f1, f2,
@@ -277,6 +282,8 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                      */   
                     mapGeneric (seqs, read, comstr, f1, f2, tiles_str1, tiles_end1, 
                         t_gap_str, t_gap_end, gap_parms);
+                    g_print_tiles_(tiles_str, "mg41");
+                    g_print_tiles_(tiles_end, "mg42");
                     if (!empty(tiles_str1))
                     {
                         erase(tiles_str1, 0); //inserted by reform_tiles
@@ -296,6 +303,8 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                         }
                         i += length(tiles_str1);
                     }
+                    g_print_tiles_(tiles_str, "mg21");
+                    g_print_tiles_(tiles_end, "mg22");
                 }
             }
         }
@@ -309,7 +318,10 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         resize(tiles_str, length(tiles_str) - 2);
         resize(tiles_end, length(tiles_end) - 2);
         g_print_tile(gap_str, "mg1");
-        g_print_tiles_(tiles_str, "mg1");
+        g_print_tiles_(tiles_str, "mg31");
+        g_print_tiles_(tiles_end, "mg32");
+        g_print_tile(gap_str, "mg41");
+        g_print_tile(gap_end, "mg42");
     //}
     return 0;
 }
@@ -441,6 +453,8 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                 mapGap_(seqs, read, comstr, gap_str, gap_end, f1, f2, tiles_str, tiles_end,
                         clips, direction, thd_dxy_min, gap_parms);
                 insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size, thd_max_segs_num);
+                print_cords(cords_str, "mgx11");
+                print_cords(cords_end, "mgx12");
             }
         }
         if (_DefaultHit.isBlockEnd(cords_str[i]))  ///right clip end cord
