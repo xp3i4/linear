@@ -1338,12 +1338,9 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
                               uint64_t(*get_strand)(uint64_t),
                               GapParms & gap_parms)
 {
+    (void)gap_str;
     (void)gap_end;
     //<<debug
-    if (get_tile_strand(chains[it_str]) == 0)
-    {
-        //return 0;
-    }
     for (int i = it_str; i < it_end; i++)
     {
         g_print_tile(chains[i], "gctf3");
@@ -3073,17 +3070,24 @@ int reform_tiles(String<Dna5> & seq1,
     }
     else
     {
-        insertValue(tiles_end, 0, shift_tile(head_tile, gap_parms.thd_tile_size, 
-            gap_parms.thd_tile_size));
-        appendValue(tiles_end, shift_tile(tail_tile, gap_parms.thd_tile_size,
-            gap_parms.thd_tile_size));
+        if (direction != g_map_left)
+        {
+            insertValue(tiles_end, 0, shift_tile(head_tile, gap_parms.thd_tile_size, 
+                gap_parms.thd_tile_size));
+        }
+        if (direction != g_map_rght)
+        {
+            appendValue(tiles_end, shift_tile(tail_tile, gap_parms.thd_tile_size,
+                gap_parms.thd_tile_size));
+        }
     }
     //step.2 reform tiles:clip and break block if necessary
     if (gap_parms.f_rfts_clip)
     {
-        reform_tiles_(seq1, seq2, comstr, tiles_str, tiles_end, sp_tiles, direction, 
-                    gap_parms);
+        //reform_tiles_(seq1, seq2, comstr, tiles_str, tiles_end, sp_tiles, direction, 
+        //            gap_parms);
     }
+    dout << "rftl1" << direction << length(tiles_str) << length(tiles_end) << "\n";
     g_print_tiles_(tiles_str, "rft31") ;
     g_print_tiles_(tiles_end, "rft32") ;
 
