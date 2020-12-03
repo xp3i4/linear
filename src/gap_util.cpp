@@ -95,8 +95,8 @@ void GapParms::clipChainParms(int shape_len, float thd_err_rate)
     //{
         thd_ccps_clip_min = std::min(thd_err_rate, float(0.1)) * int_precision;
         thd_ccps_clip_init = thd_err_rate * int_precision; 
-        thd_ccps_clip1_upper = 25 * int_precision / thd_ccps_window_size;
-        thd_ccps_clip2_lower = 15 * int_precision / thd_ccps_window_size;
+        thd_ccps_clip1_upper = 8 * int_precision;
+        thd_ccps_clip2_lower = 12 * int_precision;
     //}
 }
 void GapParms::printParms(std::string header)
@@ -1321,6 +1321,8 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
    Thus the first elment of @tiles_str and last element of @tiles_end == @chains[0] 
    and back(@chains)
  * The function also generates the @tiles_end
+ * @chains are required within [@gap_str, @gap_end)
+ * @chains are required to be on one strand
  */
 int g_CreateTilesFromChains_ (String<uint64_t> & chains, 
                               String<uint64_t> & tiles_str, 
@@ -1347,6 +1349,8 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
         g_print_tile(chains[i], "gctf3");
     }
     //>>debug
+g_print_tile(gap_str, "gctf51");
+g_print_tile(gap_end, "gctf52");
 
     int tiles_str_i = length(tiles_str);
     String<uint64_t> tiles_str_tmp;
@@ -1364,17 +1368,16 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
     int64_t tile_size = gap_parms.thd_tile_size;
     for (unsigned i = 0; i < length(tiles_str_tmp); i++)
     {
-        int64_t x = get_x(chains[it_str]);
-        int64_t y = get_y(chains[it_str]);
-        int64_t dx = x - get_tile_x(tiles_str_tmp[i]);
-        int64_t dy = y - get_tile_y(tiles_str_tmp[i]);
-        if (dx <= 0 && dy <= 0)
+        int64_t dx1 = get_x(chains[it_str]) - get_tile_x(tiles_str_tmp[i]);
+        int64_t dy1 = get_y(chains[it_str]) - get_tile_y(tiles_str_tmp[i]);
+        //dout << "gctf61" << dx1 << dx2 << dy1 << dy2 << "\n";
+        if (dx1 <= 0 && dy1 <= 0)
         {
-            if (dx ==  0 && dy == 0)
+            if (dx1 ==  0 && dy1 == 0)
             {
                 break;
             }
-            uint64_t new_head_str = shift_tile(tiles_str_tmp[i], dx, dy);
+            uint64_t new_head_str = chains[it_str];
             remove_tile_sgn(new_head_str);
             dout << "gctf33" << get_tile_x(new_head_str) << get_tile_y(new_head_str) << is_tile_end(tiles_str_tmp[i]) << is_tile_end(new_head_str) << "\n";
             if (i == 0)
@@ -1388,6 +1391,11 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
             }
             break;
         }
+        if (i == length(tiles_str_tmp) - 1) //if not found such...
+        {
+            clear(tiles_str_tmp);
+            appendValue(tiles_str_tmp, chains[it_str]);
+        }
     }
     resize(tiles_end_tmp, length(tiles_str_tmp));
     for (unsigned i = 0; i < length(tiles_str_tmp); i++)
@@ -1398,20 +1406,18 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
     g_print_tiles_(tiles_end_tmp, "g42");
     for (int i = int(length(tiles_end_tmp)) - 1; i >= 0; i--)
     {
-        int64_t x = get_x(chains[it_end - 1]);
-        int64_t y = get_y(chains[it_end - 1]);     
-        int64_t dx = x - get_tile_x(tiles_end_tmp[i]);
-        int64_t dy = y - get_tile_y(tiles_end_tmp[i]);
-        dout << "gctf8" << dx << dy << "\n";
-        if (dx >= 0 && dy >= 0)
+        int64_t dx1 = get_x(chains[it_end - 1]) - get_tile_x(tiles_end_tmp[i]);
+        int64_t dy1 = get_y(chains[it_end - 1]) - get_tile_y(tiles_end_tmp[i]);
+
+        if (dx1 >= 0 && dy1 >= 0)
         {
-            if (dx == 0 && dy == 0)
+            if (dx1 == 0 && dy1 == 0)
             {
                 break;
             }
             erase (tiles_str_tmp, i + 1, length(tiles_str_tmp));
             erase (tiles_end_tmp, i + 1, length(tiles_end_tmp));
-            uint64_t new_tail_end = shift_tile(tiles_end_tmp[i], dx, dy);
+            uint64_t new_tail_end = chains[it_end - 1];
             uint64_t new_tail_str = shift_tile(new_tail_end, -tile_size, -tile_size);
             if (is_tile_end(tiles_str_tmp[i]))
             {
@@ -1420,7 +1426,7 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
                 set_tile_end(new_tail_str);
                 set_tile_end(new_tail_end);
             }
-            dout << "gctf6" << is_tile_end(new_tail_str) << dx << dy << tile_size << i << length(tiles_str_tmp) << "\n";
+            dout << "gctf6" << is_tile_end(new_tail_str) << dx1 << dy1 << tile_size << i << length(tiles_str_tmp) << "\n";
             g_print_tile(new_tail_str, "gctf71");
             g_print_tile(new_tail_end, "gctf72");
             appendValue(tiles_str_tmp, new_tail_str);
@@ -1431,7 +1437,7 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
         {
             erase(tiles_str_tmp, 1, length(tiles_str_tmp));
             erase(tiles_end_tmp, 1, length(tiles_end_tmp));
-            tiles_end_tmp[0] = shift_tile(tiles_end_tmp[0], dx, dy);
+            tiles_end_tmp[0] = shift_tile(tiles_end_tmp[0], dx1, dy1);
             //set_tile_end(tiles_str_tmp[0]);
             //set_tile_end(tiles_end_tmp[0]);
         }
@@ -2172,17 +2178,19 @@ int clipChain_(String<uint64_t> & chain,
     {
         return -1;
     }
-    int clip_i = 0, clip_x1, clip_x2, clip_y1, clip_y2;
-    int thd_window_i_size = 5;//window_bps >= step1 * (thd_window_i_size - 1) + shape_len (when no gaps, equal)
+    g_print_tiles_(chain, "cc1");
+    int clip_i = isClipTowardsLeft(direction) ? - 1 : length(chain) - 1;
+    int clip_x1, clip_x2, clip_y1, clip_y2;
+    int thd_window_i_size = gap_parms.thd_ccps_window_size; //window_bps >= 
+    //step1 * (thd_window_i_size - 1) + shape_len (when no gaps, equal)
     int max_d_clip = INT_MIN;
-
+    int f_found_clip = 0;
     for (int i = 1; i < length(chain) - 1; i++)
     {
         int i_str = std::max(i - thd_window_i_size, 0);
         int i_end = std::min(i + thd_window_i_size, int(length(chain) - 1));
-        int d1 = i - i_str + 1;
-        int d2 = i_end - i + 1;
-
+        int d1 = i - i_str;
+        int d2 = i_end - i;
         clip_x1 = (gaps_score_x[i] - gaps_score_x[i_str]) / d1;
         clip_x2 = (gaps_score_x[i_end] - gaps_score_x[i]) / d2;
         clip_y1 = (gaps_score_y[i] - gaps_score_y[i_str]) / d1;
@@ -2194,28 +2202,30 @@ int clipChain_(String<uint64_t> & chain,
             std::swap (clip_y1, clip_y2);
         }
         int d_clip = clip_x2 - clip_x1 + clip_y2 - clip_y1;
+        dout << "cc2" << get_cord_y(chain[i]) << d_clip << clip_x2 << clip_x1  << clip_y1 << clip_y2 << d1 << d2 << gap_parms.thd_ccps_clip1_upper << gap_parms.thd_ccps_clip2_lower << gaps_score_x[i] << gaps_score_x[i] << "\n";
         if (d_clip > max_d_clip && 
             clip_x1 < gap_parms.thd_ccps_clip1_upper && clip_y1 < gap_parms.thd_ccps_clip1_upper &&
             (clip_x2 > gap_parms.thd_ccps_clip2_lower || clip_y2 > gap_parms.thd_ccps_clip2_lower))
         {
             max_d_clip = d_clip;
             clip_i = i;
+            dout << "cc3" << get_tile_y(chain[i]) << max_d_clip << "\n";
+            f_found_clip = 1;
         }
     }
-    if (f_clip)
+    if (f_clip && f_found_clip)
     {
         if (isClipTowardsLeft(direction))
         {
-            erase(chain, 0, clip_i);
-            return 0;
+            erase(chain, 0, clip_i + 1);
         }
         else 
         {
-            resize(chain, clip_i);
-            return clip_i;
+            resize(chain, clip_i + 1);
         }
     }
-    return clip_i;
+    g_print_tiles_(chain, "cc4");
+    return clip_i + 1;
 }
 
 int clipChain(String<uint64_t> & chain, int shape_len, int direction, bool f_clip,  uint64_t (*_get_x)(uint64_t), uint64_t (*_get_y)(uint64_t), GapParms & gap_parms)
@@ -2227,9 +2237,8 @@ int clipChain(String<uint64_t> & chain, int shape_len, int direction, bool f_cli
 
     accumulateSimpleGapScore1(chain, gaps_score_x, shape_len, _get_x, gap_parms);
     accumulateSimpleGapScore1(chain, gaps_score_y, shape_len, _get_y, gap_parms);
-    clipChain_(chain, gaps_score_x, gaps_score_y, direction, f_clip, _get_x, _get_y, gap_parms);
-
-    return 0;
+    return clipChain_(chain, gaps_score_x, gaps_score_y, direction, f_clip, _get_x, _get_y, 
+                    gap_parms);
 }
 
 /*
@@ -3040,6 +3049,8 @@ int reform_tiles(String<Dna5> & seq1,
         remove_tile_sgn(back(tiles_str));
         remove_tile_sgn(tiles_str[0]);
     }
+    g_print_tiles_(tiles_str, "rft41") ;
+    g_print_tiles_(tiles_end, "rft42") ;
     if (direction != g_map_left)
     {
         insertValue(tiles_str, 0, head_tile);
@@ -4061,11 +4072,15 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
 /*---------------  Map of generic type  ---------------*/
 /*
  * Wrapper of calling reExtendClipOneSide to clip
+ * @extend_lower_cord, @extend_upper_cord is the bound where the chain extended to,
+   usually gap_str or gap_end
  */
 int reExtendClipOneSide(String<Dna5> & ref, 
                         String<Dna5> & read, 
                         String<Dna5> & comstr, 
                         String<uint64_t> & chain, 
+                        uint64_t extend_lower_cord,
+                        uint64_t extend_upper_cord,
                         int i_ptr_str,
                         int i_ptr_end,
                         int direction,
@@ -4075,6 +4090,23 @@ int reExtendClipOneSide(String<Dna5> & ref,
     int shape_len = gap_parms.thd_etfas_shape_len; 
     int step1 = gap_parms.thd_etfas_step1;
     int step2 = gap_parms.thd_etfas_step2;
+    if (isClipTowardsLeft(direction))
+    {
+        int dx = get_tile_x(chain[i_ptr_str]) - get_tile_x(extend_lower_cord);
+        int dy = get_tile_strand(chain[i_ptr_str]) ^ get_tile_strand(extend_lower_cord) ?
+            get_tile_y(extend_upper_cord)  - length(read) + get_tile_y(chain[i_ptr_str]) :
+            get_tile_y(chain[i_ptr_str]) - get_tile_y(extend_lower_cord);
+        lower = std::min({dx, dy, lower});
+    }
+    else if (isClipTowardsRight(direction))
+    {
+        int dx = get_tile_x(extend_upper_cord) - 1 - get_tile_x(chain[i_ptr_end - 1]);
+        int dy = get_tile_strand(chain[i_ptr_end - 1]) ^ get_tile_strand(extend_upper_cord) ?
+            length(read) - 1 - get_tile_y(chain[i_ptr_end - 1]) - get_tile_y(extend_lower_cord) :
+            get_tile_y(extend_upper_cord) - get_tile_y(chain[i_ptr_end - 1]);
+        upper = std::min({dx, dy, upper});
+    //dout << "luex" << lower << upper << direction << dx << dy  << "\n";   
+    }
     return reExtendChainOneSide(ref, read, comstr, chain, i_ptr_str, i_ptr_end, lower, upper, 
                 shape_len, step1, step2, direction, 
                 &get_tile_x, &get_tile_y, &get_tile_strand, &set_tile_strand, &shift_tile, 
@@ -4109,11 +4141,13 @@ int createTilesFromAnchors2_(String<Dna5> & ref,
             uint64_t head_tile = tmp_tiles[pre_i];
             uint64_t tail_tile = tmp_tiles[i];
             std::cout << "cx0 " << pre_i << " " << i << "\n";
-            i += reExtendClipOneSide(ref, read, comstr, tmp_tiles, pre_i, i, -1, gap_parms);
+            i += reExtendClipOneSide(ref, read, comstr, tmp_tiles, gap_str, gap_end,
+                                     pre_i, i, -1, gap_parms);
             g_print_tiles_(tmp_tiles, "ctfass1");
             std::cout << "cx1 " << pre_i << " " << i << "\n";
             g_print_tiles_(tmp_tiles, "ctfass2");
-            i += reExtendClipOneSide(ref, read, comstr, tmp_tiles, pre_i, i, 1, gap_parms);
+            i += reExtendClipOneSide(ref, read, comstr, tmp_tiles, gap_str, gap_end, 
+                                     pre_i, i, 1, gap_parms);
             std::cout << "cx2 " << pre_i << " " << i << "\n";
             g_print_tiles_(tmp_tiles, "ctfass3");
             if (!empty(tmp_tiles))
@@ -4140,9 +4174,11 @@ int createTilesFromAnchors2_(String<Dna5> & ref,
             //{
             //>>debug
             std::cout << "cx3 " << pre_i << i << "\n";
-            i += reExtendClipOneSide(ref, read, comstr, tmp_tiles, pre_i, i, -1, gap_parms);
+            i += reExtendClipOneSide(ref, read, comstr, tmp_tiles, gap_str, gap_end,
+                                     pre_i, i, -1, gap_parms);
             std::cout << "cx4 " << pre_i << i << "\n";
-            i += reExtendClipOneSide(ref, read, comstr, tmp_tiles, pre_i, i, 1, gap_parms);
+            i += reExtendClipOneSide(ref, read, comstr, tmp_tiles, gap_str, gap_end, 
+                                     pre_i, i, 1, gap_parms);
             std::cout << "cx5 " << pre_i << i << "\n";
            g_print_tiles_(tmp_tiles, "ctfa23");
             //}
@@ -4267,9 +4303,12 @@ int mapGeneric(StringSet<String<Dna5> > & seqs,
     String<uint64_t> sp_tiles_inv;
     int f_rfts_clip = gap_parms.f_rfts_clip;
     gap_parms.f_rfts_clip = 0; // createTileFromaAnchors2_ in mapInterval alredy clipped chain.
+    g_print_tile(gap_str, "mg221");
+    g_print_tile(gap_end, "mg222");
     mapInterval(seqs[get_tile_id(gap_str)], read, comstr, tiles_str, tiles_end, f1, f2,
                         gap_str, gap_end, LLMIN, LLMAX, t_direction, gap_parms);  
     //chainTiles(tiles_str1, length(read), thd_gather_block_gap_size, gap_parms);
+    g_print_tiles_(tiles_str, "mg13");
     reform_tiles(seqs[get_tile_id(gap_str)], read, comstr, tiles_str, tiles_end, 
         sp_tiles_inv, gap_str, gap_end, t_direction, gap_parms);
     gap_parms.f_rfts_clip = f_rfts_clip;
