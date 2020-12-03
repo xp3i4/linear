@@ -459,8 +459,9 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
         }
         if (_DefaultHit.isBlockEnd(cords_str[i]))  ///right clip end cord
         {
-            continue;
+            //continue;
             uint64_t gap_str = cords_str[i];
+            dout << "cordsend" << get_tile_y(gap_str) << "\n";
             if (length(read) - 1 - get_cord_y(gap_str) > thd_cord_gap)
             {
                 shift_x = std::min(thd_max_extend_x, length(seqs[sid]) - get_cord_x(gap_str) - 1);
@@ -472,14 +473,14 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                 _DefaultHit.unsetBlockEnd(gap_str);
                 _DefaultHit.unsetBlockEnd(gap_end);
                 int max_gap_overlap_y = _getMaxGapsyOverlap(apx_gaps, gap_str, gap_end);
-/*
+                dout << "thdcordgap" << max_gap_overlap_y << thd_cord_gap << "\n";
                 if (max_gap_overlap_y > thd_cord_gap)
                 {
-                    mapGap_ (seqs, read, comstr, gap_str, gap_end, f1, f2, tiles_str, tiles_end, 
-                             clips, direction, thd_cord_gap, thd_tile_size, thd_cord_remap, thd_err_rate, thd_dxy_min, gap_parms);
+                    mapGap_ (seqs, read, comstr, gap_str, gap_end, f1, f2, tiles_str, tiles_end, clips, direction, thd_dxy_min, gap_parms);
+                    g_print_tiles_(tiles_str, "mgrght");
                     insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size, thd_max_segs_num);
                 }
-                else
+                /*else
                 {
                     uint64_t tile_str = cords_str[i];
                     uint64_t tile_end = shift_cord(cords_str[i], block_size, block_size);
