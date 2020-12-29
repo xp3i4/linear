@@ -259,7 +259,7 @@ int insertNewBamRecord (String<BamAlignmentRecordLink> & bam_records,
                         uint16_t flag
                         )
 {
-    dout << "ib3" << g_beginPos << r_beginPos << "\n";
+    //dout << "ib3" << g_beginPos << r_beginPos << "\n";
     BamAlignmentRecordLink bam_record;
     if (g_id >= 0)
     {
@@ -930,10 +930,12 @@ int64_t seqanExtendHead_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row,
     } 
     row._sourceEndPos += extend_len - row._sourceBeginPos;
     row._clippingEndPos += extend_len - row._sourceBeginPos;
+    /*
     for (int i = 0; i < length(row._array); i++)
     {
         dout << "seq2" << row._array[i] << "\n";
     }
+    */
     return -extend_len + row._sourceBeginPos;
 }
 /*
