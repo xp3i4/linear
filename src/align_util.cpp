@@ -159,7 +159,7 @@ int clip_cigar (String<CigarElement<> > & cigar)
             default:
                 return 2;
         }
-        std::cout << "[]::clip_cigar "  << " " << x << " " << y << " " << cigar[i].count << cigar[i].operation << "\n";
+        //std::cout << "[]::clip_cigar "  << " " << x << " " << y << " " << cigar[i].count << cigar[i].operation << "\n";
     }
     return 0;
 }
@@ -188,7 +188,7 @@ int insertCigar(String<CigarElement< > > &cigar1,
     {
         if (cigar1[0].operation == back(cigar2).operation)
         {
-            std::cout << "insertCigar p = 0 " << length(cigar1) << " " << length(cigar2) << "\n";
+            //std::cout << "insertCigar p = 0 " << length(cigar1) << " " << length(cigar2) << "\n";
             cigar1[0].count += back(cigar2).count;
             eraseBack(cigar2);
         }
@@ -1082,7 +1082,7 @@ int findBestMerge_(AlignCache & align1,
             }
         }
     }
-    dout << "fm" << min_gaps_len << min_clip2 << f_min << "\n";
+    //dout << "fm" << min_gaps_len << min_clip2 << f_min << "\n";
     return f_min ? 0 : (16 | 1);
 }
 int createMergedRows_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
