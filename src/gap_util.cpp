@@ -6,7 +6,7 @@
 #include "gap_util.h"
 
 /*=============================================
-=               Glaobal Variables             =
+=               Global Variables             =
 =============================================*/
 
 int editDist(String<Dna5> & seq1, String<Dna5> seq2, uint64_t str1, uint64_t str2)
@@ -3782,7 +3782,7 @@ int remapChainOneEnd(String<Dna5> & ref,
    The region [@chain[@i_ptr_end]-lower, @chain[@i_ptr_end] + upper] will be remapped.
    And the new chain will replace the original ones which is in the region.
  * The function returns the increased length of chain after re-extending.
-   The return value >= -length(chain), when the chain is all erased, return value == length(chain) 
+   The return value >= -length(chain), when the chain is all erased, return value == -length(chain) 
    Hence i_ptr_end + reExtendChainOneSide >= -1,  
    Take care of  out of bound of i_ptr_end == -1 when iterating 
  */
@@ -4075,9 +4075,10 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
 }
 /*---------------  Map of generic type  ---------------*/
 /*
- * Wrapper of calling reExtendClipOneSide to clip
+ * Wrapper of calling reExtendChainOneSide to clip
  * @extend_lower_cord, @extend_upper_cord is the bound where the chain extended to,
    usually gap_str or gap_end
+ * In [i_ptr_str, i_ptr_end], the function is called in the closed domain
  */
 int reExtendClipOneSide(String<Dna5> & ref, 
                         String<Dna5> & read, 
@@ -4090,6 +4091,10 @@ int reExtendClipOneSide(String<Dna5> & ref,
                         int direction,
                         GapParms & gap_parms)
 {
+    if (empty(chain) || i_ptr_str < 0 || i_ptr_end < 0)
+    {
+        return 0;
+    }
     int lower = 60, upper = 60;
     int shape_len = gap_parms.thd_etfas_shape_len; 
     int step1 = gap_parms.thd_etfas_step1;
@@ -4104,10 +4109,10 @@ int reExtendClipOneSide(String<Dna5> & ref,
     }
     else if (isClipTowardsRight(direction))
     {
-        int dx = get_tile_x(extend_upper_cord) - 1 - get_tile_x(chain[i_ptr_end - 1]);
-        int dy = get_tile_strand(chain[i_ptr_end - 1]) ^ get_tile_strand(extend_upper_cord) ?
-            length(read) - 1 - get_tile_y(chain[i_ptr_end - 1]) - get_tile_y(extend_lower_cord) :
-            get_tile_y(extend_upper_cord) - get_tile_y(chain[i_ptr_end - 1]);
+        int dx = get_tile_x(extend_upper_cord) - 1 - get_tile_x(chain[i_ptr_end]);
+        int dy = get_tile_strand(chain[i_ptr_end]) ^ get_tile_strand(extend_upper_cord) ?
+            length(read) - 1 - get_tile_y(chain[i_ptr_end]) - get_tile_y(extend_lower_cord) :
+            get_tile_y(extend_upper_cord) - get_tile_y(chain[i_ptr_end]);
         upper = std::min({dx, dy, upper});
     //dout << "luex" << lower << upper << direction << dx << dy  << "\n";   
     }
@@ -4154,7 +4159,7 @@ int createTilesFromAnchors2_(String<Dna5> & ref,
                                      pre_i, i, 1, gap_parms);
             std::cout << "cx2 " << pre_i << " " << i << "\n";
             g_print_tiles_(tmp_tiles, "ctfass3");
-            if (!empty(tmp_tiles))
+            if (!(empty(tmp_tiles) || pre_i < 0 || i < 0))
             {
                 copy_tile_sgn(head_tile, tmp_tiles[pre_i]);
                 copy_tile_sgn(tail_tile, tmp_tiles[i]);
@@ -4186,7 +4191,7 @@ int createTilesFromAnchors2_(String<Dna5> & ref,
             std::cout << "cx5 " << pre_i << i << "\n";
            g_print_tiles_(tmp_tiles, "ctfa23");
             //}
-            if (!empty(tmp_tiles))
+            if (!(empty(tmp_tiles) || pre_i < 0 || i <0))
             {
                 copy_tile_sgn(head_tile, tmp_tiles[pre_i]);
                 copy_tile_sgn(tail_tile, tmp_tiles[i]);
