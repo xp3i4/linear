@@ -289,7 +289,7 @@ void print_cords(String<uint64_t> & cords, CharString header)
 }
 uint64_t isDiffCordsStrand(uint64_t & cord1, uint64_t & cord2)
 {
-    return get_cord_strand(cord1, cord2);
+    return get_cord_strand(cord1 ^ cord2);
 }
 //Gap condition
 int isCordsConsecutive_(uint64_t & cord1, uint64_t cord2, uint64_t thd_cord_gap)
