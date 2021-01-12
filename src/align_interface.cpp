@@ -2193,24 +2193,34 @@ int check_align_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     //dout << "ca1" << "\n";
     return 0;
 }
+/*--------------------  Merge bands of cords for alignment  --------------------
+  For simplicity and efficency, only merge bands of 45 degree.
+ */
+/*
+ * Caculate the size of bands of 45 degree
+ */
+uint64_t calBandSize45(uint64_t cord_str, uint64_t cord_end,
+                       uint64_t band_lower, uint64_t  band_upper)
+{
+    uint64_t l = get_cord_x(cord_end) - get_cord_x(cord_str);
+    return l * l - (l - band_upper) * (l - band_upper) / 2 
+                 - (l - band_lower) * (l - band_lower) / 2;
+}
 /*
  * Merge region S1=[@cord_str1, @cord_end1) and S2=[@cord_str2, @cord_end2)
  * @band11, @band12 are lower and upper bands of S1 
  * @band21, @band22 are lower and upper bands of S2 
  * The diagnal of merged cord is required to be < d
+ */
 int mergeCordBand (uint64_t & cord_str1, uint64_t & cord_end1,
-               uint64_t & cord_str2, uint64_t & cord_end2,
-               int & band11, int & band12, 
-               int & band21, int & band22, 
-               int thd_max_band)
+                   uint64_t & cord_str2, uint64_t & cord_end2,
+                   int & band_lower1, int & band_upper1, 
+                   int & band_lower2, int & band_upper2, 
+                   int thd_max_band)
 {
-    uint64_t x1 = get_cord_x(cord_str1);
-    if (cord) 
-    {
-
-    }
     return 0;
 }
+/*
 int mergeCordsBands(String<uint64_t> & cords_str,
                String<uint64_t> & cords_end,
                String<int> & bands1,
@@ -2235,6 +2245,11 @@ int mergeCordsBands(String<uint64_t> & cords_str,
     return 0;
 }
 */
+class __MergeBandsBuffer
+{
+    String<std::pair<unsigned, unsigned> > buffer; 
+    initBuffer();
+}
 /*
  * Only called by createAlignCords.
    Merge the cords for alignment if anchors are close or cords are close enough
@@ -2244,40 +2259,41 @@ int mergeCordsBands(String<uint64_t> & cords_str,
  * @thd_band_bound is the bound of the merged cords
    lower_bound upper_bound are supposed to be equal
  */
-int mergeAlignCords(uint64_t & cord11, 
-                    uint64_t & cord12,
-                    uint64_t & cord21,
-                    uint64_t & cord22,
-                    uint64_t & band1,
-                    uint64_t & band2,
-                    uint64_t & thd_band_bound)
+int mergeAlignCords(String<uint64_t> & cords_str1,
+                    String<uint64_t> & cords_end1,
+                    String<uint64_t> & cords_str2,
+                    String<uint64_t> & cords_end2,
+                    String<uint64_t> & bands_lower1,
+                    String<uint64_t> & bands_upper1,
+                    String<uint64_t> & bands_lower2,
+                    String<uint64_t> & bands_upper2,
+                    unsigned str_i, unsigned end_i,
+                    unsigned thd_search_depth)
 {
-    /*
-    uint64_t x11 = get_cord_x(cord11);
-    uint64_t y11 = get_cord_y(cord11);
-    uint64_t x12 = get_cord_x(cord12) ;
-    uint64_t y12 = get_cord_y(cord12);
-    uint64_t x11 = get_cord_x(cord21);
-    uint64_t y11 = get_cord_y(cord21);
-    uint64_t x12 = get_cord_x(cord22) ;
-    uint64_t y12 = get_cord_y(cord12);
-    uint64_t b1_lower = x11 + y11 - band1; 
-    uint64_t b1_upper = x12 + y12 + band1;
-    uint64_t b2_lower = x21 + y21 - band2;
-    uint64_t b2_upper = x22 + y22 + band2;
-    if (b1_lower <= b2_lower && b1_upper >= b2_upper)
+    unsigned block_str = str_i;
+    String<std::pair<unsigned, unsigned> > buffer;
+    resize(buffer, thd_search_depth);
+    for (unsigned i = str_i + 1; i < end_i; i++)
     {
-        return 0;
+        if (!isDiffCordsStrand(cords_str1[i - 1], cords_str1[i]) && !isBlockEnd(cords_str1[i - 1]))
+        {
+            for (unsigned j = buffer.len() - 1; j > 0; j--)
+            {
+                if (createMergedBands(cords_str[j - 1], cords_end[j - 1],
+                                      cords_str[j]), cords_end[j], 
+                                      band_lower, band_upper)
+                {
+                    
+                }
+            }
+        }
+        else
+        {
+            //clearBestBuffer()
+            //initBestBuffer()
+        }
     }
-    else if (b1_upper < b2_upper)
-    {
-        
-    }
-    else if (b1_lower > b2_lower)
-    {
-        
-    }
-    */
+    return 0 
 }
 /**
  * To customize cords to be aligned 
