@@ -2001,11 +2001,13 @@ int align_gap (GapRecordHolder & gap,
     int bam_id = gap.getBamSegIdHead();
     int bam_next_id = gap.getBamSegIdTail();
     //WARNING::modify band::too large band
-    TRow row1, row2 ;
+    TRow row1, row2, row3, row4 ;
     align_cord (row1, row2, genomes[g_id], read, comrev_read, str_cord, end_cord, band);
     //Head and tail are already merged, so view_str = 0.
     int const view_str = 0;
     int const view_end = clippedEndPosition(row1);
+    std::cout << "ag11 " << row1 << "\n";
+    std::cout << "ag12 " << row2 << "\n";
     clip_rows_segs (row1, row2, clips, clips_src1, clips_src2, str_cord, align_gap_parms);
     //std::cout << "ag11" << row1 << "\n";
     //std::cout << "ag12" << row2 << "\n";
@@ -2067,9 +2069,9 @@ int align_gap (GapRecordHolder & gap,
             seg_end_cord = shift_cord(seg_end_cord, thd_alg_extnd, thd_alg_extnd);
             int seg_band = std::max(get_cord_x(seg_end_cord - seg_str_cord),
                                     get_cord_y(seg_end_cord - seg_str_cord)) / 2;
-            align_cord (row1, row2, genomes[g_id], 
+            align_cord (row3, row4, genomes[g_id], 
                         read, comrev_read, seg_str_cord, seg_end_cord, seg_band);
-            clip_rows_segs (row1, row2, 
+            clip_rows_segs (row3, row4, 
                             seg_clips, 
                             seg_clips_src1, 
                             seg_clips_src2,
