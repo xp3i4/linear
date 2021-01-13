@@ -2508,6 +2508,8 @@ int alignCords (StringSet<String<Dna5> >& genomes,
             int dx = std::min((int)get_cord_x (cords_str[i + 1] - cords_str[i]), thd_max_dshift);
             int dy = std::min(dx, int(length(read) - get_cord_y(cords_str[i])));
             cord_end = _DefaultCord.shift(cord_end, dx, dy);
+            f_clip_head = 1;
+            f_clip_tail = 0;
             check_flag = 1;
         }
         if (i > 1 && 
