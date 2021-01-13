@@ -234,7 +234,7 @@ int insertBamRecordCigar (BamAlignmentRecord & bam_record,
     }
     else
     {
-        if (pos > length(bam_record.cigar ) - 1)
+        if (pos > length(bam_record.cigar ))
         {
             return 1;
         }
