@@ -2097,9 +2097,8 @@ int align_gap (GapRecordHolder & gap,
                 int bam_start_x = seg_clips_src1[j].first;
                 int bam_start_y = seg_clips_src2[j].first;
                 int bam_strand = get_cord_strand(seg_str_cord);
-                setClippedPositions(row1, row2, seg_clips[j].first, seg_clips[j].second);
-                insertNewBamRecord(bam_records, row1, row2, g_id, bam_start_x, bam_start_y, bam_strand, -1, 1, 2048); 
-            //dout << "ag5" << tmp3 - 1 << bam_next_id << get_cord_x(str_cord) << get_cord_x(end_cord) <<  "\n";
+                setClippedPositions(row3, row4, seg_clips[j].first, seg_clips[j].second);
+                insertNewBamRecord(bam_records, row3, row4, g_id, bam_start_x, bam_start_y, bam_strand, -1, 1, 2048); 
             }
         }
     }
