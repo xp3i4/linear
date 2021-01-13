@@ -2198,7 +2198,7 @@ int check_align_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
  */
 /*
  * Caculate the size of bands of 45 degree
- */
+ *
 uint64_t calBandSize45(uint64_t cord_str, uint64_t cord_end,
                        uint64_t band_lower, uint64_t  band_upper)
 {
@@ -2206,12 +2206,13 @@ uint64_t calBandSize45(uint64_t cord_str, uint64_t cord_end,
     return l * l - (l - band_upper) * (l - band_upper) / 2 
                  - (l - band_lower) * (l - band_lower) / 2;
 }
+*/
 /*
  * Merge region S1=[@cord_str1, @cord_end1) and S2=[@cord_str2, @cord_end2)
  * @band11, @band12 are lower and upper bands of S1 
  * @band21, @band22 are lower and upper bands of S2 
  * The diagnal of merged cord is required to be < d
- */
+ *
 int mergeCordBand (uint64_t & cord_str1, uint64_t & cord_end1,
                    uint64_t & cord_str2, uint64_t & cord_end2,
                    int & band_lower1, int & band_upper1, 
@@ -2220,6 +2221,7 @@ int mergeCordBand (uint64_t & cord_str1, uint64_t & cord_end1,
 {
     return 0;
 }
+*/
 /*
 int mergeCordsBands(String<uint64_t> & cords_str,
                String<uint64_t> & cords_end,
@@ -2245,11 +2247,13 @@ int mergeCordsBands(String<uint64_t> & cords_str,
     return 0;
 }
 */
+/*
 class __MergeBandsBuffer
 {
     String<std::pair<unsigned, unsigned> > buffer; 
     initBuffer();
 }
+*/
 /*
  * Only called by createAlignCords.
    Merge the cords for alignment if anchors are close or cords are close enough
@@ -2258,7 +2262,7 @@ class __MergeBandsBuffer
    S1, S2 are required to be squares.
  * @thd_band_bound is the bound of the merged cords
    lower_bound upper_bound are supposed to be equal
- */
+ *
 int mergeAlignCords(String<uint64_t> & cords_str1,
                     String<uint64_t> & cords_end1,
                     String<uint64_t> & cords_str2,
@@ -2295,6 +2299,7 @@ int mergeAlignCords(String<uint64_t> & cords_str1,
     }
     return 0 
 }
+*/
 /**
  * To customize cords to be aligned 
  */
@@ -2484,6 +2489,9 @@ int alignCords (StringSet<String<Dna5> >& genomes,
             int dx = std::min ((int)get_cord_x (cords_str[i] - cords_str[i - 1]), thd_max_dshift);
             int dy = std::min ((int)get_cord_y(cords_str[i]), dx);
             cord_str = _DefaultCord.shift(cords_str[i], -dx, -dy);
+            print_cord(cord_str, "strand_cord_str");
+            f_clip_head = 0;
+            f_clip_tail = 1;
             check_flag = -1;
         }
         if (_DefaultCord.isBlockEnd(cords_str[i]) || i == length(cords_str) - 1)
@@ -2541,7 +2549,7 @@ int alignCords (StringSet<String<Dna5> >& genomes,
     //print_cord(cord_end, "ags32");
             //std::cout << "ags3 " << rstr[ri] << "\n";
             //std::cout << "ags3 " << rstr[ri+1] << "\n";
-    int f1,f2,f3;
+        int f1 = 0, f2 = 0, f3 = 0;
         if (f_clip_head)
         {
             f1 = clip_head_ (rstr[ri], rstr[ri + 1], head_end);
