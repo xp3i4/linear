@@ -2037,6 +2037,7 @@ int align_gap (GapRecordHolder & gap,
         int bam_start_x = get_cord_x (str_cord) + beginPosition(row1);
         int bam_start_y = get_cord_y (str_cord) + beginPosition(row2);
         insertBamRecord(bam_records[bam_next_id], row1, row2, g_id, bam_start_x, bam_start_y, 0);
+        dout << "ag16" << bam_next_id << bam_start_x << length(bam_records[bam_next_id].cigar) << "\n";
         //int tmp = bam_next_id;
         //int tmp2 = tmp + 1;
         int pre_bam_id = bam_id;
@@ -2859,5 +2860,11 @@ int alignCords (StringSet<String<Dna5> >& genomes,
     clipBamRecordLinksHeadTail(bam_records, _gap_parm);
     //printCigarSrcLen(bam_records, "pscr_gaps1 ");
     std::cout << "alg_time " << sysTime() - alg_time << "\n";
+    //<<debug
+    for (unsigned i = 0; i < length(bam_records); i++)
+    {
+        dout << "agc1" << bam_records[i].beginPos << length(bam_records[i].cigar) << "\n";
+    }
+    //>>debug
     return 0;
 }

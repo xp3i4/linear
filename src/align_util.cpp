@@ -349,9 +349,13 @@ int  insertBamRecord (BamAlignmentRecord & bam_record,
     {
         if (pos == 0 && (cigar[0].operation == 'S' || cigar[0].operation == 'H'))
         {
+            dout << "is1" << g_beginPos << length(bam_record.cigar) << "\n";
             insertBamRecordCigar(bam_record, row1, row2, 1);
             cigar[0].count = r_beginPos;
             cigar[0].operation = op;
+            dout << "is1" << g_beginPos << length(bam_record.cigar) << "\n";
+            std::cout << "is1" << row1 << "\n";
+            std::cout << "is1" << row2 << "\n";
         }
         else
         {
