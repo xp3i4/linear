@@ -26,24 +26,23 @@ public:
     String<unsigned> heads_table; //table pointing to first record of each line in .sam 
     CharString genome_id;
     int nm_i; //nm:i tag in .sam, the heads holds the whole(sum of) value of the line
-
     BamAlignmentRecordLink();
     void addNext(int id);
     int isEnd() const;
     int next() const;
 };
 /*
- * The set of functions to manipulate String<BamAlignmentRecordLink> 
- * The functions are supposed to wrapper with String<BamAlignmentRecordLink> to
-   make s new class. However the String<BamAlignmentRecordLink> is used in the 
-   interface of many functions. To avoid the modification of interface this struct 
-   is declared.
+ * The set of functions of manipulating String<BamAlignmentRecordLink> 
+ * The functions are supposed to be wrappered with the String<BamAlignmentRecordLink> to
+   constitute a new class. However the String<BamAlignmentRecordLink> has been widely used
+   by many functions. To avoid modifications of interface this struct is thus declared.
  */
 struct BamLinkStringOperator
 {
     int updateHeadsTable(String<BamAlignmentRecordLink> & bam_records);
     int getHeadNum(String<BamAlignmentRecordLink> & bam_records);
     int getHead(String<BamAlignmentRecordLink> & bam_records, int i);
+    int getLineStrand(String<BamAlignmentRecordLink> & bam_records, int i);
     int writeBamRecordLinkCigar(
             std::ofstream target,
             String<BamAlignmentRecordLink> & bam_records,
@@ -74,7 +73,7 @@ int insertCigar(String<CigarElement< > > &cigar1,
 /*
  * insert cigar to the original cigar 
  */
-int insertBamRecordCigar (BamAlignmentRecord & bam_record,
+int insertBamRecordCigar (BamAlignmentRecordLink & bam_record,
                     Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
                     Row<Align<String<Dna5>, ArrayGaps> >::Type & row2, 
                     int pos = -1
@@ -85,7 +84,7 @@ int insertBamRecordCigar (BamAlignmentRecord & bam_record,
  * beginPos are always updated by g_beginPos 
  * soft/Hard clip cigar are updated only if insert at the front(pos == 0)
  */
-int  insertBamRecord (BamAlignmentRecord & bam_record,
+int  insertBamRecord (BamAlignmentRecordLink & bam_record,
                       Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
                       Row<Align<String<Dna5>, ArrayGaps> >::Type & row2, 
                       int g_id,

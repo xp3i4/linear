@@ -9,7 +9,7 @@
 //TODO make holder to rows, so set clip postion can be iteratored.
 using namespace seqan;
 /**
- * Seqan::(clip function) declaration that might cause confusion
+ * Notation regarding the Seqan::(clip function) declaration that might cause confusion
  * clippedBeginPosition() returns "unclipped view pos" 
  * setClippedBeginPosition(gaps, c1); closed [c1,)
  * insertGap(gap, pos) pos is the "clipped! view pos"
@@ -1518,6 +1518,7 @@ struct AlignClipScores
     int cigar2Score(CigarElement<> & cigar);
     int appendNew(CigarElement<> & cigar);
     int addNew(CigarElement<> & cigar, int i);
+    int findSrc2(int src2_value);
     void resize(int len);
 };
 AlignClipScores::AlignClipScores():
@@ -1620,22 +1621,73 @@ int AlignClipScores::addNew(CigarElement<> & cigar, int i)
     //dout << "addnew" << scores[i] << views[i] << matches[i] << i + 1<< "\n";
     return 0;
 }
+int AlignClipScores::findSrc2(int src2_value)
+{
+    for (int i = 0; i < length(src2); i++)
+    {
+        if (src2[i] >= src2_value)
+        {
+            return i;
+        }
+    }
+    return length(src2) - 1;
+}
 void AlignClipScores::resize(int len)
 {
     seqan::resize (scores, len);
+    seqan::resize (src2, len);
     seqan::resize (views, len);
     seqan::resize (matches, len);
 }
+/*
+ * Struct called by internal functions only to record ranges of read for clipping
+ * [@head_str, @head_end)... of read  are supposed to be the region to be clipped
+ */
+struct _HeadTailRange
+{
+    unsigned it; // itth head of BamRecordsLink
+    int head_str;
+    int head_end;
+    int tail_str;
+    int tail_end;
+
+    void setStrEnd(int y_str1, int y_end1, int y_str2, int y_end2);
+    void revertStrEnd(int read_len); //revert to different strand
+    _HeadTailRange();
+    _HeadTailRange(unsigned i, int y_str, int y_end);
+};
+void _HeadTailRange::setStrEnd(int y_str1, int y_end1, int y_str2, int y_end2)
+{
+    head_str = y_str1;
+    head_end = y_end1;
+    tail_str = y_str2;
+    tail_end = y_end2;
+}
+void _HeadTailRange::revertStrEnd(int read_len)
+{
+    int tmp_str = read_len - 1 - tail_end;
+    int tmp_end = read_len - 1 - tail_str;
+    tail_str = read_len - 1 - head_end;
+    tail_end = read_len - 1 - head_str;
+    head_str = tmp_str; 
+    head_end = tmp_end;
+}
+_HeadTailRange::_HeadTailRange(){}
+_HeadTailRange::_HeadTailRange(unsigned i, int y_str, int y_end)
+{
+    setStrEnd(y_str, y_end, y_str, y_end);
+    it = i;
+}
 int _bamRecordLlink2Score(String<BamAlignmentRecordLink> & records,
                           AlignClipScores & scores,
-                          String<int> & src1,
-                          String<int> & src2,
+                          _HeadTailRange & range,
                           int it)
 {
     //dout << "brl2s<<<" << "\n";
     int new_score = 0;
-    int new_src1 = records[it].beginPos;
-    int new_src2 = 0;
+    //int new_src1 = records[it].beginPos;
+    int seg_str = 0;
+    int seg_len = 0;
     int new_view = 0;
     int it_origin = it;
     int len = 0;
@@ -1657,24 +1709,24 @@ int _bamRecordLlink2Score(String<BamAlignmentRecordLink> & records,
     
     it = it_origin;
     int ii = 0;
+    int f_first_S = 1;
     while(true)
     {
         for (int i = 0; i < length(records[it].cigar); i++)
         {
-            scores.addNew(records[it].cigar[i], ii++);
-            /*
+            scores.addNew(records[it].cigar[i], ii);
             char o = records[it].cigar[i].operation;
-            if (o == 'X' || o == 'D' || o == '=')
+            if ((o == 'S' || o == 'H') && f_first_S)
             {
-                new_src1 += records[it].cigar[i].count;
+                seg_str += records[it].cigar[i].count;
+                f_first_S = 0;
             }
-            appendValue(src1, new_src1);
-            if (o == 'X' || o == 'I' || o == '=' || o == 'S')
+            else if (o == 'X' || o == 'I' || o == '=')
             {
-                new_src2 += records[it].cigar[i].count;
+                seg_len += records[it].cigar[i].count;
             }
-            appendValue(src2, new_src2);
-            */
+            scores.src2[ii] = seg_str + seg_len;
+            ++ii;
         }
         if (records[it].isEnd())
         {
@@ -1685,21 +1737,21 @@ int _bamRecordLlink2Score(String<BamAlignmentRecordLink> & records,
             it = records[it].next();
         }
     }
+    //range = _HeadTailRange(seg_str, seg_str + seg_len + 1);
+    range.setStrEnd(seg_str, seg_str + seg_len + 1, seg_str, seg_str + seg_len + 1);
     return 0;
 }
 /*
  * @f_ht<0 clip head, >0 to clip tail
  */
 int _clipAlignScore(AlignClipScores & scores,
-                    String<int> & src1,
-                    String<int> & src2,
                     int view_str, 
                     int view_end,
                     int f_ht,
                     AlignGapParms & align_gap_parms)
 {
     //dout << "csc" << length(scores.scores) << "\n";
-    if (length(scores.scores) < 3)
+    if (length(scores.scores) < 3 || view_str >= view_end)
     {
         return f_ht < 0 ? view_str : view_end; //error and do nothing
     }
@@ -1905,16 +1957,14 @@ int _clipBamRecordLinkCigarTail(String<BamAlignmentRecordLink> & records,
  */
 int _clipBamRecordLinkHeadTail(String<BamAlignmentRecordLink> & records, 
                                AlignClipScores & scores,
-                               String<int> & src1,
-                               String<int> & src2,
+                               _HeadTailRange & range,
                                int it,
                                AlignGapParms & align_gap_parms)
 {
-    if (length(scores.scores) != length(scores.views))
+    if (length(scores.scores) != length(scores.views) || empty(scores.scores))
     {
         return -1; //error 
     }
-    
     int cigar_erased = 0;
     int clip_head = 0;
     for (int i = 0; i < length(scores.scores); i++)
@@ -1922,7 +1972,8 @@ int _clipBamRecordLinkHeadTail(String<BamAlignmentRecordLink> & records,
         if (scores.views[i] - scores.views[0] >= align_gap_parms.thd_clip_view_len  || 
             i == length(scores.scores) - 1)
         {
-            int clip = _clipAlignScore(scores, src1, src2, 0, i, -1, align_gap_parms);
+            int head_end_i = std::min(scores.findSrc2(range.head_end), i);
+            int clip = _clipAlignScore(scores, 0, head_end_i, -1, align_gap_parms);
             cigar_erased = _clipBamRecordLinkCigarHead(records, clip, it);
             clip_head = clip;
             break;
@@ -1934,7 +1985,8 @@ int _clipBamRecordLinkHeadTail(String<BamAlignmentRecordLink> & records,
         if (back(scores.views) - scores.views[i] >= align_gap_parms.thd_clip_view_len || 
             i == clip_head + 1)
         {
-            int clip = _clipAlignScore(scores, src1, src2, i, length(scores.views), 1, align_gap_parms) - cigar_erased;
+            int tail_str_i = std::max(scores.findSrc2(range.tail_str), i);
+            int clip = _clipAlignScore(scores, tail_str_i, length(scores.views), 1, align_gap_parms) - cigar_erased;
             _clipBamRecordLinkCigarTail(records, clip, it);
             //dout << "cht1" << clip << "\n";
             break;                
@@ -1942,26 +1994,173 @@ int _clipBamRecordLinkHeadTail(String<BamAlignmentRecordLink> & records,
     }
     return 0;
 }
-int clipBamRecordLinkHeadTail(String<BamAlignmentRecordLink> & records,
-                              int it,
-                              AlignGapParms & align_gap_parms)
+/*
+ * Simple structs for recording value of sweeping and coverage.
+   Supposed to be called locally by the function _calClipBamRecordLinkRange
+ */
+struct _SweepNode
 {
-    AlignClipScores scores;
-    String<int> src1, src2;
-    _bamRecordLlink2Score(records, scores, src1, src2, it);
-    _clipBamRecordLinkHeadTail(records, scores, src1, src2, it, align_gap_parms);
+    int key;
+    int value;
+    int type;
+
+    _SweepNode();
+    _SweepNode(int, int, int);
+};
+_SweepNode::_SweepNode(){}
+_SweepNode::_SweepNode(int k, int v, int t) :
+    key(k),
+    value(v),
+    type(t)
+{}
+struct _RangeCoverage
+{
+    int r_str;
+    int r_end; 
+    int coverage;
+
+    _RangeCoverage();
+    _RangeCoverage(int, int, int);
+};
+_RangeCoverage::_RangeCoverage(){}
+_RangeCoverage::_RangeCoverage(int r1, int r2, int c) :
+    r_str(r1),
+    r_end(r2),
+    coverage(c)
+{}
+/*
+ * Calculate the range of clipping headd and tail for each line in the @records
+ * Principle to determine the range: the region whose y (read) is not overlapped 
+   with any other region of y, namely the coverage <=1, is not allowed to be 
+   clipped.
+ * @clip_ranges[i].first is the end of clipping head,
+   @clip_ranges[i].second is the start of clipping tail.
+ * Method: @range is supposed to contain the start and end of each segment 
+   constituting the one complete record ind @records, the line. @sweep_nodes is 
+   then initiated with  value ofstart and end from the @range. The @sweep_nodes 
+   is then sorted and swept. If the value is value of start then coverage+=1,
+   else if the value is value of end the coverage-=1. We then get coverages of 
+   all subsegments. Then we determin the bound of x range, within which the 
+   coverage >1, for clipping.
+ */
+int _calClipBamRecordLinkRange(String<BamAlignmentRecordLink> & records,
+                               String<_HeadTailRange> & ranges,
+                               unsigned read_len)
+{
+    unsigned thd_min_coverage_len = 20; // segment > 20bps of will be recorded
+    BamLinkStringOperator bs;
+    String<_SweepNode> sweep_nodes;
+    resize (sweep_nodes, bs.getHeadNum(records) * 2);
+    //<<debug
+    for (unsigned i = 0; i < length(records); i++)
+    {
+        dout << "bml" << length(records[i].cigar) << "\n";
+    }
+    //>>debug
+    for (int i = 0; i < length(ranges); i++) //initiate with str and end of line
+    {
+        if (bs.getLineStrand(records, ranges[i].it))
+        {
+            ranges[i].revertStrEnd(read_len);
+        }
+        sweep_nodes[i * 2] = _SweepNode(i, ranges[i].head_str, 0);
+        sweep_nodes[i * 2 + 1] = _SweepNode(i, ranges[i].tail_end, 1);
+    }
+    std::sort (begin(sweep_nodes), end(sweep_nodes), [](_SweepNode & a, _SweepNode & b){
+            return a.value < b.value;
+        });
+    String<_RangeCoverage> ranges_coverage;
+    unsigned coverage = 0; //coverage of given range of reads
+    appendValue(ranges_coverage, _RangeCoverage(0, 0, 0));
+    for (int i = 0; i < length(sweep_nodes); i++)
+    {
+        back(ranges_coverage).r_end = sweep_nodes[i].value;
+        back(ranges_coverage).coverage = coverage;
+        appendValue (ranges_coverage, _RangeCoverage(sweep_nodes[i].value, 0, 0));
+        coverage = sweep_nodes[i].type == 0 ? coverage + 1 : coverage - 1;
+    }
+    erase(ranges_coverage, 0);  //the first and last are meaningless, thus erased
+    erase(ranges_coverage, length(ranges_coverage) - 1);
+    unsigned it = 0;
+    for (int i = 0; i < length(ranges_coverage); i++)
+    {
+        if (ranges_coverage[i].coverage < 2 &&
+            ranges_coverage[i].r_end - ranges_coverage[i].r_str > thd_min_coverage_len)
+        {
+            ranges_coverage[it] = ranges_coverage[i];
+            if (it > 0 && 
+                ranges_coverage[it].r_str - ranges_coverage[it - 1].r_end < thd_min_coverage_len)
+            {
+                ranges_coverage[it - 1].r_end = ranges_coverage[it].r_end;
+                it--;
+            }
+            it++;
+        }
+    }
+    //dout << "ccb1A" << it << "\n";
+    resize(ranges_coverage, it);
+    for (int i = 0; i < length(ranges); i++)
+    {
+        for (int j = 0; j < length(ranges_coverage); j++)
+        {
+            unsigned lower_bound = std::max(ranges[i].head_str, ranges_coverage[j].r_str);
+            unsigned upper_bound = std::min(ranges[i].tail_end, ranges_coverage[j].r_end);
+            //dout << "ccbr6" << j << ranges[i].head_str << ranges_coverage[j].r_str << lower_bound << upper_bound << "\n";
+            if (lower_bound < upper_bound)
+            {
+                ranges[i].head_end = lower_bound;
+                break;
+            }
+        }
+    }
+    for (int i = 0; i < length(ranges); i++)
+    {
+        for (int j = length(ranges_coverage) - 1; j >= 0; j--)
+        {
+            unsigned lower_bound = std::max(ranges[i].head_str, ranges_coverage[j].r_str);
+            unsigned upper_bound = std::min(ranges[i].tail_end, ranges_coverage[j].r_end);
+            if (lower_bound < upper_bound)
+            {
+                ranges[i].tail_str = upper_bound;
+                break; 
+            }
+        } 
+    }
+    for (int i = 0; i < length(ranges); i++)
+    {
+        if (bs.getLineStrand(records, ranges[i].it)) //strand of it th line 
+        {
+            ranges[i].revertStrEnd(read_len);
+        }
+        //dout << "ccbr1" << bs.getLineStrand(records, ranges[i].it) << ranges[i].it << ranges[i].head_str << ranges[i].head_end << ranges[i].tail_str << ranges[i].tail_end << "\n";
+    }
     return 0;
 }
 int clipBamRecordLinksHeadTail(String<BamAlignmentRecordLink> & records,
+                               unsigned read_len,
                                AlignGapParms & align_gap_parms)
 {
     BamLinkStringOperator bs;
+    String<AlignClipScores> scores_set;
+    String<_HeadTailRange> ranges;
+    //StringSet<String<int> > src1s; 
+    //StringSet<String<int> > src2s; 
+
     bs.updateHeadsTable(records);
-    //dout << "cbr2" << bs.getHeadNum(records) << "\n";
+    resize(ranges, bs.getHeadNum(records));
+    resize(scores_set, bs.getHeadNum(records));
+    //resize(src1s, bs.getHeadNum(records));
+    //resize(src2s, bs.getHeadNum(records));
+    for (unsigned i = 0; i < bs.getHeadNum(records); i++)
+    {
+        ranges[i] = _HeadTailRange(i, 0, 0);
+        _bamRecordLlink2Score(records, scores_set[i], ranges[i], bs.getHead(records, i));
+    }
+    _calClipBamRecordLinkRange(records, ranges, read_len);
     for (int i = 0; i < bs.getHeadNum(records); i++)
     {
-        //dout << "cbr1=======" << bs.getHead(records, i) << i << "\n";
-        clipBamRecordLinkHeadTail(records, bs.getHead(records, i), align_gap_parms);
+        _clipBamRecordLinkHeadTail(records, scores_set[i], ranges[i], 
+            bs.getHead(records, ranges[i].it), align_gap_parms);
     }
     return 0;
 }
@@ -2080,7 +2279,7 @@ int align_gap (GapRecordHolder & gap,
             //int tmp3 = tmp2;
             dout << "ag17" << length(seg_clips) << "\n";
             //>>debug
-            /*
+            
             if (empty(seg_clips))
             {
 
@@ -2091,7 +2290,6 @@ int align_gap (GapRecordHolder & gap,
                 setClippedPositions(row1, row2, clips[i].second, clips[i + 1].first);
             insertNewBamRecord(bam_records, row1, row2, g_id, bam_start_x, bam_start_y, bam_strand, -1, 1, 2048); 
             }
-            */
             //<<debug
             for (int j = 0; j < length(seg_clips); j++)
             {
@@ -2857,7 +3055,7 @@ int alignCords (StringSet<String<Dna5> >& genomes,
     int thd_accept_density = 16;
     */
     align_gaps(bam_records, gaps, genomes, read, comrev_read, score_scheme, _gap_parm); 
-    clipBamRecordLinksHeadTail(bam_records, _gap_parm);
+    clipBamRecordLinksHeadTail(bam_records, length(read), _gap_parm);
     //printCigarSrcLen(bam_records, "pscr_gaps1 ");
     std::cout << "alg_time " << sysTime() - alg_time << "\n";
     //<<debug
