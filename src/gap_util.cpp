@@ -3258,7 +3258,7 @@ std::pair<int, int> getExtendsIntervalChainsOverlaps(String<uint64_t> & chain1,
             : gap_parms.ref_len;
     y1 = (gap_parms.read_len - y1 > gap_parms.thd_dcomx_err_dy) ? y1 + gap_parms.thd_dcomx_err_dy 
             : gap_parms.read_len;
-    int i2 = 0;
+    int i2 = length(chain2);
     for (int i = 0; i < length(chain2); i++)     
     {
         if (getX(chain2[i]) > x1 && getY(chain2[i]) > y1)
