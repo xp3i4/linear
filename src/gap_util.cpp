@@ -659,6 +659,8 @@ int g_mapHs_kmer_(String<Dna5> & seq,
         val = hashNextV(shape, begin(seq) + k);
         if (++count == step)  //collecting every step bases
         {
+
+            dout << "gms1" << val << type << shape.strand << k << "\n";
             //TODO: k - getT(shape)
             appendValue(g_hs, g_hs_makeGhs_(val, type, shape.strand, k));
             count = 0;
@@ -1182,10 +1184,13 @@ int g_CreateChainsFromAnchors_(String<uint64_t> & anchors, String<uint64_t> & ti
         for (int j = 0; j < length(anchors_chains[i]); j++)
         {
             tiles[it++] = g_hs_anchor2Tile(anchors_chains[i][j]);
+            g_print_tile(tiles[it - 1], "gcc1");
         }
         set_tile_end(tiles[it - 1]);
     } 
     chainTiles(tiles, read_len, thd_anchor_gap_size, gap_parms);
+    g_print_tiles_(tiles, "gcc2");
+    dout << "<<<gcc1 " << "\n";
     return 0;
 }
 
@@ -1320,8 +1325,8 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
  * This funtion requires @chains already clipped at the start and end of the chain,
    Thus the first elment of @tiles_str and last element of @tiles_end == @chains[0] 
    and back(@chains)
- * The function also generates the @tiles_end
- * @chains are required within [@gap_str, @gap_end)
+ * The function generates the @tiles_end as well
+ * @chains are required to be within [@gap_str, @gap_end)
  * @chains are required to be on one strand
  */
 int g_CreateTilesFromChains_ (String<uint64_t> & chains, 
@@ -3476,6 +3481,8 @@ int extendsIntervalClipOverlapsInsDel_(String<uint64_t> & chain1, String<uint64_
             __extendsIntervalClipOverlapsInsDel_(chain1, chain2, shape_len, step1, step2, true, getX, getY, gap_parms);
         }
     }
+    g_print_tiles_(chain1, "eci11");
+    g_print_tiles_(chain2, "eci12");
     return 0;
 }
 /*
@@ -3551,6 +3558,12 @@ int extendsIntervalMapOverlaps_(String<Dna5> & ref,
     dropChainGapX(tiles2, &get_tile_x, &get_tile_y, g_map_left, true, gap_parms);
     String<uint64_t> overlap_tiles1;
     String<uint64_t> overlap_tiles2; 
+    g_print_tiles_(tiles1, "op1");
+    g_print_tiles_(tiles2, "op2");
+    g_print_tile(gap_str1, "op11");
+    g_print_tile(gap_end1, "op12");
+    g_print_tile(gap_str2, "op13");
+    g_print_tile(gap_end2, "op14");
     std::pair<int, int> overlaps = getExtendsIntervalChainsOverlaps(tiles1, tiles2, &get_tile_x, 
         & get_tile_y, gap_parms);
     if (!empty(tiles1))
@@ -3567,6 +3580,8 @@ int extendsIntervalMapOverlaps_(String<Dna5> & ref,
             &get_tile_x, &get_tile_y, &get_tile_strand, &set_tile_strand,
              &g_hs_anchor2Tile, gap_parms);
     }
+    g_print_tiles_(overlap_tiles1, "op3");
+    g_print_tiles_(overlap_tiles2, "op4");
     if (get_tile_x(gap_str1) - get_tile_y(gap_str1) > get_tile_x(gap_end2) - get_tile_y(gap_end2))
     {
         extendsIntervalClipOverlapsInsDel_(overlap_tiles1, overlap_tiles2, shape_len, step1, step2, &get_tile_x, &get_tile_y, gap_parms); //ins, don't wrapper the shape_len here into gap_parms
@@ -3586,6 +3601,8 @@ int extendsIntervalMapOverlaps_(String<Dna5> & ref,
     {
         insert(tiles2, 0, overlap_tiles2);
     }
+    g_print_tiles_(tiles1, "op5");
+    g_print_tiles_(tiles2, "op6");
 
     return 0;
 }
@@ -3603,8 +3620,10 @@ int extendsTilesFromAnchors (String<Dna5> & ref,
                              String<Dna5> & comstr,
                              String<uint64_t> & anchors1, 
                              String<uint64_t> & anchors2, 
-                             String<uint64_t> & tiles1, 
-                             String<uint64_t> & tiles2,
+                             String<uint64_t> & tiles_str1, 
+                             String<uint64_t> & tiles_end1, 
+                             String<uint64_t> & tiles_str2, 
+                             String<uint64_t> & tiles_end2,
                              StringSet<FeaturesDynamic> & f1, 
                              StringSet<FeaturesDynamic> & f2,
                              uint64_t gap_str1, 
@@ -3621,8 +3640,17 @@ int extendsTilesFromAnchors (String<Dna5> & ref,
     String<uint64_t> tmp_tiles2;
     //!map right part
     gap_parms.direction = direction1;
+    //<<debug
+    dout << "etfa2" << "\n";
+    for (int i = 0; i < length(anchors1); i++)
+    {
+        uint64_t ttile= g_hs_anchor2Tile(anchors1[i]);
+        dout << "etfa2" << get_tile_x(ttile) << get_tile_y(ttile) << "\n";
+    }
+    //>>debug
     g_CreateChainsFromAnchors_(anchors1, tmp_tiles1, gap_str1, gap_end1, read_len, gap_parms);
     getClosestExtensionChain_(tmp_tiles1, gap_str1, gap_end1, true, gap_parms);
+    g_print_tiles_(tmp_tiles1, "etfa1");
     //!map left part
     gap_parms.direction = direction2;
     g_CreateChainsFromAnchors_(anchors2, tmp_tiles2, gap_str2, gap_end2, read_len, gap_parms);
@@ -3632,11 +3660,18 @@ int extendsTilesFromAnchors (String<Dna5> & ref,
     int step1 = gap_parms.thd_etfas_step1;
     int step2 = gap_parms.thd_etfas_step2;
     extendsIntervalMapOverlaps_(ref, read, comstr, tmp_tiles1, tmp_tiles2, gap_str1, gap_end1, gap_str2, gap_end2,  shape_len, step1, step2, gap_parms);
-    g_CreateTilesFromChains_(tmp_tiles1, tiles1, f1, f2, gap_str1, 0, length(tmp_tiles1), &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);    
-    trimTiles(tiles1, f1, f2, gap_str1, gap_end2, read_len - 1, direction1, gap_parms);
-    g_CreateTilesFromChains_(tmp_tiles2, tiles2, f1, f2, gap_str2, 0, length(tmp_tiles2), &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);  
-    trimTiles(tiles2, f1, f2, gap_str1, gap_end2, read_len - 1, direction2, gap_parms);
-
+    g_CreateTilesFromChains_(tmp_tiles1, tiles_str1, tiles_end1, f1, f2, gap_str1, gap_end1,
+        0, length(tmp_tiles1), &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);    
+    //trimTiles(tiles_str1, tiles_end1, f1, f2, gap_str1, gap_end2, read_len - 1, 
+    //    direction1, gap_parms);
+    g_print_tiles_(tiles_str1, "etf31");
+    g_print_tiles_(tiles_end1, "etf32");
+    g_CreateTilesFromChains_(tmp_tiles2, tiles_str2, tiles_end2, f1, f2, gap_str2, gap_end2, 
+        0, length(tmp_tiles2), &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);  
+    //trimTiles(tiles_str2, tiles_end2, f1, f2, gap_str1, gap_end2, read_len - 1, 
+    //    direction2, gap_parms);
+    g_print_tiles_(tiles_str2, "etf41");
+    g_print_tiles_(tiles_end2, "etf42");
     gap_parms.direction = original_direction;
     return 0;
 }
@@ -3649,8 +3684,10 @@ int extendsTilesFromAnchors (String<Dna5> & ref,
 int extendsInterval(String<Dna5> & ref, //genome
                  String<Dna5> & read, //read
                  String<Dna5> & comstr,
-                 String<uint64_t> & tiles1,    //results
-                 String<uint64_t> & tiles2,    //results
+                 String<uint64_t> & tiles_str1,    //results
+                 String<uint64_t> & tiles_end1,    //results
+                 String<uint64_t> & tiles_str2,    //results
+                 String<uint64_t> & tiles_end2,    //results
                  StringSet<FeaturesDynamic > & fts_ref,  
                  StringSet<FeaturesDynamic > & fts_read,
                  uint64_t gap_str1,
@@ -3665,7 +3702,7 @@ int extendsInterval(String<Dna5> & ref, //genome
     }
     int original_direction = gap_parms.direction;
     int shape_len = gap_parms.thd_eis_shape_len; 
-    int step1 = gap_parms.thd_eis_step1; //seq1 pattern step
+    int step1 = gap_parms.thd_eis_step1; //shape_lenseq1 pattern step
     int step2 = gap_parms.thd_eis_step2; //seq2...
     String<uint64_t> g_hs;
     String<uint64_t> g_hs_anchors1;
@@ -3690,10 +3727,14 @@ int extendsInterval(String<Dna5> & ref, //genome
     g_stream_(ref, read, g_hs, stream_str, stream_end, shape_len, step1, step2, gap_parms);
     t1 = sysTime() - t1;
     double t2 = sysTime();
+    g_print_tile(gap_str1, "gps11");
+    g_print_tile(gap_end1, "gps12");
     g_CreateExtendAnchorsPair_(g_hs, g_hs_anchors1, g_hs_anchors2, shape_len, length(read) - 1, gap_str1, gap_end1, gap_str2, gap_end2, gap_parms);
     t2 = sysTime() - t2;
     double t3 = sysTime();
-    extendsTilesFromAnchors(ref, read, comstr, g_hs_anchors1, g_hs_anchors2, tiles1, tiles2, fts_ref, fts_read, gap_str1, gap_end1, gap_str2, gap_end2, length(read), gap_parms);
+    extendsTilesFromAnchors(ref, read, comstr, g_hs_anchors1, g_hs_anchors2, tiles_str1,
+        tiles_end1, tiles_str2, tiles_end2, fts_ref, fts_read, gap_str1, gap_end1, 
+        gap_str2, gap_end2, length(read), gap_parms);
     t3 = sysTime() - t3;
     //--direction = 1 part;
     /*
@@ -4044,8 +4085,12 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
     String<Dna5> & ref = seqs[get_cord_id(gap_str1)];
     String<uint64_t> sp_tiles1; 
     String<uint64_t> sp_tiles2; 
-
-    extendsInterval(ref, read, comstr, tiles_str1, tiles_str2, f1, f2, gap_str1, gap_end1, gap_str2, gap_end2, gap_parms);
+    g_print_tile(gap_str1, "me11");
+    g_print_tile(gap_end1, "me12");
+    g_print_tile(gap_str2, "me13");
+    g_print_tile(gap_end2, "me14");
+    extendsInterval(ref, read, comstr, tiles_str1, tiles_end1, tiles_str2, tiles_end2, 
+        f1, f2, gap_str1, gap_end1, gap_str2, gap_end2, gap_parms);
     //direction = 1 part
     gap_parms.direction = direction1;
     mapExtendResultFilter_(tiles_str1, gap_str1, gap_end1, direction1, gap_parms);
@@ -4053,8 +4098,10 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
     {
         remove_tile_sgn_end(back(tiles_str1));
     }
+    g_print_tiles_(tiles_end1, "me22");
     reform_tiles(ref, read, comstr, tiles_str1, tiles_end1, sp_tiles1, 
                  gap_str1, gap_end1, direction1, gap_parms);
+    g_print_tiles_(tiles_end1, "me32");
     //<<debug
     if (!empty(tiles_end1))
     {
@@ -4289,6 +4336,7 @@ int mapInterval(String<Dna5> & seq1, //genome
     g_stream_(seq1, seq2, g_hs, gap_str, gap_end, shape_len, step1, step2, gap_parms);
     g_create_anchors_(g_hs, g_hs_anchors, shape_len, direction, anchor_lower, anchor_upper, length(seq2) - 1, gap_str, gap_end, gap_parms);
     mapTilesFromAnchors (seq1, seq2, comstr, g_hs_anchors, tiles_str, tiles_end, f1, f2, gap_str, gap_end, length(seq2) - 1, direction, gap_parms);
+    g_print_tiles_(tiles_str, "mi3");
     return 0;
 }
 /*

@@ -1117,6 +1117,7 @@ uint64_t nextWindow(FeaturesDynamic & f1,
         }
     }
     score = min;
+    dout << "nextwindows" << score << "\n";
     return new_cord;
 }
 
@@ -1428,6 +1429,7 @@ bool path_dst(String<uint64_t> & hits,
     }
     else if (alg_type == 2){
        _filterHits(hits, f1, f2);
+       print_cords(hits, "pd1");
        path_dst_2 (beginHits(hits), endHits(hits), f1, f2, cords, read_str, read_end, read_len);
     }
     return 0;
@@ -2252,6 +2254,7 @@ int getAnchorHitsChains(Anchors & anchors, String<uint64_t> & hits, uint64_t sha
     String<int> hits_score; 
     initHitsScore(hits_score); //be sure hit_score has the same structure with Hits
     chainAnchorsHits(anchors.set, hits, hits_score);
+    print_cords(hits, "gc1");
     gather_blocks_ (hits, str_ends, str_ends_p, 1, length(hits), read_len, thd_large_gap, 0, 0, & is_cord_block_end, & set_cord_end);
     preFilterChains1 (hits, hits_score, str_ends_p);
     preFilterChains2 (hits, str_ends_p, &set_cord_end, &get_cord_y);

@@ -146,6 +146,7 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                 gap_end2 = gap_end;
             }
             //!add map process here
+            g_print_tile(gap_str1, "mgs1");
             mapExtends (seqs, read, comstr, f1, f2,  
                         tiles_str1, tiles_end1, 
                         tiles_str2, tiles_end2, 
@@ -153,6 +154,7 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                         gap_str2, gap_end2, 
                         thd_dxy_min, gap_parms);
             //!add post process here            
+            g_print_tiles_(tiles_end1, "mgs2");
             if (!empty(tiles_str1))
             {
                 append(tiles_str, tiles_str1);
@@ -170,6 +172,8 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
             }
             gap_parms.chn_score2 = chn_score2_tmp;
             gap_parms.chn_score1 = chn_score1_tmp;
+            g_print_tiles_(tiles_str, "mgs31");
+            g_print_tiles_(tiles_end, "mgs32");
             //dout << "gap_indel" << get_cord_y(gap_str1) << "\n";
         }
         else 
@@ -254,8 +258,8 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         appendValue(tiles_end, gap_end);
         for (uint i = 1; i < length(tiles_str); i++)
         {
-            int64_t dx = get_tile_x(tiles_str[i]) - get_tile_x(tiles_str[i - 1]);
-            int64_t dy = get_tile_y(tiles_str[i]) - get_tile_y(tiles_str[i - 1]);
+            int64_t dx = get_tile_x(tiles_str[i]) - get_tile_x(tiles_end[i - 1]);
+            int64_t dy = get_tile_y(tiles_str[i]) - get_tile_y(tiles_end[i - 1]);
             if(get_tile_strand(tiles_str[i] ^ tiles_str[i - 1]))
             {
 
