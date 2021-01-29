@@ -3979,7 +3979,9 @@ int extendIntervalOneSide(String<Dna5> & ref, //genome
     return 0;
 }
 
-int mapExtendResultFilter_(String<uint64_t> & tiles_str, uint64_t gap_str, uint64_t gap_end, int direction, GapParms & gap_parms)
+int mapExtendResultFilter_(String<uint64_t> & tiles_str, 
+                           String<uint64_t> & tiles_end,
+                           uint64_t gap_str, uint64_t gap_end, int direction, GapParms & gap_parms)
 {
     if (isClipTowardsRight(direction))
     {
@@ -3991,6 +3993,10 @@ int mapExtendResultFilter_(String<uint64_t> & tiles_str, uint64_t gap_str, uint6
             if (dy > gap_parms.thd_me_reject_gap || dx > gap_parms.thd_me_reject_gap)
             {
                 erase(tiles_str, i, length(tiles_str));
+                if (!empty(tiles_end))
+                {
+                    erase(tiles_end, i, length(tiles_end));
+                }
                 break;
             }
             pre_tile = tiles_str[i];
@@ -4006,6 +4012,10 @@ int mapExtendResultFilter_(String<uint64_t> & tiles_str, uint64_t gap_str, uint6
             if (dy > gap_parms.thd_me_reject_gap || dx > gap_parms.thd_me_reject_gap)
             {
                 erase(tiles_str, 0, i + 1);
+                if (!empty(tiles_end))
+                {
+                    erase(tiles_end, 0, i + 1);
+                }
                 break;
             }
             pre_tile = tiles_str[i];
@@ -4047,7 +4057,7 @@ int mapExtend(StringSet<String<Dna5> > & seqs,
                   direction, gap_parms);
     //filter out tiles of large gaps
     g_print_tiles_(tiles_str, "me3");
-    mapExtendResultFilter_(tiles_str, gap_str, gap_end, direction, gap_parms);
+    mapExtendResultFilter_(tiles_str, tiles_end, gap_str, gap_end, direction, gap_parms);
     if (!empty(tiles_str) && isClipTowardsRight(direction))
     {
         remove_tile_sgn_end(back(tiles_str));
@@ -4093,7 +4103,7 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
         f1, f2, gap_str1, gap_end1, gap_str2, gap_end2, gap_parms);
     //direction = 1 part
     gap_parms.direction = direction1;
-    mapExtendResultFilter_(tiles_str1, gap_str1, gap_end1, direction1, gap_parms);
+    mapExtendResultFilter_(tiles_str1, tiles_end1, gap_str1, gap_end1, direction1, gap_parms);
     if (!empty(tiles_str1))
     {
         remove_tile_sgn_end(back(tiles_str1));
@@ -4110,7 +4120,7 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
     //>>debug
     //direction = -1 part
     gap_parms.direction = direction2; 
-    mapExtendResultFilter_(tiles_str2, gap_str2, gap_end2, direction2, gap_parms);
+    mapExtendResultFilter_(tiles_str2, tiles_end2, gap_str2, gap_end2, direction2, gap_parms);
     reform_tiles(ref, read, comstr, tiles_str2, tiles_end2, sp_tiles2, 
                  gap_str2, gap_end2, direction2, gap_parms);
     //restore gap_parms
