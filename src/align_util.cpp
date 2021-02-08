@@ -5,6 +5,10 @@
 uint16_t bam_flag_rvcmp = 16;
 uint16_t bam_flag_rvcmp_nxt = 32;
 uint16_t bam_flag_suppl = 2048;
+int const flag_clip_unset = 1 << 32;
+int const flag_clip_head = 1;
+int const flag_clip_tail = 2;
+
 BamAlignmentRecordLink::BamAlignmentRecordLink()
 {
     next_id = -1;
@@ -1260,4 +1264,166 @@ std::pair<int, int> cigars2SeqsLen(String<CigarElement<> > & cigars,
         seqs_len.second += tmp.second;
     }
     return seqs_len;
+}
+
+/*----------  AlignCords  ----------*/
+
+void set_clip_head_flag (int &flag) {flag |= flag_clip_head;}
+void set_clip_tail_flag (int &flag) {flag |= flag_clip_tail;}
+int is_clip_head_set (int flag){return flag & flag_clip_head;}
+int is_clip_tail_set (int flag){return flag & flag_clip_tail;}
+
+int AlignCords::if2ClipHead(int i)
+{
+    return is_clip_head_set(status[i]);
+}
+int AlignCords::if2ClipTail(int i)
+{
+    return is_clip_tail_set(status[i]);
+}
+//set head of alignment of cords_str[i] cords_end[i] to be clipped
+void AlignCords::set2ClipHead(int i)
+{
+    set_clip_head_flag(status[i]);
+}
+void AlignCords::set2ClipTail(int i)
+{
+    set_clip_tail_flag(status[i]);
+}
+
+/**
+ * To customize cords to be aligned 
+ */
+int _initAlignCords(StringSet<String<Dna5> >& genomes,
+                    String<Dna5> & read, 
+                    String<Dna5> & comrev_read,
+                    String<uint64_t> & cords_str_map,
+                    String<uint64_t> & cords_end_map,
+                    String<uint64_t> & cords_str,
+                    String<uint64_t> & cords_end,
+                    float thd_err_rate,
+                    int thd_min_abort_anchor)
+{
+    int thd_drop_gap = 20; //drop all gap tiles of record if num of gap blocks > 
+    uint64_t recd;
+    int recd_str, recd_end; 
+    if (empty(cords_str_map))
+    {
+        return 0;
+    }
+    appendValue(cords_str, cords_str_map[0]);
+    appendValue(cords_end, cords_end_map[0]); 
+    for (int i = 1; i < length(cords_str_map); i = recd_end)
+    {
+        recd = get_cord_recd (cords_str_map[i]);
+        recd_str = i;
+        recd_end = i + 1; 
+        int n_bk = 0; //count blocks within recd
+        for (; recd_end < length(cords_str_map); recd_end++)
+        {
+            if (_DefaultCord.isBlockEnd(cords_str_map[recd_end]))
+            {
+                ++n_bk;
+            }
+            if (get_cord_recd(cords_str_map[recd_end]) != recd)
+            {
+                break;
+            }
+        }
+        int f_dg = (n_bk > thd_drop_gap) ? 1 : 0;
+        for (int j = recd_str; j < recd_end; j++)
+        {
+            uint64_t new_cord_str = cords_str_map[j];
+            uint64_t new_cord_end = cords_end_map[j];
+            uint64_t cordy = get_cord_y(new_cord_str);
+            uint64_t cordx = get_cord_x(new_cord_str);
+            int g__id = get_cord_id(new_cord_str);
+            int f_drop = 0;
+            if (cordy > length(read) - 1 || cordx > length(genomes[g__id]) - 1)
+            {
+                f_drop = 1;
+            }
+            else if (!_DefaultCord.isBlockEnd(back(cords_str)) && 
+                     !get_cord_strand(back(cords_str) ^ new_cord_str))
+            {
+                int64_t cordx1 = get_cord_x(back(cords_str));
+                int64_t cordx2 = get_cord_x(new_cord_str);
+                int64_t cordy1 = get_cord_y(back(cords_str));
+                int64_t cordy2 = get_cord_y(new_cord_str);
+                if (cordx1 > cordx2 || cordy1 > cordy2) 
+                {
+                    int64_t danchor =  std::abs(cordx1 - cordy1) -
+                                       std::abs(cordx2 - cordy2);
+                    if (std::abs(danchor) > 
+                        thd_err_rate * std::abs(cordx1 - cordx2) &&
+                        std::abs(danchor) > thd_min_abort_anchor) 
+                    {
+                        set_cord_block_end(back(cords_str));
+                        set_cord_block_end(back(cords_end));
+                    }
+                    else
+                    {
+                        if (_DefaultCord.isBlockEnd(new_cord_str))
+                        {
+                            set_cord_block_end(back(cords_str));
+                            set_cord_block_end(back(cords_end));
+                        }
+                        f_drop = 1;
+                    }
+                }
+                else if (get_cord_y(back(cords_end)) < get_cord_y(new_cord_str) ||
+                         get_cord_x(back(cords_end)) < get_cord_x(new_cord_str))
+                {
+                    int64_t dy = get_cord_y(new_cord_str) - get_cord_y(back(cords_end));
+                    int64_t dx = get_cord_x(new_cord_str) - get_cord_y(back(cords_end));
+                    int64_t thd_cscs_shift = 24;
+                    int64_t thd_cscs_same_anchor = 50;
+                    if (std::abs(dy - dx) < thd_cscs_same_anchor)
+                    {
+                        int64_t d = std::max(dy, dx) + thd_cscs_shift;
+                        shift_cord(back(cords_end), d, d);
+                    }
+                    else
+                    {
+                        int64_t d = std::min(dy, dx) + thd_cscs_shift;
+                        shift_cord(back(cords_end), d, d);
+                        shift_cord(new_cord_str, -d, -d);
+                    }
+                }
+            }
+            if (!f_drop && (is_cord_main(new_cord_str) || !f_dg))
+            {
+                //if (!mergeAlignCords(back(cords_str), back(cords_end), new_cord_str,
+                //      new_cord_end));
+                {
+                    appendValue (cords_str, new_cord_str);
+                    appendValue (cords_end, new_cord_end);
+                }
+            }
+            if (_DefaultCord.isBlockEnd(new_cord_str))
+            {
+                set_cord_block_end(back(cords_str));
+                set_cord_block_end(back(cords_end));
+            }
+        }
+    }
+    //print_cords(cords_str, "trmc1");
+    return 0;
+}
+int AlignCords::createAlignCords(StringSet<String<Dna5> >& genomes,
+                                 String<Dna5> & read, 
+                                 String<Dna5> & comrev_read,
+                                 String<uint64_t> & cords_str_map,
+                                 String<uint64_t> & cords_end_map,
+                                 float thd_err_rate,
+                                 int thd_min_abort_anchor)
+{
+    //:Filter
+    _initAlignCords(genomes, read, comrev_read, cords_str_map, cords_end_map, 
+        cords_str, cords_end, thd_err_rate, thd_min_abort_anchor);
+    //:Merge cords and bands
+    //_mergeAlignCords();
+    //:Specific cord_str and cord_end for align
+    //_createAlignCords();
+    return 0;
 }
