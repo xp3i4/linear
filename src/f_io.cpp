@@ -654,6 +654,7 @@ int print_align_sam_record_(StringSet<String<BamAlignmentRecordLink> > & records
         {
             int it = fs.getHead(records[i], j);
             records[i][it].genome_id = genomesId[records[i][it].rID];
+            dout << "pasr2" << it << "\n";
         }
         for (int j = 0; j < fs.getHeadNum(records[i]); j++)
         {

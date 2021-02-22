@@ -223,11 +223,10 @@ int insertCigar(String<CigarElement< > > &cigar1,
 /*
  * insert cigar to the original cigar 
  */
-int insertBamRecordCigar (BamAlignmentRecord & bam_record,
-                    Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
-                    Row<Align<String<Dna5>, ArrayGaps> >::Type & row2, 
-                    int pos
-                   )
+int insertBamRecordCigar (BamAlignmentRecordLink & bam_record,
+                          Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
+                          Row<Align<String<Dna5>, ArrayGaps> >::Type & row2, 
+                          int pos)
 {
     if (pos < 0)
     {
@@ -235,13 +234,12 @@ int insertBamRecordCigar (BamAlignmentRecord & bam_record,
     }
     else
     {
-        if (pos > length(bam_record.cigar ) - 1)
+        if (pos > length(bam_record.cigar ))
         {
             return 1;
         }
         String<CigarElement< > > tmp;
         align2cigar(tmp, row1, row2);
-        
         insertCigar(bam_record.cigar, pos, tmp);
     }
     return 0;
@@ -257,8 +255,7 @@ int insertNewBamRecord (String<BamAlignmentRecordLink> & bam_records,
                         int strand,
                         int insert_pos,
                         int f_soft,/*hard and soft clip flag*/
-                        uint16_t flag
-                        )
+                        uint16_t flag)
 {
     //dout << "ib3" << g_beginPos << r_beginPos << "\n";
     BamAlignmentRecordLink bam_record;
@@ -303,8 +300,7 @@ int insertNewBamRecord (String<BamAlignmentRecordLink> & bam_records,
                         int strand,
                         int insert_pos,
                         int f_soft,
-                        uint16_t flag 
-                        )
+                        uint16_t flag)
 {
     BamAlignmentRecordLink bam_record;
     insertNewBamRecord(bam_records, g_id, g_beginPos, r_beginPos, strand, insert_pos, f_soft, flag);
@@ -321,15 +317,14 @@ int insertNewBamRecord (String<BamAlignmentRecordLink> & bam_records,
  * beginPos are always updated by g_beginPos 
  * soft/Hard clip cigar are updated only if insert at the front(pos == 0)
  */
-int  insertBamRecord (BamAlignmentRecord & bam_record,
-                      Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
-                      Row<Align<String<Dna5>, ArrayGaps> >::Type & row2, 
-                      int g_id,
-                      int g_beginPos,
-                      int r_beginPos,
-                      int pos,
-                      int f_soft
-                      )
+int insertBamRecord (BamAlignmentRecordLink & bam_record,
+                     Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
+                     Row<Align<String<Dna5>, ArrayGaps> >::Type & row2, 
+                     int g_id,
+                     int g_beginPos,
+                     int r_beginPos,
+                     int pos,
+                     int f_soft)
 {
     String<CigarElement<> > & cigar = bam_record.cigar;
     char op = 'S';
@@ -337,7 +332,6 @@ int  insertBamRecord (BamAlignmentRecord & bam_record,
     {
         op = 'H';
     }
-
     if (empty (bam_record.cigar))
     {
         insertBamRecordCigar(bam_record, row1, row2, 0);
@@ -350,9 +344,13 @@ int  insertBamRecord (BamAlignmentRecord & bam_record,
     {
         if (pos == 0 && (cigar[0].operation == 'S' || cigar[0].operation == 'H'))
         {
+            dout << "is1" << g_beginPos << length(bam_record.cigar) << "\n";
             insertBamRecordCigar(bam_record, row1, row2, 1);
             cigar[0].count = r_beginPos;
             cigar[0].operation = op;
+            dout << "is1" << g_beginPos << length(bam_record.cigar) << "\n";
+            std::cout << "is1" << row1 << "\n";
+            std::cout << "is1" << row2 << "\n";
         }
         else
         {
@@ -384,7 +382,6 @@ int  insertBamRecord (BamAlignmentRecord & bam_record,
     {
         return 1;
     }
-    (void)r_beginPos;
     return 0;
 }
 /*------------------- BamLinkStringOperator and SAZ tag --------------------*/
@@ -500,6 +497,13 @@ int BamLinkStringOperator::getHeadNum(String<BamAlignmentRecordLink> & bam_recor
 int BamLinkStringOperator::getHead(String<BamAlignmentRecordLink> & bam_records, int i)
 {
     return empty(bam_records) ? -1 : bam_records[0].heads_table[i];
+}
+/*
+ * Get the clippeed start position of y(read) of the line whose head is the ith one
+ */
+int BamLinkStringOperator::getLineStrand(String<BamAlignmentRecordLink> & bam_records, int i)
+{
+    return bam_records[getHead(bam_records, i)].flag & 16;
 }
 /*
  *  Update heads table of @bam_records.
