@@ -180,25 +180,4 @@ std::pair<int, int> cigars2SeqsLen(String<CigarElement<> > & cigars,
 extern int const flag_clip_unset;
 extern int const flag_clip_head;
 extern int const flag_clip_tail;
-struct AlignCords
-{
-    String<uint64_t> cords_str;
-    String<uint64_t> cords_end;
-    String<uint64_t> bands;
-    String<int> status;
-    //if head of alignment of cords_str[i] cords_end[i] need to be clipped
-    int if2ClipHead(int i);
-    int if2ClipTail(int i);
-    //set head of alignment of cords_str[i] cords_end[i] to be clipped
-    void set2ClipHead(int i);
-    void set2ClipTail(int i);
-    int createAlignCords(StringSet<String<Dna5> >& genomes,
-                String<Dna5> & read, 
-                String<Dna5> & comrev_read,
-                String<uint64_t> & cords_str_map,
-                String<uint64_t> & cords_end_map,
-                float thd_err_rate,
-                int thd_min_abort_anchor);
-
-};
 #endif
