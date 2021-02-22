@@ -2049,6 +2049,11 @@ int _calClipBamRecordLinkRange(String<BamAlignmentRecordLink> & records,
 {
     unsigned thd_min_coverage_len = 20; // segment > 20bps of will be recorded
     BamLinkStringOperator bs;
+    if (empty(ranges) || bs.getHeadNum(records) == 0)
+    {
+        return 0;
+    }
+    dout << "cb1A" << length(ranges) << bs.getHeadNum(records) << "\n";
     String<_SweepNode> sweep_nodes;
     resize (sweep_nodes, bs.getHeadNum(records) * 2);
     //<<debug
