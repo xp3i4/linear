@@ -2700,21 +2700,9 @@ int alignCords (StringSet<String<Dna5> >& genomes,
             continue;
         }
 
-        dout << "astr1" << get_cord_strand(cord_str) << get_cord_x(cord_str) << get_cord_x(cord_end) << "\n";
         int score_align = align_cord (rstr[ri], rstr[ri + 1], genomes[g_id], 
                                       read, comrev_read, 
                                       cord_str, cord_end, band);
-        //<<debug
-        if (get_cord_x(cord_str) == 75419809)
-        {
-            std::cout << "invs1 " << rstr[ri] << "\n";
-            std::cout << "invs1 " << rstr[ri + 1] << "\n";
-        }
-        //>>debug
-    //print_cord(cord_str, "ags31");
-    //print_cord(cord_end, "ags32");
-            //std::cout << "ags3 " << rstr[ri] << "\n";
-            //std::cout << "ags3 " << rstr[ri+1] << "\n";
         int f1 = 0, f2 = 0, f3 = 0;
         if (f_clip_head)
         {
@@ -2731,14 +2719,9 @@ int alignCords (StringSet<String<Dna5> >& genomes,
         flag = f1 | f2 | f3;
         if (flag)
         {
-            std::cout << "skip_align1 " << get_cord_strand(cord_str) << " " << get_cord_x(cord_str) << " " << rstr[ri] << " " << f_clip_head << " " << f_clip_tail << " " << (f_clip_head & f_clip_tail) << f1 << f2 << f3 << "\n";
-            std::cout << "skip_align2 " << get_cord_strand(cord_str) << " " << get_cord_x(cord_str) << " " <<rstr[ri + 1] << "\n";
             continue; //alignment quality check, drop poorly aligned 
         }
-         //   dout << "ib13" << get_cord_y(cord_str) + beginPosition(rstr[ri + 1]) << get_cord_y(cord_str) << get_cord_y(cord_end) << get_cord_y(cords_str[i]) << get_cord_y(pre_cord_str) << get_cord_y(pre_cord_end)<< "\n";
         uint64_t cord_str_before_merge = cord_str;
-        //print_cord(pre_cord_str, "mcx1");
-        //print_cord(cord_str, "mcx2");
             uint64_t tmp1 = pre_cord_str, tmp2= cord_str;
         if (_DefaultCord.isBlockEnd(pre_cord_str))
         {
@@ -2749,45 +2732,23 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                             get_cord_y(cord_str) + beginPosition(rstr[ri + 1]),
                             get_cord_strand(cords_str[i]),
                             -1, 1, bam_flag);
-            //dout << "ib13" << get_cord_y(cord_str) + beginPosition(rstr[ri + 1]) << get_cord_y(cord_str) << get_cord_y(cords_str[i]) << get_cord_y(pre_cord_str) << get_cord_y(pre_cord_end)<< "\n";
- 
             pre_cord_str = cord_str;
             pre_cord_end = cord_end;
             flag = 0;
             flag_pre = 0;
             std::swap (ri, ri_pre); 
-            //dout << "acf2" << get_cord_x(cord_str) << get_cord_x(cord_end) << get_cord_y(cord_str) << get_cord_y(cord_end) << flag << "\n";
             continue;
         } 
         else
         {
             flag = merge_align_(rstr[ri_pre], rstr[ri_pre + 1], 
                     rstr[ri], rstr[ri + 1], genomes[g_id], read, comrev_read, pre_cord_str, cord_str );
-            //<<debug
-            //dout << "acf1" << get_cord_x(cord_str) << get_cord_x(cord_end) << get_cord_y(tmp1) << get_cord_y(tmp2) << flag << "\n";
-            //std::cout << "macons1 " << genomes[g_id][get_cord_x(pre_cord_str)] << " " << value(rstr[ri_pre]._source)[0] << "\n";
-            //print_cord(pre_cord_str, "map11");
-            //print_cord(pre_cord_end, "map12");
-            //print_cord(cord_str, "map13");
-            //print_cord(cord_end, "map14");
-            //>>debug
         }
-                //<<debug
-        if (get_cord_x(cord_str) == 75419809 && get_cord_strand(cord_str) == 0)
-        {
-            std::cout << "invs2 " << rstr[ri] << "\n";
-            std::cout << "invs2 " << rstr[ri + 1] << "\n";
-        }
-        std::cout << "mrg_align1 " << get_cord_strand(cord_str) << get_cord_x(cord_str) << rstr[ri] << flag << "\n";
-        std::cout << "mrg_align2 " << get_cord_strand(cord_str) << get_cord_x(cord_str) << rstr[ri + 1] << "\n";
-        //>>debug
         uint64_t bam_start_x = get_cord_x(pre_cord_str) + 
                                beginPosition(rstr[ri_pre]);
         uint64_t bam_start_y = get_cord_y(pre_cord_str) + 
                                beginPosition(rstr[ri_pre + 1]);
         uint64_t bam_strand = get_cord_strand(pre_cord_str); 
-        //std::cout << "dac11 " << flag_pre << flag << " " << bam_start_x << " " << rstr[ri_pre]._sourceEndPos - rstr[ri_pre]._sourceBeginPos << " " << rstr[ri_pre] << "\n";
-        //std::cout << "dac12 " << flag_pre << flag << " " << bam_start_x << " " << rstr[ri_pre]._sourceEndPos - rstr[ri_pre]._sourceBeginPos << " " << rstr[ri_pre + 1] << "\n";
         if (!flag_pre)
         {
             if (!flag)
@@ -2801,8 +2762,6 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                 gap_str_cord = shift_cord(pre_cord_str,
                                           beginPosition(rstr[ri_pre]),
                                           beginPosition(rstr[ri_pre + 1]));
-                //print_cord(pre_cord_str, "ing1");
-                //print_cord(tmp1, "ing2");
             }
             else if (flag & 2)
             {
@@ -2832,8 +2791,6 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                         bam_strand = get_cord_strand(cord_str);
                         insertNewBamRecord(bam_records, g_id, bam_start_x, bam_start_y, 
                             bam_strand, -1, 1, 2048); 
-                        //dout << "ib11" << bam_start_x << bam_start_y << "\n";
-                        //std::cout << "ib11 " << genomes[g_id][bam_start_x + 1] << " " << value(rstr[ri_pre]._source)[rstr[ri_pre]._sourceBeginPos + 1] << "\n";
                     }      
                     f_gap_merge = 1;
                 }
@@ -2849,10 +2806,6 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                 gap_end_cord = shift_cord(pre_cord_str, 
                                           endPosition(rstr[ri_pre]), 
                                           endPosition(rstr[ri_pre + 1]));
-
-                        print_cord(gap_str_cord, "inv_gap1");
-                        print_cord(gap_end_cord, "inv_gap2");
-                        print_cord(pre_cord_str, "inv_gap3");
                 if (get_cord_x(gap_str_cord) < get_cord_x(gap_end_cord) &&
                     get_cord_y(gap_str_cord) < get_cord_y(gap_end_cord))
                 {
@@ -2865,7 +2818,6 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                         bam_start_y = get_cord_y(cord_str) + beginPosition(rstr[ri + 1]);
                         bam_strand = get_cord_strand(cord_str);   
                         insertNewBamRecord(bam_records, g_id, bam_start_x, bam_start_y, bam_strand, -1, 1, 2048); 
-                        //dout << "ib17" << bam_start_y << "\n";
                     }               
                     f_gap_merge = 1;
                 }
@@ -2886,11 +2838,6 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                                    rstr[ri_pre + 1],
                                    g_id, bam_start_x, bam_start_y, bam_strand,
                                    -1, 1, 2048);
-                        //dout << "ib18" << bam_start_y << "\n";
-                std::cout << "pcs2 " << rstr[ri_pre] << "\n";
-                std::cout << "pcs2 " << rstr[ri_pre + 1] << "\n";
-                print_cord(cord_str, "pcs2");
-                print_cord(pre_cord_str, "pcs2");
                 f_gap_merge = 0;                     
 
             }
@@ -2908,7 +2855,6 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                 insertNewBamRecord(bam_records, 
                                    g_id, bam_start_x, bam_start_y, bam_strand,
                                    -1, 1, 2048);
-                        //dout << "ib19" << bam_start_y << "\n";
                 f_gap_merge = 0;
             }
             else if (flag & 2)
@@ -2924,8 +2870,6 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                                    rstr[ri_pre + 1],
                                    g_id, bam_start_x, bam_start_y, bam_strand,
                                    -1, 1, 2048);  
-                //print_cord(pre_cord_str, "pcs1");
-                        //dout << "ib15" << bam_start_y << "\n";
                 f_gap_merge = 0;
             }
         }
