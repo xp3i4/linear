@@ -2723,215 +2723,303 @@ int alignCords (StringSet<String<Dna5> >& genomes,
         }
         uint64_t cord_str_before_merge = cord_str;
             uint64_t tmp1 = pre_cord_str, tmp2= cord_str;
-        if (_DefaultCord.isBlockEnd(pre_cord_str))
+        //<<feature
+        String<int> flags;
+        String<int> flags_pre;
+        String<int> f_gap_merges;
+        String<int> ris;
+        String<int> ri_pres;
+        String<uint64_t> merge_cords_str;
+        String<uint64_t> merge_cords_end;
+        String<uint64_t> merge_pre_cords_str;
+        String<uint64_t> merge_pre_cords_end;
+        String<uint64_t> clipped_begin_positions;
+        String<uint64_t> clipped_end_positions;
+        uint64_t thd_split = 5000000;
+        uint64_t thd_joint_view_size = 196;
+        if (0)
+        //if (clippedEndPosition(rstr[ri]) - clippedBeginPosition(rstr[ri]) > thd_split &&
+        //    clippedEndPosition(rstr[ri + 1]) - clippedBeginPosition(rstr[ri + 1]) > thd_split)
         {
-            //clip_segs(rstr[ri], rstr[ri + 1], cord_str, _gap_parm, -1);
-            uint64_t bam_flag = i == 1 ? 0 : 2048;
-            insertNewBamRecord(bam_records, g_id,
-                            get_cord_x(cord_str) + beginPosition(rstr[ri]),
-                            get_cord_y(cord_str) + beginPosition(rstr[ri + 1]),
-                            get_cord_strand(cords_str[i]),
-                            -1, 1, bam_flag);
-            pre_cord_str = cord_str;
-            pre_cord_end = cord_end;
-            flag = 0;
-            flag_pre = 0;
-            std::swap (ri, ri_pre); 
-            continue;
-        } 
-        else
-        {
-            flag = merge_align_(rstr[ri_pre], rstr[ri_pre + 1], 
-                    rstr[ri], rstr[ri + 1], genomes[g_id], read, comrev_read, pre_cord_str, cord_str );
+            /*
+            //the first block
+            appendValue(flags, flag);
+            appendValue(flags_pre, flag_pre);
+            //appendValue(f_gap_merges, f_gap_merge);
+            appendValue(ris, ri);
+            appendValue(ri_pres, ri_pre);
+            appendValue(merge_pre_cords_str, pre_cord_str);
+            appendValue(merge_pre_cords_end, pre_cord_end);
+            uint64_t merge_cord_str1 = cord_str;
+            appendValue(merge_cords_str, merge_cord_str1);
+            uint64_t original_clipped_end = clippedEndPosition(rstr[ri]);
+            setClippedEndPositions(rstr[ri], rstr[ri + 1], thd_joint_view_size);
+            uint64_t merge_cord_end1 = 
+                shift_cord(cord_str, endPosition(rstr[ri]), endPosition(rstr[ri + 1]));
+            appendValue(merge_cords_end, merge_cord_end1);
+            appendValue(clipped_begin_positions, clippedBeginPosition(rstr[ri]));
+            appendValue(clipped_end_positions, clippedEndPosition(rstr[ri]));
+
+            //the second block
+            appendValue(flags, 0);//defined as always successfully merged
+            appendValue(flags_pre, flag);
+            //appendValue(f_gap_merges, f_gap_merge);
+            //row[ri_pre] = row[ri];
+            //row[ri_pre + 1] = row[ri];
+            append
+            append(ris, )
+            setClippedBeginPositions(rstr[ri], rstr[ri + 1], thd_joint_view_size);
+            setClippedEndPositions(rstr[ri], rstr[ri + 1], origin_clipped_view);
+            uint64_t merge_cord_str2 = merge_cord_end1;
+            uint64_t merge_cord_end2 = cord_end; 
+            appendValue(merge_cords_str, merge_cord_str1);
+            appendValue(merge_cords_str, merge_cord_str1);
+            appendValue(merge_cords_end, merge_cord_end2);
+            */
         }
-        uint64_t bam_start_x = get_cord_x(pre_cord_str) + 
-                               beginPosition(rstr[ri_pre]);
-        uint64_t bam_start_y = get_cord_y(pre_cord_str) + 
-                               beginPosition(rstr[ri_pre + 1]);
-        uint64_t bam_strand = get_cord_strand(pre_cord_str); 
-        if (!flag_pre)
+        //else
+        //{   
+            appendValue(flags, flag);
+            appendValue(flags_pre, flag_pre);
+            appendValue(f_gap_merges, f_gap_merge);
+            appendValue(ris, ri);
+            appendValue(ri_pres, ri_pre);
+            appendValue(merge_pre_cords_str, pre_cord_str);
+            appendValue(merge_pre_cords_end, pre_cord_end);
+            appendValue(merge_cords_str, cord_str);
+            appendValue(merge_cords_end, cord_end);
+            appendValue(clipped_begin_positions, clippedBeginPosition(rstr[ri]));
+            appendValue(clipped_end_positions, clippedEndPosition(rstr[ri]));
+        //}
+        //>>feature 
+        for (unsigned j = 0; j < length(merge_cords_str); j++)
         {
-            if (!flag)
+            flag = flags[j];
+            flag_pre = flags_pre[j];
+            f_gap_merge = f_gap_merges[j];
+            ri = ris[j];
+            ri_pre = ri_pres[j];
+            pre_cord_str = merge_pre_cords_str[j];
+            pre_cord_end = merge_pre_cords_end[j];
+            cord_str = merge_cords_str[j];
+            cord_end = merge_cords_end[j];
+            setClippedBeginPositions(rstr[ri], rstr[ri + 1], clipped_begin_positions[j]);
+            setClippedEndPositions(rstr[ri], rstr[ri + 1], clipped_end_positions[j]);
+
+            if (_DefaultCord.isBlockEnd(pre_cord_str))
             {
-                insertBamRecordCigar(back(bam_records), 
-                            rstr[ri_pre], rstr[ri_pre + 1]);                
-                f_gap_merge = 0;
+                //clip_segs(rstr[ri], rstr[ri + 1], cord_str, _gap_parm, -1);
+                uint64_t bam_flag = i == 1 ? 0 : 2048;
+                insertNewBamRecord(bam_records, g_id,
+                                get_cord_x(cord_str) + beginPosition(rstr[ri]),
+                                get_cord_y(cord_str) + beginPosition(rstr[ri + 1]),
+                                get_cord_strand(cords_str[i]),
+                                -1, 1, bam_flag);
+                pre_cord_str = cord_str;
+                pre_cord_end = cord_end;
+                flag = 0;
+                flag_pre = 0;
+                ri_pre = ri;
+                ri = (ri + 2) % length(rstr);
+                //std::swap (ri, ri_pre); 
+                continue;
+            } 
+            else
+            {
+                flag = merge_align_(rstr[ri_pre], rstr[ri_pre + 1], 
+                        rstr[ri], rstr[ri + 1], genomes[g_id], read, comrev_read, pre_cord_str, cord_str );
             }
-            else if (flag & 1)
+            uint64_t bam_start_x = get_cord_x(pre_cord_str) + 
+                                   beginPosition(rstr[ri_pre]);
+            uint64_t bam_start_y = get_cord_y(pre_cord_str) + 
+                                   beginPosition(rstr[ri_pre + 1]);
+            uint64_t bam_strand = get_cord_strand(pre_cord_str); 
+            if (!flag_pre)
             {
-                gap_str_cord = shift_cord(pre_cord_str,
-                                          beginPosition(rstr[ri_pre]),
-                                          beginPosition(rstr[ri_pre + 1]));
-            }
-            else if (flag & 2)
-            {
-                //clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
-                //          pre_cord_str, _gap_parm, 1); 
-                insertBamRecordCigar(back(bam_records), 
-                                     rstr[ri_pre], 
-                                     rstr[ri_pre + 1]);            
-            }
-        }
-        else if (flag_pre & 1)
-        {
-            if (!flag)
-            {
-                gap_end_cord = shift_cord(pre_cord_str, 
-                                          endPosition(rstr[ri_pre]), 
-                                          endPosition(rstr[ri_pre + 1]));
-                if (get_cord_x(gap_str_cord) < get_cord_x(gap_end_cord) &&
-                    get_cord_y(gap_str_cord) < get_cord_y(gap_end_cord))
+                if (!flag)
                 {
-                    if(insertGaps(gaps, gap_str_cord, gap_end_cord,
-                                  length(bam_records) - 1,
-                                  thd_merge_gap, f_gap_merge))
-                    {
-                        bam_start_x = get_cord_x(cord_str) + beginPosition(rstr[ri]);
-                        bam_start_y = get_cord_y(cord_str) + beginPosition(rstr[ri + 1]);
-                        bam_strand = get_cord_strand(cord_str);
-                        insertNewBamRecord(bam_records, g_id, bam_start_x, bam_start_y, 
-                            bam_strand, -1, 1, 2048); 
-                    }      
-                    f_gap_merge = 1;
+                    insertBamRecordCigar(back(bam_records), 
+                                rstr[ri_pre], rstr[ri_pre + 1]);                
+                    f_gap_merge = 0;
+                }
+                else if (flag & 1)
+                {
+                    gap_str_cord = shift_cord(pre_cord_str,
+                                              beginPosition(rstr[ri_pre]),
+                                              beginPosition(rstr[ri_pre + 1]));
+                }
+                else if (flag & 2)
+                {
+                    //clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
+                    //          pre_cord_str, _gap_parm, 1); 
+                    insertBamRecordCigar(back(bam_records), 
+                                         rstr[ri_pre], 
+                                         rstr[ri_pre + 1]);            
                 }
             }
-            else if (flag & 1)
+            else if (flag_pre & 1)
             {
-               //NONE 
-            }
-            else if (flag & 2)
-            {
-                //clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
-                //          pre_cord_str, _gap_parm, 1); 
-                gap_end_cord = shift_cord(pre_cord_str, 
-                                          endPosition(rstr[ri_pre]), 
-                                          endPosition(rstr[ri_pre + 1]));
-                if (get_cord_x(gap_str_cord) < get_cord_x(gap_end_cord) &&
-                    get_cord_y(gap_str_cord) < get_cord_y(gap_end_cord))
+                if (!flag)
                 {
-                    if(insertGaps(gaps, gap_str_cord, gap_end_cord,
-                                  length(bam_records) - 1,
-                                  thd_merge_gap, f_gap_merge))
+                    gap_end_cord = shift_cord(pre_cord_str, 
+                                              endPosition(rstr[ri_pre]), 
+                                              endPosition(rstr[ri_pre + 1]));
+                    if (get_cord_x(gap_str_cord) < get_cord_x(gap_end_cord) &&
+                        get_cord_y(gap_str_cord) < get_cord_y(gap_end_cord))
                     {
+                        if(insertGaps(gaps, gap_str_cord, gap_end_cord,
+                                      length(bam_records) - 1,
+                                      thd_merge_gap, f_gap_merge))
+                        {
+                            bam_start_x = get_cord_x(cord_str) + beginPosition(rstr[ri]);
+                            bam_start_y = get_cord_y(cord_str) + beginPosition(rstr[ri + 1]);
+                            bam_strand = get_cord_strand(cord_str);
+                            insertNewBamRecord(bam_records, g_id, bam_start_x, bam_start_y, 
+                                bam_strand, -1, 1, 2048); 
+                        }      
+                        f_gap_merge = 1;
+                    }
+                }
+                else if (flag & 1)
+                {
+                   //NONE 
+                }
+                else if (flag & 2)
+                {
+                    //clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
+                    //          pre_cord_str, _gap_parm, 1); 
+                    gap_end_cord = shift_cord(pre_cord_str, 
+                                              endPosition(rstr[ri_pre]), 
+                                              endPosition(rstr[ri_pre + 1]));
+                    if (get_cord_x(gap_str_cord) < get_cord_x(gap_end_cord) &&
+                        get_cord_y(gap_str_cord) < get_cord_y(gap_end_cord))
+                    {
+                        if(insertGaps(gaps, gap_str_cord, gap_end_cord,
+                                      length(bam_records) - 1,
+                                      thd_merge_gap, f_gap_merge))
+                        {
 
-                        bam_start_x = get_cord_x(cord_str) + beginPosition(rstr[ri]);
-                        bam_start_y = get_cord_y(cord_str) + beginPosition(rstr[ri + 1]);
-                        bam_strand = get_cord_strand(cord_str);   
-                        insertNewBamRecord(bam_records, g_id, bam_start_x, bam_start_y, bam_strand, -1, 1, 2048); 
-                    }               
-                    f_gap_merge = 1;
+                            bam_start_x = get_cord_x(cord_str) + beginPosition(rstr[ri]);
+                            bam_start_y = get_cord_y(cord_str) + beginPosition(rstr[ri + 1]);
+                            bam_strand = get_cord_strand(cord_str);   
+                            insertNewBamRecord(bam_records, g_id, bam_start_x, bam_start_y, bam_strand, -1, 1, 2048); 
+                        }               
+                        f_gap_merge = 1;
+                    }
                 }
             }
-        }
-        else if (flag_pre & 2) //diff strands
-        {
-            if (!flag)
+            else if (flag_pre & 2) //diff strands
             {
-                //clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
-                //          pre_cord_str, _gap_parm, -1);
-                bam_start_x = get_cord_x(pre_cord_str) + 
-                              beginPosition(rstr[ri_pre]);
-                bam_start_y = get_cord_y(pre_cord_str) + 
-                              beginPosition(rstr[ri_pre + 1]);
-                insertNewBamRecord(bam_records, 
-                                   rstr[ri_pre], 
-                                   rstr[ri_pre + 1],
-                                   g_id, bam_start_x, bam_start_y, bam_strand,
-                                   -1, 1, 2048);
-                f_gap_merge = 0;                     
+                if (!flag)
+                {
+                    //clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
+                    //          pre_cord_str, _gap_parm, -1);
+                    bam_start_x = get_cord_x(pre_cord_str) + 
+                                  beginPosition(rstr[ri_pre]);
+                    bam_start_y = get_cord_y(pre_cord_str) + 
+                                  beginPosition(rstr[ri_pre + 1]);
+                    insertNewBamRecord(bam_records, 
+                                       rstr[ri_pre], 
+                                       rstr[ri_pre + 1],
+                                       g_id, bam_start_x, bam_start_y, bam_strand,
+                                       -1, 1, 2048);
+                    f_gap_merge = 0;                     
 
+                }
+                else if (flag & 1)
+                {
+                    //clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
+                    //          pre_cord_str, _gap_parm, -1);     
+                    gap_str_cord = shift_cord(pre_cord_str,
+                                              beginPosition(rstr[ri_pre]),
+                                              beginPosition(rstr[ri_pre + 1]));
+                    bam_start_x = get_cord_x(pre_cord_str) + 
+                                  beginPosition(rstr[ri_pre]);
+                    bam_start_y = get_cord_y(pre_cord_str) +
+                                  beginPosition(rstr[ri_pre + 1]);
+                    insertNewBamRecord(bam_records, 
+                                       g_id, bam_start_x, bam_start_y, bam_strand,
+                                       -1, 1, 2048);
+                    f_gap_merge = 0;
+                }
+                else if (flag & 2)
+                {
+                    //clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
+                    //          pre_cord_str, _gap_parm, 0); 
+                    bam_start_x = get_cord_x(pre_cord_str) +
+                                  beginPosition(rstr[ri_pre]);
+                    bam_start_y = get_cord_y(pre_cord_str) +
+                                  beginPosition(rstr[ri_pre + 1]);
+                    insertNewBamRecord(bam_records, 
+                                       rstr[ri_pre], 
+                                       rstr[ri_pre + 1],
+                                       g_id, bam_start_x, bam_start_y, bam_strand,
+                                       -1, 1, 2048);  
+                    f_gap_merge = 0;
+                }
             }
-            else if (flag & 1)
+            //addition process for the last cord of block 
+            if (_DefaultCord.isBlockEnd(cords_str[i]))
             {
-                //clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
-                //          pre_cord_str, _gap_parm, -1);     
-                gap_str_cord = shift_cord(pre_cord_str,
-                                          beginPosition(rstr[ri_pre]),
-                                          beginPosition(rstr[ri_pre + 1]));
-                bam_start_x = get_cord_x(pre_cord_str) + 
-                              beginPosition(rstr[ri_pre]);
-                bam_start_y = get_cord_y(pre_cord_str) +
-                              beginPosition(rstr[ri_pre + 1]);
-                insertNewBamRecord(bam_records, 
-                                   g_id, bam_start_x, bam_start_y, bam_strand,
-                                   -1, 1, 2048);
+                if (!flag)
+                {
+                    //todo::clipping last 30 bases.
+                    //clip_segs(rstr[ri], rstr[ri + 1], 
+                    //          cord_str, _gap_parm, 1); 
+                    insertBamRecordCigar(back(bam_records), rstr[ri], rstr[ri + 1]);                 
+                }
+                else if (flag & 1)
+                {
+                    //For similicity just clip and insert new bam
+                    //but todo::better to add gaps.
+                    //clip_segs(rstr[ri], rstr[ri + 1], 
+                    //          cord_str, _gap_parm, 0); 
+                    bam_start_x = get_cord_x(cord_str) +
+                                  beginPosition(rstr[ri]);
+                    bam_start_y = get_cord_y(cord_str) +
+                                  beginPosition(rstr[ri + 1]);
+                    bam_strand = get_cord_strand (cord_str);
+                    insertNewBamRecord(bam_records, 
+                                       rstr[ri], 
+                                       rstr[ri + 1],
+                                       g_id, bam_start_x, bam_start_y, bam_strand,
+                                       -1, 1, 2048);
+                            //dout << "ib14" << bam_start_y << "\n";
+
+                }
+                else if (flag & 2)
+                {
+                    //clip_segs(rstr[ri], rstr[ri + 1], 
+                    //          cord_str, _gap_parm, 0); 
+                    bam_start_x = get_cord_x(cord_str) +
+                                  beginPosition(rstr[ri]);
+                    bam_start_y = get_cord_y(cord_str) +
+                                  beginPosition(rstr[ri + 1]);
+                    bam_strand = get_cord_strand(cord_str);
+                    insertNewBamRecord(bam_records, 
+                                       rstr[ri], 
+                                       rstr[ri + 1],
+                                       g_id, bam_start_x, bam_start_y, bam_strand,
+                                       -1, 1, 2048);               
+                                                    //dout << "ib12" << bam_start_y << "\n";
+
+                }
+                flag_pre = 0;
+                flag = 0;
+                pre_cord_str = pre_cord_end = emptyCord;
+                cord_str = cord_end = emptyCord;
                 f_gap_merge = 0;
             }
-            else if (flag & 2)
+            else
             {
-                //clip_segs(rstr[ri_pre], rstr[ri_pre + 1], 
-                //          pre_cord_str, _gap_parm, 0); 
-                bam_start_x = get_cord_x(pre_cord_str) +
-                              beginPosition(rstr[ri_pre]);
-                bam_start_y = get_cord_y(pre_cord_str) +
-                              beginPosition(rstr[ri_pre + 1]);
-                insertNewBamRecord(bam_records, 
-                                   rstr[ri_pre], 
-                                   rstr[ri_pre + 1],
-                                   g_id, bam_start_x, bam_start_y, bam_strand,
-                                   -1, 1, 2048);  
-                f_gap_merge = 0;
+                flag_pre = flag;
+                flag = 0;
+                pre_cord_str = cord_str;
+                pre_cord_end = cord_end;
+                ri_pre = ri;
+                ri = (ri + 2) % length(rstr);
+                //std::swap (ri, ri_pre); //swap the current and pre row id in the aligner.
             }
-        }
-        //addition process for the last cord of block 
-        if (_DefaultCord.isBlockEnd(cords_str[i]))
-        {
-            if (!flag)
-            {
-                //todo::clipping last 30 bases.
-                //clip_segs(rstr[ri], rstr[ri + 1], 
-                //          cord_str, _gap_parm, 1); 
-                insertBamRecordCigar(back(bam_records), rstr[ri], rstr[ri + 1]);                 
-            }
-            else if (flag & 1)
-            {
-                //For similicity just clip and insert new bam
-                //but todo::better to add gaps.
-                //clip_segs(rstr[ri], rstr[ri + 1], 
-                //          cord_str, _gap_parm, 0); 
-                bam_start_x = get_cord_x(cord_str) +
-                              beginPosition(rstr[ri]);
-                bam_start_y = get_cord_y(cord_str) +
-                              beginPosition(rstr[ri + 1]);
-                bam_strand = get_cord_strand (cord_str);
-                insertNewBamRecord(bam_records, 
-                                   rstr[ri], 
-                                   rstr[ri + 1],
-                                   g_id, bam_start_x, bam_start_y, bam_strand,
-                                   -1, 1, 2048);
-                        //dout << "ib14" << bam_start_y << "\n";
-
-            }
-            else if (flag & 2)
-            {
-                //clip_segs(rstr[ri], rstr[ri + 1], 
-                //          cord_str, _gap_parm, 0); 
-                bam_start_x = get_cord_x(cord_str) +
-                              beginPosition(rstr[ri]);
-                bam_start_y = get_cord_y(cord_str) +
-                              beginPosition(rstr[ri + 1]);
-                bam_strand = get_cord_strand(cord_str);
-                insertNewBamRecord(bam_records, 
-                                   rstr[ri], 
-                                   rstr[ri + 1],
-                                   g_id, bam_start_x, bam_start_y, bam_strand,
-                                   -1, 1, 2048);               
-                                                //dout << "ib12" << bam_start_y << "\n";
-
-            }
-            flag_pre = 0;
-            flag = 0;
-            pre_cord_str = pre_cord_end = emptyCord;
-            cord_str = cord_end = emptyCord;
-            f_gap_merge = 0;
-        }
-        else
-        {
-            flag_pre = flag;
-            flag = 0;
-            pre_cord_str = cord_str;
-            pre_cord_end = cord_end;
-            std::swap (ri, ri_pre); //swap the current and pre row id in the aligner.
         }
     }
     //printGaps(gaps.c_pairs);
@@ -2944,7 +3032,7 @@ int alignCords (StringSet<String<Dna5> >& genomes,
     */
     align_gaps(bam_records, gaps, genomes, read, comrev_read, score_scheme, _gap_parm); 
     clipBamRecordLinksHeadTail(bam_records, length(read), _gap_parm);
-    //printCigarSrcLen(bam_records, "pscr_gaps1 ");
+    //printCigarSrcLen(bam_records, "pscr_gggaps1 ");
     std::cout << "alg_time " << sysTime() - alg_time << "\n";
     //<<debug
     for (unsigned i = 0; i < length(bam_records); i++)
