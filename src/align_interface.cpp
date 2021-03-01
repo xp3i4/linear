@@ -3016,9 +3016,7 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                 flag = 0;
                 pre_cord_str = cord_str;
                 pre_cord_end = cord_end;
-                ri_pre = ri;
-                ri = (ri + 2) % length(rstr);
-                //std::swap (ri, ri_pre); //swap the current and pre row id in the aligner.
+                std::swap (ri, ri_pre); //swap the current and pre row id in the aligner.
             }
         }
     }
