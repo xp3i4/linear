@@ -2703,10 +2703,22 @@ int alignCords (StringSet<String<Dna5> >& genomes,
         int score_align = align_cord (rstr[ri], rstr[ri + 1], genomes[g_id], 
                                       read, comrev_read, 
                                       cord_str, cord_end, band);
+
         int f1 = 0, f2 = 0, f3 = 0;
         if (f_clip_head)
         {
+                    //<<debug
+        if (i == 1)
+        {
+
+                std::cout << "halign2 " <<rstr[ri] << " " << head_end << band << "\n";
+                std::cout << "halign2 " <<rstr[ri + 1] << "\n";
+                print_cord(cord_str, "halign22");
+                print_cord(cord_end, "halign22");
+            }
+        //<<debug
             f1 = clip_head_ (rstr[ri], rstr[ri + 1], head_end);
+
         }
         if (f_clip_tail)
         {
@@ -2721,6 +2733,14 @@ int alignCords (StringSet<String<Dna5> >& genomes,
         {
             continue; //alignment quality check, drop poorly aligned 
         }
+        //<<debug
+        if (i == 1)
+        {
+
+                        std::cout << "halign1 " <<rstr[ri] << "\n";
+                std::cout << "halign1 " <<rstr[ri + 1] << "\n";
+            }
+        //>>debug
         uint64_t cord_str_before_merge = cord_str;
             uint64_t tmp1 = pre_cord_str, tmp2= cord_str;
         //<<feature
@@ -2815,6 +2835,8 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                                 get_cord_y(cord_str) + beginPosition(rstr[ri + 1]),
                                 get_cord_strand(cords_str[i]),
                                 -1, 1, bam_flag);
+                std::cout << "halign " <<rstr[ri] << "\n";
+                std::cout << "halign " <<rstr[ri + 1] << "\n";
                 pre_cord_str = cord_str;
                 pre_cord_end = cord_end;
                 flag = 0;
@@ -2840,6 +2862,18 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                 {
                     insertBamRecordCigar(back(bam_records), 
                                 rstr[ri_pre], rstr[ri_pre + 1]);                
+                    //<<debug
+                    if (i == 2)
+                    {
+                        std::cout << "balign " <<rstr[ri_pre] << "\n";
+                        std::cout << "balign " <<rstr[ri_pre + 1] << "\n";
+                        std::cout << "bcigar " << length(back(bam_records).cigar) << " ";
+                        for (int ii = 0; ii < length(back(bam_records).cigar); ii++)
+                        {
+                            std::cout << back(bam_records).cigar[ii].count << back(bam_records).cigar[ii].operation;
+                        }
+                    }
+                    //>>debug
                     f_gap_merge = 0;
                 }
                 else if (flag & 1)
@@ -3016,7 +3050,9 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                 flag = 0;
                 pre_cord_str = cord_str;
                 pre_cord_end = cord_end;
-                std::swap (ri, ri_pre); //swap the current and pre row id in the aligner.
+                ri_pre = ri;
+                ri = (ri + 2) % length(rstr);
+                //std::swap (ri, ri_pre); //swap the current and pre row id in the aligner.
             }
         }
     }
