@@ -2604,7 +2604,7 @@ int alignCords (StringSet<String<Dna5> >& genomes,
     int f_gap_merge = 0;
     int64_t thd_d_anchor = 50;
     clear (bam_records);
-    resize(rstr, 4);
+    resize(rstr, 6);
 
     uint64_t cord_str;
     uint64_t cord_end;
