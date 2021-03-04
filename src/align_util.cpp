@@ -1266,3 +1266,13 @@ std::pair<int, int> cigars2SeqsLen(String<CigarElement<> > & cigars,
     }
     return seqs_len;
 }
+
+void copyRow(TRow & row1, TRow & row2)
+{
+    assignSource(row1, value(row2._source));
+    row1._array = row2._array;
+    row1._sourceBeginPos = row2._sourceBeginPos;
+    row1._sourceEndPos = row2._sourceEndPos;
+    row1._clippingBeginPos = row2._clippingBeginPos;
+    row1._clippingEndPos = row2._clippingEndPos;
+}

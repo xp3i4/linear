@@ -16,9 +16,6 @@ using namespace seqan;
  * setclippedEndPosition(gaps, c1)  open[, c1)
  * @c1 := current_view_coordinate + clippedBeginPosition(row1)
  */
-typedef Align<String<Dna5>, ArrayGaps> TAlign;
-typedef Row<TAlign>::Type TRow; 
-typedef Iterator<TRow>::Type TRowIterator;
 
 unsigned _default_block_size_ = 96; // make sure the value == window_size in pmpfinder.h
 /**
@@ -526,6 +523,7 @@ int cord2row_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     uint64_t readStart = get_cord_y(cord_str);
     uint64_t readEnd = get_cord_y(cord_end);
     uint64_t strand = get_cord_strand (cord_str);   
+    dout << "cord2row" << genomeStart << genomeEnd << readStart << readEnd << strand << "\n";
     if (genomeStart > genomeEnd || readStart > readEnd)
     {
         return 1;
@@ -609,6 +607,9 @@ int clip_head_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     TRowIterator it1 = begin(row1);
     TRowIterator it2 = begin(row2);
     TRowIterator it1_2 = it1, it2_2 = it2; 
+    dout << "cph1" << g_end << beginPosition(row1) << endPosition(row1) << beginPosition(row2) << endPosition(row2) << "\n";
+    std::cout << "cphr11 " << row1 << "\n";
+    std::cout << "cphr12 " << row2 << "\n";
     if (clip_start > g_end - clip_start)
     {
     	return 1;
@@ -2592,6 +2593,7 @@ int alignCords (StringSet<String<Dna5> >& genomes,
     }
     GapRecords gaps;
     String<TRow> rstr;
+    resize(rstr, 8);
     int thd_merge_gap = block_size / 3; //adjacent gaps will be merge if < 
     int thd_max_dshift = block_size * 3; //New regions to be aligned will be extended at two ends to keep overlappad region to be clippped.
     int thd_min_window = 50;
@@ -2599,12 +2601,11 @@ int alignCords (StringSet<String<Dna5> >& genomes,
     float thd_err_rate = 0.25;
     int thd_min_abort_anchor = 20;
     int head_end = block_size >> 2, tail_start = block_size - (block_size >> 2);
-    int ri = 0, ri_pre = 2; 
+    int ri = 0, ri_pre = length(rstr) - 2;
     int flag = 0, flag_pre = 0;
     int f_gap_merge = 0;
     int64_t thd_d_anchor = 50;
     clear (bam_records);
-    resize(rstr, 6);
 
     uint64_t cord_str;
     uint64_t cord_end;
@@ -2699,26 +2700,18 @@ int alignCords (StringSet<String<Dna5> >& genomes,
             }
             continue;
         }
-
+        print_cord(cord_str, "agcs11");
+        print_cord(cord_end, "agcs12");
+        dout << "agcs2" << length(rstr) << ri << "\n";
         int score_align = align_cord (rstr[ri], rstr[ri + 1], genomes[g_id], 
                                       read, comrev_read, 
                                       cord_str, cord_end, band);
 
+        dout << "agcs3" << length(rstr) << ri << "\n";
         int f1 = 0, f2 = 0, f3 = 0;
         if (f_clip_head)
         {
-                    //<<debug
-        if (i == 1)
-        {
-
-                std::cout << "halign2 " <<rstr[ri] << " " << head_end << band << "\n";
-                std::cout << "halign2 " <<rstr[ri + 1] << "\n";
-                print_cord(cord_str, "halign22");
-                print_cord(cord_end, "halign22");
-            }
-        //<<debug
             f1 = clip_head_ (rstr[ri], rstr[ri + 1], head_end);
-
         }
         if (f_clip_tail)
         {
@@ -2733,99 +2726,79 @@ int alignCords (StringSet<String<Dna5> >& genomes,
         {
             continue; //alignment quality check, drop poorly aligned 
         }
-        //<<debug
-        if (i == 1)
-        {
-
-                        std::cout << "halign1 " <<rstr[ri] << "\n";
-                std::cout << "halign1 " <<rstr[ri + 1] << "\n";
-            }
-        //>>debug
         uint64_t cord_str_before_merge = cord_str;
             uint64_t tmp1 = pre_cord_str, tmp2= cord_str;
         //<<feature
         String<int> flags;
-        String<int> flags_pre;
-        String<int> f_gap_merges;
-        String<int> ris;
-        String<int> ri_pres;
-        String<uint64_t> merge_cords_str;
-        String<uint64_t> merge_cords_end;
-        String<uint64_t> merge_pre_cords_str;
-        String<uint64_t> merge_pre_cords_end;
-        String<uint64_t> clipped_begin_positions;
-        String<uint64_t> clipped_end_positions;
-        uint64_t thd_split = 5000000;
-        uint64_t thd_joint_view_size = 196;
-        if (0)
-        //if (clippedEndPosition(rstr[ri]) - clippedBeginPosition(rstr[ri]) > thd_split &&
-        //    clippedEndPosition(rstr[ri + 1]) - clippedBeginPosition(rstr[ri + 1]) > thd_split)
+        String<int> f_merges; //$flags of if call merger_align_
+        String<uint64_t> split_cords_str;
+        String<uint64_t> split_cords_end;
+        uint64_t thd_joint_view_size = block_size;
+        uint64_t thd_split = 3 * thd_joint_view_size;
+        dout << "aprow3" << ri_pre << ri << clippedEndPosition(rstr[ri]) << clippedBeginPosition(rstr[ri])<< "\n";
+        if (clippedEndPosition(rstr[ri]) - clippedBeginPosition(rstr[ri]) > thd_split)
         {
-            /*
-            //the first block
-            appendValue(flags, flag);
-            appendValue(flags_pre, flag_pre);
-            //appendValue(f_gap_merges, f_gap_merge);
-            appendValue(ris, ri);
-            appendValue(ri_pres, ri_pre);
-            appendValue(merge_pre_cords_str, pre_cord_str);
-            appendValue(merge_pre_cords_end, pre_cord_end);
-            uint64_t merge_cord_str1 = cord_str;
-            appendValue(merge_cords_str, merge_cord_str1);
+            //$This is to split the block of alignment into two sub-blocks
+            //$init Global vars
+            dout << "aprow" << "\n";
             uint64_t original_clipped_end = clippedEndPosition(rstr[ri]);
-            setClippedEndPositions(rstr[ri], rstr[ri + 1], thd_joint_view_size);
-            uint64_t merge_cord_end1 = 
-                shift_cord(cord_str, endPosition(rstr[ri]), endPosition(rstr[ri + 1]));
-            appendValue(merge_cords_end, merge_cord_end1);
-            appendValue(clipped_begin_positions, clippedBeginPosition(rstr[ri]));
-            appendValue(clipped_end_positions, clippedEndPosition(rstr[ri]));
+            uint64_t split_cord_str = cord_str, split_cord_end = cord_end;
+            _DefaultHit.unsetBlockEnd(split_cord_str);
+            _DefaultHit.unsetBlockEnd(split_cord_end);
 
-            //the second block
-            appendValue(flags, 0);//defined as always successfully merged
-            appendValue(flags_pre, flag);
-            //appendValue(f_gap_merges, f_gap_merge);
-            //row[ri_pre] = row[ri];
-            //row[ri_pre + 1] = row[ri];
-            append
-            append(ris, )
-            setClippedBeginPositions(rstr[ri], rstr[ri + 1], thd_joint_view_size);
-            setClippedEndPositions(rstr[ri], rstr[ri + 1], origin_clipped_view);
-            uint64_t merge_cord_str2 = merge_cord_end1;
-            uint64_t merge_cord_end2 = cord_end; 
-            appendValue(merge_cords_str, merge_cord_str1);
-            appendValue(merge_cords_str, merge_cord_str1);
-            appendValue(merge_cords_end, merge_cord_end2);
-            */
-        }
-        //else
-        //{   
+            //$init the first block:head
             appendValue(flags, flag);
-            appendValue(flags_pre, flag_pre);
-            appendValue(f_gap_merges, f_gap_merge);
-            appendValue(ris, ri);
-            appendValue(ri_pres, ri_pre);
-            appendValue(merge_pre_cords_str, pre_cord_str);
-            appendValue(merge_pre_cords_end, pre_cord_end);
-            appendValue(merge_cords_str, cord_str);
-            appendValue(merge_cords_end, cord_end);
-            appendValue(clipped_begin_positions, clippedBeginPosition(rstr[ri]));
-            appendValue(clipped_end_positions, clippedEndPosition(rstr[ri]));
-        //}
-        //>>feature 
-        for (unsigned j = 0; j < length(merge_cords_str); j++)
-        {
-            flag = flags[j];
-            flag_pre = flags_pre[j];
-            f_gap_merge = f_gap_merges[j];
-            ri = ris[j];
-            ri_pre = ri_pres[j];
-            pre_cord_str = merge_pre_cords_str[j];
-            pre_cord_end = merge_pre_cords_end[j];
-            cord_str = merge_cords_str[j];
-            cord_end = merge_cords_end[j];
-            setClippedBeginPositions(rstr[ri], rstr[ri + 1], clipped_begin_positions[j]);
-            setClippedEndPositions(rstr[ri], rstr[ri + 1], clipped_end_positions[j]);
+            appendValue(f_merges, 1);
+            appendValue(split_cords_str, cord_str);
+            appendValue(split_cords_end, cord_end);
+            setClippedEndPositions(rstr[ri], rstr[ri + 1], 
+                clippedBeginPosition(rstr[ri]) + thd_joint_view_size);
 
+            //$init the second block:middle
+            
+            appendValue(flags, 0);//defined as always successfully merged
+            appendValue(f_merges, 0);
+            int ri_next = (ri + 2) % length(rstr);
+            copyRow(rstr[ri_next], rstr[ri]);
+            copyRow(rstr[ri_next + 1], rstr[ri + 1]);
+            appendValue(split_cords_str, split_cord_str);
+            appendValue(split_cords_end, split_cord_end);
+            setClippedBeginPositions(rstr[ri_next], rstr[ri_next + 1], 
+                clippedBeginPosition(rstr[ri_next]) + thd_joint_view_size);
+            setClippedEndPositions(rstr[ri_next], rstr[ri_next + 1], 
+                original_clipped_end - thd_joint_view_size);
+            
+            //$init the third block:tail 
+            appendValue(flags, 0);
+            appendValue(f_merges, 0);
+            ri_next = (ri + 4) % length(rstr);
+            copyRow(rstr[ri_next], rstr[ri]);
+            copyRow(rstr[ri_next + 1], rstr[ri + 1]);
+            if (_DefaultCord.isBlockEnd(cord_str))
+            {
+                _DefaultHit.setBlockEnd(split_cord_str);
+                _DefaultHit.setBlockEnd(split_cord_end);
+            }
+            appendValue(split_cords_str, split_cord_str);
+            appendValue(split_cords_end, split_cord_end);
+            setClippedBeginPositions(rstr[ri_next], rstr[ri_next + 1], 
+                original_clipped_end - thd_joint_view_size);
+            setClippedEndPositions(rstr[ri_next], rstr[ri_next + 1], original_clipped_end);
+            
+        }
+        else
+        {   
+            //$Nothing changed when it's not splitted 
+            appendValue(flags, flag);
+            appendValue(f_merges, 1);
+            appendValue(split_cords_str, cord_str);
+            appendValue(split_cords_end, cord_end);
+        }
+        //>>feature 
+        for (unsigned j = 0; j < length(split_cords_str); j++)
+        {
+            cord_str = split_cords_str[j];
+            cord_end = split_cords_end[j];
             if (_DefaultCord.isBlockEnd(pre_cord_str))
             {
                 //clip_segs(rstr[ri], rstr[ri + 1], cord_str, _gap_parm, -1);
@@ -2846,15 +2819,18 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                 //std::swap (ri, ri_pre); 
                 continue;
             } 
+            else if (!f_merges[j])
+            {
+                flag = flags[j];
+            }
             else
             {
                 flag = merge_align_(rstr[ri_pre], rstr[ri_pre + 1], 
-                        rstr[ri], rstr[ri + 1], genomes[g_id], read, comrev_read, pre_cord_str, cord_str );
+                        rstr[ri], rstr[ri + 1], genomes[g_id], read, comrev_read, 
+                        pre_cord_str, cord_str );
             }
-            uint64_t bam_start_x = get_cord_x(pre_cord_str) + 
-                                   beginPosition(rstr[ri_pre]);
-            uint64_t bam_start_y = get_cord_y(pre_cord_str) + 
-                                   beginPosition(rstr[ri_pre + 1]);
+            uint64_t bam_start_x = get_cord_x(pre_cord_str) + beginPosition(rstr[ri_pre]);
+            uint64_t bam_start_y = get_cord_y(pre_cord_str) +  beginPosition(rstr[ri_pre + 1]);
             uint64_t bam_strand = get_cord_strand(pre_cord_str); 
             if (!flag_pre)
             {
@@ -2862,18 +2838,6 @@ int alignCords (StringSet<String<Dna5> >& genomes,
                 {
                     insertBamRecordCigar(back(bam_records), 
                                 rstr[ri_pre], rstr[ri_pre + 1]);                
-                    //<<debug
-                    if (i == 2)
-                    {
-                        std::cout << "balign " <<rstr[ri_pre] << "\n";
-                        std::cout << "balign " <<rstr[ri_pre + 1] << "\n";
-                        std::cout << "bcigar " << length(back(bam_records).cigar) << " ";
-                        for (int ii = 0; ii < length(back(bam_records).cigar); ii++)
-                        {
-                            std::cout << back(bam_records).cigar[ii].count << back(bam_records).cigar[ii].operation;
-                        }
-                    }
-                    //>>debug
                     f_gap_merge = 0;
                 }
                 else if (flag & 1)

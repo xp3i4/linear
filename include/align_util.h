@@ -8,7 +8,10 @@ using namespace seqan;
 extern uint16_t bam_flag_rvcmp;
 extern uint16_t bam_flag_rvcmp_nxt;
 extern uint16_t bam_flag_suppl;
+typedef Align<String<Dna5>, ArrayGaps> TAlign;
+typedef Row<TAlign>::Type TRow; 
 typedef Row<Align<String<Dna5>,ArrayGaps> >::Type TRow5A;  
+typedef Iterator<TRow>::Type TRowIterator;
 struct SAZTag
 {
     String<unsigned> bam_records_i;
@@ -179,4 +182,9 @@ std::pair<int, int> cigars2SeqsLen(String<CigarElement<> > & cigars,
 extern int const flag_clip_unset;
 extern int const flag_clip_head;
 extern int const flag_clip_tail;
+
+//copy row2 to row1
+//Row::_source is a struct of holder, which can't be copied by operator =
+void copyRow(TRow & row1, TRow & row2);
+
 #endif
