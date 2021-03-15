@@ -3,6 +3,7 @@
 #include "cords.h" 
 #include "align_util.h"
 //#include "f_io.h"
+#include "align_bands.h"
 #include "align_interface.h"
 //#include "new_funcs.h"
 //TODO seqand::setclippedpositoin retrieve source postion that's not efficient
@@ -551,7 +552,8 @@ int align_cord (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
                 String<Dna5> & comrev_read,
                 uint64_t cord_str,
                 uint64_t cord_end,
-                int band,
+                int band_lower,
+                int band_upper,
                 int local_flag = 1,
                 Score<int> scheme = _default_scheme_)
 {
@@ -564,7 +566,7 @@ int align_cord (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     else
     {
      //   double time = sysTime();
-        score = globalAlignment (row1, row2, scheme, AlignConfig<true, true, true, true>(), -band, band);
+        score = globalAlignment (row1, row2, scheme, AlignConfig<true, true, true, true>(), -band_lower, band_upper);
     //    std::cout << "atime " << sysTime() - time << "\n";
     }
     return score;
@@ -582,7 +584,7 @@ int align_cord (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
                )
 {
     uint64_t cord_end = _DefaultCord.shift(cord, block_size, block_size);
-    int score = align_cord (row1, row2, genome, read, comrev_read, cord, cord_end, band, local_flag, _default_scheme_);
+    int score = align_cord (row1, row2, genome, read, comrev_read, cord, cord_end, band, band, local_flag, _default_scheme_);
     return score;
 }
 
@@ -2163,7 +2165,7 @@ int align_gap (GapRecordHolder & gap,
     int bam_next_id = gap.getBamSegIdTail();
     //WARNING::modify band::too large band
     TRow row1, row2, row3, row4 ;
-    align_cord (row1, row2, genomes[g_id], read, comrev_read, str_cord, end_cord, band);
+    align_cord (row1, row2, genomes[g_id], read, comrev_read, str_cord, end_cord, band, band);
     //Head and tail are already merged, so view_str = 0.
     int const view_str = 0;
     int const view_end = clippedEndPosition(row1);
@@ -2232,7 +2234,7 @@ int align_gap (GapRecordHolder & gap,
             int seg_band = std::max(get_cord_x(seg_end_cord - seg_str_cord),
                                     get_cord_y(seg_end_cord - seg_str_cord)) / 2;
             align_cord (row3, row4, genomes[g_id], 
-                        read, comrev_read, seg_str_cord, seg_end_cord, seg_band);
+                        read, comrev_read, seg_str_cord, seg_end_cord, seg_band, seg_band);
             clip_rows_segs (row3, row4, 
                             seg_clips, 
                             seg_clips_src1, 
@@ -2339,6 +2341,8 @@ struct AlignCords
     String<uint64_t> cords_str;
     String<uint64_t> cords_end;
     String<uint64_t> bands;
+    String<uint64_t> bands_lower;
+    String<uint64_t> bands_upper;
     String<int> status;
     //if head of alignment of cords_str[i] cords_end[i] need to be clipped
     int if2ClipHead(int i);
@@ -2351,6 +2355,8 @@ struct AlignCords
                 String<Dna5> & comrev_read,
                 String<uint64_t> & cords_str_map,
                 String<uint64_t> & cords_end_map,
+                int band_lower,
+                int band_upper,
                 float thd_err_rate,
                 int thd_min_abort_anchor);
 
@@ -2497,14 +2503,24 @@ int AlignCords::createAlignCords(StringSet<String<Dna5> >& genomes,
                                  String<Dna5> & comrev_read,
                                  String<uint64_t> & cords_str_map,
                                  String<uint64_t> & cords_end_map,
+                                 int band_lower,
+                                 int band_upper,
                                  float thd_err_rate,
                                  int thd_min_abort_anchor)
 {
     //:Filter
     _initAlignCords(genomes, read, comrev_read, cords_str_map, cords_end_map, 
         cords_str, cords_end, thd_err_rate, thd_min_abort_anchor);
+    resize(bands_lower, length(cords_str));
+    resize(bands_upper, length(cords_end));
+    for (unsigned i = 0; i < length(cords_str); i++)
+    {
+        bands_upper[i] = band_lower;
+        bands_lower[i] = band_upper;
+    }
     //:Merge cords and bands
-    //_mergeAlignCords();
+    MergeCordsBandsParm mcb_parms;
+    mergeCordsBands(cords_str, cords_end, bands_lower, bands_upper, mcb_parms);
     //:Specific cord_str and cord_end for align
     //_createAlignCords();
     return 0;
@@ -2614,9 +2630,8 @@ int alignCords (StringSet<String<Dna5> >& genomes,
     uint64_t gap_str_cord;
     uint64_t gap_end_cord;
     AlignCords align_cords; 
-    
     align_cords.createAlignCords(genomes, read, comrev_read, cords_str_map, cords_end_map, 
-        thd_err_rate, thd_min_abort_anchor);
+        band, band, thd_err_rate, thd_min_abort_anchor);
     String<uint64_t> & cords_str = align_cords.cords_str;
     String<uint64_t> & cords_end = align_cords.cords_end;
     String<uint64_t> & bands = align_cords.bands;
@@ -2705,7 +2720,7 @@ int alignCords (StringSet<String<Dna5> >& genomes,
         dout << "agcs2" << length(rstr) << ri << "\n";
         int score_align = align_cord (rstr[ri], rstr[ri + 1], genomes[g_id], 
                                       read, comrev_read, 
-                                      cord_str, cord_end, band);
+                                      cord_str, cord_end, band, band);
 
         dout << "agcs3" << length(rstr) << ri << "\n";
         int f1 = 0, f2 = 0, f3 = 0;
@@ -2733,7 +2748,7 @@ int alignCords (StringSet<String<Dna5> >& genomes,
         String<int> f_merges; //$flags of if call merger_align_
         String<uint64_t> split_cords_str;
         String<uint64_t> split_cords_end;
-        uint64_t thd_joint_view_size = block_size;
+        uint64_t thd_joint_view_size = block_size + 500000;
         uint64_t thd_split = 3 * thd_joint_view_size;
         dout << "aprow3" << ri_pre << ri << clippedEndPosition(rstr[ri]) << clippedBeginPosition(rstr[ri])<< "\n";
         if (clippedEndPosition(rstr[ri]) - clippedBeginPosition(rstr[ri]) > thd_split)

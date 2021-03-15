@@ -1,6 +1,12 @@
+#include <limits>
 #include "base.h"
 #include "cords.h"
 #include "align_bands.h"
+
+MergeCordsBandsParm::MergeCordsBandsParm()
+{
+    thd_search_depth = 10;
+}
 
 /*--------------------  Merge bands of cords for alignment  --------------------
   For simplicity and efficency, only merge bands of 45 degree.
@@ -12,10 +18,37 @@ uint64_t calBandSize45(uint64_t cord_str, uint64_t cord_end,
                        uint64_t band_lower, uint64_t  band_upper)
 {
     uint64_t l = get_cord_x(cord_end) - get_cord_x(cord_str);
-    return l * l - (l - band_upper) * (l - band_upper) / 2 
-                 - (l - band_lower) * (l - band_lower) / 2;
+    uint64_t l_upper = l - band_upper;
+    uint64_t l_lower = l - band_lower;
+    return l * l - l_upper * l_upper / 2 - l_lower * l_lower / 2;
 }
-
+/*
+ * Any band
+ */
+uint64_t calBandSize(uint64_t cord_str, uint64_t cord_end,
+                     uint64_t band_lower, uint64_t band_upper)
+{
+    uint64_t l_x = get_cord_x(cord_end) - get_cord_x(cord_str);
+    uint64_t l_y = get_cord_y(cord_end) - get_cord_y(cord_str);
+    uint64_t l_x_upper = l_x - band_upper;
+    uint64_t l_y_upper = l_y - band_upper;
+    uint64_t l_x_lower = l_x - band_lower;
+    uint64_t l_y_lower = l_y - band_lower;
+    return l_x * l_y - l_x_upper * l_x_lower / 2 - l_y_upper * l_y_lower / 2;
+}
+/*
+ * Sum of bands to be aligned
+ */
+uint64_t calBandsSize(String<uint64_t> & cords_str, String<uint64_t> & cords_end,
+                      String<uint64_t> & bands_lower, String<uint64_t> & bands_upper)
+{
+    int size = 0;
+    for (int i = 0; i < length(cords_str); i++)
+    {
+        size += calBandSize(cords_str[i], cords_end[i], bands_lower[i], bands_upper[i]);
+    }
+    return size;
+}
 /*
  * Merge region S1=[@cord_str1, @cord_end1) and S2=[@cord_str2, @cord_end2)
  * @band11, @band12 are lower and upper bands of S1 
@@ -30,38 +63,18 @@ int mergeCordBand (uint64_t & cord_str1, uint64_t & cord_end1,
 {
     return 0;
 }
-
-
-int mergeCordsBands(String<uint64_t> & cords_str,
-               String<uint64_t> & cords_end,
-               String<int> & bands1,
-               String<int> & bands2,
-               int thd_max_band)
+/*
+struct BandRecord
 {
-    resize(bands1, length(cords_str))
-    resize(bands2, length(cords_end))
-    int ii = 0;
-    for (int i = 0; i < length(cords_str); i++)
-    {
-        if(mergeCordBand(cords_str[ii], cords_end[ii], cords_str[i], cords_ends[i], 
-                bands1[ii], bands2[ii], bands1[i], bands2[i], thd_max_band))
-        {
-            ++ii;
-        }
-    }
-    resize(cords_str, ii);
-    resize(cords_end, ii);
-    resize(bands1, ii);
-    resize(bands2, ii);
-    return 0;
-}
 
+};
 
-class __MergeBandsBuffer
+struct BandRecords
 {
-    String<std::pair<unsigned, unsigned> > buffer; 
-    initBuffer();
-}
+    String<_BandRecord> records; 
+
+};
+*/
 /*
  * Only called by createAlignCords.
    Merge the cords for alignment if anchors are close or cords are close enough
@@ -71,39 +84,69 @@ class __MergeBandsBuffer
  * @thd_band_bound is the bound of the merged cords
    lower_bound upper_bound are supposed to be equal
  */
-int mergeAlignCords(String<uint64_t> & cords_str1,
-                    String<uint64_t> & cords_end1,
-                    String<uint64_t> & cords_str2,
-                    String<uint64_t> & cords_end2,
-                    String<uint64_t> & bands_lower1,
-                    String<uint64_t> & bands_upper1,
-                    String<uint64_t> & bands_lower2,
-                    String<uint64_t> & bands_upper2,
+/*
+int mergeCordsBands2(String<uint64_t> & cords_str,
+                    String<uint64_t> & cords_end,
+                    String<uint64_t> & bands_lower,
+                    String<uint64_t> & bands_upper,
                     unsigned str_i, unsigned end_i,
                     unsigned thd_search_depth)
 {
-    unsigned block_str = str_i;
-    String<std::pair<unsigned, unsigned> > buffer;
-    resize(buffer, thd_search_depth);
+    BandRecords band_records(thd_search_depth);
+    int min_area = std::numeric_limits<int>::max();
     for (unsigned i = str_i + 1; i < end_i; i++)
     {
-        if (!isDiffCordsStrand(cords_str1[i - 1], cords_str1[i]) && !isBlockEnd(cords_str1[i - 1]))
+        if (!isDiffCordsStrand(cords_str[i - 1], cords_str[i]) && 
+            !_DefaultCord.isBlockEnd(cords_str[i - 1]))
         {
-            for (unsigned j = buffer.len() - 1; j > 0; j--)
+            BandRecord tmp_band_record(cords_str[i], cords_end[i], bands_lower[i], bands_upper[i]);
+            BandRecord new_band_record(cords_str[i], cords_end[i], bands_lower[i], bands_upper[i]);
+            int len = length(band_records.records);
+            for (unsigned j = len - 1; j >= 0; j--)
             {
-                if (createMergedBands(cords_str[j - 1], cords_end[j - 1],
-                                      cords_str[j]), cords_end[j], 
-                                      band_lower, band_upper)
+                int ii = i - len + j;
+                BandRecord current_band_record(cords_str[ii], cords_end[ii], 
+                    bands_lower[ii], bands_upper[ii]);
+                BandRecord tmp_band_record;
+                if (mergeCordBand(tmp_band_record, tmp_band_record, tmp_band_record))
+                int area = tmp_band_record.band_area + band_records.records[j].band_area;    
+                if (area < mini_area)
                 {
-                    
+
                 }
             }
         }
         else
         {
-            //clearBestBuffer()
-            //initBestBuffer()
+            band_records.clear();
+            band_records.init();
         }
     }
     return 0 
+}
+*/
+int mergeCordsBands1(String<uint64_t> & cords_str,
+                     String<uint64_t> & cords_end,
+                     String<uint64_t> & bands_lower,
+                     String<uint64_t> & bands_upper,
+                     unsigned str_i, unsigned end_i)
+{
+    return 0;
+}
+int mergeCordsBands(String<uint64_t> & cords_str,
+                    String<uint64_t> & cords_end,
+                    String<uint64_t> & bands_lower,
+                    String<uint64_t> & bands_upper,
+                    MergeCordsBandsParm & parm)
+{
+    int i_str = 1;
+    for (int i = 2; i < length(cords_str); i++)
+    {
+        if (_DefaultCord.isBlockEnd(cords_str[i]) || isDiffCordsStrand(cords_str[i], cords_str[i - 1]))
+        {
+            mergeCordsBands1(cords_str, cords_end, bands_lower, bands_upper, i_str, i);
+        }
+        i_str = i + 1;
+    }
+    return 0;
 }

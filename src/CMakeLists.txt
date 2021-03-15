@@ -34,6 +34,7 @@ add_library(linear_gap_extra STATIC gap_extra.cpp)
 add_library(linear_gap STATIC gap.cpp)
 add_library(linear_align_util STATIC align_util.cpp)
 add_library(linear_fio STATIC f_io.cpp)
+add_library(linear_align_bands STATIC align_bands.cpp)
 add_library(linear_align_interface STATIC align_interface.cpp)
 add_library(linear_parallel_io STATIC parallel_io.cpp)
 add_library(linear_mapper STATIC mapper.cpp)
@@ -45,6 +46,7 @@ target_link_libraries (linear
                        linear_parallel_io
                        linear_test_units
                        linear_align_interface
+                       linear_align_bands
                        linear_args_parser 
                        linear_pmpfinder 
                        linear_cluster_util
