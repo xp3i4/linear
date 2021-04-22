@@ -1429,7 +1429,7 @@ bool path_dst(String<uint64_t> & hits,
     }
     else if (alg_type == 2){
        _filterHits(hits, f1, f2);
-       print_cords(hits, "pd1");
+       //print_cords(hits, "pd1");
        path_dst_2 (beginHits(hits), endHits(hits), f1, f2, cords, read_str, read_end, read_len);
     }
     return 0;
