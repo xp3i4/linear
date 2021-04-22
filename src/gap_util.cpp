@@ -1320,8 +1320,8 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
  * This funtion requires @chains already clipped at the start and end of the chain,
    Thus the first elment of @tiles_str and last element of @tiles_end == @chains[0] 
    and back(@chains)
- * The function also generates the @tiles_end
- * @chains are required within [@gap_str, @gap_end)
+ * The function generates the @tiles_end as well
+ * @chains are required to be within [@gap_str, @gap_end)
  * @chains are required to be on one strand
  */
 int g_CreateTilesFromChains_ (String<uint64_t> & chains, 
@@ -3225,7 +3225,7 @@ std::pair<int, int> getExtendsIntervalChainsOverlaps(String<uint64_t> & chain1,
             : gap_parms.ref_len;
     y1 = (gap_parms.read_len - y1 > gap_parms.thd_dcomx_err_dy) ? y1 + gap_parms.thd_dcomx_err_dy 
             : gap_parms.read_len;
-    int i2 = 0;
+    int i2 = length(chain2);
     for (int i = 0; i < length(chain2); i++)     
     {
         if (getX(chain2[i]) > x1 && getY(chain2[i]) > y1)
@@ -3567,8 +3567,10 @@ int extendsTilesFromAnchors (String<Dna5> & ref,
                              String<Dna5> & comstr,
                              String<uint64_t> & anchors1, 
                              String<uint64_t> & anchors2, 
-                             String<uint64_t> & tiles1, 
-                             String<uint64_t> & tiles2,
+                             String<uint64_t> & tiles_str1, 
+                             String<uint64_t> & tiles_end1, 
+                             String<uint64_t> & tiles_str2, 
+                             String<uint64_t> & tiles_end2,
                              StringSet<FeaturesDynamic> & f1, 
                              StringSet<FeaturesDynamic> & f2,
                              uint64_t gap_str1, 
@@ -3596,11 +3598,14 @@ int extendsTilesFromAnchors (String<Dna5> & ref,
     int step1 = gap_parms.thd_etfas_step1;
     int step2 = gap_parms.thd_etfas_step2;
     extendsIntervalMapOverlaps_(ref, read, comstr, tmp_tiles1, tmp_tiles2, gap_str1, gap_end1, gap_str2, gap_end2,  shape_len, step1, step2, gap_parms);
-    g_CreateTilesFromChains_(tmp_tiles1, tiles1, f1, f2, gap_str1, 0, length(tmp_tiles1), &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);    
-    trimTiles(tiles1, f1, f2, gap_str1, gap_end2, read_len - 1, direction1, gap_parms);
-    g_CreateTilesFromChains_(tmp_tiles2, tiles2, f1, f2, gap_str2, 0, length(tmp_tiles2), &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);  
-    trimTiles(tiles2, f1, f2, gap_str1, gap_end2, read_len - 1, direction2, gap_parms);
-
+    g_CreateTilesFromChains_(tmp_tiles1, tiles_str1, tiles_end1, f1, f2, gap_str1, gap_end1,
+        0, length(tmp_tiles1), &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);    
+    //trimTiles(tiles_str1, tiles_end1, f1, f2, gap_str1, gap_end2, read_len - 1, 
+    //    direction1, gap_parms);
+    g_CreateTilesFromChains_(tmp_tiles2, tiles_str2, tiles_end2, f1, f2, gap_str2, gap_end2, 
+        0, length(tmp_tiles2), &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);  
+    //trimTiles(tiles_str2, tiles_end2, f1, f2, gap_str1, gap_end2, read_len - 1, 
+    //    direction2, gap_parms);
     gap_parms.direction = original_direction;
     return 0;
 }
@@ -3613,8 +3618,10 @@ int extendsTilesFromAnchors (String<Dna5> & ref,
 int extendsInterval(String<Dna5> & ref, //genome
                  String<Dna5> & read, //read
                  String<Dna5> & comstr,
-                 String<uint64_t> & tiles1,    //results
-                 String<uint64_t> & tiles2,    //results
+                 String<uint64_t> & tiles_str1,    //results
+                 String<uint64_t> & tiles_end1,    //results
+                 String<uint64_t> & tiles_str2,    //results
+                 String<uint64_t> & tiles_end2,    //results
                  StringSet<FeaturesDynamic > & fts_ref,  
                  StringSet<FeaturesDynamic > & fts_read,
                  uint64_t gap_str1,
@@ -3629,7 +3636,7 @@ int extendsInterval(String<Dna5> & ref, //genome
     }
     int original_direction = gap_parms.direction;
     int shape_len = gap_parms.thd_eis_shape_len; 
-    int step1 = gap_parms.thd_eis_step1; //seq1 pattern step
+    int step1 = gap_parms.thd_eis_step1; //shape_lenseq1 pattern step
     int step2 = gap_parms.thd_eis_step2; //seq2...
     String<uint64_t> g_hs;
     String<uint64_t> g_hs_anchors1;
@@ -3657,7 +3664,9 @@ int extendsInterval(String<Dna5> & ref, //genome
     g_CreateExtendAnchorsPair_(g_hs, g_hs_anchors1, g_hs_anchors2, shape_len, length(read) - 1, gap_str1, gap_end1, gap_str2, gap_end2, gap_parms);
     t2 = sysTime() - t2;
     double t3 = sysTime();
-    extendsTilesFromAnchors(ref, read, comstr, g_hs_anchors1, g_hs_anchors2, tiles1, tiles2, fts_ref, fts_read, gap_str1, gap_end1, gap_str2, gap_end2, length(read), gap_parms);
+    extendsTilesFromAnchors(ref, read, comstr, g_hs_anchors1, g_hs_anchors2, tiles_str1,
+        tiles_end1, tiles_str2, tiles_end2, fts_ref, fts_read, gap_str1, gap_end1, 
+        gap_str2, gap_end2, length(read), gap_parms);
     t3 = sysTime() - t3;
     //--direction = 1 part;
     /*
@@ -3890,7 +3899,9 @@ int extendIntervalOneSide(String<Dna5> & ref, //genome
     return 0;
 }
 
-int mapExtendResultFilter_(String<uint64_t> & tiles_str, uint64_t gap_str, uint64_t gap_end, int direction, GapParms & gap_parms)
+int mapExtendResultFilter_(String<uint64_t> & tiles_str, 
+                           String<uint64_t> & tiles_end,
+                           uint64_t gap_str, uint64_t gap_end, int direction, GapParms & gap_parms)
 {
     if (isClipTowardsRight(direction))
     {
@@ -3902,6 +3913,10 @@ int mapExtendResultFilter_(String<uint64_t> & tiles_str, uint64_t gap_str, uint6
             if (dy > gap_parms.thd_me_reject_gap || dx > gap_parms.thd_me_reject_gap)
             {
                 erase(tiles_str, i, length(tiles_str));
+                if (!empty(tiles_end))
+                {
+                    erase(tiles_end, i, length(tiles_end));
+                }
                 break;
             }
             pre_tile = tiles_str[i];
@@ -3917,6 +3932,10 @@ int mapExtendResultFilter_(String<uint64_t> & tiles_str, uint64_t gap_str, uint6
             if (dy > gap_parms.thd_me_reject_gap || dx > gap_parms.thd_me_reject_gap)
             {
                 erase(tiles_str, 0, i + 1);
+                if (!empty(tiles_end))
+                {
+                    erase(tiles_end, 0, i + 1);
+                }
                 break;
             }
             pre_tile = tiles_str[i];
@@ -3955,7 +3974,7 @@ int mapExtend(StringSet<String<Dna5> > & seqs,
     extendIntervalOneSide(ref, read, comstr, tiles_str, f1, f2, gap_str, gap_end,
                   direction, gap_parms);
     //filter out tiles of large gaps
-    mapExtendResultFilter_(tiles_str, gap_str, gap_end, direction, gap_parms);
+    mapExtendResultFilter_(tiles_str, tiles_end, gap_str, gap_end, direction, gap_parms);
     if (!empty(tiles_str) && isClipTowardsRight(direction))
     {
         remove_tile_sgn_end(back(tiles_str));
@@ -3993,11 +4012,11 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
     String<Dna5> & ref = seqs[get_cord_id(gap_str1)];
     String<uint64_t> sp_tiles1; 
     String<uint64_t> sp_tiles2; 
-
-    extendsInterval(ref, read, comstr, tiles_str1, tiles_str2, f1, f2, gap_str1, gap_end1, gap_str2, gap_end2, gap_parms);
+    extendsInterval(ref, read, comstr, tiles_str1, tiles_end1, tiles_str2, tiles_end2, 
+        f1, f2, gap_str1, gap_end1, gap_str2, gap_end2, gap_parms);
     //direction = 1 part
     gap_parms.direction = direction1;
-    mapExtendResultFilter_(tiles_str1, gap_str1, gap_end1, direction1, gap_parms);
+    mapExtendResultFilter_(tiles_str1, tiles_end1, gap_str1, gap_end1, direction1, gap_parms);
     if (!empty(tiles_str1))
     {
         remove_tile_sgn_end(back(tiles_str1));
@@ -4012,7 +4031,7 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
     //>>debug
     //direction = -1 part
     gap_parms.direction = direction2; 
-    mapExtendResultFilter_(tiles_str2, gap_str2, gap_end2, direction2, gap_parms);
+    mapExtendResultFilter_(tiles_str2, tiles_end2, gap_str2, gap_end2, direction2, gap_parms);
     reform_tiles(ref, read, comstr, tiles_str2, tiles_end2, sp_tiles2, 
                  gap_str2, gap_end2, direction2, gap_parms);
     //restore gap_parms
