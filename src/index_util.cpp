@@ -481,7 +481,7 @@ bool HIndex::insertYsaSortedRecord(uint64_t g_str, uint64_t g_end)
     unsigned PBit = 1 << p_bit;
     for (uint64_t j = 0; j < l; j++)
     {
-        std::cerr << "=>Index::sortHash             " << std::setprecision(1) << std::fixed << (float) j / l * 100 << "%\r";
+        std::cerr << "=>Index::SortHash             "  << (float) j / l * 100 << "%\r";
         l_move -= p_bit;
         for (unsigned m = 1; m < threads; m++)
             ctd[m][0] += ctd[m - 1][0];
@@ -835,7 +835,7 @@ bool _createHsArray(StringSet<String<Dna5> > & seq,
     std::cerr << "=>Index::SortHash                                                   \r";
     time = sysTime();
     _hsSort(begin(hs), begin(hs) + hsRealEnd, shape.weight, threads);
-    std::cerr << "  Index::sortHash             Elapsed Time[s] " << sysTime() - time << std::endl;
+    std::cerr << "  Index::SortHash             Elapsed Time[s] " << sysTime() - time << std::endl;
     return true;
 }
 
@@ -1280,7 +1280,7 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
         }
         k += ptr;
     }
-    std::cerr << "request dir " << sysTime() - time << std::endl;
+    std::cerr << "RequestDir " << sysTime() - time << std::endl;
     return true;
 }
 
@@ -1363,7 +1363,7 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t hs_str, uint64_t
     }
 
     std::cerr << "  Index::SortYSA              Elapsed Time[s] " << sysTime() - time << std::endl;
-    std::cerr << "=>Index::resize xstr                                            \r" ;
+    std::cerr << "=>Index::ResizeXstr                                            \r" ;
     k = hs_str_modified;
     uint64_t count = 0; 
     time = sysTime();
@@ -1391,8 +1391,8 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t hs_str, uint64_t
         k += ptr;
     }
     xstr._fullSize(count);
-    std::cerr << "  Index::resize xstr          Elapsed Time[s] " << sysTime() - time << std::endl;
-    std::cerr << "=>Index::request dir                                                  \r";
+    std::cerr << "  Index::ResizeXstr           Elapsed Time[s] " << sysTime() - time << std::endl;
+    std::cerr << "=>Index::RequestDir                                                  \r";
     time = sysTime();
     std::cout << "lbks " << c1 / (c1 + c2) << "\n";
 
@@ -1433,7 +1433,7 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t hs_str, uint64_t
         }
     }
 
-    std::cerr << "  Index::request dir          Elapsed Time[s] " << sysTime() - time << std::endl;
+    std::cerr << "  Index::RequestDir           Elapsed Time[s] " << sysTime() - time << std::endl;
     (void) threads;
     return true;
 }
@@ -1614,15 +1614,16 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
                  unsigned gend,
                  unsigned threads)
 {
-    serr.print_message("=>Index::initing ", 0, 2, std::cerr);
+    //std::cerr << std::fixed << std::setprecision(2);
+    serr.print_message("=>Index::Initiate ", 0, 2, std::cerr);
     double t = sysTime();
     LShape & t_shape = index.getShape();
     String<int> & dir = index.getDir();
     String<int64_t> & hs = index.getHs();
     resize (dir, index.fullSize(), 0);
     double t2 = sysTime();
-    dout << "idx2" << length(dir) << t_shape.weight << thd_min_step << thd_max_step << thd_omit_block<< "\n";
-    dout << threads << "threads\n"; 
+    //dout << "idx2" << length(dir) << t_shape.weight << thd_min_step << thd_max_step << thd_omit_block<< "\n";
+    //dout << threads << "threads\n"; 
     for (int64_t i = gstr; i < gend; i++)
     {
         String<int64_t> t_blocks;
@@ -1674,8 +1675,8 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
     int64_t EmptyVal = create_cord(length(seqs),0,0,0); 
     //make sure genomeid >= length(seqs) and cord y be 0! y points to next empty.
     resize (hs, sum, EmptyVal);
-    serr.print_message("--Index::inite   ", 0, 1, std::cerr);
-    serr.print_message("=>Index::hashing", 0, 2, std::cerr);
+    serr.print_message("--Index::Initiate   ", 0, 1, std::cerr);
+    serr.print_message("=>Index::Hash", 0, 2, std::cerr);
     int64_t maxinfi = LLMAX;
     for (int64_t i = 0; i < length(seqs); i++)
     {
@@ -1732,8 +1733,9 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
     }
     dout << "size" << float(length(dir)) * 8 / 1024/1024/1024 << float(length(hs)) /128/1024/1024 << "\n";
     std::cout << "createDIndex " << sysTime() - t << " " << sysTime() - t2 << "\n";
-    serr.print_message("Index::hash        ", 2, 1, std::cerr);
+    serr.print_message("Index::Hash        ", 2, 1, std::cerr);
     serr.print_message("End creating index ", 2, 0, std::cerr);
+    serr.print_message("Elapsed time[s] ", 2, 0, std::cerr);
     serr.print_message(sysTime() - t, 2, 1, std::cerr);
     return 0;
 }

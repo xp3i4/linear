@@ -539,7 +539,6 @@ int scaleDxDy_(int64_t & dx, int64_t &d1, int64_t & dy, int64_t & d2)
 {
     if ((d1 >= 0 && d2 >= 0) || (d1 <= 0 && d2 <=0) && (d1 || d2))
     {
-        std::cout << "sdxy " << dx << " " << d1 << " " << dy << " " << d2 << "\n";
         int64_t c1 = std::abs(d1 * dy), c2 = std::abs(d2 * dx);
         if (c1 > c2)
         {

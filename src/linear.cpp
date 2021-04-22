@@ -105,12 +105,13 @@ int main(int argc, char const ** argv)
     options.versions = "1.8.2";
     std::cerr << "["<< options.versions
               << "]\nEncapsulated: Mapping reads efficiently" << std::endl;
+    std::cerr << std::fixed << std::setprecision(2);
     seqan::ArgumentParser::ParseResult res = parseCommandLine(options, argc, argv);
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res == seqan::ArgumentParser::PARSE_ERROR;
     Mapper mapper(options);
-    uint thd_g_size = 300 << 20; //300M bases 
     /*
+    uint thd_g_size = 300 << 20; //300M bases 
     if (lengthSum(mapper.getGenomes ()) > thd_g_size)
     {
         int p1 = 0;

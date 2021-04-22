@@ -49,7 +49,6 @@ uint64_t calBandSize(uint64_t cord_str, uint64_t cord_end,
     uint64_t l_y_upper = l_y - band_upper;
     uint64_t l_x_lower = l_x - band_lower;
     uint64_t l_y_lower = l_y - band_lower;
-    dout << "cbz1" << l_x << l_y << l_x_lower << l_y_lower << l_x_upper << l_y_upper << "\n";
     return l_x * l_y - (l_x_lower * l_y_lower  + l_x_upper * l_y_upper) / 2;
 }
 /*
@@ -64,7 +63,6 @@ uint64_t calBandsSize(String<uint64_t> & cords_str, String<uint64_t> & cords_end
     {
         uint64_t new_size = calBandSize(cords_str[i], cords_end[i], bands_lower[i], bands_upper[i]);
         size += new_size;
-        dout << "cbsz1" << new_size << "\n";
     }
     return size;
 }
@@ -196,9 +194,6 @@ int mergeCordsBands1(String<uint64_t> & cords_str,
     uint64_t x22 = 0;
     uint64_t y22 = 0;
 
-    //<<debug
-    int area1 = calBandsSize (cords_str, cords_end, bands_lower, bands_upper, i_str, i_end);
-    //>>debug
     String<unsigned> del_list; //temp array to record ith item to delete
     for (unsigned i = i_str + 1; i < i_end; i++)
     {
@@ -206,7 +201,6 @@ int mergeCordsBands1(String<uint64_t> & cords_str,
         y21 = get_cord_y(cords_str[i]);
         x22 = get_cord_x(cords_end[i]);
         y22 = get_cord_y(cords_end[i]);
-        dout << "mcb10" << x12 << x21 << y12 << y21 << "\n";
 
         LineSegment band_lower1 = 
             getRectangleBandStrEnd(x11, y11, x12, y12, bands_lower[it], -1);
@@ -223,7 +217,6 @@ int mergeCordsBands1(String<uint64_t> & cords_str,
         {
             cords_end[it] = cords_end[i];
             //appendValue(del_list, i);
-            dout << "mcoline" << x11 << y11 << x12 << y12 << x21 << y21 << x22 << y22 << float(y12-y11)/(x12-x11) << float(y21 - y12)/(x21 - x12) << float(y22 - y21)/(x22 - x21) << x12 - x21 << y12 - y21 << "\n";
             x12 = x22;
             y12 = y22;
         }
@@ -246,17 +239,11 @@ int mergeCordsBands1(String<uint64_t> & cords_str,
             x12 = x22;
             y12 = y22;
         }
-        dout << "mcb11" << x11 << y11 << x21 << y21 << x21 - x11 << y21 - y11 << bands_lower[i] << bands_upper[i] << "\n";
     }
     erase(cords_str, it + 1, i_end);
     erase(cords_end, it + 1, i_end);
     erase(bands_lower, it + 1, i_end);
     erase(bands_upper, it + 1, i_end);
-    //<<debug
-    print_cords(cords_str, "mcb13");
-    int area2 = calBandsSize (cords_str, cords_end, bands_lower, bands_upper, i_str, i_str + it + 1);
-    dout << "mcb12" << area1 << area2 << length(cords_str) << "\n";
-    //>>debug
     return 0;
 }
 int mergeCordsBands(String<uint64_t> & cords_str,
@@ -272,7 +259,6 @@ int mergeCordsBands(String<uint64_t> & cords_str,
             (i < length(cords_str) - 1 && isDiffCordsStrand(cords_str[i], cords_str[i + 1])))
         {
             mergeCordsBands1(cords_str, cords_end, bands_lower, bands_upper, i_str, i + 1);
-            dout << "mcb01" << i_str << i << "\n";
             i_str = i + 1;
         }
     }
