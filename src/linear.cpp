@@ -37,19 +37,7 @@ int process2(Mapper & mapper, Options & options, int p1)
     mapper.createIndex(0, length(mapper.getGenomes()), false); 
     createFeatures(mapper.getGenomes(), mapper.getGenomesFeatures(), mapper.getFeatureType(), mapper.getThreads());
     filter (mapper, buckets, fin_pos, p1);
-    //<<ddebug
-    for (int i = 0; i < length(buckets); i++)
-    {
-
-        std::cout << "\nbuckets " << " ";
-        for (int j = 0; j < length(buckets[i]); j++)
-        {
-            std::cout << buckets[i][j] << " " ;
-        }
-    }
-    dout << "indextype" << mapper.getIndex().typeIx << "\n";
-    //>>debug
-
+    
     //clear filter index
     //mapper.clearIndex();
 
@@ -60,7 +48,6 @@ int process2(Mapper & mapper, Options & options, int p1)
     bool f_io_append = false;       //flag if result append to or open as new 
     for (unsigned i = 0; i < length(mapper.getGenomes()); i++)
     {
-        dout << "mgs" << i << "\n";
         serr.print_message("Map::\033[1;35mref:", 0, 0, std::cerr);
         serr.print_message(i + 1, 0, 0, std::cerr);
         serr.print_message(" " + _2stdstring(mapper.getGenomesId()[i]), 0, 0, std::cerr);
