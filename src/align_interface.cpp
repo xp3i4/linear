@@ -3012,7 +3012,6 @@ int alignCords (StringSet<String<Dna5> >& genomes,
             }
         }
     }
-    dout << "align_time" << sysTime() - st3 << st2 << st4 << t5 << "\n";
     //printGaps(gaps.c_pairs);
     Score<int> score_scheme;
     /*

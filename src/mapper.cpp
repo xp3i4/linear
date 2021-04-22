@@ -198,7 +198,7 @@ void Mapper::loadOptions(Options & options)
     {
         appendValue(gap_parms_set, gap_parms_template); //a copy for each thread
     }
-    gap_parms_template.printParms("gap_parms");
+    //gap_parms_template.printParms("gap_parms");
     //dout << "gap_len"<< gap_len_min << options.gap_len << "\n";
     if (options.apx_chain_flag == 0)
     {
@@ -228,7 +228,7 @@ void Mapper::loadOptions(Options & options)
     fio_parms.sample_name = options.sample_name;
     fio_parms.f_print_seq = options.sequence_sam_flag;
     fio_parms.f_is_align = options.aln_flag;
-    dout << "par" << options.sequence_sam_flag << fio_parms.f_sequence_sam << "\n";
+    //dout << "par" << options.sequence_sam_flag << fio_parms.f_sequence_sam << "\n";
 }
 int Mapper::createIndex(unsigned gstr, unsigned gend, bool efficient)
 {

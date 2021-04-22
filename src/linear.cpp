@@ -79,7 +79,6 @@ int process2(Mapper & mapper, Options & options, int p1)
  */
 int process3(Mapper & mapper, Options & options, int p1)
 {
-    dout << "p3" << "\n";
     int num_buffers = std::max(30, (int)(mapper.getThreads() * 1.5));
     P_Parms p_parms(1, 1, 1, 100);
     mapper.initBuffers(num_buffers, num_buffers, p_parms);

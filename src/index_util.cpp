@@ -223,7 +223,7 @@ uint64_t XString::_fullSize(uint64_t const & seqlen, float const & alpha)
     uint64_t len = 1ULL; 
     while ((len) < seqlen * alpha)
         len <<=1;
-    std::cout << "seql" << len << "\n";
+    //std::cout << "seql" << len << "\n";
     resize(xstring, len);
     mask = len - 1;
     for (uint64_t k = 0; k < len; k++)
@@ -811,7 +811,7 @@ bool HIndex::insertYsaSortedRecord(uint64_t g_str, uint64_t g_end)
     }
     resize (hs, hsRealEnd + 1);
     _DefaultHs.setHsHead(hs[hsRealEnd], 0, 0);
-    std::cout << "hs_size " << length(hs) << "\n";
+    //std::cout << "hs_size " << length(hs) << "\n";
     return hsRealEnd;
 }
 
@@ -937,7 +937,7 @@ bool checkHsSort(String<uint64_t> const & hs)
             //std::cout << "hs[j]" << hs[j] << std::endl;
             if (hs[j] > preY)
             {
-                std::cerr << "sort y error " << k << " " << j;
+                //std::cerr << "sort y error " << k << " " << j;
                 return false;
             }
             preY = hs[j];
@@ -946,7 +946,7 @@ bool checkHsSort(String<uint64_t> const & hs)
         preX = _DefaultHs.getHeadX(hs[k]);
         k += _DefaultHs.getHeadPtr(hs[k]);
     }
-    std::cerr << "last " << k << std::endl;
+    //std::cerr << "last " << k << std::endl;
     
     k = 0;
     time = sysTime();
@@ -1394,7 +1394,7 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t hs_str, uint64_t
     std::cerr << "  Index::ResizeXstr           Elapsed Time[s] " << sysTime() - time << std::endl;
     std::cerr << "=>Index::RequestDir                                                  \r";
     time = sysTime();
-    std::cout << "lbks " << c1 / (c1 + c2) << "\n";
+    //std::cout << "lbks " << c1 / (c1 + c2) << "\n";
 
     #pragma omp parallel 
     {
@@ -1580,7 +1580,7 @@ int createDIndex_serial(StringSet<String<Dna5> > & seqs,
             }
         }  
     }
-    std::cout << "createDIndex " << sysTime() - t << " " << sysTime() - t2 << "\n";
+    //std::cout << "createDIndex " << sysTime() - t << " " << sysTime() - t2 << "\n";
 }
 
 uint64_t const DINDEXY_BITS2 = 5; //shape.YValue bits
@@ -1671,7 +1671,6 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
         sum += dir[i];
         dir[i] = sum - dir[i];
     }
-    dout << "dt" << sum << back(dir) << "\n";
     int64_t EmptyVal = create_cord(length(seqs),0,0,0); 
     //make sure genomeid >= length(seqs) and cord y be 0! y points to next empty.
     resize (hs, sum, EmptyVal);
@@ -1731,8 +1730,8 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
             }  
         }
     }
-    dout << "size" << float(length(dir)) * 8 / 1024/1024/1024 << float(length(hs)) /128/1024/1024 << "\n";
-    std::cout << "createDIndex " << sysTime() - t << " " << sysTime() - t2 << "\n";
+    //dout << "size" << float(length(dir)) * 8 / 1024/1024/1024 << float(length(hs)) /128/1024/1024 << "\n";
+    //std::cout << "createDIndex " << sysTime() - t << " " << sysTime() - t2 << "\n";
     serr.print_message("Index::Hash        ", 2, 1, std::cerr);
     serr.print_message("End creating index ", 2, 0, std::cerr);
     serr.print_message("Elapsed time[s] ", 2, 0, std::cerr);
@@ -1780,7 +1779,7 @@ int _createDIndexFromHs(String<uint64_t> & hs, String<uint64_t> & hs_str_end, DI
                 uint64_t current_g_id = _getSA_i1(_DefaultHs.getHsBodyS(hs[i + 1]));
                 if (current_g_id != pre_g_id)
                 {
-                    dout << "ci" << current_g_id << i << "\n";
+                    //dout << "ci" << current_g_id << i << "\n";
                     hs_str_end[current_g_id] = i;
                     pre_g_id = current_g_id; 
                 }
@@ -1804,7 +1803,7 @@ int _createDIndexFromHs(String<uint64_t> & hs, String<uint64_t> & hs_str_end, DI
         sum += dir[i];
         dir[i] = sum - dir[i];
     }
-    dout << "dt" << sum << back(dir) << "\n";
+    //dout << "dt" << sum << back(dir) << "\n";
     int64_t max_seq_num = 1LL << 20 - 1; //ids in cords occupies 20 bit
     int64_t EmptyVal = create_cord(max_seq_num, 0, 0, 0); 
     //make sure genomeid >= length(seqs) and cord y be 0! y points to next empty.
@@ -1877,7 +1876,7 @@ int _createHIndexFromHs(String<uint64_t> & hs,
                         uint64_t thd_blocklimit,
                         unsigned threads)
 {
-    dout << "chssort" << g_hs_str << length(hs) << g_hs_end << "\n";
+    //dout << "chssort" << g_hs_str << length(hs) << g_hs_end << "\n";
     _hsSort(begin(hs) + g_hs_str, begin(hs) + g_hs_end, shape.weight, threads);
     _createYSA(hs, xstr, g_hs_str, g_hs_end, indexEmptyDir, false, f_ysa_sorted, threads, thd_blocklimit);
     return 0;
@@ -1887,7 +1886,7 @@ int createMHIndex(IndexDynamic & index, uint64_t g_str, uint64_t g_end, uint64_t
 {
     HIndex & hindex = index.hindex;
     bool f_ysa_sorted = hindex.insertYsaSortedRecord(g_str, g_end);
-    dout << "css1" << g_str << g_end << f_ysa_sorted << "\n";
+    //dout << "css1" << g_str << g_end << f_ysa_sorted << "\n";
     _createHIndexFromHs(hindex.ysa, hindex.xstr, hindex.getShape(), hindex.emptyDir,
                         hindex.ysa_str_end[g_str], hindex.ysa_str_end[g_end], f_ysa_sorted, thd_blocklimit, threads);
 }
@@ -1996,7 +1995,7 @@ int createMHsArray(StringSet<String<Dna5> > & seqs, IndexDynamic & index, uint64
 
 bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned gstr, unsigned gend, unsigned threads, bool efficient)
 {
-    dout << "idx" << index.typeIx << "\n";
+    //dout << "idx" << index.typeIx << "\n";
     if (index.isMIndex())    
     {
         unsigned thd_shape_len = 23;
@@ -2011,7 +2010,7 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
         }
         else if (index.isHIndex())
         {
-            dout << "idx2" << index.typeIx << "\n";
+            //dout << "idx2" << index.typeIx << "\n";
             uint64_t thd_blocklimit = 32;
             createMHsArray(seqs, index, gstr, gend, threads, thd_step, false);
             createMHIndex (index, gstr, gend, thd_blocklimit, threads);
@@ -2027,7 +2026,7 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
             int64_t thd_omit_block = 200; 
             unsigned thd_shape_len = 21;
             index.dindex.getShape().init_shape_parm(thd_shape_len);
-            std::cout << "cidx" << index.typeIx << "\n";
+            //std::cout << "cidx" << index.typeIx << "\n";
             //TODO::parm wrapping 
             return createDIndex(seqs, index.dindex, thd_min_step, thd_max_step, thd_omit_block,
                                 gstr, gend, threads);
@@ -2044,7 +2043,7 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
             uint64_t thd_blocklimit = 64;
             float alpha = 1.6;
             index.hindex.shape.init_shape_parm(thd_shape_len / 2 * 2 + 1);
-            dout << "span" << index.hindex.shape.span << "\n";
+            //dout << "span" << index.hindex.shape.span << "\n";
             index.hindex.alpha = alpha;
             return createHIndex(seqs, index.hindex, 
                                 gstr, gend, 
