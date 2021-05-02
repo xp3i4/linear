@@ -73,6 +73,8 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         shift_x = (x2 - x1 > 0) ? std::min({x2 - x1, int64_t(get_cord_x(gap_end)), thd_max_extend2}) : thd_max_extend1;
         //g_cmpll.min(shift_x, x2 - x1) << int64_t(get_cord_x(gap_end));
         g_cmpll.min(shift_y, (x2 - x1) * (1 + gap_parms.thd_err)) << int64_t(get_cord_y(gap_end));
+        shift_x = std::max(shift_x, int64_t(0));
+        shift_y = std::max(shift_y, int64_t(0));
         uint64_t gap_str2 = shift_cord (gap_end, -shift_x, -shift_y);
         uint64_t gap_end2 = gap_end;
         mapExtend (seqs, read, comstr, f1, f2, tiles_str2, tiles_end2, 
