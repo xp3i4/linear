@@ -188,5 +188,13 @@ int gather_gaps_y_ (String<uint64_t> & cords,
                     uint64_t thd_gap_size);
 
 int preFilterChains2(String<uint64_t> & hits,  String<UPair> & str_ends_p, void (*setEndFunc)(uint64_t &));
-
+/*
+uint64_t filterAnchorsList(
+    String<uint64_t> & anchors, 
+    String<std::pair<unsigned, unsigned> > & anchors_list, 
+    uint64_t shape_len, 
+    uint64_t thd_anchor_accept_density, 
+    uint64_t thd_anchor_accept_min, 
+    unsigned thd_anchor_err_bit);
+    */
 #endif

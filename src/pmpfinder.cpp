@@ -1835,12 +1835,16 @@ unsigned getDIndexMatchAll (DIndex & index,
 }
 
 /*
- * filter anchors in @anchors that can be chained and record i of thoes @anchors[i] in @anchors_list
+ * Filter anchors in @anchors that can be chained and record i of such @anchors[i] in @anchors_list
+ * error rate = 1/2 ^ @thd_anchor_err_bit, =2 recommended(that err=0.25) 
+   @thd_anchor_accept_density is the number of anchors every 1000 bases
+   @thd_anchor_accept_min = 2; the minium anchors every 1000 bases to accepet the block of anchors
  */
 uint64_t filterAnchorsList(String<uint64_t> & anchors, 
     String<std::pair<unsigned, unsigned> > & anchors_list, 
     uint64_t shape_len, uint64_t thd_anchor_accept_density, uint64_t thd_anchor_accept_min, unsigned thd_anchor_err_bit)
 {
+    (void)shape_len;
     if (length(anchors) <= 1)
     {
         return 0;
@@ -1885,6 +1889,7 @@ uint64_t filterAnchorsList(String<uint64_t> & anchors,
         }
     } 
     t2 = sysTime() - t2;
+    //dout << "fl1" << t1/t2 << "\n";
     return 0;
 }
 
@@ -2245,6 +2250,7 @@ int getAnchorHitsChains(Anchors & anchors, String<uint64_t> & hits, uint64_t sha
     uint64_t thd_anchor_accept_density, uint64_t thd_anchor_accept_min, uint64_t thd_large_gap, unsigned thd_anchor_err_bit, uint64_t thd_max_anchors_num, int64_t thd_anchor_accept_err, unsigned alg_type_filter) 
 {
     double t1 = sysTime();
+    //dout << "pmp1" << anchors.length() << "\n";
     filterAnchors(anchors, shape_len, thd_anchor_accept_density, thd_anchor_accept_min, thd_anchor_err_bit, thd_max_anchors_num, thd_anchor_accept_err, alg_type_filter) ;
     t1 = sysTime() - t1;
     double t2 = sysTime();

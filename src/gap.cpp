@@ -30,7 +30,7 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
     float thd_da_rate = 0.1;
     clear(tiles_str);
     clear(tiles_end);
-
+    //dout << "mg3" << get_cord_y(gap_str) << get_cord_y(gap_end) <<direction << "\n";
     _DefaultHit.unsetBlockEnd(gap_str); //remove cord sgn, format cord to tiles
     _DefaultHit.unsetBlockEnd(gap_end);
 
@@ -296,6 +296,8 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                         }
                         i += length(tiles_str1);
                     }
+                    //dout << "mg2" << get_cord_y(gap_str) << get_cord_y(gap_end) << i << length(tiles_str) << dx << dy << gap_parms.read_len << direction << length(tiles_str1) << "\n";
+                    //g_print_tiles_(tiles_str1, "gpt1");
                 }
             }
         }
@@ -428,6 +430,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             int64_t dx_tmp = get_cord_x(gap_end) - get_cord_x(gap_str);
             if (std::abs(int64_t(dx_tmp)) < thd_max_gap)
             {
+            //dout << "g1" << get_cord_y(gap_str) << get_cord_y(gap_end) << get_cord_x(gap_str) << get_cord_x(gap_end) << dx_tmp << i - 1 << i << "\n";
                 direction = g_map_closed;
                 _DefaultHit.unsetBlockEnd(gap_str);
                 _DefaultHit.unsetBlockEnd(gap_end);
