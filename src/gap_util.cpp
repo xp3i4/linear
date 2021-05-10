@@ -4285,7 +4285,7 @@ int _filterGapAnchorsList(String<uint64_t> & anchors,
         [](ListElemType & a, ListElemType & b){
         return a.second - a.first > b.second - b.first;
     });
-    dout << "fgal3" << length(anchors) << length(anchors_list) << "\n";
+    //dout << "fgal3" << length(anchors) << length(anchors_list) << "\n";
     if (length(anchors) > thd_fgal_min_len1 && 
         length(anchors_list) > thd_fgal_min_len2)
     {

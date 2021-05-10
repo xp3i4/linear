@@ -109,6 +109,11 @@ int getBestChains(String<uint64_t>     & anchors, //todo:: anchor1 anchor2 of di
 
 /* Back trace function to retrive @chains of @elements from the @chains_record
  * For any element in the @elements, it will be chained at most once in the most likely(highest score) chain
+ * The best chain created by the function is the chain of the highest score,
+   while the second, third,... best chain are not guaranteed to be the chains of the second, third,... highest chain.
+   They are guaranteed to be the chains of second, third,... highest chain only when
+   they have no common elments of the chain.
+   Despite this, this function is more simple and efficient to compute.
  */
 template <class ChainElementType>
 int traceBackChains0(String<ChainElementType> & elements,  StringSet<String<ChainElementType> > & chains, String<ChainsRecord> & chain_records, String<int> & chains_score, int _chain_min_len, int _chain_abort_score, int bestn)
@@ -185,9 +190,12 @@ int traceBackChains0(String<ChainElementType> & elements,  StringSet<String<Chai
 
 /* Back trace function to retrive @chains of @elements from the @chains_record
  * For any element in the @elements, it will be chained at most once in the most likely(highest score) chain
+ * The function produce the first, second,... chains of highest, second highest score.
+   However the function is more computational intensive.
+   It will drain the computational efficiency especially in case of repeats which creates many, over thousands of candidates of chains.
  */
 template <class ChainElementType>
-int traceBackChains(String<ChainElementType> & elements,  StringSet<String<ChainElementType> > & chains, String<ChainsRecord> & chain_records, String<int> & chains_score, int _chain_min_len, int _chain_abort_score, int bestn)
+int traceBackChains1(String<ChainElementType> & elements,  StringSet<String<ChainElementType> > & chains, String<ChainsRecord> & chain_records, String<int> & chains_score, int _chain_min_len, int _chain_abort_score, int bestn)
 {
     String<ChainElementType> chain;
     String<int> chain_score;
@@ -258,6 +266,34 @@ int traceBackChains(String<ChainElementType> & elements,  StringSet<String<Chain
             }
         } 
     }  
+    return 0;
+}
+
+template <class ChainElementType>
+int traceBackChains(String<ChainElementType> & elements,  StringSet<String<ChainElementType> > & chains, String<ChainsRecord> & chain_records, String<int> & chains_score, int _chain_min_len, int _chain_abort_score, int bestn)
+{
+    unsigned thd_root_num = 50;
+    String<int> tmp_count;
+    resize(tmp_count, length(elements), 0);
+    unsigned root_num = 0;
+    for (unsigned i = 0; i < length(chain_records); i++)
+    {
+        if (tmp_count[chain_records[i].root_ptr] == 0) 
+        {
+            root_num++;
+        }
+        tmp_count[chain_records[i].root_ptr] = 1;
+    }
+    if (root_num > thd_root_num)
+    {
+        traceBackChains0(elements, chains, chain_records, chains_score, 
+            _chain_min_len, _chain_abort_score, bestn);
+    }
+    else
+    {
+        traceBackChains1(elements, chains, chain_records, chains_score,
+            _chain_min_len, _chain_abort_score, bestn);
+    }
     return 0;
 }
 
