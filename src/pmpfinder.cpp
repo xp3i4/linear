@@ -237,7 +237,7 @@ unsigned getFeatureWindowSize(FeaturesDynamic & fs)
     {
         return fs.apx_parm1_16->windowSize;
     }
-    return -1;
+    return 0;
 }
 unsigned getFeatureWindowSize(StringSet<FeaturesDynamic> & fss)
 {
@@ -522,7 +522,7 @@ int64_t _windowDist2_48(Iterator<String<int96> >::Type it1,  //feature string it
  *   They are add to the 31bits and cut off the 30bits by & infi_mask30
  */
 short infiN = 31; //for base '*N' 'N*' and 'TT' 
-unsigned infi_mask30 = (1 << 31) - 1;
+unsigned infi_mask30 = (unsigned(1) << 31) - 1;
 short units[25] = {
 /*A**/ 0,             6,             12,            18,            infiN, 
 /*C**/ 24,            (1 << 8) + 0,  (1 << 8) + 6,  (1 << 8) + 12, infiN,
@@ -538,21 +538,19 @@ void add2merInt96 (int96 & val, TIter5 it)
 }
 int createFeatures2_48(TIter5 it_str, TIter5 it_end, String<int96> & f, ApxMapParm2_48 & parm)
 {
-    double t = sysTime();
     int addMod3[3] = {1, 2, 0};   // adMod3[i] = ++ i % 3;
     int96 zero96 = {0, 0, 0};
     std::vector<int96> buffer(3, zero96); //buffer of 3 cells in one script
     resize (f, (it_end - it_str - window48) / parm.scpt_step + 1); 
     setInt96(f[0], zero96);
-    for (int i = 0; i < 3; i++) //init f[0]
+    for (unsigned i = 0; i < 3; i++) //init f[0]
     {
-        for (int j = i << parm.scpt_bit; j < (i << parm.scpt_bit) + parm.scpt_step; j++)
+        for (unsigned j = i << parm.scpt_bit; j < (i << parm.scpt_bit) + parm.scpt_step; j++)
         {
             add2merInt96(buffer[i], it_str + j);
         }
         incInt96(f[0], buffer[i]);
     }
-    //std::cerr << " cf48 time " << sysTime() - t << "\n";
     int next = 1; //stream f[next]
     int ii = 0;
     for (int i = parm.scpt_step; i < it_end - it_str - window48 - 1; i += parm.scpt_step) 
@@ -608,10 +606,10 @@ int createFeatures2_48(TIter5 it_str, TIter5 it_end, String<int96> & f, unsigned
     int96 zero96 = {0, 0, 0};
     std::vector<int96> buffer(3, zero96); //buffer of 3 cells in one script
     setInt96(f[next], zero96);
-    for (int i = 0; i < 3; i++) //init buffer and f[next]
+    for (unsigned i = 0; i < 3; i++) //init buffer and f[next]
     {
-        int tmp = thd_begin + (i << parm.scpt_bit); 
-        for (int j = tmp; j < tmp + parm.scpt_step; j++)
+        unsigned tmp = thd_begin + (i << parm.scpt_bit); 
+        for (unsigned j = tmp; j < tmp + parm.scpt_step; j++)
         {
             add2merInt96(buffer[i], it_str + j);
         }
@@ -878,25 +876,18 @@ uint64_t previousWindow(FeaturesDynamic & f1, //read
     uint64_t y;
     uint64_t new_cord = 0;
     ApxMapParmBase * parm;
-    unsigned len1, len2; 
 
     if (f1.isFs2_48())
     {
         parm = f1.apx_parm2_48;
-        len1 = length(f1.fs2_48);
-        len2 = length(f2.fs2_48);
     }
     else if (f1.isFs1_16())
     {
         parm = f1.apx_parm1_16;
-        len1 = length(f1.fs1_16);
-        len2 = length(f2.fs1_16);
     }
     else if (f1.isFs1_32())
     {
         parm = f2.apx_parm1_32;
-        len1 = length(f1.fs1_32);
-        len2 = length(f2.fs1_32);
     }
     else
     {
@@ -1308,7 +1299,7 @@ int path_dst_2(typename Iterator<String<uint64_t> >::Type hitBegin,
     {
         return 0;
     }
-    int thd_cord_size = getFeatureWindowSize(f1);
+    unsigned thd_cord_size = getFeatureWindowSize(f1);
     float score = 0;
 
     if (empty(cords))
@@ -1320,7 +1311,6 @@ int path_dst_2(typename Iterator<String<uint64_t> >::Type hitBegin,
     uint64_t cordy_str, cordy_end;
     bool f_sp_l = false; 
     bool f_sp_r = false; 
-    bool f_block_str = false;
     bool f_block_end = false;
     bool f_append = false;
     Iterator <String<uint64_t> >::Type itt_next = hitBegin + 1; //hitBegin + 1 < hitEnd for sure 
@@ -1361,7 +1351,7 @@ int path_dst_2(typename Iterator<String<uint64_t> >::Type hitBegin,
         {
             if (!f_sp_l && get_cord_y(*(itt_next - 1)) >= thd_cord_size && get_cord_x(*(itt_next - 1)) >= thd_cord_size)
             {
-                uint64_t new_cord = shift_cord(*(itt_next - 1), -thd_cord_size, -thd_cord_size);
+                uint64_t new_cord = shift_cord(*(itt_next - 1), -int(thd_cord_size), -int(thd_cord_size));
                 cordy_str =isFirstHit(itt) ? read_str : get_cord_y(new_cord);
                 cordy_end = get_cord_y(*(itt_next - 1)); //don't change it, sv 
                 appendValue(cords, new_cord);
@@ -1730,7 +1720,6 @@ unsigned getDIndexMatchAll (DIndex & index,
     for (unsigned k = read_str; k < read_end; k++)
     {
         hashNexth(shape, begin(read) + k);
-        uint64_t pre = ~0;
         if (++dt == mapParm.alpha)
         {
             dt = 0;
@@ -1807,7 +1796,6 @@ unsigned getDIndexMatchAll (DIndex & index,
     for (unsigned k = read_str; k < read_end - shape.span; k++)
     {
         hashNexth(shape, begin(read) + k);
-        uint64_t pre = ~0;
         if (++dt == mapParm.alpha)
         {
             dt = 0;
@@ -1825,7 +1813,6 @@ unsigned getDIndexMatchAll (DIndex & index,
                         _DefaultHs.getHsBodyY(index.ysa[pos]) == 0))
                 {
                     uint64_t idx = _DefaultHs.getHsBodyS(index.ysa[pos]);
-                    //if (_DefaultHs.getHsBodyS(pre - index.ysa[pos]) > mapParm.kmerStep &&
                     if(idx >= idx_str && idx < idx_end)
                     {
                         uint64_t id = _getSA_i1(idx);
@@ -1840,7 +1827,6 @@ unsigned getDIndexMatchAll (DIndex & index,
                             uint64_t new_anchor = make_anchor (id, x, k, FORWARD_STRAND);
                             appendValue (set, new_anchor);
                         }
-                        pre = index.ysa[pos];
                     }
                     if (++pos > length(index.ysa) - 1)
                     {
@@ -1873,7 +1859,7 @@ uint64_t filterAnchorsList(String<uint64_t> & anchors,
     double t1 = sysTime();
     sort_ska(begin(anchors), end(anchors));
     uint64_t ak2 = anchors[1]; //2/4, 3/4
-    uint64_t block_str = 1, sc = 0, count_anchors = 0;
+    uint64_t block_str = 1, count_anchors = 0;
     t1 = sysTime() - t1;
     double t2 = sysTime();
     uint64_t min_y = ULLMAX, max_y = 0;
@@ -2000,7 +1986,7 @@ uint64_t filterAnchors2(Anchors & anchors, uint64_t shape_len, uint64_t thd_anch
         }
     }
     t3 = sysTime() - t3;
-    double t = t1 + t2 + t3;
+    //double t = t1 + t2 + t3;
     resize (anchors.set, ii);
     return 0;
 }
@@ -2017,6 +2003,8 @@ uint64_t filterAnchors(Anchors & anchors, uint64_t shape_len, uint64_t thd_ancho
 
         //filterAnchors2(anchors, shape_len, thd_anchor_accept_lens, thd_anchor_err_bit, thd_max_anchors_num, thd_anchor_accept_err);
     }
+    (void) thd_max_anchors_num;
+    (void) thd_anchor_accept_err;
     return 0;
 }
 

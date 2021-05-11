@@ -1,10 +1,10 @@
 #ifndef LINEAR_HEADER_BASE_H
 #define LINEAR_HEADER_BASE_H
 
+#include <iostream>
 #include <seqan/seq_io.h>
 #include <seqan/stream.h>
 #include <seqan/basic.h>
-#include <iostream>
 
 using namespace seqan;
 using std::ostringstream;
