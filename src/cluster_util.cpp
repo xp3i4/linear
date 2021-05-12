@@ -130,13 +130,13 @@ int traceBackChains0(String<ChainElementType> & elements,  StringSet<String<Chai
         int max_score = -1;
         int max_str = chain_end;
         int max_len = 0;
-        for (int j = 0; j < length(chain_records); j++)
+        for (unsigned j = 0; j < length(chain_records); j++)
         {
             if (chain_records[j].score > max_score)
             {
                 max_2nd_score = max_score;
                 max_str   = j;
-                max_score= chain_records[j].score;
+                max_score = chain_records[j].score;
                 max_len   = chain_records[j].len;
                 f_done = false;
             }
@@ -199,19 +199,19 @@ int traceBackChains1(String<ChainElementType> & elements,  StringSet<String<Chai
 {
     String<ChainElementType> chain;
     String<int> chain_score;
-    int delete_score = -1000;
-    int search_times = 8;
-    int num_chains = 0;
+    //int delete_score = -1000;
+    //int search_times = 8;
+    //int num_chains = 0;
     String<int> new_leaves;
     StringSet<String<int> > leaves;
     resize (new_leaves, 4);
 
-    for (int j = 0; j < length(chain_records); j++)
+    for (unsigned j = 0; j < length(chain_records); j++)
     {
         if (chain_records[j].isLeaf()) //create leaves list for each tree
         {
             int f_new = 1;
-            for (int k = 0; k < length(leaves); k++)
+            for (unsigned k = 0; k < length(leaves); k++)
             {
                 if (leaves[k][0] == chain_records[j].root_ptr)
                 {
@@ -238,7 +238,7 @@ int traceBackChains1(String<ChainElementType> & elements,  StringSet<String<Chai
     
     String<std::pair<int,int> > tree_score_ranks;
     resize(tree_score_ranks, length (leaves));
-    for (int i = 0; i < length(leaves); i++)
+    for (unsigned i = 0; i < length(leaves); i++)
     {
         tree_score_ranks[i] = std::pair<int, int> (i, leaves[i][1]);
     }
@@ -904,7 +904,7 @@ int getChainBlocksBestStrand(StringSet<String<UPair> > & cords_chains1,
             }
         }
     }
-    for (int i = 0; i < std::min(length(lens1), length(lens2)); i++)
+    for (unsigned i = 0; i < std::min(length(lens1), length(lens2)); i++)
     {
         if (lens1[i] < lens2[i])
         {
@@ -960,6 +960,7 @@ int revertChainBlockStrand(StringSet<String<UPair> > & cords_chains,
         }
         resize(cords_chains[i], length(cords_chains[i]) - 1);
     }
+    (void) read_len;
     return 0;
 }
 /*
