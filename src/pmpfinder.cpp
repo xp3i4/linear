@@ -1,4 +1,3 @@
-#include <iostream>
 #include "base.h"
 #include "cords.h"
 #include "shape_extend.h"

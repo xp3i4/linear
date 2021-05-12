@@ -1,9 +1,9 @@
 #ifndef LINEAR_HEADER_BASE_H
 #define LINEAR_HEADER_BASE_H
 
-#include <iostream>
+//#include <iostream>
 #include <seqan/seq_io.h>
-#include <seqan/stream.h>
+//#include <seqan/stream.h>
 #include <seqan/basic.h>
 
 using namespace seqan;
