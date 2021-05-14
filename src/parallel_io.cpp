@@ -22,10 +22,6 @@ void P_Tasks::initPTasks(P_ReadsBuffer & reads_buffer,
                     int thread_num)
 {
     resize(tasks, thread_num);
-    for (int i = 0; i < length(tasks); i++)
-    {
-        //tasks[i].task_type = 0;
-    }
     p_reads_buffer = & reads_buffer;
     p_reads_ids_buffer = & reads_ids_buffer;
     p_reads_paths_buffer = &reads_paths_buffer;
@@ -80,7 +76,7 @@ void P_Tasks::printRunningInfos()
     //Warn::paths2_it is a critical variable
     //hence assign it to path_it to keep consistency between length check and get value from paths2[path_it]
     int path_it = paths2_it;
-    std::string current_in_path = (path_it >= length(paths2)) ? "Status::Fetch End" : paths2[paths2_it];
+    std::string current_in_path = (path_it >= int(length(paths2))) ? "Status::Fetch End" : paths2[paths2_it];
     std::cerr << "--\033[1;31m" << current_in_path << "\033[0m\n"
               << "\033[2K  I/O::in :" << counters.getInCounter() << "\t"
               << " cpu:" << counters.getInTimer() << "[s]\t"
@@ -311,6 +307,7 @@ void P_Mapper::initBuffers(int reads_buffer_size, int cords_buffer_size,
  */
 int freeCurrentTask_(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_error)
 {
+    unused(p_parms);
     if (f_error)
     {
         p_tasks.setTaskAllEnd();
@@ -350,7 +347,8 @@ int freeCurrentTask_(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_
  */
 int requestNewTask_(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_error)
 {
-    if (p_tasks.paths2_it >= length(p_tasks.paths2))
+    unused(f_error);
+    if (p_tasks.paths2_it >= int(length(p_tasks.paths2)))
     {
         p_tasks.sgn_fetch_end = 1; 
     }
@@ -459,6 +457,7 @@ int p_FetchReads(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
  */
 int p_CalRecords(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
 {
+    unused(p_parms);
     double time = sysTime();
     Counters & counters = p_mapper.getPTask(thread_id).counters;
     P_Tasks & p_tasks = p_mapper.getPTasks();
