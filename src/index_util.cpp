@@ -1740,7 +1740,6 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
 }
 
 /*----------  MDindex  ----------*/
-
 int _createDIndexFromHs(String<uint64_t> & hs, String<uint64_t> & hs_str_end, DIndex & index, int64_t thd_omit_block, unsigned threads)
 {
     String<int> & dir = index.getDir();
@@ -1769,7 +1768,7 @@ int _createDIndexFromHs(String<uint64_t> & hs, String<uint64_t> & hs_str_end, DI
         unsigned t_id = omp_get_thread_num();
         int64_t t_str = t_blocks[t_id];
         int64_t t_end = t_blocks[t_id + 1];
-        uint64_t xval;
+        uint64_t xval = 0;
         uint64_t pre_g_id = (t_str == 0) ? ~0 : _getSA_i1(_DefaultHs.getHsBodyS(hs[t_str - 1]));
         for (int64_t i = t_str; i < t_end; i++)
         {
@@ -1817,7 +1816,7 @@ int _createDIndexFromHs(String<uint64_t> & hs, String<uint64_t> & hs_str_end, DI
         int64_t t_str = t_blocks[t_id];
         int64_t t_end = t_blocks[t_id + 1];
         int64_t j_str;
-        uint64_t xval;
+        uint64_t xval = 0;
         for (int64_t j = t_str; j < t_end; j++)
         {
             if (_DefaultHs.isHead(hs[j]))
