@@ -194,8 +194,8 @@ void Mapper::loadOptions(Options & options)
         }
         fm_handler_.setMapGapON(f_map);
     }
-    for (int i = 0; i < _thread; i++)
-    {
+    for (unsigned i = 0; i < _thread; i++)
+    { 
         appendValue(gap_parms_set, gap_parms_template); //a copy for each thread
     }
     //gap_parms_template.printParms("gap_parms");
@@ -308,7 +308,6 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
     StringSet<String<uint64_t> > clips;
     StringSet<FeaturesDynamic> f1;
     StringSet<FeaturesDynamic> & f2 = this->getGenomesFeatures();
-    unsigned feature_window_size = getFeatureWindowSize(f2);
     uint thd_min_read_len = 200; //todo::wrapper parms here
     resize(f1, 2);
     f1[0].init(f2[0].fs_type);
@@ -328,17 +327,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
             apxMap(this->getIndex(), reads[j], anchors, this->getMapParms(), crhit, f1, f2, apx_gaps, cords_str[j], cords_end[j], f_chain);
             if (fm_handler_.isMapGap(f_map))
             {
-                //<<debug
                 gap_parms_set[thread_id].read_id = reads_id[j];
-                if (reads_id[j] == "SRR9001771.704150")
-                {
-                    //dout << reads_id[j] << length(f1) << length(f2) << gap_len_min_tmp << feature_window_size << thd_err_rate << "\n";
-                    for (int ii = 0; ii < length (apx_gaps); ii++)
-                    {
-                        dout << apx_gaps[ii].first << apx_gaps[ii].second << "\n";
-                    }
-                }
-                //>>debug
                 mapGaps(this->getGenomes(), reads[j], comStr, cords_str[j], cords_end[j], clips[j], apx_gaps, f1, f2, gap_parms_set[thread_id]);
                 reformCords(cords_str[j], cords_end[j], &reformCordsDxDy1, cords_parms);
             }
@@ -536,14 +525,16 @@ int print_mapper_results(Mapper & mapper,
     return 0;
 }
 //read records from fin_pos and buckckets
-int readRecords4FinPosbuckets(StringSet<CharString> & ids, StringSet<String<Dna5> > & reads, 
-                      StringSet<String<short> >& buckets, 
-                      String<Position<SeqFileIn>::Type> & fin_pos,
-                      SeqFileIn & fin, uint rstr, uint rend, uint bucketId)
+int readRecords4FinPosbuckets(StringSet<CharString> & ids, 
+        StringSet<String<Dna5> > & reads, 
+        StringSet<String<short> >& buckets, 
+        String<Position<SeqFileIn>::Type> & fin_pos,
+        SeqFileIn & fin, uint rstr, uint rend, uint bucketId)
 {
+    unused(fin_pos);
     CharString tmp_id;
     String<Dna5> tmp_read;
-    for (int i = rstr; i < rend & !atEnd(fin); i++)
+    for (unsigned i = rstr; i < rend && !atEnd(fin); i++)
     {
         readRecord  (tmp_id, tmp_read, fin);
         if (buckets[i][bucketId]) //ith read and bucketid genome 
@@ -556,18 +547,20 @@ int readRecords4FinPosbuckets(StringSet<CharString> & ids, StringSet<String<Dna5
     return 0;
 }
 
-int readRecords2FinPosBuckets(StringSet<CharString> & ids, StringSet<String<Dna5> > & reads, 
-                      StringSet<String<short> >& buckets, 
-                      String<Position<SeqFileIn>::Type> & fin_pos, SeqFileIn & fin, 
-                      uint rstr, uint rend)
+int readRecords2FinPosBuckets(StringSet<CharString> & ids, 
+    StringSet<String<Dna5> > & reads, 
+    StringSet<String<short> >& buckets, 
+    String<Position<SeqFileIn>::Type> & fin_pos, SeqFileIn & fin, 
+    uint rstr, uint rend)
 {
+    unused(buckets);
     CharString tmp_id;
     String<Dna5> tmp_read;
     if (empty(fin_pos)) 
     {
         appendValue(fin_pos, Position<SeqFileIn>::Type(0));
     }
-    for (int i = rstr; i < rend && !atEnd(fin); i++)
+    for (unsigned i = rstr; i < rend && !atEnd(fin); i++)
     {
         readRecord (tmp_id, tmp_read, fin);
         appendValue(ids, tmp_id);
@@ -582,7 +575,7 @@ int readRecords2FinPosBuckets(StringSet<CharString> & ids, StringSet<String<Dna5
 int map_(IndexDynamic & index,
          StringSet<FeaturesDynamic > & f2,
          StringSet<String<Dna5> > & reads,
-         StringSet<CharString> & readsId,
+         StringSet<CharString> & reads_id,
          MapParms & mapParm,
          StringSet<String<uint64_t> > & cords_str,
          StringSet<String<uint64_t> > & cords_end,
@@ -594,10 +587,8 @@ int map_(IndexDynamic & index,
          uint threads,
          int p1)
 {
-    unsigned feature_window_size = getFeatureWindowSize(f2);
-    //dout << "fe" << feature_window_size << "\n";
-    float senThr = mapParm.senThr / feature_window_size;  //map for 2 roun if cords cover len <
-    float cordThr = 0.3 / feature_window_size; //cords cover length < are aborted
+    unused(reads_id);
+    unused(p1);
     uint thd_min_read_len = 200;
     //todo::tune the cordThr try to merge cords of blocks 
     MapParms complexParm = mapParm;
@@ -646,8 +637,6 @@ int map_(IndexDynamic & index,
     #pragma omp for
     for (unsigned j = 0; j < length(reads); j++)
     {
-        //std::cout << "readid " << j << readsId[j] << "\n\n";
-        double t1 = sysTime ();
         red_len[thd_id] += length(reads[j]);
         
         if (length(reads[j]) > thd_min_read_len)
@@ -862,16 +851,18 @@ int filter_(IndexDynamic & index,
             uint threads,
             int p1)
 {
-    float senThr = mapParm.senThr / window_size;  //map for 2 roun if cords cover len <
-    float cordThr = 0.3 / window_size; //cords cover length < are aborted
+    unused(clips);
+    unused(seqs);
+    unused(bam_records);
+    unused(f_map);
+    unused(p1);
     uint thd_min_read_len = 200;
     //todo::tune the cordThr try to merge cords of blocks 
-    MapParms complexParm = mapParm;
+    //MapParms complexParm = mapParm;
     String<uint64_t> gap_len;
     String<uint64_t> red_len;
     resize (gap_len, threads, 0);
     resize (red_len, threads, 0);
-    float thd_err_rate = 0.2;
     int f_chain = 1; 
 #pragma omp parallel
 {
@@ -899,7 +890,7 @@ int filter_(IndexDynamic & index,
     #pragma omp for
     for (unsigned j = 0; j < length(reads); j++)
     {
-        double t1 = sysTime ();
+        //double t1 = sysTime ();
         red_len[thd_id] += length(reads[j]);
         if (length(reads[j]) > thd_min_read_len)
         {
@@ -933,7 +924,7 @@ int filter(Mapper & mapper,
     SeqFileIn rFile;
     uint rstr = 0;
     //for (auto path : mapper.getRPaths())
-    for (int i = 0; i < length(mapper.getRPaths()); i++)
+    for (unsigned i = 0; i < length(mapper.getRPaths()); i++)
     {
         auto & path = mapper.getRPaths()[i];
         if(!open(rFile, toCString(path)))
