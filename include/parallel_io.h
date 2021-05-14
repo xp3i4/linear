@@ -249,8 +249,8 @@ public:
     void initBuffers(int reads_buffer_size, int cords_buffer_size, 
         StringSet<std::string> &, StringSet<std::string> &, int, P_Parms &);
 
-    virtual int p_calRecords(int, int, int){}; //input: in_buffer_id, out_buffer_id
-    virtual int p_printResults(int, int, int){};
+    virtual int p_calRecords(int, int, int){return 0;}; //input: in_buffer_id, out_buffer_id
+    virtual int p_printResults(int, int, int){return 0;};
 };
 
 int p_ThreadProcess(P_Mapper & mapper, P_Parms & p_parms, int thread_id);
