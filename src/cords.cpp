@@ -1,5 +1,6 @@
 #include <seqan/stream.h>
 #include <seqan/parallel.h>
+#include "base.h"
 #include "cords.h"
  
 using namespace seqan;
@@ -266,7 +267,7 @@ uint64_t is_cord_block_end (uint64_t cord)
 void print_cords(String<uint64_t> & cords, CharString header)
 {
     std::cout << header << "_cords_header \n";
-    int64_t dx, dy, prex = 0, prey = 0;
+    int64_t prex = 0, prey = 0;
     for (uint i = 0; i < length(cords); i++)
     {
         std::cout << header << " " << i << " "
@@ -415,8 +416,9 @@ void _printHit(unsigned j, unsigned id1, unsigned id2, String<uint64_t> & hit, u
     }
 }
 
-void _printHit(String<uint64_t>  & hit, CharString header)
+void _printHit(String<uint64_t> & hit, CharString header)
 {
+    std::cout << header << " ";
     for (unsigned k = 0; k < length(hit); k++)
     {
         std::cout << "[P]::_printHit() " 
@@ -498,7 +500,7 @@ int reformCords(String<uint64_t> & cords_str,
     {
         return 0;
     }
-    uint64_t lower_bound, upper_bound;
+    //uint64_t lower_bound, upper_bound;
     unsigned i1 = 0, i2 = 1;
     while (i2 < length(cords_str))
     {
@@ -537,7 +539,7 @@ int reformCords(String<uint64_t> & cords_str,
  */
 int scaleDxDy_(int64_t & dx, int64_t &d1, int64_t & dy, int64_t & d2)
 {
-    if ((d1 >= 0 && d2 >= 0) || (d1 <= 0 && d2 <=0) && (d1 || d2))
+    if ((d1 >= 0 && d2 >= 0) || (d1 <= 0 && d2 <= 0) && (d1 || d2))
     {
         int64_t c1 = std::abs(d1 * dy), c2 = std::abs(d2 * dx);
         if (c1 > c2)
@@ -584,6 +586,11 @@ int reformCordsDxDy1(String<uint64_t> & cords_str,
                      unsigned & i2,
                      CordsParms & cords_parms) 
 {
+    unused(bands11);
+    unused(bands12);
+    unused(bands21);
+    unused(bands22);
+
     uint64_t cord11 = cords_str[i1], cord12 = cords_end[i1];
     uint64_t cord21 = cords_str[i2], cord22 = cords_end[i2];
     //print_cord(cord11, "rcdxy2");
@@ -595,10 +602,8 @@ int reformCordsDxDy1(String<uint64_t> & cords_str,
     }
     int64_t dx1 = get_cord_x(cord21) - get_cord_x(cord11);
     int64_t dy1 = get_cord_y(cord21) - get_cord_y(cord11);
-    int64_t dx2 = get_cord_x(cord22) - get_cord_x(cord12);
-    int64_t dy2 = get_cord_y(cord22) - get_cord_y(cord12);
     uint64_t lower_bound_str, upper_bound_str;
-    int f = 0;
+    //int f = 0;
     /*
     if (i1 + 1 < i2)
     {
