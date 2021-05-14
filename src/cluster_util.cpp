@@ -576,7 +576,7 @@ int _filterBlocksHits(StringSet<String<UPair> > & chains, String<uint64_t> & hit
     float thd_major_bound = 0.8 * len_current; // len > this * first major len is regarded as optional major chain
     uint thd_major_limit = 2;
     uint major_n = 1;
-    int64_t thd_x_max_delta = read_len * 2; //max distance allowed any x to the x of the major chain
+    uint64_t thd_x_max_delta = read_len * 2; //max distance allowed any x to the x of the major chain
     bool f_append = false;
     for (uint i = 1; i < length(chains); i++)
     {
