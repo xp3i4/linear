@@ -15,7 +15,7 @@ const unsigned base_kmer_step_  = 1000;
 const uint64_t base_llt_max_    = ~0;
 
 unsigned const UMAX = (1 << 30) - 1;
-uint64_t const ULLMAX = (1ULL << 62 - 1);
+uint64_t const ULLMAX = ~0;
 int64_t const LLMAX = (1LL << 62) - 1; //(1ULL << 63) - 1 integer overflow on some compilers
 int64_t const LLMIN = -LLMAX;
 
@@ -24,19 +24,19 @@ using std::cerr;
 
 Options::Options():
         oPath(""),
-        sensitivity(1),
-        thread(16),
-        index_t(2),
-        feature_t(2), //apx2_48 by defalut
         gap_len(0),
         apx_chain_flag(1),
         aln_flag(0),
         sam_flag(0),
         reform_ccs_cigar_flag(0),
+        bal_flag(1),
+        sensitivity(1),
+        thread(16),
+        index_t(2),
+        feature_t(2), //apx2_48 by defalut
         read_group(""),
         sample_name(""),
-        sequence_sam_flag(0),
-        bal_flag(1)
+        sequence_sam_flag(0)
         {
            date += __TIME__; 
            date += " ";
@@ -391,42 +391,49 @@ static const String<Dna5> _complt = "tgcan";
 Dout dout;
 Gout & operator << (Dout & d, int n)
 {
+    unused(d);
     Gout *p = new Gout;
     *p << n;
     return *p;
 }
 Gout & operator << (Dout & d, unsigned n)
 {
+    unused(d);
     Gout *p = new Gout;
     *p << n;
     return *p;  
 }
 Gout & operator << (Dout & d, int64_t n)
 {
+    unused(d);
     Gout *p = new Gout;
     *p << n;
     return *p;
 }
 Gout & operator << (Dout & d, uint64_t n)
 {
+    unused(d);
     Gout *p = new Gout;
     *p << n;
     return *p;
 }
 Gout & operator << (Dout & d, CharString n)
 {
+    unused(d);
     Gout *p = new Gout;
     *p << n;
     return *p;
 }
 Gout & operator << (Dout & d, String<int64_t> & n)
 {
+    unused(d);
     Gout *p = new Gout;
     *p << n;
     return *p;
 }
 Gout & operator << (Dout & d, double n)
 {
+    unused(d);
     Gout *p = new Gout;
     *p << n;
     return *p;
@@ -543,7 +550,7 @@ ostreamWapper serr;
 std::string _2stdstring (CharString str)
 {
     std::string rsl;
-    for (int i = 0; i < length(str); i++)
+    for (unsigned i = 0; i < length(str); i++)
     {
         rsl.push_back(char(str[i]));
     }
@@ -589,7 +596,7 @@ void sort_ska(Iterator<String<uint64_t> >::Type it_str, Iterator<String<uint64_t
 int print_seq(String<Dna5> & seq, uint64_t str, uint64_t end, std::string header)
 {
     std::cout << header << " ";
-    for (int i = str; i < end && i < length(seq); i++)
+    for (unsigned i = str; i < end && i < length(seq); i++)
     {
         std::cout << seq[i];
     }
