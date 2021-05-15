@@ -313,12 +313,12 @@ Hs _DefaultHs;
 const unsigned index_shape_len = 25; 
 const float def_alpha = 1.6;
 HIndex::HIndex():
-    alpha(def_alpha), 
-    shape(index_shape_len)
+    shape(index_shape_len),
+    alpha(def_alpha)
     {}
 HIndex::HIndex(unsigned shape_len, float val):
-    alpha(val), 
-    shape(shape_len)
+    shape(shape_len),
+    alpha(val)
 {
 }
 LShape & HIndex::getShape()
@@ -610,13 +610,13 @@ bool HIndex::insertYsaSortedRecord(uint64_t g_str, uint64_t g_end)
 }
 
  bool _hsSortY_SA(Iterator<String<uint64_t> >::Type const & begin, 
-                        Iterator<String<uint64_t> >::Type const & end) 
+                  Iterator<String<uint64_t> >::Type const & end) 
 {
     typedef typename Iterator<String<uint64_t> >::Type TIter;
     typedef typename Value<TIter>::Type ValueType;
     uint64_t k = 0, ptr;
     unsigned sortModeThr = 20;
-    while (k < end - begin)
+    while ((int64_t)k < end - begin)
     {
         ptr = _DefaultHs.getHeadPtr(*(begin + k));
         if (ptr< sortModeThr)
@@ -866,7 +866,7 @@ bool _createHsArray(StringSet<String<Dna5> > & seq,
             for (uint64_t k = 0; k < length(seq[j]); k++)
             {
                 //printf("id %d %d %d\n", omp_get_thread_num(), k, length(seq[j]));
-                if (k >= kn)
+                if ((int64_t)k >= kn)
                 {
                     if(ordValue(*(begin(seq[j]) + k + tshape.span - 1)) == 4 || flag)
                     {
@@ -1291,6 +1291,7 @@ bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t & indexEmptyDir,
  */
 bool _createYSA(String<uint64_t> & hs, XString & xstr, uint64_t hs_str, uint64_t hs_end, uint64_t & indexEmptyDir, bool f_shrink_hs, bool f_ysa_sorted, unsigned threads, uint64_t thd_blocklimit)
 {
+    unused(f_ysa_sorted);
     std::cerr << "=>Index::SortYSA                                                  \r";
     double time = sysTime();
     uint64_t ptr  = _DefaultHs.getHeadPtr(hs[hs_str]);
@@ -1512,28 +1513,27 @@ int createDIndex_serial(StringSet<String<Dna5> > & seqs,
                         int64_t thd_min_step, 
                         int64_t thd_max_step,
                         unsigned gstr,
-                        unsigned gend
-                        )
+                        unsigned gend)
 {
-    double t = sysTime();
+    unused(gstr);
+    unused(gend);
     LShape & shape = index.getShape();
     String<int> & dir = index.getDir();
     String<int64_t> & hs = index.getHs();
     resize (index.getDir(), index.fullSize(), 0);
-    double t2 = sysTime();
-    int64_t preVal = ~0;
-    int64_t last_j = 0;
-    for (int64_t i = 0; i < length(seqs); i++)
+    uint64_t preVal = ~0;
+    uint64_t last_j = 0;
+    for (uint64_t i = 0; i < length(seqs); i++)
     {
         int64_t count = 0;
         hashInit (shape, begin(seqs[i]));
-        for (int64_t j = 0; j < length(seqs[i]) - shape.span; j++)
+        for (uint64_t j = 0; j < length(seqs[i]) - shape.span; j++)
         {
             hashNexth(shape, begin(seqs[i]) + j);
             if (++count > thd_min_step)
             {
                 hashNextX(shape, begin(seqs[i]) + j);
-                if (preVal != shape.XValue || j - last_j > thd_max_step)
+                if (preVal != shape.XValue || j - last_j > (uint64_t)thd_max_step)
                 {
                     ++dir[shape.XValue];
                     preVal = shape.XValue;
@@ -1544,7 +1544,7 @@ int createDIndex_serial(StringSet<String<Dna5> > & seqs,
         }
     }
     int64_t sum = 0;
-    for (int64_t i = 0; i < length(dir); i++)
+    for (uint64_t i = 0; i < length(dir); i++)
     {
         sum += dir[i];
         dir[i] = sum - dir[i];
@@ -1553,17 +1553,17 @@ int createDIndex_serial(StringSet<String<Dna5> > & seqs,
     int64_t EmptyVal = create_cord(length(seqs),0,0,0); 
     //make sure genomeid >= length(seqs) and cord y be 0! y points to next empty.
     resize (hs, sum, EmptyVal);
-    for (int64_t i = 0; i < length(seqs); i++)
+    for (uint64_t i = 0; i < length(seqs); i++)
     {
         int64_t count = 0; 
         hashInit (shape, begin(seqs[i]));
-        for (int64_t j = 0; j < length(seqs[i]) - shape.span; j++)
+        for (uint64_t j = 0; j < length(seqs[i]) - shape.span; j++)
         {
             hashNexth (shape, begin(seqs[i]) + j);
             if (++count > thd_min_step)
             {
                 hashNextX (shape, begin(seqs[i]) + j);
-                if (preVal != shape.XValue || j - last_j > thd_max_step)
+                if (preVal != shape.XValue || j - last_j > (uint64_t)thd_max_step)
                 {
                     int k = dir[shape.XValue];
                     k += get_cord_y (hs[k]);
@@ -1580,7 +1580,7 @@ int createDIndex_serial(StringSet<String<Dna5> > & seqs,
             }
         }  
     }
-    //std::cout << "createDIndex " << sysTime() - t << " " << sysTime() - t2 << "\n";
+    return 0;
 }
 
 uint64_t const DINDEXY_BITS2 = 5; //shape.YValue bits
@@ -1624,7 +1624,7 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
     for (int64_t i = gstr; i < gend; i++)
     {
         String<int64_t> t_blocks;
-        for (int j = 0; j < threads; j++)
+        for (unsigned j = 0; j < threads; j++)
         {
             appendValue(t_blocks, length(seqs[i]) / threads * j); 
         }
@@ -1634,9 +1634,9 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
             unsigned t_id = omp_get_thread_num();
             int64_t t_str = t_blocks[t_id];
             int64_t t_end = t_blocks[t_id + 1];
-            int64_t preVal = ~0;
             int64_t last_j = t_str - 1;
             int64_t count = 0;
+            uint64_t preVal = ~0;
             LShape shape = t_shape;
             hashInit (shape, begin(seqs[i]) + t_str);
             //dout << "cdx1 " << t_str<< t_end <<"\n";
@@ -1659,7 +1659,7 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
     }
     //double t4 = sysTime();
     int64_t sum = 0;
-    for (int64_t i = 0; i < length(dir); i++)
+    for (uint64_t i = 0; i < length(dir); i++)
     {
         if (dir[i] > thd_omit_block)
         {
@@ -1680,7 +1680,7 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
         {
             appendValue(t_blocks, length(seqs[i]) / threads * j); 
         }
-        appendValue (t_blocks, length(seqs[i]) - t_shape.span);
+        appendValue (t_blocks, length(seqs[i]) - t_shape.span); 
         //dout << "cx22"<<t_blocks << "\n";
         #pragma omp parallel
         {   
