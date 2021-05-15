@@ -26,10 +26,9 @@ void print_cords_paf(CordsSetType & cords,
                      StringSet<CharString> & readsId,
                      std::ofstream & of)
 {
-    unsigned cordCount = 0;
     uint64_t readCordEnd;
     uint64_t seqsCordEnd;
-    char main_icon_strand = '+', icon_strand = '+';
+    char main_icon_strand = '+';
     int fflag = 0;
     
     for (unsigned k = 0; k < length(cords); k++)
@@ -85,7 +84,6 @@ void print_cords_paf(CordsSetType & cords,
                        << length(genomes[get_cord_id(cords[k][j])]) << " "
                        << get_cord_x(cords[k][j]) << " " 
                        << seqsCordEnd << "\n";
-                    cordCount = 0;
                     fflag = 1;
                 }
                 ///>print the coordinates
@@ -94,6 +92,7 @@ void print_cords_paf(CordsSetType & cords,
             }
         }
     }
+    unused(fflag);
 }
 
 void print_cords_apf(CordsSetType & cords, 
@@ -218,7 +217,7 @@ void cigar2SamSeq(CigarElement<> & cigar, IupacString & result,
         }
         else if (cigar.operation == 'I')
         {
-            for (int i = 0; i < cigar.count; i++)
+            for (unsigned i = 0; i < cigar.count; i++)
             {
                 //appendValue(result, 'N');
                 appendValue(result, *it2);
@@ -227,7 +226,7 @@ void cigar2SamSeq(CigarElement<> & cigar, IupacString & result,
         }
         else if (cigar.operation == 'M')
         {
-            for (int i = 0; i < cigar.count; i++)
+            for (unsigned i = 0; i < cigar.count; i++)
             {
                 appendValue(result, *it1);
                 it1++;
@@ -236,7 +235,7 @@ void cigar2SamSeq(CigarElement<> & cigar, IupacString & result,
         }
         else if (cigar.operation == '=')
         {
-            for (int i = 0; i < cigar.count; i++)
+            for (unsigned i = 0; i < cigar.count; i++)
             {
                 appendValue(result, *it1);
                 it1++;
@@ -245,7 +244,7 @@ void cigar2SamSeq(CigarElement<> & cigar, IupacString & result,
         }
         else if (cigar.operation == 'X')
         {
-            for (int i = 0; i < cigar.count; i++)
+            for (unsigned i = 0; i < cigar.count; i++)
             {
                 appendValue(result, 'N');
                 it1++;
@@ -254,7 +253,7 @@ void cigar2SamSeq(CigarElement<> & cigar, IupacString & result,
         }
         else if (cigar.operation == 'S')
         {
-            for (int i = 0; i < cigar.count; i++)
+            for (unsigned i = 0; i < cigar.count; i++)
             {
                 appendValue(result, *it2);
                 it2++;
@@ -274,7 +273,7 @@ void cigar2SamSeq(CigarElement<> & cigar, IupacString & result,
         else if (cigar.operation == 'I' || cigar.operation == 'M' ||
                  cigar.operation == '=' || cigar.operation == 'X')
         {
-            for (int i = 0; i < cigar.count; i++)
+            for (unsigned i = 0; i < cigar.count; i++)
             {
                 appendValue(result, *it2);
                 if (cigar.operation != 'I')
@@ -286,7 +285,7 @@ void cigar2SamSeq(CigarElement<> & cigar, IupacString & result,
         }
         else if (cigar.operation == 'S')
         {
-            for (int i = 0; i < cigar.count; i++)
+            for (unsigned i = 0; i < cigar.count; i++)
             {
                 appendValue(result, *it2);
                 it2++;
@@ -309,7 +308,6 @@ std::string getFileName(std::string s, std::string delimiter, uint count)
         s.erase(0, pos + delimiter.length());
         if (i > count)
         {
-            token;
             return token;
         }
         i++;
@@ -517,7 +515,7 @@ int writeSam(std::ofstream & target,
 std::pair<int, int> countCigar(String<CigarElement<> > & cigar)
 {
     int len1 = 0, len2 = 0;
-    for (int i = 0; i < length(cigar); i++)
+    for (unsigned i = 0; i < length(cigar); i++)
     {
         //std::cerr << cigar[i].operation << cigar[i].count << " ";
         switch (cigar[i].operation)
@@ -607,7 +605,7 @@ int print_align_sam_header_ (StringSet<CharString> & genomesId,
                             )
 {
     of << "@HD\tVN:1.6\n";
-    for (int k = 0; k < length(genomesId); k++)
+    for (unsigned k = 0; k < length(genomesId); k++)
     {
         of << "@SQ\tSN:" << genomesId[k] << "\tLN:" << length(genomes[k]) << "\n";
     }
@@ -626,9 +624,9 @@ int print_align_sam_record_(StringSet<String<BamAlignmentRecord > > & records,
                             std::ofstream & of
                             )
 {
-    for (int i = 0; i < length(records); i++)
+    for (unsigned i = 0; i < length(records); i++)
     {
-        for (int j = 0; j < length(records[i]); j++)
+        for (unsigned j = 0; j < length(records[i]); j++)
         {
             records[i][j].qName = readsId[i];
             CharString g_id = genomesId[records[i][j].rID];
@@ -647,7 +645,7 @@ int print_align_sam_record_(StringSet<String<BamAlignmentRecordLink> > & records
                             )
 {
     BamLinkStringOperator fs;
-    for (int i = 0; i < length(records); i++)
+    for (unsigned i = 0; i < length(records); i++)
     {
         fs.updateHeadsTable(records[i]);
         for (int j = 0; j < fs.getHeadNum(records[i]); j++)
@@ -781,8 +779,6 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
     {
         return ~0; //error
     }
-    uint64_t dx = x21 - x0;
-    uint64_t dy = y21 - y0;
     //uint64_t len1 = std::min(x12 - x0, y12 - y0); //'=' len upper bound
     //uint64_t len2 = std::min(x21 - x0, y21 - y0); //'=' + 'X' len
     //if (len2 <= len1)
@@ -816,7 +812,7 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
         if (cigar2.count) appendCigarShrink(cigar, cigar2);
         next_cigar_str = cord2_str;
     }
-    else if (x12 < x21 && y12 >= y21)
+    else     
     {
         createRectangleCigarPair(cord1_str, cord2_str, cigar1, cigar2, 0);
         if (cigar1.count) appendCigarShrink(cigar, cigar1);
@@ -840,6 +836,7 @@ void cords2BamLink(String<uint64_t> & cords_str,
                    String<Dna5> & read,
                    uint64_t thd_large_X)
 {
+    unused(read);
     uint64_t cigar_str;
     uint64_t cord1_str;
     uint64_t cord2_str;
@@ -848,7 +845,7 @@ void cords2BamLink(String<uint64_t> & cords_str,
     int f_soft = 1; //soft clip in cigar;
     int f_new = 1;
     int flag = 0;
-    for (int i = 1; i < length(cords_str); i++)
+    for (unsigned i = 1; i < length(cords_str); i++)
     {
         if (f_new) //initiate a record for new block 
         {
@@ -881,11 +878,12 @@ void cords2BamLink(String<uint64_t> & cords_str,
         cigar_str = cord2cigar_ (cigar_str, 
                                  cord1_str, cord1_end, cord2_str, 
                                  back(bam_link_records).cigar);
-        if (cigar_str == ~0) //error
+        if (cigar_str == ~(uint64_t)0) //error
         {
             break;
         }
     }
+    unused(f_soft);
 }
 //serial
 void cords2BamLink(StringSet<String<uint64_t> > & cords_str, 
@@ -897,13 +895,13 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
 {
     String<BamAlignmentRecordLink> emptyRecords;
     int ii = 0; //parallel 0-based i for each thread
-    for (int i = 0; i < length(cords_str); i++)
+    for (unsigned i = 0; i < length(cords_str); i++)
     {
         appendValue(bam_link_records, emptyRecords);
         if (empty(cords_end) || empty(cords_end[i]))
         {
             String<uint64_t> tmp_end; 
-            for (int j = 0; j < length(cords_str[i]); j++)
+            for (unsigned j = 0; j < length(cords_str[i]); j++)
             {
                 appendValue(tmp_end, shift_cord(cords_str[i][j], thd_cord_size, thd_cord_size));
             }
@@ -931,13 +929,13 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
         String<BamAlignmentRecordLink> emptyRecords;
         int ii = 0; //parallel 0-based i for each thread
         #pragma omp for
-        for (int i = 0; i < length(cords_str); i++)
+        for (unsigned i = 0; i < length(cords_str); i++)
         {
             appendValue(bam_link_records_tmp, emptyRecords);
             if (empty(cords_end) || empty(cords_end[i]))
             {
                 String<uint64_t> tmp_end; 
-                for (int j = 0; j < length(cords_str[i]); j++)
+                for (unsigned j = 0; j < length(cords_str[i]); j++)
                 {
                     appendValue(tmp_end, shift_cord(cords_str[i][j], thd_cord_size, thd_cord_size));
                 }
@@ -960,10 +958,10 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
 
 void shrink_cords_cigar(String<BamAlignmentRecordLink>  & bam_records)
 {
-    for (int i = 0; i < length(bam_records); i++)
+    for (unsigned i = 0; i < length(bam_records); i++)
     {
-        int dj = 0;
-        for (int j = 1; j < length(bam_records[i].cigar); j++)
+        unsigned dj = 0;
+        for (unsigned j = 1; j < length(bam_records[i].cigar); j++)
         {
             if (bam_records[i].cigar[j - dj - 1].operation == bam_records[i].cigar[j].operation)
             {
@@ -1017,17 +1015,11 @@ int reformCCSBams(String<BamAlignmentRecordLink> & bam_records,
                  FIOParms &fio_parms)
 {
     unsigned it;
-    int f_compress = 0;
     for (unsigned i = 0; i < length(bam_records); i = it + 1)
     {
         it = i;
-        int end = 0;
-        int x1 = 0, y1 = 0; //original  coordinates
-        int x2 = 0, y2 = 0; //revised coordinates
         int xy = 0;
         int f_compress = 0;
-        int compress_count = 0;
-        char compress_operation;
         //dout << "rcs2" << length(bam_records) << "\n";
         while (1)
         {
@@ -1083,6 +1075,7 @@ int reformCCSBams(String<BamAlignmentRecordLink> & bam_records,
                 it = bam_records[it].next();
             }
         }
+        unused (f_compress);
     }
     return 0;
 }
@@ -1090,7 +1083,7 @@ int reformCCSBams(String<BamAlignmentRecordLink> & bam_records,
 int reformCCSBams(StringSet<String<BamAlignmentRecordLink> > & bam_records, 
                   FIOParms & fio_parms)
 {
-    for (int i = 0; i < length(bam_records); i++)
+    for (unsigned i = 0; i < length(bam_records); i++)
     {
         reformCCSBams(bam_records[i], fio_parms);
     }
