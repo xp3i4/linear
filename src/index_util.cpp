@@ -1621,9 +1621,6 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
     String<int> & dir = index.getDir();
     String<int64_t> & hs = index.getHs();
     resize (dir, index.fullSize(), 0);
-    double t2 = sysTime();
-    //dout << "idx2" << length(dir) << t_shape.weight << thd_min_step << thd_max_step << thd_omit_block<< "\n";
-    //dout << threads << "threads\n"; 
     for (int64_t i = gstr; i < gend; i++)
     {
         String<int64_t> t_blocks;
@@ -1676,11 +1673,10 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
     resize (hs, sum, EmptyVal);
     serr.print_message("--Index::Initiate   ", 0, 1, std::cerr);
     serr.print_message("=>Index::Hash", 0, 2, std::cerr);
-    int64_t maxinfi = LLMAX;
-    for (int64_t i = 0; i < length(seqs); i++)
+    for (uint64_t i = 0; i < length(seqs); i++)
     {
         String<int64_t> t_blocks;
-        for (int j = 0; j < threads; j++)
+        for (unsigned j = 0; j < threads; j++)
         {
             appendValue(t_blocks, length(seqs[i]) / threads * j); 
         }
@@ -1691,9 +1687,9 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
             unsigned t_id = omp_get_thread_num();
             int64_t t_str = t_blocks[t_id];
             int64_t t_end = t_blocks[t_id + 1];
-            int64_t preVal = ~0;
             int64_t last_j = t_str - 1;
             int64_t count = 0;
+            uint64_t preVal = ~0;
             LShape shape = t_shape;
             hashInit (shape, begin(seqs[i]) + t_str);
             //dout << "strd " << t_str << t_end << "\n";
@@ -1703,7 +1699,6 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
                 if (++count > thd_min_step)
                 {
                     hashNextX (shape, begin(seqs[i]) + j);
-                    //std::cout << "xyval" << shape.YValue;
                     if (preVal != shape.XValue || j - last_j > thd_max_step)
                     {
                         if (dir[shape.XValue + 1] - dir[shape.XValue])
@@ -1745,13 +1740,13 @@ int _createDIndexFromHs(String<uint64_t> & hs, String<uint64_t> & hs_str_end, DI
     String<int> & dir = index.getDir();
     String<int64_t> & d_hs = index.getHs();
     resize (dir, index.fullSize(), 0);
-    double t2 = sysTime();
+    //double t2 = sysTime();
     //dout << "idx2" << length(dir) << t_shape.weight << thd_min_step << thd_max_step << thd_omit_block<< "\n";
     //dout << threads << "threads\n"; 
     String<int64_t> t_blocks;
     //assign task region within the @hs to each threads
-    int64_t t_str = 0;
-    for (int i = 0; i < threads; i++)
+    uint64_t t_str = 0;
+    for (unsigned i = 0; i < threads; i++)
     {
         while (t_str < _DefaultHs.getLength(hs) && !_DefaultHs.isHead(hs[t_str]))
         {
@@ -1793,7 +1788,7 @@ int _createDIndexFromHs(String<uint64_t> & hs, String<uint64_t> & hs_str_end, DI
         back(hs_str_end) = _DefaultHs.getLength(hs);
     }
     int64_t sum = 0;
-    for (int64_t i = 0; i < length(dir); i++)
+    for (uint64_t i = 0; i < length(dir); i++)
     {
         if (dir[i] > thd_omit_block)
         {
@@ -1803,7 +1798,7 @@ int _createDIndexFromHs(String<uint64_t> & hs, String<uint64_t> & hs_str_end, DI
         dir[i] = sum - dir[i];
     }
     //dout << "dt" << sum << back(dir) << "\n";
-    int64_t max_seq_num = 1LL << 20 - 1; //ids in cords occupies 20 bit
+    int64_t max_seq_num = (1LL << 20) - 1; //ids in cords occupies 20 bit
     int64_t EmptyVal = create_cord(max_seq_num, 0, 0, 0); 
     //make sure genomeid >= length(seqs) and cord y be 0! y points to next empty.
     resize (d_hs, sum, EmptyVal);
@@ -1815,13 +1810,11 @@ int _createDIndexFromHs(String<uint64_t> & hs, String<uint64_t> & hs_str_end, DI
         unsigned t_id = omp_get_thread_num();
         int64_t t_str = t_blocks[t_id];
         int64_t t_end = t_blocks[t_id + 1];
-        int64_t j_str;
         uint64_t xval = 0;
         for (int64_t j = t_str; j < t_end; j++)
         {
             if (_DefaultHs.isHead(hs[j]))
             {
-                j_str = j;
                 xval = _DefaultHs.getHeadX(hs[j]);
             }
             else if (dir[xval + 1] - dir[xval]) //too large blocks > thd_omit_block should (has been) be ommited in the @dir
@@ -1853,6 +1846,9 @@ int createMDIndex(StringSet<String<Dna5> > & seqs,
                   unsigned gstr, unsigned gend, 
                   int64_t thd_omit_block, unsigned threads, unsigned thd_step)
 {
+    unused(gstr);
+    unused(gend);
+    unused(thd_step);
     //t = sysTime();
     double t = sysTime();
     serr.print_message("=>Index::creating MD index          ", 0, 2, std::cerr);
@@ -1861,6 +1857,7 @@ int createMDIndex(StringSet<String<Dna5> > & seqs,
     serr.print_message("Index::hash        ", 2, 1, std::cerr);
     serr.print_message("End creating index ", 2, 0, std::cerr);
     serr.print_message(sysTime() - t, 2, 1, std::cerr);
+    return 0;
 }
 
 /*----------  MHindx  ----------*/
@@ -1888,6 +1885,7 @@ int createMHIndex(IndexDynamic & index, uint64_t g_str, uint64_t g_end, uint64_t
     //dout << "css1" << g_str << g_end << f_ysa_sorted << "\n";
     _createHIndexFromHs(hindex.ysa, hindex.xstr, hindex.getShape(), hindex.emptyDir,
                         hindex.ysa_str_end[g_str], hindex.ysa_str_end[g_end], f_ysa_sorted, thd_blocklimit, threads);
+    return 0;
 }
 
 /*----------  DynamicIndex   ----------*/
@@ -1976,8 +1974,8 @@ void IndexDynamic::clearIndex()
         dindex.clear();
     }
 }
-IndexDynamic::IndexDynamic(StringSet<String<Dna5> > & seqs) : dindex(), hindex(), typeIx(typeHIx)
-{}
+IndexDynamic::IndexDynamic(StringSet<String<Dna5> > & seqs) : hindex(), dindex(), typeIx(typeHIx)
+{unused(seqs);}
 
 int createMHsArray(StringSet<String<Dna5> > & seqs, IndexDynamic & index, uint64_t gstr, uint64_t gend, unsigned threads, uint64_t thd_step, bool f_recreate)
 {
@@ -2050,5 +2048,6 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
         }
         else {/*NONE*/}
     }
+    return false;
 }
 
