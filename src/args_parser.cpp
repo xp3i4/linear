@@ -11,7 +11,7 @@ std::string CARTESIAN = "x";
 seqan::ArgumentParser::ParseResult
 parseCommandLine(Options & options, int argc, char const ** argv)
 {
-    char const * str_g = "-g";
+    //char const * str_g = "-g";
     //return 0;
     std::vector<const char*> new_args;
     char* new_vals;
@@ -20,27 +20,27 @@ parseCommandLine(Options & options, int argc, char const ** argv)
         new_args.push_back(argv[i]);
         if (std::string(argv[i]) == "-a" && (i + 1 >= argc || !is_number (argv[i + 1])))
         {
-            new_vals = "1";
+            new_vals = (char*)"1";
             new_args.push_back ((const char*)new_vals);
         }
         if (std::string(argv[i]) == "-g" && (i + 1 >= argc || !is_number (argv[i + 1])))
         {
-            new_vals = "1";
+            new_vals = (char*)"1";
             new_args.push_back ((const char*)new_vals);
         }
         if (std::string(argv[i]) == "-s" && (i + 1 >= argc || !is_number (argv[i + 1])))
         {
-            new_vals = "1";
+            new_vals = (char*)"1";
             new_args.push_back ((const char*)new_vals);
         }
         if (std::string(argv[i]) == "-r" && (i + 1 >= argc || !is_number (argv[i + 1])))
         {
-            new_vals = "1";
+            new_vals = (char*)"1";
             new_args.push_back ((const char*)new_vals);
         }
         if (std::string(argv[i]) == "-ss" && (i + 1 >= argc || !is_number (argv[i + 1])))
         {
-            new_vals = "1";
+            new_vals = (char*)"1";
             new_args.push_back ((const char*)new_vals);
         }
     }
