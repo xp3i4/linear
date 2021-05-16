@@ -556,6 +556,10 @@ int align_cord (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
                 int local_flag = 1,
                 Score<int> scheme = _default_scheme_)
 {
+    if (cord_str == cord_end)
+    {
+        return 0;
+    }
     cord2row_ (row1, row2, genome, read, comrev_read, cord_str, cord_end);
     int score = 0;
     if (!local_flag)
@@ -2136,6 +2140,9 @@ int align_gap (GapRecordHolder & gap,
     int thd_alg_extnd = 20;
     uint64_t str_cord = gap.getCords().first;
     uint64_t end_cord = gap.getCords().second;
+    print_cord(str_cord, "ag11");
+    print_cord(end_cord, "ag12");
+    //return 0;
     if (get_cord_strand(str_cord ^ end_cord))
     {
         return 1;
@@ -2145,12 +2152,13 @@ int align_gap (GapRecordHolder & gap,
     uint64_t seg_str_cord;
     uint64_t seg_end_cord;
     int g_id = get_cord_id(str_cord);
-    int band = std::max(get_cord_x(end_cord - str_cord),
-                        get_cord_y(end_cord - str_cord)) / 2;
+    int band = std::max(get_cord_x(end_cord) - get_cord_x(str_cord),
+                        get_cord_y(end_cord) - get_cord_y(str_cord)) / 2;
     int bam_id = gap.getBamSegIdHead();
     int bam_next_id = gap.getBamSegIdTail();
     //WARNING::modify band::too large band
     TRow row1, row2, row3, row4 ;
+    dout << "ag3" << get_cord_id(str_cord) << get_cord_id(end_cord) << get_cord_y(str_cord) << get_cord_y(end_cord) << get_cord_x(str_cord) << get_cord_x(end_cord) << band << "\n";
     align_cord (row1, row2, genomes[g_id], read, comrev_read, str_cord, end_cord, band, band);
     //Head and tail are already merged, so view_str = 0.
     int const view_str = 0;
@@ -2197,6 +2205,7 @@ int align_gap (GapRecordHolder & gap,
         //addNextBamLink(bam_records, length(bam_records) - 1, bam_next_id);
         //std::cerr << "it=====" << length(bam_records) - 1 << bam_next_id << "\n";
         //realign and clip interval between each clip[i].second and clip[i + 1].second
+        dout << "ag21" << length(clips) << "\n";
         for (int i = 0; i < length(clips) - 1; i++) 
         {
             seg_str_cord = new_xy_cord (str_cord, 
@@ -2509,6 +2518,10 @@ int check_cord_1_(uint64_t cord, unsigned lx, unsigned ly)
 // return 1 for same strand cord if the pre-cord is larger 
 int check_cord_2_(uint64_t cord1, uint64_t cord2)
 {
+    if (cord1 == cord2)
+    {
+        return 1;
+    }
     if (!_DefaultCord.isBlockEnd(cord1) && !get_cord_strand(cord1 ^ cord2))
     {
         if (get_cord_y(cord1) > get_cord_y(cord2) || 
@@ -2584,6 +2597,8 @@ int alignCords (StringSet<String<Dna5> >& genomes,
     {
         return 0;
     }
+    print_cords(cords_str_map, "ach11");
+    print_cords(cords_end_map, "ach12");
     GapRecords gaps;
     String<TRow> rstr;
     resize(rstr, 8);
@@ -2697,6 +2712,8 @@ int alignCords (StringSet<String<Dna5> >& genomes,
             continue;
         }
         double st1 =  sysTime();
+        print_cord(cord_str, "ac11");
+        print_cord(cord_end, "ac12");
         int score_align = align_cord (rstr[ri], rstr[ri + 1], genomes[g_id], 
                                       read, comrev_read, 
                                       cord_str, cord_end, band, band);

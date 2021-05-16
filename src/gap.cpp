@@ -309,6 +309,9 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         resize(tiles_str, length(tiles_str) - 2);
         resize(tiles_end, length(tiles_end) - 2);
     //}
+    print_cord(gap_str, "mg21");
+    print_cord(gap_end, "mg22");
+    g_print_tiles_(tiles_str, "mg1");
     return 0;
 }
 /**
@@ -379,6 +382,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             shift_y = std::min (int64_t(length(read) - 1 - get_cord_y(cords_str[i])), block_size);
             uint64_t gap_end = shift_cord(cords_str[i], shift_x, shift_y);
             uint64_t gap_str;
+            print_cord(cords_str[i - 1], "aglr1");
             if (get_cord_y(gap_end) > thd_cord_gap) 
             {            
                 shift_x = std::min(thd_max_extend, get_cord_x(gap_end));
@@ -396,6 +400,8 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                     mapGap_ (seqs, read, comstr, gap_str, gap_end, f1, f2, tiles_str, tiles_end, clips, direction, thd_dxy_min, gap_parms);
                     insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size, thd_max_segs_num);
                 }
+                //_DefaultHit.setBlockEnd(cords_str[i - 1 + length(tiles_str)]);
+                //_DefaultHit.setBlockEnd(cords_end[i - 1 + length(tiles_str)]);
                 /*
                 else
                 {
@@ -446,6 +452,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             uint64_t gap_str = cords_str[i];
             if (length(read) - 1 - get_cord_y(gap_str) > thd_cord_gap)
             {
+                print_cord(cords_str[i], "aglr1");
                 shift_x = std::min(thd_max_extend_x, length(seqs[sid]) - get_cord_x(gap_str) - 1);
                 shift_y = std::min(thd_max_extend_y, length(read) - get_cord_y(gap_str) - 1);
                 shift_x = std::min(shift_x, shift_y * thd_extend_xy);
@@ -459,6 +466,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                 {
                     mapGap_ (seqs, read, comstr, gap_str, gap_end, f1, f2, tiles_str, tiles_end, clips, direction, thd_dxy_min, gap_parms);
                     insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size, thd_max_segs_num);
+                    //dout << "mgr" << is_cord_block_end(cords_str[i + length()]) << "\n";
                 }
                 /*else
                 {
