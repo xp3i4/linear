@@ -1342,6 +1342,7 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
     //g_print_tiles_(chains, "gctf1");
     g_CreateTilesFromChains_(chains, tiles_str_tmp, f1, f2, gap_str, it_str, it_end,
          get_x, get_y, get_strand, gap_parms);
+    g_print_tiles_(tiles_str_tmp, "gctf1");
     //std::cout << "gctf2" << it_str << it_end << length(tiles_str_tmp)<< empty(tiles_str_tmp) << "\n";
     if (empty (tiles_str_tmp))
     {
@@ -1378,7 +1379,10 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
         if (i == length(tiles_str_tmp) - 1) //if not found such...
         {
             clear(tiles_str_tmp);
-            appendValue(tiles_str_tmp, chains[it_str]);
+            appendValue(tiles_str_tmp, create_tile(get_cord_id(gap_str),
+                                                   get_x(chains[it_str]),
+                                                   get_y(chains[it_str]),
+                                                   get_strand(chains[it_str])));
         }
     }
     resize(tiles_end_tmp, length(tiles_str_tmp));
@@ -1424,6 +1428,8 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
             //set_tile_end(tiles_end_tmp[0]);
         }
     }
+
+    g_print_tiles_(tiles_str_tmp, "gctf2");
     append(tiles_str, tiles_str_tmp);
     append(tiles_end, tiles_end_tmp);
     return 0;
@@ -3600,8 +3606,11 @@ int extendsTilesFromAnchors (String<Dna5> & ref,
     int step1 = gap_parms.thd_etfas_step1;
     int step2 = gap_parms.thd_etfas_step2;
     extendsIntervalMapOverlaps_(ref, read, comstr, tmp_tiles1, tmp_tiles2, gap_str1, gap_end1, gap_str2, gap_end2,  shape_len, step1, step2, gap_parms);
+    g_print_tiles_(tmp_tiles1, "etfa1");
     g_CreateTilesFromChains_(tmp_tiles1, tiles_str1, tiles_end1, f1, f2, gap_str1, gap_end1,
         0, length(tmp_tiles1), &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);    
+    print_cord(gap_str1, "etf3");
+    g_print_tiles_(tiles_str1, "etfa2");
     //trimTiles(tiles_str1, tiles_end1, f1, f2, gap_str1, gap_end2, read_len - 1, 
     //    direction1, gap_parms);
     g_CreateTilesFromChains_(tmp_tiles2, tiles_str2, tiles_end2, f1, f2, gap_str2, gap_end2, 
@@ -4018,7 +4027,9 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
         f1, f2, gap_str1, gap_end1, gap_str2, gap_end2, gap_parms);
     //direction = 1 part
     gap_parms.direction = direction1;
+    g_print_tiles_(tiles_str1, "me11");
     mapExtendResultFilter_(tiles_str1, tiles_end1, gap_str1, gap_end1, direction1, gap_parms);
+    g_print_tiles_(tiles_str1, "me12");
     if (!empty(tiles_str1))
     {
         remove_tile_sgn_end(back(tiles_str1));
@@ -4466,9 +4477,9 @@ int mapGeneric(StringSet<String<Dna5> > & seqs,
     mapInterval(seqs[get_tile_id(gap_str)], read, comstr, tiles_str, tiles_end, f1, f2,
                         gap_str, gap_end, LLMIN, LLMAX, t_direction, gap_parms, 1);  
     //chainTiles(tiles_str1, length(read), thd_gather_block_gap_size, gap_parms);
-    g_print_tiles_(tiles_str, "mpg1");
     reform_tiles(seqs[get_tile_id(gap_str)], read, comstr, tiles_str, tiles_end, 
         sp_tiles_inv, gap_str, gap_end, t_direction, gap_parms);
+    g_print_tiles_(tiles_str, "mpg1");
     gap_parms.f_rfts_clip = f_rfts_clip;
     return 0;
 }

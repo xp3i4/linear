@@ -2159,6 +2159,7 @@ int align_gap (GapRecordHolder & gap,
     //WARNING::modify band::too large band
     TRow row1, row2, row3, row4 ;
     dout << "ag3" << get_cord_id(str_cord) << get_cord_id(end_cord) << get_cord_y(str_cord) << get_cord_y(end_cord) << get_cord_x(str_cord) << get_cord_x(end_cord) << band << "\n";
+    //return 0;
     align_cord (row1, row2, genomes[g_id], read, comrev_read, str_cord, end_cord, band, band);
     //Head and tail are already merged, so view_str = 0.
     int const view_str = 0;
@@ -2506,7 +2507,9 @@ int AlignCords::createAlignCords(StringSet<String<Dna5> >& genomes,
     }
     //:Merge cords and bands
     MergeCordsBandsParm mcb_parms;
+    print_cords(cords_str, "acac1");
     mergeCordsBands(cords_str, cords_end, bands_lower, bands_upper, mcb_parms);
+    print_cords(cords_str, "acac2");
     //:Specific cord_str and cord_end for align
     //_createAlignCords();
     return 0;
@@ -2640,6 +2643,7 @@ int alignCords (StringSet<String<Dna5> >& genomes,
         int g_id = get_cord_id(cords_str[i]);
         uint64_t strand = get_cord_strand(cords_str[i]);
         cord_str = cords_str[i];
+        print_cord(cord_str, "ac31");
         //cord_end = shift_cord(cord_str, block_size, block_size);
         cord_end = cords_end[i];
         if (_DefaultCord.isBlockEnd(cords_str[i - 1])) 
@@ -2808,6 +2812,7 @@ int alignCords (StringSet<String<Dna5> >& genomes,
         {
             cord_str = split_cords_str[j];
             cord_end = split_cords_end[j];
+            dout << "ags1" << get_cord_id(pre_cord_str) << get_cord_x(pre_cord_str) << get_cord_y(pre_cord_str) << get_cord_id(cord_str) << get_cord_x(cord_str) << get_cord_y(cord_str) << "bend" << _DefaultCord.isBlockEnd(pre_cord_str) << "\n";
             if (_DefaultCord.isBlockEnd(pre_cord_str))
             {
                 //clip_segs(rstr[ri], rstr[ri + 1], cord_str, _gap_parm, -1);

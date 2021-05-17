@@ -178,11 +178,14 @@ LineSegment getRectangleBandStrEnd(uint64_t x_str, uint64_t y_str,
         return  LineSegment(x_str + band, y_str, x_end, y_end - band);
     }
 }
-int mergeCordsBands1(String<uint64_t> & cords_str,
-                     String<uint64_t> & cords_end,
-                     String<uint64_t> & bands_lower,
-                     String<uint64_t> & bands_upper,
-                     unsigned i_str, unsigned i_end)
+/*
+ * The function is supposed to return erased size
+ */
+unsigned mergeCordsBands1(String<uint64_t> & cords_str,
+                          String<uint64_t> & cords_end,
+                          String<uint64_t> & bands_lower,
+                          String<uint64_t> & bands_upper,
+                          unsigned i_str, unsigned i_end)
 {
     unsigned it = i_str;
     uint64_t x11 = get_cord_x(cords_str[i_str]); //predecessor after merge
@@ -216,6 +219,11 @@ int mergeCordsBands1(String<uint64_t> & cords_str,
            isLineSegmentColinear(band_upper1, band_upper2))
         {
             cords_end[it] = cords_end[i];
+            if (_DefaultCord.isBlockEnd(cords_str[i]) || _DefaultCord.isBlockEnd(cords_end[i]))
+            {
+                set_cord_block_end(cords_str[it]);
+                set_cord_block_end(cords_end[it]);
+            }
             //appendValue(del_list, i);
             x12 = x22;
             y12 = y22;
@@ -240,11 +248,12 @@ int mergeCordsBands1(String<uint64_t> & cords_str,
             y12 = y22;
         }
     }
+    dout << "mcb1" << it + 1 << i_end << "\n";
     erase(cords_str, it + 1, i_end);
     erase(cords_end, it + 1, i_end);
     erase(bands_lower, it + 1, i_end);
     erase(bands_upper, it + 1, i_end);
-    return 0;
+    return i_end - it  - 1;
 }
 int mergeCordsBands(String<uint64_t> & cords_str,
                     String<uint64_t> & cords_end,
@@ -258,7 +267,9 @@ int mergeCordsBands(String<uint64_t> & cords_str,
         if (i == length(cords_str) - 1 || _DefaultCord.isBlockEnd(cords_str[i]) || 
             (i < length(cords_str) - 1 && isDiffCordsStrand(cords_str[i], cords_str[i + 1])))
         {
-            mergeCordsBands1(cords_str, cords_end, bands_lower, bands_upper, i_str, i + 1);
+            print_cord(cords_str[i_str], "mc11");
+            print_cord(cords_str[i], "mc12");
+            i -= mergeCordsBands1(cords_str, cords_end, bands_lower, bands_upper, i_str, i + 1);
             i_str = i + 1;
         }
     }
