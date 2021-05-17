@@ -344,7 +344,13 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
             }
             if (fm_handler_.isAlign(f_map))
             {
+                double t = sysTime();
                 alignCords(this->getGenomes(), reads[j], comStr, cords_str[j], cords_end[j], bam_records[j]);
+                t = sysTime() - t;
+                if (t > 100)
+                {
+                    dout << "pcal1" << t << reads_id[j] << "\n";
+                }
                 //check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
             }
         }
