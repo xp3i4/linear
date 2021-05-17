@@ -248,7 +248,6 @@ unsigned mergeCordsBands1(String<uint64_t> & cords_str,
             y12 = y22;
         }
     }
-    dout << "mcb1" << it + 1 << i_end << "\n";
     erase(cords_str, it + 1, i_end);
     erase(cords_end, it + 1, i_end);
     erase(bands_lower, it + 1, i_end);
@@ -267,8 +266,6 @@ int mergeCordsBands(String<uint64_t> & cords_str,
         if (i == length(cords_str) - 1 || _DefaultCord.isBlockEnd(cords_str[i]) || 
             (i < length(cords_str) - 1 && isDiffCordsStrand(cords_str[i], cords_str[i + 1])))
         {
-            print_cord(cords_str[i_str], "mc11");
-            print_cord(cords_str[i], "mc12");
             i -= mergeCordsBands1(cords_str, cords_end, bands_lower, bands_upper, i_str, i + 1);
             i_str = i + 1;
         }
