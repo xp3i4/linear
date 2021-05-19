@@ -556,7 +556,9 @@ int align_cord (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
                 int local_flag = 1,
                 Score<int> scheme = _default_scheme_)
 {
-    if (cord_str == cord_end)
+    if (cord_str == cord_end || 
+        get_cord_x(cord_str) == get_cord_x(cord_end) || 
+        get_cord_y(cord_str) == get_cord_y(cord_end))
     {
         return 0;
     }
@@ -2516,7 +2518,7 @@ int check_cord_1_(uint64_t cord, unsigned lx, unsigned ly)
 // return 1 for same strand cord if the pre-cord is larger 
 int check_cord_2_(uint64_t cord1, uint64_t cord2)
 {
-    if (cord1 == cord2)
+    if (cord1 == cord2 || get_cord_x(cord1) == get_cord_x(cord2) || get_cord_y(cord1) == get_cord_y(cord2))
     {
         return 1;
     }
