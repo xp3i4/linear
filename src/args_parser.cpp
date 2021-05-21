@@ -46,10 +46,10 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     }
     argc = length(new_args); 
     // Setup ArgumentParser.
-    seqan::ArgumentParser parser("Linear");
+    seqan::ArgumentParser parser("linear");
     // Set short description, version, and date.
     setShortDescription(parser, "Options & arguments ");
-    setVersion(parser, options.versions);
+    setVersion(parser, options.version);
     setDate(parser, options.date);
     addUsageLine(parser, "[\\fIOPTIONS\\fP] \\fIread.fa/fastq(.gz)\\fP \\fIgenome.fa(.gz)\\fP ");
     //addDescription(parser,
@@ -64,10 +64,10 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     addTextSection(parser, "Examples");
     addListItem(parser,
                 "\\fPlinear \\fIreads_dir/*.fa.gz x grch37/*.fa\\fP",
-                " use \\fBx \\fPargumnets[cartesian product] when mapping a set of reads against a set of genomes");
+                " use the argumnet \\fBx \\fPto map the set of reads to the set of genomes");
     addListItem(parser,
-                "\\fPlinear \\fIreads.fa genome.fa -g 50 -a\\fP",
-                " use -g option to set the, use the -a option to call alignment"
+                "\\fPlinear \\fIreads.fa genome.fa -g -a\\fP",
+                " use the option \\fB-g \\fPto enable mapping of gaps, use the option \\fB-a \\fP to enable the alignment"
         );
 
 /*
@@ -77,7 +77,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
 */
     addSection(parser, "Basic Options");
     addOption(parser, seqan::ArgParseOption(
-        "o", "output", "choose output file.",
+        "o", "output", "Set the path for output.",
             seqan::ArgParseArgument::STRING, "STR"));
     addOption(parser, seqan::ArgParseOption(
         "p", "preset", "parm preset. -s 0 normal {DEFAULT} -s 1 fast  -s 2 sensitive",
@@ -86,19 +86,11 @@ parseCommandLine(Options & options, int argc, char const ** argv)
         "t", "thread", "Default -t 4",
             seqan::ArgParseArgument::INTEGER, "INT"));
     addOption(parser, seqan::ArgParseOption(
-        "i", "index_type", "Default -idx 1",
-            seqan::ArgParseArgument::INTEGER, "INT"
-        ));
-    addOption(parser, seqan::ArgParseOption(
         "f", "feature_type", "{1,2}. Default -f 2 (2-mer, 48bases)",
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
     addOption(parser, seqan::ArgParseOption(
-        "g", "gap_len", "0 to turn off gap mapping module, set > 0 to map gaps whose length > this value",
-            seqan::ArgParseArgument::INTEGER, "INT"
-        )); 
-    addOption(parser, seqan::ArgParseOption(
-        "c", "apx_chain_flag", "0 to turn off chaining during apx map",
+        "g", "gap_len", "Minimal length of gaps for mapping. -g 50 {DEFAULT}. -g 0 to turn off mapping of gaps.",
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
     addOption(parser, seqan::ArgParseOption(
@@ -126,13 +118,21 @@ parseCommandLine(Options & options, int argc, char const ** argv)
         seqan::ArgParseArgument::INTEGER, "INT"
         ));
     addOption(parser, seqan::ArgParseOption(
-        "b", "bal_flag", "dynamic balancing tasks schedule 0 to diable(default) or 1 to enable ",
+        "b", "bal_flag", "Flag to turn on/off dynamic balancing tasks schedule. 0 to disable or 1 to enable {DEFAULT} ",
             seqan::ArgParseArgument::INTEGER, "INT" 
         ));   
 //    addDefaultValue(parser, "gap_len", "1");
 
 // Advanced parms for mapping
     addSection(parser, "Advanced optoins");
+    addOption(parser, seqan::ArgParseOption(
+        "c", "apx_chain_flag", "0 to turn off chaining in apx mapping",
+            seqan::ArgParseArgument::INTEGER, "INT"
+        )); 
+    addOption(parser, seqan::ArgParseOption(
+        "i", "index_type", "Choose the type of indices{1, 2}. -i 1 {DEFAULT}",
+            seqan::ArgParseArgument::INTEGER, "INT"
+        ));
     addOption(parser, seqan::ArgParseOption(
         "l1", "listn1", "mapping::listn1",
             seqan::ArgParseArgument::INTEGER, "INT"));     

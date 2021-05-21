@@ -23,7 +23,10 @@ int64_t const LLMIN = -LLMAX;
 using std::cerr;
 
 Options::Options():
+        name("liNEar"),
+        version("1.8.2"),
         oPath(""),
+        sologan("novel, efficient & simple to use"),
         sensitivity(1),
         thread(16),
         index_t(2),
@@ -43,6 +46,9 @@ Options::Options():
            date += __DATE__;
         }
 std::string Options::getOutputPath() const {return oPath;}
+void Options::printRunInfo(){
+    std::cerr << name <<"["<< version << "]: " << sologan << std::endl; 
+}
 
 /*
  * flip strand from 0, 1 to -1, 1;

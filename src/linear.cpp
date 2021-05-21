@@ -88,9 +88,7 @@ int main(int argc, char const ** argv)
     double time = sysTime();
     //(void)argc;
     Options options;
-    options.versions = "1.8.2";
-    std::cerr << "["<< options.versions
-              << "]\nEncapsulated: Mapping reads efficiently" << std::endl;
+    options.printRunInfo();
     std::cerr << std::fixed << std::setprecision(2);
     seqan::ArgumentParser::ParseResult res = parseCommandLine(options, argc, argv);
     if (res != seqan::ArgumentParser::PARSE_OK)
