@@ -63,11 +63,19 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     //addTextSection(parser, "Examples");
     addTextSection(parser, "Examples");
     addListItem(parser,
+                "\\fPlinear \\fIreads_dir/*.fa.gz grch37/chr1.fa\\fP",
+                "Map the set of reads to the reference chr1.fa");
+    addListItem(parser,
+                "\\fPlinear \\fIreads_dir/*.fa.gz grch37/chr1.fa -g 0\\fP",
+                "Map the set of reads to the reference chr1.fa with the mapping of gaps disabled.\
+                In such case, Linear generates approximate range of the reference where the reads are\
+                 supposed to be mapped to");
+    addListItem(parser,
                 "\\fPlinear \\fIreads_dir/*.fa.gz x grch37/*.fa\\fP",
-                " use the argumnet \\fBx \\fPto map the set of reads to the set of genomes");
+                "Use the argumnet \\fBx \\fPto map the set of reads to the set of genomes");
     addListItem(parser,
                 "\\fPlinear \\fIreads.fa genome.fa -g -a\\fP",
-                " use the option \\fB-g \\fPto enable mapping of gaps, use the option \\fB-a \\fP to enable the alignment"
+                "Use the option \\fB-a \\fPto enable the alignment"
         );
 
 /*
@@ -77,18 +85,14 @@ parseCommandLine(Options & options, int argc, char const ** argv)
 */
     addSection(parser, "Basic Options");
     addOption(parser, seqan::ArgParseOption(
-        "o", "output", "Set the path for output.",
+        "o", "output", "Set the path of output.",
             seqan::ArgParseArgument::STRING, "STR"));
     addOption(parser, seqan::ArgParseOption(
-        "p", "preset", "parm preset. -s 0 normal {DEFAULT} -s 1 fast  -s 2 sensitive",
+        "p", "preset", "Set preset of parms. -s 0 normal {DEFAULT} -s 1 efficient  -s 2 additional",
             seqan::ArgParseArgument::INTEGER, "INT"));
     addOption(parser, seqan::ArgParseOption(
-        "t", "thread", "Default -t 4",
+        "t", "thread", "Set threads to run -t 4 {DEFAULT}",
             seqan::ArgParseArgument::INTEGER, "INT"));
-    addOption(parser, seqan::ArgParseOption(
-        "f", "feature_type", "{1,2}. Default -f 2 (2-mer, 48bases)",
-            seqan::ArgParseArgument::INTEGER, "INT"
-        )); 
     addOption(parser, seqan::ArgParseOption(
         "g", "gap_len", "Minimal length of gaps for mapping. -g 50 {DEFAULT}. -g 0 to turn off mapping of gaps.",
             seqan::ArgParseArgument::INTEGER, "INT"
@@ -98,40 +102,44 @@ parseCommandLine(Options & options, int argc, char const ** argv)
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
     addOption (parser, seqan::ArgParseOption(
-        "s", "sam_flag", "Set -s 0 to disbale output of SAM. Set -s or -s 1 (default) to enable output of SAM",
+        "s", "sam_flag", "Set to Enable/Disbale the output in the format of SAM/BAM. -s or -s 1(Enable) {DEFAULT} ",
         seqan::ArgParseArgument::INTEGER, "INT"
         ));
     addOption (parser, seqan::ArgParseOption(
-        "r", "reform_ccs_cigar_flag", "Set -r or -r 1 to enable compressing the cigar string for Pacbio CCS reads. Disbaled(-r 0) by default",
-        seqan::ArgParseArgument::INTEGER, "INT"
-        ));
-    addOption (parser, seqan::ArgParseOption(
-        "rg", "read_group", "Set name of read group. Some SVs may need the tag of name of read group specified in the SAM header",
+        "rg", "read_group", "Set the tag of name of read group specified in the SAM header",
         seqan::ArgParseArgument::STRING, "STR"
         ));
     addOption (parser, seqan::ArgParseOption(
-        "sn", "sample_name", "Set name of sample. Some SVs may need the tag of sample name specified in the SAM header",
+        "sn", "sample_name", "Set the name of sample specified in the SAM header",
         seqan::ArgParseArgument::STRING, "STR"
         ));
     addOption (parser, seqan::ArgParseOption(
-        "ss", "sequence_sam", "Set -ss or -ss 1 to enable printing sequence segment in the sam for each read. This function is required in some SVs caller. Disabled (-ss 0) by default",
+        "ss", "sequence_sam", "Set to Enable/Disable printing sequence segment of reads in the SAM/BAM format. -ss 0(Disabled) {DEFAULT}",
         seqan::ArgParseArgument::INTEGER, "INT"
         ));
     addOption(parser, seqan::ArgParseOption(
-        "b", "bal_flag", "Flag to turn on/off dynamic balancing tasks schedule. 0 to disable or 1 to enable {DEFAULT} ",
+        "b", "bal_flag", "Set to Enable/Disable dynamic balancing tasks schedule. -b 1(Enable) {DEFAULT}",
             seqan::ArgParseArgument::INTEGER, "INT" 
         ));   
 //    addDefaultValue(parser, "gap_len", "1");
 
 // Advanced parms for mapping
-    addSection(parser, "Advanced optoins");
+    addSection(parser, "Advanced optoins(for tweak & debug)");
+    addOption(parser, seqan::ArgParseOption(
+        "i", "index_type", "Choose the type of indices{1, 2}. -i 1 {DEFAULT}",
+            seqan::ArgParseArgument::INTEGER, "INT"
+        ));
     addOption(parser, seqan::ArgParseOption(
         "c", "apx_chain_flag", "0 to turn off chaining in apx mapping",
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
     addOption(parser, seqan::ArgParseOption(
-        "i", "index_type", "Choose the type of indices{1, 2}. -i 1 {DEFAULT}",
+        "f", "feature_type", "Set types of features {1,2}. -f 2 (2-mer, 48bases){DEFAULT}",
             seqan::ArgParseArgument::INTEGER, "INT"
+        )); 
+    addOption (parser, seqan::ArgParseOption(
+        "r", "reform_ccs_cigar_flag", "Enable/Disable compressing the cigar string for Pacbio CCS reads. -r 0{Disale} {DEFAULT}",
+        seqan::ArgParseArgument::INTEGER, "INT"
         ));
     addOption(parser, seqan::ArgParseOption(
         "l1", "listn1", "mapping::listn1",

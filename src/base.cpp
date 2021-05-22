@@ -23,10 +23,10 @@ int64_t const LLMIN = -LLMAX;
 using std::cerr;
 
 Options::Options():
-        name("liNEar"),
+        name("li\033[1;31mNE\033[mar"),
         version("1.8.2"),
         oPath(""),
-        sologan("novel, efficient & simple to use"),
+        sologan("\033[1;31mN\033[movel, \033[1;31mE\033[mfficient"),
         sensitivity(1),
         thread(16),
         index_t(2),

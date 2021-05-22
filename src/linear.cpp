@@ -5,7 +5,6 @@
 #include "mapper.h"
 using namespace seqan; 
 
-
 int process1 (Mapper & mapper, Options & options, int p1)
 {
     StringSet<String<short> > empty_buckets; 
@@ -17,7 +16,9 @@ int process1 (Mapper & mapper, Options & options, int p1)
     mapper.createIndex(0, length(mapper.getGenomes()), false); 
     return map (mapper, empty_buckets, empty_fin_pos, 0, 0, p1);
 }
-
+/**
+ * Supposed to be called when lengthSum(mapper.getGenomes ()) > 300M
+ */
 int process2(Mapper & mapper, Options & options, int p1)
 {
     //init filter mapper
@@ -42,7 +43,6 @@ int process2(Mapper & mapper, Options & options, int p1)
     //mapper.clearIndex();
 
     //map for each chr bucket
-    
     mapper.loadOptions(options);
     mapper.getIndex().setMHIndex(); //disable filter index && enable mapper index
     bool f_io_append = false;       //flag if result append to or open as new 
@@ -60,9 +60,9 @@ int process2(Mapper & mapper, Options & options, int p1)
     }
     return 0;
 }
-
-/*----------  Process 3  ----------/
- * Dynamic balancing I/O: parallel dumping i/o to buffers 
+/**
+ * ----------  Process 3  ----------
+ * Dynamic balancing with parallel I/O 
  */
 int process3(Mapper & mapper, Options & options, int p1)
 {
@@ -73,7 +73,6 @@ int process3(Mapper & mapper, Options & options, int p1)
     omp_set_num_threads(mapper.getThreads());
     createFeatures(mapper.getGenomes(), mapper.getGenomesFeatures(), mapper.getFeatureType(), mapper.getThreads());
     mapper.createIndex(0, length(mapper.getGenomes()), false); 
-    //std::cerr << "process3 done \n";
     mapper.getPTasks().startRunTasks();
     #pragma omp parallel
     {
@@ -86,7 +85,6 @@ int process3(Mapper & mapper, Options & options, int p1)
 int main(int argc, char const ** argv)
 {
     double time = sysTime();
-    //(void)argc;
     Options options;
     options.printRunInfo();
     std::cerr << std::fixed << std::setprecision(2);
@@ -94,26 +92,14 @@ int main(int argc, char const ** argv)
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res == seqan::ArgumentParser::PARSE_ERROR;
     Mapper mapper(options);
-    /*
-    uint thd_g_size = 300 << 20; //300M bases 
-    if (lengthSum(mapper.getGenomes ()) > thd_g_size)
+    if (options.bal_flag)
     {
-        int p1 = 0;
-        process2 (mapper, options, p1);
+        process3 (mapper, options, 0);
     }
     else
     {
-        */
-        int p1 = 0; //temp var for test config
-        if (options.bal_flag)
-        {
-            process3 (mapper, options, p1);
-        }
-        else
-        {
-            process1 (mapper, options, p1);
-        }
-    //}
+        process1 (mapper, options, 0);
+    }
     std::cerr << "Time in sum[s] " << sysTime() - time << "      \n";
     return 0;
 }
