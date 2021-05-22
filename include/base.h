@@ -31,7 +31,7 @@ struct Options{
     typedef StringSet<PathType> PathsType;
     std::string name;
     std::string version;
-    std::string sologan;
+    std::string slogan;
     PathType oPath;
     PathsType r_paths;
     PathsType g_paths;

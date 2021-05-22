@@ -23,10 +23,10 @@ int64_t const LLMIN = -LLMAX;
 using std::cerr;
 
 Options::Options():
-        name("li\033[1;31mNE\033[mar"),
+        name("li\033[1;31mN\033[m\033[1;34mE\033[mar"),
         version("1.8.2"),
         oPath(""),
-        sologan("\033[1;31mN\033[movel, \033[1;31mE\033[mfficient"),
+        slogan("\033[1;31mN\033[movel, \033[1;34mE\033[mfficient"),
         sensitivity(1),
         thread(16),
         index_t(2),
@@ -47,7 +47,7 @@ Options::Options():
         }
 std::string Options::getOutputPath() const {return oPath;}
 void Options::printRunInfo(){
-    std::cerr << name <<"["<< version << "]: " << sologan << std::endl; 
+    std::cerr << name <<": " << slogan << std::endl; 
 }
 
 /*

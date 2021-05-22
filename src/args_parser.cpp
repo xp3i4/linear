@@ -88,17 +88,17 @@ parseCommandLine(Options & options, int argc, char const ** argv)
         "o", "output", "Set the path of output.",
             seqan::ArgParseArgument::STRING, "STR"));
     addOption(parser, seqan::ArgParseOption(
-        "p", "preset", "Set preset of parms. -s 0 normal {DEFAULT} -s 1 efficient  -s 2 additional",
+        "p", "preset", "Set preset of parms. -p 0 normal {DEFAULT} -p 1 efficient  -p 2 additional",
             seqan::ArgParseArgument::INTEGER, "INT"));
     addOption(parser, seqan::ArgParseOption(
         "t", "thread", "Set threads to run -t 4 {DEFAULT}",
             seqan::ArgParseArgument::INTEGER, "INT"));
     addOption(parser, seqan::ArgParseOption(
-        "g", "gap_len", "Minimal length of gaps for mapping. -g 50 {DEFAULT}. -g 0 to turn off mapping of gaps.",
+        "g", "gap_len", "Set the minimal length of gaps to map. -g 50 {DEFAULT}. -g 0 to turn off mapping of gaps.",
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
     addOption(parser, seqan::ArgParseOption(
-        "a", "aln_flag", "0 to turn off alignment module",
+        "a", "aln_flag", "Set to Enable/Disable alignment. -a 0(Disable) {DEFAULT}",
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
     addOption (parser, seqan::ArgParseOption(
@@ -106,7 +106,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
         seqan::ArgParseArgument::INTEGER, "INT"
         ));
     addOption (parser, seqan::ArgParseOption(
-        "rg", "read_group", "Set the tag of name of read group specified in the SAM header",
+        "rg", "read_group", "Set the name of read group specified in the SAM header",
         seqan::ArgParseArgument::STRING, "STR"
         ));
     addOption (parser, seqan::ArgParseOption(
