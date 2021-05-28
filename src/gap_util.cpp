@@ -3312,6 +3312,8 @@ int __extendsIntervalClipOverlapsInsDel_(String<uint64_t> & chain1,
             uint64_t(*getY)(uint64_t), 
             GapParms & gap_parms)
 {
+    unused(step1);
+    unused(step2);
     if (empty(chain1) || empty(chain2))
     {
         return 0;
@@ -3331,7 +3333,7 @@ int __extendsIntervalClipOverlapsInsDel_(String<uint64_t> & chain1,
 
     int j1 = 0, j2 = 0, i_clip = 0, j_clip = -1;  
     int j1_pre = 0, j2_pre = 0;
-    int score11, score12, score21, score22, score1, score2;
+    int score11, score12, score21, score22;
     int min_score = INT_MAX;
     uint64_t x21 = getX(chain2[0]), x22 = getX(chain2[0]); //[x21, x22)
     for (int i = 0; i < length(chain1); i++)        
@@ -3366,7 +3368,7 @@ int __extendsIntervalClipOverlapsInsDel_(String<uint64_t> & chain1,
         //then search max score within [x21, x22), namely [j1, j2)
         if (j1 > j_clip || j2_pre != j2)
         {
-            int ii1 = std::max(i - gap_parms.thd_eicos_window_size, int(0));
+            //int ii1 = std::max(i - gap_parms.thd_eicos_window_size, int(0));
             //int ii2 = std::min(i + gap_parms.thd_eicos_window_size, int(length(chain1) - 1));
             //score11 = gaps_score11[i] - gaps_score11[ii1];
             score11 = gaps_score11[i];
@@ -3374,11 +3376,11 @@ int __extendsIntervalClipOverlapsInsDel_(String<uint64_t> & chain1,
             for (int j = std::max(j1, j2_pre); j < j2; j++)
             {
                 //int jj1 = std::max(j - gap_parms.thd_eicos_window_size + 1, int(0));
-                int jj2 = std::min(j + gap_parms.thd_eicos_window_size, int(length(chain2) - 1));
+                //int jj2 = std::min(j + gap_parms.thd_eicos_window_size, int(length(chain2) - 1));
                 //score21 = gaps_score21[jj2] - gaps_score21[j]; 
                 score21 = back(gaps_score21) - gaps_score21[j];
                 score22 = back(gaps_score22) - gaps_score22[j];
-                int score_connect = getX(chain2[j]) - getX(chain1[i]) > shape_len ? (getX(chain2[j]) - getX(chain1[i]) - shape_len) * gap_parms.int_precision : 0;
+                int score_connect = int64_t(getX(chain2[j]) - getX(chain1[i])) > shape_len ? (getX(chain2[j]) - getX(chain1[i]) - shape_len) * gap_parms.int_precision : 0;
                 int score = score11 + score12 + score21 + score22 + score_connect;
                 if (score < min_score)
                 {
@@ -3509,6 +3511,8 @@ int extendsIntervalMapOverlaps_(String<Dna5> & ref,
                                 int step2, 
                                 GapParms & gap_parms)
 {
+    unused(gap_end1);
+    unused(gap_str2);
     dropChainGapX(tiles1, &get_tile_x, &get_tile_y, g_map_rght, true, gap_parms);
     dropChainGapX(tiles2, &get_tile_x, &get_tile_y, g_map_left, true, gap_parms);
     String<uint64_t> overlap_tiles1;
@@ -3642,10 +3646,6 @@ int extendsInterval(String<Dna5> & ref, //genome
     reserve(g_hs_anchors1, 2048);
     reserve(g_hs_anchors2, 2048);
 
-    int64_t thd_max_extend2 = 5000; //normal case 
-
-    int direction1 = g_map_rght;
-    int direction2 = g_map_left;
     uint64_t id = get_cord_id(gap_str1);
     uint64_t strand = get_cord_strand(gap_str1);
     uint64_t x1 = std::min(get_cord_x(gap_str1), get_cord_x(gap_str2));
@@ -3790,7 +3790,7 @@ int reExtendChainOneSide(String<Dna5> & ref,
         //ii = std::min(int(i_ptr_end - 1), ii);
         resize (reextend_chain, ii - i_ptr_str + 2);
         reextend_chain[0] = shiftChain(chain[i_ptr_str], d, d); //insert the lower bound to extend to
-        for (unsigned i = 0; i < ii - i_ptr_str + 1; i++)
+        for (int i = 0; i < ii - i_ptr_str + 1; i++)
         {
             reextend_chain[i + 1] = chain[i_ptr_str + i];
         }
