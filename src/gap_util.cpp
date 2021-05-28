@@ -2236,7 +2236,7 @@ int stickMainChain(String<uint64_t> & chain1,
     }
     int di = 0, jj = length(chain2) - 1;
     uint64_t x1, x2 = getX2(chain2[jj]);
-    for (int i = 0; i < length(chain1); i++)
+    for (int i = 0; i < (int)length(chain1); i++)
     {
         x1 = getX1(chain1[i]);
         if (x1 < x2)
@@ -2326,7 +2326,7 @@ uint64_t extendClipRange(String<Dna5> & seq1,
     int score_i_str = 0;
     int len_sum = 0;
     int64_t min_da = LLMAX;
-    for (int i = 0; i < length(anchors_chains) && !empty(anchors_chains[i]); i++)
+    for (int i = 0; i < (int)length(anchors_chains) && !empty(anchors_chains[i]); i++)
     {
         uint64_t new_tile = isClipTowardsRight(direction) ? g_hs_anchor2Tile(anchors_chains[i][0]) :
             g_hs_anchor2Tile(back(anchors_chains[i]));
@@ -2346,7 +2346,7 @@ uint64_t extendClipRange(String<Dna5> & seq1,
     }
     String<int> chain_score;
     resize(chain_score, length(anchors_chains[closest_i]));
-    for (int i = 0; i < length(anchors_chains[closest_i]); i++)
+    for (int i = 0; i < (int)length(anchors_chains[closest_i]); i++)
     {
         chain_score[i] = anchors_chains_score[score_i_str + i];
     }
@@ -2360,7 +2360,7 @@ uint64_t extendClipRange(String<Dna5> & seq1,
         uint64_t pre_str_tile = 0;
         uint64_t ext_end_y = get_tile_y(ext_end);
         //int clip_i = clipChain (anchors_chains[closest_i], shape_len, direction, false, &g_hs_anchor_getX, &g_hs_anchor_getY, gap_parms);
-        for (int i = 0; i < length(anchors_chains[closest_i]); i++)
+        for (int i = 0; i < (int)length(anchors_chains[closest_i]); i++)
         {
             uint64_t new_str_tile = g_hs_anchor2Tile(anchors_chains[closest_i][i]);
             if (i == 0 || get_tile_y(new_str_tile) > get_tile_y(pre_str_tile) + thd_new_tile_step)
@@ -2409,7 +2409,7 @@ uint64_t extendClipRange(String<Dna5> & seq1,
     //Note::red, reomve this when using create_g_anchors; c_stream negelect strand, so add strand here.
     if (get_tile_strand(ext_str))
     {
-        for (int i = 0; i < length(tiles_str); i++)
+        for (int i = 0; i < (int)length(tiles_str); i++)
         {
             set_tile_strand (tiles_str[i]);
             set_tile_strand (tiles_end[i]);
@@ -2466,7 +2466,7 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
     Iterator<String<Dna5> >::Type it_str2 = begin(seq2) + get_cord_y(extend_str);
     LShape shape(shape_len);
     hashInit_hs(shape, it_str1, 0);
-    for (int i = 0; i < hs_len1; i++)
+    for (int i = 0; i < (int64_t) hs_len1; i++)
     {
         hashs[i] = hashNext_hs(shape, it_str1 + i);
     }   
@@ -2491,7 +2491,7 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
                                        << int64_t(hs_len2 - 1)
                                        << int64_t(length(hashs));
             g_cmpll.max(j_str, i - di) >> int64_t(j_end - dj) >> 0 ;
-            if (j_str > length(hashs) || j_end > length(hashs))
+            if (j_str > (int)length(hashs) || j_end > (int)length(hashs))
             {
                 return 0;
             }
