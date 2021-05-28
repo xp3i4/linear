@@ -32,19 +32,19 @@ GapParms::GapParms(float err_rate) : //estimated err_rate
     chn_score2(1, 0, &getGapBlocksChainScore2),
     chn_ext_clip_metric1(1, 0, &getExtendClipScore),
     direction(0),
-    thd_tile_size(96), 
     int_precision(10000), //convert float to int to avoid float division, precision : 10^-4
+    thd_tile_size(96), 
 
     thd_ecr_shape_len(3),
     thd_ecr_reject_da(20),
     f_rfts_clip(1),
+    thd_accept_score(32),
     f_me_map_extend(0),
     thd_me_reject_gap(200), //~192 = 96 x 2
-    thd_accept_score(32),
     thd_ctfcs_accept_score(32),
     thd_ctfcs_pattern_in_window(1),
-    thd_gmsa_d_anchor_rate(0.1), //max(ins_rate, del_rate)
     f_gmsa_direction(0),
+    thd_gmsa_d_anchor_rate(0.1), //max(ins_rate, del_rate)
     thd_cts_major_limit(1),
     thd_ctfas2_connect_danchor(50),
     thd_ctfas2_connect_dy_dx(150),
@@ -128,7 +128,7 @@ uint64_t EmptyClipConst = (~0) & ((1ULL << 50) - 1);
 
 uint64_t getClipStr(String<uint64_t> & clips, int i) 
 {
-    if (i << 1 < length(clips)){
+    if (i << 1 < (int)length(clips)){
         return clips[i << 1];
     }
     else{
@@ -138,7 +138,7 @@ uint64_t getClipStr(String<uint64_t> & clips, int i)
 
 uint64_t getClipEnd(String<uint64_t> & clips, int i)
 {
-    return i << 1 < length(clips) - 1 ? clips[(i << 1) + 1] : 0;
+    return i << 1 < (int)length(clips) - 1 ? clips[(i << 1) + 1] : 0;
 }
 
 int getClipsLen(String<uint64_t> & clips)
@@ -187,6 +187,7 @@ int isClipTowardsRight (int clip_direction)
 int insertSVType(String<int> & sv_types, int type)
 {
     appendValue (sv_types, type);
+    return 0;
 }
 int getSVType (String<int> & sv_types, int i)
 {
@@ -206,7 +207,7 @@ int print_clips_gvf_(StringSet<String<uint64_t> > & clips,
     std::string type = ".";
     for (unsigned i = 0; i < length(clips); i++)
     {
-        for (unsigned j = 0; j < getClipsLen(clips[i]); j++)
+        for (unsigned j = 0; j < (unsigned)getClipsLen(clips[i]); j++)
         {
             uint64_t clip_str = getClipStr(clips[i], j);
             uint64_t clip_end = getClipEnd(clips[i], j);
@@ -626,7 +627,7 @@ bool is_diff_anchor (uint64_t cord1, uint64_t cord2, int greater, int64_t thd_dx
  */
 void set_tiles_cords_sgns(String<uint64_t> & tiles, uint64_t sgn)
 {
-    for (int i = 0; i < length(tiles); i++)
+    for (int i = 0; i < (int)length(tiles); i++)
     {
         remove_tile_sgn(tiles[i]);
         set_cord_gap(tiles[i]);
@@ -755,11 +756,14 @@ int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
   ::dcgx::simple X-drop by counting gap lens
   Chains in ascending order required : xi < xj && yi < yj provided i < j
 */
-int dropChainGapX(String<uint64_t> & chains, uint64_t (*getX)(uint64_t), uint64_t(*getY)(uint64_t), int direction, bool f_erase, GapParms & gap_parms)
+int dropChainGapX(String<uint64_t> & chains,
+                  uint64_t (*getX)(uint64_t),
+                  uint64_t(*getY)(uint64_t),
+                  int direction, bool f_erase, GapParms & gap_parms)
 {
     if (direction == g_map_rght)
     {
-        for (int i = 1; i < length(chains); i++) 
+        for (int i = 1; i < (int)length(chains); i++)
         {
             uint di = i + 1 >= gap_parms.thd_dcgx_window_size ? gap_parms.thd_dcgx_window_size : 1;
             if (getX(chains[i]) - getX(chains[i - 1]) > gap_parms.thd_dcgx_Xdrop_peak || 
@@ -1869,8 +1873,6 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
 {
     uint64_t gs_str = get_tile_x(clip_str);
     uint64_t gr_str = get_tile_y(clip_str);
-    uint64_t gs_end = get_tile_x(clip_end);
-    uint64_t gr_end = get_tile_y(clip_end);
     uint64_t genomeId = get_tile_id (clip_str);
     uint64_t gr_strand = get_tile_strand(clip_str);
     int direction = (clip_direction < 0) ? -1 : 1;
@@ -2077,6 +2079,7 @@ int c_isGapMatch_(uint64_t & dv, short& t1, short & t2, short & l1, short & l2, 
 //supposed to use in extendClip 5mer:step1 = 5:step2=1
 int getExtendClipScore(uint64_t const & anchor1, uint64_t const & anchor2, ChainScoreParms & chn_score_parms)
 {
+    unused(chn_score_parms);
     int64_t dy = g_hs_anchor_getY(anchor1) - g_hs_anchor_getY(anchor2);
     int64_t dx = g_hs_anchor_getX(anchor1) - g_hs_anchor_getX(anchor2);
     if (dy <= 0 || g_hs_anchor_get_strand(anchor1 ^ anchor2) 
@@ -2108,7 +2111,7 @@ int getExtendClipScore(uint64_t const & anchor1, uint64_t const & anchor2, Chain
         score_da = 41 + da;
     }
     score_dy = dy * (12 * dy + 650) / 450; 
-
+    (void)derr;
     return 100 - score_dy - score_da ;
 }
 /*
@@ -2125,7 +2128,7 @@ int accumulateSimpleGapScore1(String<uint64_t> & chain, String<int> & gaps_score
     }
     resize(gaps_score, length(chain), 0);
     uint64_t pre_x =  _getX(chain[0]);
-    for (int i = 1; i < length(chain); i++)
+    for (int i = 1; i < (int)length(chain); i++)
     {
         uint64_t x_i = _getX(chain[i]);
         int new_gap = int(x_i - pre_x) > shape_len ? x_i - pre_x - shape_len : 0;
@@ -2148,6 +2151,8 @@ int clipChain_(String<uint64_t> & chain,
                uint64_t (*_get_y)(uint64_t), 
                GapParms & gap_parms)
 {
+    unused(_get_x);
+    unused(_get_y);
     if (empty(chain))
     {
         return -1;
@@ -2158,7 +2163,7 @@ int clipChain_(String<uint64_t> & chain,
     //step1 * (thd_window_i_size - 1) + shape_len (when no gaps, equal)
     int max_d_clip = INT_MIN;
     int f_found_clip = 0;
-    for (int i = 1; i < length(chain) - 1; i++)
+    for (int i = 1; i < (int)length(chain) - 1; i++)
     {
         int i_str = std::max(i - thd_window_i_size, 0);
         int i_end = std::min(i + thd_window_i_size, int(length(chain) - 1));
