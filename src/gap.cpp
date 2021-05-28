@@ -343,9 +343,9 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
     int thd_max_segs_num = 1000; //max segs num allowed in each gap, gaps > this will abort all tiles
 
     uint64_t thd_max_extend = 2000;  //Important::tune::whether process in gap or pmpfiner.h
-    uint64_t thd_max_gap = 3000;
     uint64_t thd_max_extend_x = thd_max_extend;
     uint64_t thd_max_extend_y = thd_max_extend; //>large gaps are supposed to be handled during the apx part.
+    int64_t thd_max_gap = 3000;
     int64_t thd_dxy_min = 80;
     int64_t thd_extend_xy = 3; //extend at first or last cord of seqs
     int64_t thd_max_chain_distance = thd_max_extend;
@@ -354,21 +354,17 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
     int64_t thd_cord_remap = 100;
     int64_t thd_cord_gap = gap_parms.thd_gap_len_min + block_size;
 
+    unused(thd_cord_remap);
+    unused(thd_max_chain_distance);
+
     clear(apx_gaps);
     gather_blocks_ (cords_str, str_ends, str_ends_p, 1, length(cords_str), length(read), thd_cord_gap, thd_cord_size, 0, &is_cord_block_end, &set_cord_end);
     gather_gaps_y_ (cords_str, str_ends, apx_gaps, length(read), thd_cord_gap);
 
-    int count = 0;
     //NOTE cords_str[0] is the head, regular cords_str starts from 1
     for (unsigned i = 1; i < length(cords_str); i++)
     {
         unsigned sid = get_cord_id(cords_str[i]);
-        uint64_t x1 = get_cord_x(cords_str[i - 1]);
-        uint64_t y1 = get_cord_y(cords_str[i - 1]);
-        uint64_t x2 = get_cord_x(cords_str[i]);
-        uint64_t y2 = get_cord_y(cords_str[i]);
-        int64_t dx = x2 - x1;
-        int64_t dy = y2 - y1;
         int direction;
         gap_parms.read_len = length(read);
         gap_parms.ref_len = length(seqs[sid]);
@@ -444,7 +440,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
         {
             //continue;
             uint64_t gap_str = cords_str[i];
-            if (length(read) - 1 - get_cord_y(gap_str) > thd_cord_gap)
+            if (int64_t(length(read) - 1 - get_cord_y(gap_str)) > thd_cord_gap)
             {
                 shift_x = std::min(thd_max_extend_x, length(seqs[sid]) - get_cord_x(gap_str) - 1);
                 shift_y = std::min(thd_max_extend_y, length(read) - get_cord_y(gap_str) - 1);

@@ -47,8 +47,6 @@ int try_dup(String<Dna5> & seq,
             //int direction)
 {
     int64_t dy;
-    uint64_t tile1 = gap_str;
-    uint64_t tile2 = shift_tile(gap_end, -thd_tile_size, -thd_tile_size);
     if (get_tile_strand(gap_str ^ gap_end))
     {
         dy = length(read) - 1 - get_tile_y(gap_end) - get_tile_y(gap_str);
@@ -90,6 +88,7 @@ int try_dup(String<Dna5> & seq,
         remove_tile_sgn_end(back(tiles_rght));
     }
     try_dup_filter_(tiles_rght, gap_str, gap_end, 1);
+    (void)thd_tile_size;
     return 0;
 }
 

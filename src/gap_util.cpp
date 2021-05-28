@@ -797,6 +797,7 @@ int dropChainGapX(String<uint64_t> & chains, uint64_t (*getX)(uint64_t), uint64_
         }
         return 0;
     }
+    return 0;
 }
 
 unsigned _get_tile_f_ (uint64_t & tile,
@@ -3810,7 +3811,7 @@ int reExtendChainOneSide(String<Dna5> & ref,
         }
         //ii = std::min(int(length(chain)) - 1, ii);
         resize (reextend_chain, i_ptr_end - ii + 2);
-        for (unsigned i = 0; i < i_ptr_end - ii + 1; i++)
+        for (int i = 0; i < i_ptr_end - ii + 1; i++)
         {
             reextend_chain[i] = chain[ii + i];
         }
@@ -3902,7 +3903,7 @@ int mapExtendResultFilter_(String<uint64_t> & tiles_str,
     if (isClipTowardsRight(direction))
     {
         uint64_t pre_tile = gap_str;
-        for (int i = 0; i < length(tiles_str); i++)
+        for (int i = 0; i < (int)length(tiles_str); i++)
         {
             int64_t dy = get_cord_y(tiles_str[i]) - get_tile_y(pre_tile);
             int64_t dx = get_cord_y(tiles_str[i]) - get_tile_x(pre_tile);
@@ -3996,6 +3997,7 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
                int64_t thd_dxy_min,
                GapParms & gap_parms)
 {
+    unused(thd_dxy_min);
     /*--Specify gap parms map extending--*/
     gap_parms.thd_ctfas2_connect_danchor = 50;
     gap_parms.thd_ctfas2_connect_dy_dx = 150;
@@ -4101,7 +4103,7 @@ int createTilesFromAnchors2_(String<Dna5> & ref,
                              int direction,
                              GapParms & gap_parms)
 {
-
+    unused(direction);
     String<uint64_t> tmp_tiles;
     double t1=sysTime();
 
@@ -4109,7 +4111,7 @@ int createTilesFromAnchors2_(String<Dna5> & ref,
     t1=sysTime() - t1;
     double t2=sysTime();
     int pre_i = 0;
-    for (int i = 0; i < length(tmp_tiles); i++)
+    for (int i = 0; i < (int)length(tmp_tiles); i++)
     {
         if (is_tile_end(tmp_tiles[i]))
         {
@@ -4130,11 +4132,10 @@ int createTilesFromAnchors2_(String<Dna5> & ref,
             }
             pre_i = i + 1;
         }
-        else if (i < length(tmp_tiles) - 1 && 
+        else if (i < int(length(tmp_tiles) - 1) && 
             get_tile_strand(tmp_tiles[i] ^ tmp_tiles[i + 1]))
         {
-
-            int len = length(tiles_str);
+            unsigned len = length(tiles_str);
             uint64_t head_tile = tmp_tiles[pre_i];
             uint64_t tail_tile = tmp_tiles[i];
             //<<debug
@@ -4217,7 +4218,7 @@ int _createGapAnchorsList(String<uint64_t> & anchors,
         [](uint64_t & a, uint64_t & b){return g_hs_anchor_getStrAnchor(a) < 
             g_hs_anchor_getStrAnchor(b);});
     uint64_t ak2 = anchors[1]; //2/4, 3/4
-    uint64_t block_str = 1, sc = 0, count_anchors = 0;
+    uint64_t block_str = 1, count_anchors = 0;
     uint64_t min_y = ULLMAX, max_y = 0;
     for (unsigned i = 1; i < length(anchors); i++)
     {
@@ -4268,6 +4269,10 @@ int _filterGapAnchorsList(String<uint64_t> & anchors,
                           int direction,
                           GapParms & gap_parms)
 {
+    unused(gap_str);
+    unused(gap_end);
+    unused(direction);
+    unused(gap_parms);
     if (empty(anchors_list))
     {
         return 0;
@@ -4303,7 +4308,6 @@ int _filterGapAnchorsList(String<uint64_t> & anchors,
                 anchors_list[i_median].first) * thd_fgal_median;
             unsigned l_s = 0;
             unsigned l_i = 0;
-            unsigned tmp = 0;
             for (unsigned i = 0; 
                 i < std::min(thd_fgal_max_len1, unsigned(length(anchors_list))); i++)
             {
@@ -4314,7 +4318,6 @@ int _filterGapAnchorsList(String<uint64_t> & anchors,
                 {
                     break;
                 }
-                tmp = l_i;
             }
             resize(anchors_list, it);
           //  dout << "fgal4" << length(anchors) << length(anchors_list) << l_max << l_median << l_s << tmp << "\n";
@@ -4322,9 +4325,9 @@ int _filterGapAnchorsList(String<uint64_t> & anchors,
         else //in such case, only anchors within the bounds are stored
         {
             //!anchors is supossed to be already sorted by anchor in ascending order
-            unsigned it = 0;
             clear(anchors_list);
             /*
+            unsigned it = 0;
             for (unsigned i = 0; i < length(anchors_list); i++)
             {
                 unsigned i1 = anchors_list[i].first;
@@ -4420,7 +4423,6 @@ int mapInterval(String<Dna5> & seq1, //genome
     g_stream_(seq1, seq2, g_hs, gap_str, gap_end, shape_len, step1, step2, gap_parms);
     g_create_anchors_(g_hs, g_hs_anchors, shape_len, direction, anchor_lower, anchor_upper, length(seq2) - 1, gap_str, gap_end, gap_parms);
     t1 = sysTime() - t1;
-    double t2 = sysTime();
     //filterGapAnchors()
     //<<debug
     //float anchor_density = length(anchors) / std::min(get_cord_x(gap_end) - get_cord_x(gap_str),
@@ -4461,5 +4463,6 @@ int mapGeneric(StringSet<String<Dna5> > & seqs,
     reform_tiles(seqs[get_tile_id(gap_str)], read, comstr, tiles_str, tiles_end, 
         sp_tiles_inv, gap_str, gap_end, t_direction, gap_parms);
     gap_parms.f_rfts_clip = f_rfts_clip;
+    (void)thd_gather_block_gap_size; 
     return 0;
 }
