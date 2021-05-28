@@ -2435,10 +2435,11 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
                     int thd_drop,
                     int clip_direction)
 {    
+    unused(thd_merge_anchor);
     CmpInt64 g_cmpll;
     int thd_init_chain_da = 10; 
     int thd_init_chain_num = 6;    
-    int thd_init_scan_radius = 20;
+    //int thd_init_scan_radius = 20;
 
     int thd_da_upper = 3;
     int thd_da_lower = -3;
@@ -2506,7 +2507,7 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
                 if (m >= 0 && c_isGapMatch_(dhash, tzs[m], tzs[m + 1], lzs[m], lzs[m + 1], c_shape_len3))
                 {
                     bool f_first = true;
-                    if (hs_len2 - 1 - i < thd_init_chain_num)
+                    if (int64_t(hs_len2 - 1 - i) < (int64_t)thd_init_chain_num)
                     {
                         if (std::abs(y - x) < thd_init_chain_da)
                         {
@@ -2518,7 +2519,7 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
                     }
                     else 
                     {
-                        for (int k = k_str; k < length(chain_y); k++)
+                        for (int k = k_str; k < (int)length(chain_y); k++)
                         {
                             short dx = chain_x[k] - x;
                             short dy = chain_y[k] - y;
@@ -2543,7 +2544,7 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
             {
                 if (++drop_count > thd_drop)
                 {
-                    if (length(chain_x) > chain_init_len) //!empty
+                    if ((int)length(chain_x) > chain_init_len) //!empty
                     {
                         ex_d = shift_cord(extend_str, back(chain_x), back(chain_y));
                     }
@@ -2566,7 +2567,7 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
         appendValue(chain_y, 0);
         chain_init_len = length(chain_y);
         hashInit_hs(shape, it_str2, 0);
-        for (int64_t i = 0; i < hs_len2 - shape.span + 1; i++) //scan the read 
+        for (int64_t i = 0; i < int(hs_len2 - shape.span + 1); i++) //scan the read 
         {
             clear(tzs);
             clear(lzs);
@@ -2578,7 +2579,7 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
             g_cmpll.min(j_end, i + di) << int64_t(j_str + dj) 
                                        << int64_t(hs_len2) 
                                        << length(hashs);
-            if (j_str > length(hashs) || j_end > length(hashs))
+            if (j_str > (int64_t)length(hashs) || j_end > (int64_t)length(hashs))
             {
                 return 0;
             }
@@ -2605,7 +2606,7 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
                     }
                     else 
                     {
-                        for (int k = k_str; k < length(chain_y); k++)
+                        for (int k = k_str; k < (int)length(chain_y); k++)
                         {
                             short dx = x - chain_x[k];
                             short dy = y - chain_y[k];
@@ -2630,7 +2631,7 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
             {
                 if (++drop_count > thd_drop)
                 {
-                    if (length(chain_x) > chain_init_len)
+                    if ((int)length(chain_x) > chain_init_len)
                     {
                         ex_d = shift_cord (extend_str, back(chain_x), back(chain_y));
                         return ex_d;
@@ -2676,7 +2677,6 @@ uint64_t c_clip_(String<Dna5> & genome,
     uint64_t gr_str = get_tile_y(clip_str);
     uint64_t gs_end = get_tile_x(clip_end);
     uint64_t gr_end = get_tile_y(clip_end);
-    uint64_t genomeId = get_tile_id (clip_str);
     uint64_t gr_strand = get_tile_strand(clip_str);
     String<uint64_t> g_hs;
     String<uint64_t> g_anchor;
@@ -2698,7 +2698,6 @@ uint64_t c_clip_(String<Dna5> & genome,
     int thd_merge1 = 3;
     int thd_merge1_lower = 10;
     int thd_merge2 = 20;
-    int thd_width = 10;
     uint64_t clip = c_clip_anchors_(g_anchor, clip_str, clip_end, c_shape_len, 
                                     thd_merge1, thd_merge1_lower, thd_merge2,  clip_direction);
     //uint64_t clip = (clip_direction < 0 )? clip_end : clip_str;
@@ -2714,7 +2713,6 @@ uint64_t c_clip_(String<Dna5> & genome,
     int64_t dy = 0; 
     uint64_t extend_str;
     uint64_t extend_end;
-    uint64_t breakpoints;
     int64_t shift;
     if (isClipTowardsLeft (clip_direction))
     {
@@ -2815,7 +2813,6 @@ uint64_t reform_tile_ (String<Dna5> & seq1,
 {
     int f_e = is_tile_end(tile_str);
     uint64_t clip = clip_tile (seq1, seq2, comstr, tile_str, sv_flag, thd_tile_size);
-    int64_t shift;
     if (sv_flag & g_sv_r)
     {
         tile_end = clip;
@@ -2886,7 +2883,7 @@ int reformExtendClipTile (String<Dna5> & seq1, String<Dna5> & seq2, String<Dna5>
         if (!empty(tmp_tiles_str))
         {
             int ii = it;
-            while (ii < length(tiles_str) && !(ii > 0 && is_tile_end(tiles_str[ii - 1])) && 
+            while (ii < (int)length(tiles_str) && !(ii > 0 && is_tile_end(tiles_str[ii - 1])) && 
                 (get_tile_y(tiles_str[ii]) < get_tile_y(back(tmp_tiles_str)) || 
                  get_tile_x(tiles_str[ii]) < get_tile_x(back(tmp_tiles_str))))
             {ii++;}
@@ -2926,22 +2923,25 @@ int reform_tiles_(String<Dna5> & seq1,
                   int direction, 
                   GapParms & gap_parms)
 {
-
+    float thd_da_zero = gap_parms.thd_err; 
+    int64_t thd_dxy_min = 80; //skip ins del < this value todo tune later
+    unused(thd_dxy_min);
+    unused(thd_da_zero);
+    unused(sp_tiles);
     if (empty (tiles_str))
     {
         return 0; 
     }
-    int64_t thd_dxy_min = 80; //skip ins del < this value todo tune later
-    float thd_da_zero = gap_parms.thd_err; 
     if (length(tiles_str) == 1 && direction == g_map_closed)
     {
         return 1;
     }
     //for (int i = pos_str; i < pos_end; i++)
     return 0;
-    for (int it = 0; it < length(tiles_str); it++)
+    for (int it = 0; it < (int)length(tiles_str); it++)
     {
         uint64_t thd_gap_size = gap_parms.thd_gap_len_min;
+        unused(thd_gap_size);
         if ((it == 0 || it > 0 && is_tile_end (tiles_str[it - 1])) && direction == g_map_left)
         {
             it += reformExtendClipTile (seq1, seq2, comstr, tiles_str, tiles_end, it, g_sv_l, gap_parms);
@@ -2970,7 +2970,7 @@ int reform_tiles_(String<Dna5> & seq1,
             }
         }
         */ 
-        if (direction == g_map_rght && (is_tile_end(tiles_str[it]) || it == length(tiles_str) - 1))
+        if (direction == g_map_rght && (is_tile_end(tiles_str[it]) || it == (int)length(tiles_str) - 1))
         {
             it += reformExtendClipTile (seq1, seq2, comstr, tiles_str, tiles_end, it, g_sv_r, gap_parms);
         }
@@ -2995,11 +2995,15 @@ int reform_tiles(String<Dna5> & seq1,
                  int direction,
                  GapParms & gap_parms)
 {
+    unused(seq1);
+    unused(seq2);
+    unused(comstr);
+    unused(sp_tiles);
     //step.1 init tiles_str, tiles_end;
     //Insert head_tile and tail tile at the front and end for each block of tiles
     uint64_t head_tile = gap_str;
     uint64_t tail_tile = shift_tile(gap_end, -gap_parms.thd_tile_size, -gap_parms.thd_tile_size); 
-    if (get_tile_x(gap_end) > gap_parms.thd_tile_size && get_tile_y (gap_end) > gap_parms.thd_tile_size)
+    if ((int64_t)get_tile_x(gap_end) > gap_parms.thd_tile_size && (int64_t)get_tile_y (gap_end) > gap_parms.thd_tile_size)
     {
         tail_tile = shift_tile(gap_end, -gap_parms.thd_tile_size, -gap_parms.thd_tile_size);
     }
@@ -3030,7 +3034,7 @@ int reform_tiles(String<Dna5> & seq1,
     if (empty(tiles_end))
     {
         resize(tiles_end, length(tiles_str));
-        for (int i = 0; i < length(tiles_str); i++)
+        for (int i = 0; i < (int)length(tiles_str); i++)
         {
             tiles_end[i] = tiles_str[i] + d;
         }
@@ -3114,7 +3118,7 @@ int insert_tiles2Cords_(String<uint64_t> & cords, unsigned & pos, String<uint64_
         set_tiles_cords_sgns (tiles, recd);
         uint64_t cordtmp = cords[pos];
         cords[pos] = tiles[0];
-        for (int i = 0; i < length(tiles) - 1; i++)
+        for (int i = 0; i < (int)length(tiles) - 1; i++)
         {
             tiles[i] = tiles[i + 1];
         }
@@ -3147,7 +3151,7 @@ int insert_tiles2Cords_(String<uint64_t> & cords, unsigned & pos, String<uint64_
         {
             _DefaultHit.unsetBlockEnd(cords[pos]);
         }
-        for (int i = 0; i < length(tiles) - 2; i++)
+        for (int i = 0; i < (int)length(tiles) - 2; i++)
         {
             tiles[i] = tiles[i + 1];
         }
@@ -3172,14 +3176,12 @@ int insert_tiles2Cords_(String<uint64_t> & cords_str,
     {
         resize (cords_end, length(cords_str));
         int64_t d = shift_cord (0ULL, int64_t(thd_cord_size), int64_t(thd_cord_size));
-        for (int i = 0; i < length(cords_str); i++)
+        for (int i = 0; i < (int)length(cords_str); i++)
         {
             cords_end[i] = cords_str[i] + d;
         }
     }
     unsigned postmp = pos;
-    int len = length(tiles_str);
-    int len2 = length(cords_str);
     insert_tiles2Cords_(cords_str, pos, tiles_str, direction, thd_max_segs_num);
     insert_tiles2Cords_(cords_end, postmp, tiles_end, direction, thd_max_segs_num);
     return 0;
@@ -3223,7 +3225,7 @@ std::pair<int, int> getExtendsIntervalChainsOverlaps(String<uint64_t> & chain1,
     y1 = (gap_parms.read_len - y1 > gap_parms.thd_dcomx_err_dy) ? y1 + gap_parms.thd_dcomx_err_dy 
             : gap_parms.read_len;
     int i2 = length(chain2);
-    for (int i = 0; i < length(chain2); i++)     
+    for (int i = 0; i < (int)length(chain2); i++)     
     {
         if (getX(chain2[i]) > x1 && getY(chain2[i]) > y1)
         {
@@ -3256,7 +3258,7 @@ int mapAlongChain(String<Dna5> & seq1,
                   uint64_t(*mac_chain2Tile)(uint64_t), 
                   GapParms & gap_parms)
 {
-    if (empty(chains) || i_str < 0 || i_end > length(chains) || i_end <= i_str)
+    if (empty(chains) || i_str < 0 || i_end > (int)length(chains) || i_end <= i_str)
     {
         return -1;
     }
@@ -3282,7 +3284,7 @@ int mapAlongChain(String<Dna5> & seq1,
     if (!empty (anchors_chains))
     {//choose the first chain
         int f_strand = getStrand(chains[0]);
-        for (int i = 0; i < length(anchors_chains[0]); i++)
+        for (int i = 0; i < (int)length(anchors_chains[0]); i++)
         {
             uint64_t new_tile = mac_chain2Tile(anchors_chains[0][i]);
             if (f_strand)
@@ -3336,12 +3338,12 @@ int __extendsIntervalClipOverlapsInsDel_(String<uint64_t> & chain1,
     int score11, score12, score21, score22;
     int min_score = INT_MAX;
     uint64_t x21 = getX(chain2[0]), x22 = getX(chain2[0]); //[x21, x22)
-    for (int i = 0; i < length(chain1); i++)        
+    for (int i = 0; i < (int)length(chain1); i++)        
     {
         uint64_t x1 = getX(chain1[i]);
         uint64_t x2_lower = x1;
         uint64_t x2_upper = x1 + gap_parms.thd_eicos_clip_dxy;
-        for (int j = j1_pre; j < length(chain2) && x21 < x2_lower; j++)
+        for (int j = j1_pre; j < (int)length(chain2) && x21 < x2_lower; j++)
         {
             x21 = getX(chain2[j]); 
             j1 = j;
@@ -3354,7 +3356,7 @@ int __extendsIntervalClipOverlapsInsDel_(String<uint64_t> & chain1,
         {
             break;
         }
-        for (int j = j2_pre; j < length(chain2) && x22 <= x2_upper; j++)
+        for (int j = j2_pre; j < (int)length(chain2) && x22 <= x2_upper; j++)
         {
             x22 = getX(chain2[j]);
             j2 = j;
