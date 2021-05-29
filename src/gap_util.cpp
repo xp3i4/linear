@@ -151,7 +151,7 @@ void insertClipStr(String<uint64_t> & clips, uint64_t clip)
     if (length(clips) >> 1 << 1 != length(clips))
     {
         appendValue (clips, EmptyClipConst);
-        back(clips) &= ~(1023 << 50);
+        back(clips) &= ~(1023ULL << 50);
     }
     appendValue(clips, clip);
 }
@@ -3724,6 +3724,10 @@ int remapChainOneEnd(String<Dna5> & ref,
     {
         i_str = 0;
         i_end = std::min(int(length(chain)), remap_num);
+    }
+    else
+    {
+        return 0;
     }
     mapAlongChain(ref, seq2, chain, remap_chain, i_str, i_end, shape_len, step1,
              step2, getChainX, getChainY, getChainStrand, setChainStrand, anchor2Chain, gap_parms); 
