@@ -1508,12 +1508,12 @@ int trimTiles(String<uint64_t> & tiles,
     int di = 0;
     for (int i = 0; i < (int)length(tiles); i++)
     {
-        uint64_t x_t = get_tile_x(tiles[i]);
-        uint64_t y_t = get_tile_strand(tiles[i] ^ gap_str) ?
+        int64_t x_t = get_tile_x(tiles[i]);
+        int64_t y_t = get_tile_strand(tiles[i] ^ gap_str) ?
                        revscomp_const - 1 - get_tile_y(tiles[i]) - thd_tile_size :
                        get_tile_y(tiles[i]);
-        if (x_t < x_str || x_t + thd_tile_size > x_end || 
-            y_t < y_str || y_t + thd_tile_size > y_end) //out of bound of [gap_str, gap_end)
+        if (x_t < x_str || x_t + (int64_t)thd_tile_size > x_end ||
+            y_t < y_str || y_t + (int64_t)thd_tile_size > y_end) //out of bound of [gap_str, gap_end)
         {
             if (is_tile_start (tiles[i]) && is_tile_end(tiles[i]))
             {
@@ -1521,7 +1521,7 @@ int trimTiles(String<uint64_t> & tiles,
             }
             else if (is_tile_start(tiles[i]))
             {
-                if (i + 1 < length(tiles)) 
+                if (i + 1 < (int)length(tiles))
                 {
                     set_tile_start(tiles[i + 1]);
                 }
@@ -1565,7 +1565,7 @@ int g_create_anchors_ (String<uint64_t> & g_hs,
     uint64_t mask = (1ULL << (2 * shape_len + g_hs_bit3)) - 1;
     std::sort (begin(g_hs), end(g_hs), [mask](uint64_t & a, uint64_t & b){return (a & mask) < (b & mask);});
     int p1 = 0, p2 = 0;
-    for (int k = 1; k < length(g_hs); k++)
+    for (int k = 1; k < (int)length(g_hs); k++)
     {    
         switch (g_hs_getXT((g_hs[k] ^ g_hs[k - 1]) & mask))
         {
@@ -1599,7 +1599,7 @@ int g_CreateExtendAnchorsPair_ (String<uint64_t> & g_hs,
     int p1 = 0, p2 = 0;
     int direction1 = 1;
     int direction2 = -1;
-    for (int k = 1; k < length(g_hs); k++)
+    for (int k = 1; k < (int)length(g_hs); k++)
     {    
         switch (g_hs_getXT((g_hs[k] ^ g_hs[k - 1]) & mask))
         {
@@ -1888,7 +1888,7 @@ int64_t c_clip_anchors_ (String<uint64_t> & anchor,
     }
     std::sort (begin(anchor), end(anchor));
     int i_str = 0;
-    for (int i = 0; i < length(anchor) - 1; i++)
+    for (int i = 0; i < (int)length(anchor) - 1; i++)
     {
         if (g_hs_anchor_getY(anchor[i + 1] - anchor[i]) == 1 &&
             g_hs_anchor_getStrAnchor(anchor[i + 1]) - g_hs_anchor_getStrAnchor(anchor[i])== 0)
@@ -2393,7 +2393,7 @@ uint64_t extendClipRange(String<Dna5> & seq1,
         for (int i = length(anchors_chains[closest_i]) - 1; i >= 0; i--)
         {
             uint64_t new_end_tile = shift_tile(g_hs_anchor2Tile(anchors_chains[closest_i][i]), shape_len, shape_len);
-            if (i == length(anchors_chains[closest_i]) - 1 || 
+            if (i == (int)length(anchors_chains[closest_i]) - 1 ||
                 get_tile_y(pre_end_tile) > get_tile_y(new_end_tile) + thd_new_tile_step)
             {
                 insertValue(tiles_end, 0, new_end_tile);
@@ -2529,7 +2529,7 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
                             short dx = chain_x[k] - x;
                             short dy = chain_y[k] - y;
                             short da = dx - dy;
-                            if (std::abs(dy) <= shape_len && f_first) 
+                            if (std::abs(dy) <= (int)shape_len && f_first)
                             {
                                 k_str = k;
                                 f_first = false;
@@ -2738,9 +2738,12 @@ uint64_t c_clip_(String<Dna5> & genome,
                     << get_tile_x(clip_end - extend_str) 
                     << get_tile_y(clip_end - extend_str);
         extend_end = shift_cord(extend_str, shift, shift);
-
     }
-
+    else
+    {
+        extend_str = 0;
+        extend_end = 0;
+    }
     c_clip_extend_(clip, g_hs, seq1, seq2, extend_str, extend_end,
                    thd_scan_radius, thd_error_level, thd_merge_anchor, thd_merge_drop,clip_direction);
     return clip;
@@ -3825,6 +3828,12 @@ int reExtendChainOneSide(String<Dna5> & ref,
         back(reextend_chain) = shiftChain(chain[i_ptr_end], d, d);
         i_str = ii;
         i_end = i_ptr_end + 1;
+    }
+    else
+    {
+        (void)i_str;
+        (void)i_end;
+        return 0;
     }
     remapChainOneEnd(ref, read, comstr, reextend_chain, shape_len, step1, step2, 
             length(reextend_chain), direction,
