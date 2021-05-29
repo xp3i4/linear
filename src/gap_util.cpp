@@ -1178,9 +1178,9 @@ int g_CreateChainsFromAnchors_(String<uint64_t> & anchors, String<uint64_t> & ti
         thd_chain_depth, thd_chain_dx_depth, thd_best_n, gap_parms.chn_score1, &g_hs_anchor_getX);
     resize (tiles, lengthSum(anchors_chains)); 
     int it = 0;
-    for (int i = 0; i < length(anchors_chains); i++)
+    for (int i = 0; i < (int)length(anchors_chains); i++)
     {
-        for (int j = 0; j < length(anchors_chains[i]); j++)
+        for (int j = 0; j < (int)length(anchors_chains[i]); j++)
         {
             tiles[it++] = g_hs_anchor2Tile(anchors_chains[i][j]);
         }
@@ -1197,11 +1197,11 @@ int g_CreateChainsFromAnchors_(String<uint64_t> & anchors, String<uint64_t> & ti
 std::pair<int, int> getClosestExtensionChain_(String<uint64_t> & tmp_tiles, uint64_t gap_str, uint64_t gap_end, bool f_erase_tiles, GapParms & gap_parms)
 {
     int pre_i = 0;
-    for (int i = 0; i < length(tmp_tiles); i++)
+    for (int i = 0; i < (int)length(tmp_tiles); i++)
     {
         if (is_tile_end(tmp_tiles[i]))
         {
-            int64_t danchor, dx, dy;
+            int64_t danchor = 0, dx, dy;
             if (gap_parms.direction < 0) 
             {
                 dy = get_tile_y(gap_end) - get_tile_y(tmp_tiles[i]); 
@@ -1286,7 +1286,7 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
                 unsigned score =  _get_tile_f_tri_(new_tile, f1, f2, 
                     gap_parms.thd_ctfcs_accept_score, gap_parms.thd_tile_size);
                 //g_print_tile(new_tile, "gs22");
-                if (kcount >= gap_parms.thd_ctfcs_pattern_in_window && score <= 32 && 
+                if (kcount >= (int)gap_parms.thd_ctfcs_pattern_in_window && score <= 32 &&
                     get_tile_y(new_tile) > get_tile_y(pre_tile))
                 {
                     if (empty (tiles) || is_tile_end(back(tiles)))
@@ -1472,7 +1472,7 @@ int trimTiles(String<uint64_t> & tiles,
     int64_t shift_y = std::min(int64_t(get_cord_y(gap_end) - get_cord_y(gap_str)), int64_t(thd_tile_size));
     uint64_t cord_end = shift_cord(gap_end, -shift_x, -shift_y);
 
-    for (int i = 0; i < length(tiles); i++)
+    for (int i = 0; i < (int)length(tiles); i++)
     {
         if (is_tile_start(tiles[i]) && direction >= 0)
         {
@@ -1506,7 +1506,7 @@ int trimTiles(String<uint64_t> & tiles,
     int64_t x_end = get_cord_x(gap_end);
     int64_t y_end = get_cord_y(gap_end);
     int di = 0;
-    for (int i = 0; i < length(tiles); i++)
+    for (int i = 0; i < (int)length(tiles); i++)
     {
         uint64_t x_t = get_tile_x(tiles[i]);
         uint64_t y_t = get_tile_strand(tiles[i] ^ gap_str) ?
