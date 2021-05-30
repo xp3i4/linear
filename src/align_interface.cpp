@@ -36,11 +36,11 @@ void printAlign_(TRow & row1, TRow & row2)
     resize(line2, line_len);
     resize(line3, line_len);
     resize(line4, line_len * 2);
-    for (int j = 0; j < length(line0); j++)
+    for (int j = 0; j < (int)length(line0); j++)
     {
         line0[j] = ' ';
     } 
-    for (int j = 0; j < length(line0); j++)
+    for (int j = 0; j < (int)length(line0); j++)
     {
         line4[j] = ' ';
     }
@@ -56,7 +56,7 @@ void printAlign_(TRow & row1, TRow & row2)
                appendValue(tmpc, tmp - tmp / 10 * 10 + '0');
                tmp /= 10;
             }
-            for (int j = 0; j < length(tmpc); j++)
+            for (int j = 0; j < (int)length(tmpc); j++)
             {
                 line0[count + length(tmpc) - 1 - j] = tmpc[j];
             //    std::cerr << line0[count + length(tmpc) - 1 - j];
@@ -74,7 +74,7 @@ void printAlign_(TRow & row1, TRow & row2)
                appendValue(tmpc, tmp - tmp / 10 * 10 + '0');
                tmp /= 10;
             }
-            for (int j = 0; j < length(tmpc); j++)
+            for (int j = 0; j < (int)length(tmpc); j++)
             {
                 line4[count + length(tmpc) - 1 - j] = tmpc[j];
             }
@@ -92,14 +92,14 @@ void printAlign_(TRow & row1, TRow & row2)
         {
             line3[count] = ' ';
         }
-        if (count == line_len - 1 || i + 1== length(row1))
+        if (count == line_len - 1 || i + 1== (int)length(row1))
         {
             std::cout << "     " << line0 << "\n     " << line1 << "\n     " << line3 << "\n     " << line2 << "\n     " << line4 << "\n";
-            for (int j = 0; j < length(line0); j++)
+            for (int j = 0; j < (int)length(line0); j++)
             {
                 line0[j] = ' ';
             }
-            for (int j = 0; j < length(line1); j++)
+            for (int j = 0; j < (int)length(line1); j++)
             {
                 line1[j] = ' ';
                 line2[j] = ' ';
@@ -317,11 +317,12 @@ void setClippedPositions(TRow & row1, TRow & row2, int beginPos, int endPos)
     return x;
 }
  int getScore_(TRowIterator & it1,
-                     TRowIterator & it2,
-                     int k,
-                     int & x
+               TRowIterator & it2,
+               int k,
+               int & x
 )
 {
+    unused(k);
     int s_match = 8;
     int s_ins = -3;
     int s_del = -3;
@@ -449,6 +450,8 @@ void setClippedPositions(TRow & row1, TRow & row2, int beginPos, int endPos)
             }
         }
     }
+    unused(s3);
+    unused(thd_continuous_gap);
     return x;
 }
  int getScore2_(TRowIterator & it1,
@@ -478,6 +481,7 @@ int detach_copy_row(TRow & row1, TRow & row2)
 {
     row1 = row2;
     detach(row1);
+    return 0;
 }
 
 int align_block (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
@@ -590,6 +594,7 @@ int align_cord (Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
 {
     uint64_t cord_end = _DefaultCord.shift(cord, block_size, block_size);
     int score = align_cord (row1, row2, genome, read, comrev_read, cord, cord_end, band, band, local_flag, _default_scheme_);
+    unused(scheme);
     return score;
 }
 
