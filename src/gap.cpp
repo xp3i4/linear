@@ -25,9 +25,10 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
              int64_t thd_dxy_min,
              GapParms & gap_parms)
 {
+    unused(clips);
     CmpInt64 g_cmpll;
-    float thd_da_zero = gap_parms.thd_err; 
-    float thd_da_rate = 0.1;
+    //float thd_da_zero = gap_parms.thd_err;
+    //float thd_da_rate = 0.1;
     clear(tiles_str);
     clear(tiles_end);
     //dout << "mg3" << get_cord_y(gap_str) << get_cord_y(gap_end) <<direction << "\n";
@@ -39,7 +40,6 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
     int64_t x2 = get_cord_x(gap_end);
     int64_t y1 = get_cord_y(gap_str);
     int64_t y2 = get_cord_y(gap_end);
-    int64_t da = x2 - x1 - y2 + y1;
     int64_t shift_x, shift_y;
     String<uint64_t> sp_tiles; 
     if (get_cord_strand(gap_str ^ gap_end))
@@ -91,8 +91,8 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
             append(tiles_end, tiles_end2);
         }
     }
-    else if (y1 > length(read) - 1 || y2 > length(read) - 1 ||
-             x1 > length(ref) - 1  || x2 > length(ref) - 1)
+    else if (y1 > (int64_t)length(read) - 1 || y2 > (int64_t)length(read) - 1 ||
+             x1 > (int64_t)length(ref) - 1  || x2 > (int64_t)length(ref) - 1)
     {
         //return 1;
         //todo
@@ -117,8 +117,6 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
             String<uint64_t> tiles_end1;
             String<uint64_t> tiles_end2;
             
-            int direction1 = g_map_rght;
-            int direction2 = g_map_left;
             uint64_t gap_str1, gap_str2, gap_end1, gap_end2;
             if (danc > 0) //!ins
             {
@@ -182,8 +180,7 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                          thd_cord_gap, thd_tile_size, thd_err_rate);
                          */
             //try dup for each sp_tiles element.
-            unsigned new_dups_count = 0;
-            for (uint64_t i = 0; i < getClipsLen(sp_tiles); i++)
+            for (uint64_t i = 0; int(i) < getClipsLen(sp_tiles); i++)
             {
                 
               //  String <uint64_t> dup_tiles_left_str;
@@ -268,7 +265,6 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                     String<uint64_t> sp_tiles_inv;
                     uint64_t t_gap_str = tiles_str[i - 1];
                     uint64_t t_gap_end = tiles_str[i];
-                    int t_direction = 0;
                     /*
                     mapInterval(seqs[get_tile_id(gap_str)], read, comstr, tiles_str1, f1, f2,
                         t_gap_str, t_gap_end, LLMIN, LLMAX, t_direction, gap_parms);  
@@ -301,7 +297,7 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                 }
             }
         }
-        for (int i = 1; i < length(tiles_str) - 1; i++)
+        for (int i = 1; i < (int)length(tiles_str) - 1; i++)
         {
             tiles_str[i - 1] = tiles_str[i];
             tiles_end[i - 1] = tiles_end[i];
@@ -375,7 +371,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             shift_y = std::min (int64_t(length(read) - 1 - get_cord_y(cords_str[i])), block_size);
             uint64_t gap_end = shift_cord(cords_str[i], shift_x, shift_y);
             uint64_t gap_str;
-            if (get_cord_y(gap_end) > thd_cord_gap) 
+            if ((int64_t)get_cord_y(gap_end) > thd_cord_gap)
             {            
                 shift_x = std::min(thd_max_extend, get_cord_x(gap_end));
                 shift_y = std::min(thd_max_extend, get_cord_y(gap_end));

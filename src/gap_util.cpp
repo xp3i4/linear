@@ -20,7 +20,6 @@ int editDist(String<Dna5> & seq1, String<Dna5> seq2, uint64_t str1, uint64_t str
     String<Dna5> tmp1 = infix(seq1, str1, str1 + 96);
     String<Dna5> tmp2 = infix(seq2, str2, str2 + 96);
 //    return globalAlignmentScore (tmp1, tmp2, MyersBitVector());
-    double t1 = sysTime();
     unsigned score =  0; //globalAlignmentScore (tmp1, tmp2, scoreAffine);
     return score; 
 }
@@ -82,6 +81,7 @@ GapParms::GapParms(float err_rate) : //estimated err_rate
 //todo::fill in the parms 
 void GapParms::clipChainParms(int shape_len, float thd_err_rate)
 {
+    unused(shape_len);
     thd_ccps_window_size = 5;
     //if (thd_err_rate > 0.20)
     //{
@@ -649,7 +649,6 @@ int g_mapHs_kmer_(String<Dna5> & seq,
     LShape shape(shape_len);
     hashInit(shape, begin(seq) + str);
     int count = 0; 
-    int i = 0; 
     uint64_t val = 0;
     for (uint64_t k = str; k < end; k++)
     {
@@ -676,7 +675,6 @@ int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
                          uint64_t revscomp_const, int64_t anchor_lower, int64_t anchor_upper, 
                          uint64_t gap_str, uint64_t gap_end, int direction, GapParms & gap_parms)
 {
-    unsigned n = 0;
     if (direction == 0)
     {
         for (int i = p1; i < p2; i++) 
@@ -758,7 +756,7 @@ int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
 */
 int dropChainGapX(String<uint64_t> & chains,
                   uint64_t (*getX)(uint64_t),
-                  uint64_t(*getY)(uint64_t),
+                  uint64_t (*getY)(uint64_t),
                   int direction, bool f_erase, GapParms & gap_parms)
 {
     if (direction == g_map_rght)
@@ -825,6 +823,7 @@ unsigned _get_tile_f_ (uint64_t & tile,
     {
         fscore = thd_abort_score;
     }
+    unused(tile_x);
     return fscore;
 }
 /*
@@ -893,6 +892,8 @@ unsigned _get_tile_f_tri_ (uint64_t & new_tile,
         new_tile = tile_r;
         min_score = fscore3;
     }
+    unused(thd_abort_score);
+    unused(thd_accept_score);
     return min_score;
 }
 
@@ -943,6 +944,14 @@ int createTilesFromAnchors1_(String<uint64_t> & anchor,
             anchor_len++;
         }
     }
+    unused(tiles);
+    unused(f1);
+    unused(f2);
+    unused(gap_str);
+    unused(gap_end);
+    unused(thd_tile_size);
+    unused(thd_pattern_in_window);
+    unused(gap_parms);
     return 0;
 }
 
@@ -988,6 +997,7 @@ int getGapAnchorsChainScore(uint64_t const & anchor1, uint64_t const & anchor2, 
     {
         score_dy = dy - 145;
     }
+    unused(chn_score_parms);
     return 100 - score_dy - score_derr ;
 }
 //chain compact anchors whose anchor value are very close
@@ -995,6 +1005,7 @@ int getGapAnchorsChainScore(uint64_t const & anchor1, uint64_t const & anchor2, 
 //For 9mer:step1 = 5:step2 = 1
 int getGapAnchorsChainScore2(uint64_t const & anchor1, uint64_t const & anchor2, ChainScoreParms & chn_score_parms)
 {
+    unused(chn_score_parms);
     int64_t dy = g_hs_anchor_getY(anchor1) - g_hs_anchor_getY(anchor2);
     int64_t dx = g_hs_anchor_getX(anchor1) - g_hs_anchor_getX(anchor2);
     if (dy < 0 || g_hs_anchor_get_strand(anchor1 ^ anchor2) 
@@ -1078,6 +1089,9 @@ int getGapBlocksChainScore2(uint64_t const & cord11, uint64_t const & cord12, ui
             score = 100 - score_dy;
         }
     }
+    unused(d_err);
+    unused(thd_max_dx);
+    unused(thd_max_dy);
     return score;
 }
 
@@ -1146,6 +1160,10 @@ int getGapBlocksChainScore3(uint64_t const & cord11, uint64_t const & cord12, ui
 
         score = 100 - score_da - score_dist;
     }
+    unused(d_err);
+    unused(thd_max_dx);
+    unused(thd_max_dy);
+    unused(thd_dup_trigger);
     return score;
 }
 
@@ -1187,6 +1205,9 @@ int g_CreateChainsFromAnchors_(String<uint64_t> & anchors, String<uint64_t> & ti
         set_tile_end(tiles[it - 1]);
     } 
     chainTiles(tiles, read_len, thd_anchor_gap_size, gap_parms);
+    unused(block_str);
+    unused(gap_str);
+    unused(gap_end);
     return 0;
 }
 
@@ -1313,6 +1334,7 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
     {
         set_tile_end(back(tiles)) ;
     }
+    unused(thd_fscore);
     return 0;
 }
 /*
@@ -1425,6 +1447,7 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
     }
     append(tiles_str, tiles_str_tmp);
     append(tiles_end, tiles_end_tmp);
+    unused(tiles_str_i);
     return 0;
 }
 /*
@@ -1628,6 +1651,7 @@ int g_stream_(String<Dna5> & seq1, //genome
               int step2,
               GapParms & gap_parms)
 {
+    unused(gap_parms);
     //clear(g_hs);
     //resize(g_hs, 1ULL << 20);
     uint64_t gs_str = get_cord_x(gap_str);
@@ -1654,7 +1678,6 @@ int c_stream_(String<Dna5> & seq,String<uint64_t> & g_hs,
     LShape shape(shape_len);
     hashInit_hs(shape, begin(seq) + sq_str, 0);
     int count = 0; 
-    int i = 0; 
     uint64_t val = 0;
 
     for (uint64_t k = sq_str; k < sq_end; k++)
@@ -4485,4 +4508,14 @@ int mapGeneric(StringSet<String<Dna5> > & seqs,
     gap_parms.f_rfts_clip = f_rfts_clip;
     (void)thd_gather_block_gap_size; 
     return 0;
+}
+
+void unusedGlobals()
+{
+    unused(g_thd_anchor_density);
+    unused((g_thd_error_percent));
+    unused(c_shape_len2);
+    unused(g_hs_bit1);
+    unused(g_hs_bit2);
+
 }
