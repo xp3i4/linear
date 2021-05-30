@@ -185,8 +185,11 @@ void print_cord(uint64_t cord, CharString header)
 {
     std::cout << header << " " 
               << get_cord_strand(cord) << " " 
+              << get_cord_id(cord) << " "
               << get_cord_x(cord) << " "
-              << get_cord_y(cord) << "\n";
+              << get_cord_y(cord) << " "
+              << is_cord_block_end(cord) << " "
+              << "\n";
 }
 
 uint64_t create_cord (uint64_t id, uint64_t cordx, uint64_t cordy, uint64_t strand)
@@ -270,8 +273,8 @@ void print_cords(String<uint64_t> & cords, CharString header)
     int64_t prex = 0, prey = 0;
     for (uint i = 0; i < length(cords); i++)
     {
-        std::cout << header << " " << i << " "
-                  << get_cord_id(cords[i]) << " "
+        std::cout << header << " " << i << " id= "
+                  << get_cord_id(cords[i]) << " strand= "
                   << get_cord_strand(cords[i]) << " "
                   << get_cord_x(cords[i])  << " "
                   << get_cord_y (cords[i]) << " " 

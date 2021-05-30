@@ -1264,16 +1264,16 @@ std::pair<int, int> getClosestExtensionChain_(String<uint64_t> & tmp_tiles, uint
 //Note::chains are supposed to have one tile_end sign (one block) at most
 //The new tiles created from [@chains[it_str], @chains[it_end]) are appended to the @tiles
 int g_CreateTilesFromChains_ (String<uint64_t> & chains, 
-                            String<uint64_t> & tiles, 
-                            StringSet<FeaturesDynamic> & f1,
-                            StringSet<FeaturesDynamic> & f2,
-                            uint64_t gap_str, 
-                            int it_str, 
-                            int it_end, 
-                            uint64_t(*get_x)(uint64_t), //get_x of chains rather than tile
-                            uint64_t(*get_y)(uint64_t),
-                            uint64_t(*get_strand)(uint64_t),
-                            GapParms & gap_parms)
+                              String<uint64_t> & tiles, 
+                              StringSet<FeaturesDynamic> & f1,
+                              StringSet<FeaturesDynamic> & f2,
+                              uint64_t gap_str, 
+                              int it_str, 
+                              int it_end, 
+                              uint64_t(*get_x)(uint64_t), //get_x of chains rather than tile
+                              uint64_t(*get_y)(uint64_t),
+                              uint64_t(*get_strand)(uint64_t),
+                              GapParms & gap_parms)
 {
     if (it_end - it_str == 0)
     {
@@ -1386,7 +1386,10 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
             {
                 break;
             }
-            uint64_t new_head_str = chains[it_str];
+            uint64_t new_head_str = create_tile(get_cord_id(gap_str), 
+                                                get_x(chains[it_str]), 
+                                                get_y(chains[it_str]),
+                                                get_strand(chains[it_str]));
             remove_tile_sgn(new_head_str);
             if (i == 0)
             {
@@ -1402,7 +1405,10 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
         if (i == length(tiles_str_tmp) - 1) //if not found such...
         {
             clear(tiles_str_tmp);
-            appendValue(tiles_str_tmp, chains[it_str]);
+            appendValue(tiles_str_tmp, create_tile(get_cord_id(gap_str),
+                                                   get_x(chains[it_str]),
+                                                   get_y(chains[it_str]),
+                                                   get_strand(chains[it_str])));
         }
     }
     resize(tiles_end_tmp, length(tiles_str_tmp));
@@ -1423,7 +1429,10 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
             }
             erase (tiles_str_tmp, i + 1, length(tiles_str_tmp));
             erase (tiles_end_tmp, i + 1, length(tiles_end_tmp));
-            uint64_t new_tail_end = chains[it_end - 1];
+            uint64_t new_tail_end = create_tile(get_cord_id(gap_str), 
+                                                get_x(chains[it_end - 1]), 
+                                                get_y(chains[it_end - 1]),
+                                                get_strand(chains[it_end - 1]));
             uint64_t new_tail_str = shift_tile(new_tail_end, -tile_size, -tile_size);
             if (is_tile_end(tiles_str_tmp[i]))
             {
@@ -1445,6 +1454,7 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
             //set_tile_end(tiles_end_tmp[0]);
         }
     }
+
     append(tiles_str, tiles_str_tmp);
     append(tiles_end, tiles_end_tmp);
     unused(tiles_str_i);

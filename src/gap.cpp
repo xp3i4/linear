@@ -388,6 +388,8 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                     mapGap_ (seqs, read, comstr, gap_str, gap_end, f1, f2, tiles_str, tiles_end, clips, direction, thd_dxy_min, gap_parms);
                     insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size, thd_max_segs_num);
                 }
+                //_DefaultHit.setBlockEnd(cords_str[i - 1 + length(tiles_str)]);
+                //_DefaultHit.setBlockEnd(cords_end[i - 1 + length(tiles_str)]);
                 /*
                 else
                 {
@@ -451,6 +453,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                 {
                     mapGap_ (seqs, read, comstr, gap_str, gap_end, f1, f2, tiles_str, tiles_end, clips, direction, thd_dxy_min, gap_parms);
                     insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size, thd_max_segs_num);
+                    //dout << "mgr" << is_cord_block_end(cords_str[i + length()]) << "\n";
                 }
                 /*else
                 {
@@ -475,7 +478,6 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             }
         }
     }
-
     //mapGapGlobal();
     return 0;
 }
