@@ -97,6 +97,16 @@ int mergeCordBand (uint64_t & cord_str1, uint64_t & cord_end1,
                    int & band_lower2, int & band_upper2, 
                    int thd_max_band)
 {
+    unused(cord_str1);
+    unused(cord_str2);
+    unused(cord_end1);
+    unused(cord_end2);
+    unused(band_lower1);
+    unused(band_lower2);
+    unused(band_upper1);
+    unused(band_upper2);
+    unused(thd_max_band);
+
     return 0;
 }
 /*
@@ -262,5 +272,6 @@ int mergeCordsBands(String<uint64_t> & cords_str,
             i_str = i + 1;
         }
     }
+    unused(parm);
     return 0;
 }
