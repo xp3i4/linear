@@ -300,6 +300,7 @@ int traceBackChains(String<ChainElementType> & elements,  StringSet<String<Chain
 
 int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2, ChainScoreParms & chn_sc_parms)
 {
+    unused(chn_sc_parms);
     int64_t dy = get_cord_y(anchor1) - get_cord_y(anchor2);
     if (dy < 10)
     {
@@ -353,7 +354,6 @@ int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2, ChainSc
     {
         return 100 - score_dy - score_derr ;    
     }
-    unused(chn_sc_parms);
 }
 
 int chainAnchorsBase(String<uint64_t> & anchors, StringSet<String<uint64_t> > & anchors_chains, 
@@ -506,6 +506,10 @@ int chainBlocksBase(StringSet<String<UPair> > & chains, String<uint64_t> & recor
  */
 int getApxChainScore2(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len, ChainScoreParms & chn_sc_parms)
 {
+    (void)read_len;
+    unused(cord12);
+    unused(cord21);
+    unused(chn_sc_parms);
     int64_t thd_max_d = 20000;
     int64_t thd_indel_trigger = 100;
     int64_t thd_indel_op = 30; //indel open penalty
@@ -541,11 +545,6 @@ int getApxChainScore2(uint64_t const & cord11, uint64_t const & cord12, uint64_t
     else                    {d_err = 10000;}
     */
     //dy /= 150;    
-
-    (void)read_len;
-    unused(cord12);
-    unused(cord21);
-    unused(chn_sc_parms);
     //return 100 - dy - score_derr ;    
 }
 
@@ -931,8 +930,6 @@ int revertChainBlockStrand(StringSet<String<UPair> > & cords_chains,
 {
     uint64_t swap_str = 0;
     uint64_t f_strand = strand ? 1 : 0;
-    UPair cordy_pair_pre;
-    UPair cordy_pair;
     for (unsigned i = 0; i < length(cords_chains); i++) 
     {
         appendValue(cords_chains[i], UPair(0,0));
@@ -1114,5 +1111,8 @@ int getChainBlocksScore1(uint64_t const & cord11, uint64_t const & cord12,
 
     return score;
 }
-
+void unusedGlobalsClusterUtil()
+{
+    unused(chain_end_score);
+}
 //End all mapper module
