@@ -46,6 +46,7 @@ void align2cigar_(String<CigarElement< > > &cigar,
         unsigned splicedGapThresh
         )
 {
+    unused(splicedGapThresh);
     typedef Row<Align<String<Dna5>,ArrayGaps> >::Type TRow;
     typename Iterator<TRow>::Type it1 = begin(gaps1);
     typename Iterator<TRow>::Type it2 = begin(gaps2);
@@ -130,7 +131,7 @@ int clip_cigar (String<CigarElement<> > & cigar)
 {
     int x = 0, y = 0;
     int score = 0; 
-    for (int i = 0; i < length(cigar); i++)
+    for (int i = 0; i < (int)length(cigar); i++)
     {
 
         switch(cigar[i].operation)
@@ -162,6 +163,7 @@ int clip_cigar (String<CigarElement<> > & cigar)
         }
         //std::cout << "[]::clip_cigar "  << " " << x << " " << y << " " << cigar[i].count << cigar[i].operation << "\n";
     }
+    unused(score);
     return 0;
 }
 /*
@@ -181,7 +183,7 @@ int insertCigar(String<CigarElement< > > &cigar1,
     {
         return 1;
     }
-    else if (pos > length(cigar1))  
+    else if (pos > (int)length(cigar1))
     {
         p = length(cigar1);
     }
@@ -196,7 +198,7 @@ int insertCigar(String<CigarElement< > > &cigar1,
         insert(cigar1, p, cigar2);
         return 0;
     }
-    if (p == length(cigar1)) //insert at end
+    if (p == (int)length(cigar1)) //insert at end
     {
         if (back(cigar1).operation == cigar2[0].operation)
         {
@@ -234,7 +236,7 @@ int insertBamRecordCigar (BamAlignmentRecordLink & bam_record,
     }
     else
     {
-        if (pos > length(bam_record.cigar ))
+        if (pos > (int)length(bam_record.cigar ))
         {
             return 1;
         }
@@ -711,7 +713,7 @@ int64_t RowPosViewer::findSrc(int64_t find_src)
 {
     init(*rp);
     //rp->_clippingBeginPos = 25;
-    for (; array_i < length(rp->_array); )
+    for (; array_i < (int64_t)length(rp->_array); )
     {
         if (f_array && src >= find_src)
         {
@@ -719,7 +721,7 @@ int64_t RowPosViewer::findSrc(int64_t find_src)
             src = find_src;
             break;
         }
-        if (++array_i < length(rp->_array))
+        if (++array_i < (int64_t)length(rp->_array))
         {
             view_bucket_sum += rp->_array[array_i];
             uc_view = view_bucket_sum - 1;
@@ -732,7 +734,7 @@ int64_t RowPosViewer::findSrc(int64_t find_src)
 int64_t RowPosViewer::findView(int64_t find_view)
 {
     init(*rp);
-    for (;array_i < length(rp->_array);)
+    for (;array_i < (int64_t)length(rp->_array);)
     {
         
         if (uc_view - rp->_clippingBeginPos >= find_view)
@@ -744,7 +746,7 @@ int64_t RowPosViewer::findView(int64_t find_view)
             uc_view = find_view + rp->_clippingBeginPos;
             break;
         }
-        if (++array_i < length(rp->_array))
+        if (++array_i < (int64_t)length(rp->_array))
         {
             view_bucket_sum += rp->_array[array_i];
             uc_view = view_bucket_sum - 1;
@@ -855,7 +857,7 @@ int64_t seqanRemoveHead_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row)
     return src_count;
     */
     
-    for (int i = 0 ; i < length(row._array); i++) 
+    for (int i = 0 ; i < (int64_t)length(row._array); i++)
     {
         pos += row._array[i];
         //std::cerr << pos << " "<< view_pos << " " << i << " " << length(row._array) << "\n";
@@ -1088,6 +1090,7 @@ int findBestMerge_(AlignCache & align1,
         }
     }
     //dout << "fm" << min_gaps_len << min_clip2 << f_min << "\n";
+    unused(bit2);
     return f_min ? 0 : (16 | 1);
 }
 int createMergedRows_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
