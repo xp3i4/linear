@@ -15,6 +15,7 @@ int process1 (Mapper & mapper, Options & options, int p1)
     createFeatures(mapper.getGenomes(), mapper.getGenomesFeatures(), 
         mapper.getFeatureType(), mapper.getThreads());
     mapper.createIndex(0, length(mapper.getGenomes()), false); 
+    unused(options);
     return map (mapper, empty_buckets, empty_fin_pos, 0, 0, p1);
 }
 
@@ -80,6 +81,8 @@ int process3(Mapper & mapper, Options & options, int p1)
         p_ThreadProcess(mapper, p_parms, omp_get_thread_num());
     }
     //mapper.getTasks().printInfos();
+    unused(p1);
+    unused(options);
     return 0;
 }
 

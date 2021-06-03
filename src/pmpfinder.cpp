@@ -1542,6 +1542,7 @@ int gather_gaps_y_ (String<uint64_t> & cords,
                     uint64_t read_len,
                     uint64_t thd_gap_size)
 {
+    unused(cords);
     uint64_t cord_frt = shift_cord(0, 0, 0); //cord at front 
     uint64_t cord_end = shift_cord(0, 0, read_len - 1); //..end
 
@@ -1550,7 +1551,7 @@ int gather_gaps_y_ (String<uint64_t> & cords,
         appendValue (gaps, UPair(cord_frt, cord_end));
         return 0;
     }
-    std::sort (begin(str_ends), end(str_ends), [& cords, &read_len](UPair & i, UPair & j)
+    std::sort (begin(str_ends), end(str_ends), [&read_len](UPair & i, UPair & j)
     {
         uint64_t y1 = get_cord_strand(i.first) ? 
                       read_len - get_cord_y(i.second) - 1 : get_cord_y(i.first);

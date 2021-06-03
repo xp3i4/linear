@@ -643,7 +643,7 @@ int map_(IndexDynamic & index,
     #pragma omp for
     for (unsigned j = 0; j < length(reads); j++)
     {
-        double t1 = sysTime ();
+        //double t1 = sysTime ();
         red_len[thd_id] += length(reads[j]);
         
         if (length(reads[j]) > thd_min_read_len)

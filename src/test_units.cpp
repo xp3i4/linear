@@ -22,18 +22,16 @@ int check_cigar(StringSet<String<Dna5> > & genomes,
     String<Dna5> infix2;
     int count_mat = 0;
     int count_mis = 0;
-    int len = length(read) - 1;
     int f_new = 1;
     int j = 0;
     int it1 = 0;
     int it2 = 0;
     int base = 1;
-    int f_b_end = 1;
     int seg_str_r;
     typedef std::pair<int, int> PairType ;
     String<PairType> covs;
     appendValue (covs, PairType(0,0));
-    for (int i = 0; i < length(bam_records); i++)
+    for (int i = 0; i < (int)length(bam_records); i++)
     {
         std::cout << "chxxxb1 " << i<< " " << bam_records[i].isEnd() << " ";
         if (!(length(bam_records[i].cigar) == 0 ||
@@ -76,12 +74,12 @@ int check_cigar(StringSet<String<Dna5> > & genomes,
                 j = 0;
             }
             seg_str_r = it2;
-            for (; j < length(bam_records[i].cigar); j++)
+            for (; j < (int)length(bam_records[i].cigar); j++)
             {
                 char op = bam_records[i].cigar[j].operation;
                 int cnt = bam_records[i].cigar[j].count;
-                if ((it1 + cnt >= length(infix1) && (op != 'I'))|| 
-                    (it2 + cnt >= length(infix2) && (op != 'D')))
+                if ((it1 + cnt >= (int)length(infix1) && (op != 'I'))||
+                    (it2 + cnt >= (int)length(infix2) && (op != 'D')))
                 {
                     dout << "bk1" << i << j << it1 << it2 << cnt << length(infix2) << "\n";
                     break;
@@ -162,6 +160,8 @@ int check_cigar(StringSet<String<Dna5> > & genomes,
     }
     */
     dout << "c_s" << float(covs_s) / length(read) << "\n";
+    unused(cords);
+    return 0;
 }
 /*
 int check_index1(StringSet<String<Dna5> > & seqs, IndexDynamic & index, unsigned threads)
@@ -292,9 +292,10 @@ int check_apx_feature(StringSet<String<Dna5> > & seqs, unsigned threads)
     std::vector<std::array<int, 3> > & freqs
     count_1mer_freq(seq[0], freqs, script_size);
     */
-    for (int i = 0; i < length(seqs[0]); i++)
+    for (int i = 0; i < (int)length(seqs[0]); i++)
     {
 
-
     }
+    unused(threads);
+    return 0;
 }
