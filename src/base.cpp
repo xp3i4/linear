@@ -264,7 +264,8 @@ int loadRecords(StringSet<String<Dna5> > & seqs,
         }
         if (i == 0)
         {
-            serr.print_message ("--Read genomes      ", 0, 1, cerr);
+            serr.print_message ("--Read genomes \         
+                                   ", 0, 1, cerr);
         }
         std::string msg1 = "File: " + paths[i] + " ";
         serr.print_message (msg1, 2, 0, cerr);
