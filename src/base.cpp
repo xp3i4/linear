@@ -26,7 +26,7 @@ Options::Options():
         name("li\033[1;31mN\033[m\033[1;34mE\033[mar"),
         version("1.8.2"),
         oPath(""),
-        slogan("\033[1;31mN\033[movel, \033[1;34mE\033[mfficient"),
+        slogan("\033[1;31mN\033[movel \033[1;34mE\033[mfficient \033[1;33mC\033[moncise"),
         gap_len(0),
         apx_chain_flag(1),
         aln_flag(0),
