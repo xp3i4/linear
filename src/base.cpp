@@ -23,7 +23,10 @@ int64_t const LLMIN = -LLMAX;
 using std::cerr;
 
 Options::Options():
+        name("li\033[1;31mN\033[m\033[1;34mE\033[mar"),
+        version("1.8.2"),
         oPath(""),
+        slogan("\033[1;31mN\033[movel, \033[1;34mE\033[mfficient"),
         gap_len(0),
         apx_chain_flag(1),
         aln_flag(0),
@@ -43,6 +46,9 @@ Options::Options():
            date += __DATE__;
         }
 std::string Options::getOutputPath() const {return oPath;}
+void Options::printRunInfo(){
+    std::cerr << name <<": " << slogan << std::endl; 
+}
 
 /*
  * flip strand from 0, 1 to -1, 1;
