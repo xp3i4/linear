@@ -986,8 +986,8 @@ int alignCachePos_(TRow5A & row1, TRow5A & row2, AlignCache & align,
         rpv1.findView(rpv2.getView());
     }
     //dout << "capos3" << rpv2.getSrc() << rpv1.getView() << toSourcePosition(row2, rpv2.getView()) << rpv2.getView() << toSourcePosition(row1, rpv1.getView()) << "\n";
-    while(rpv1.getSrc() < std::min(src_x_u, uint64_t(endPosition(row1))) || 
-          rpv2.getSrc() < std::min(src_y_u, uint64_t(endPosition(row2))))
+    while(rpv1.getSrc() < (int64_t)std::min(src_x_u, uint64_t(endPosition(row1))) ||
+          rpv2.getSrc() < (int64_t)std::min(src_y_u, uint64_t(endPosition(row2))))
     {
         //rpv1.uc_pos1 == rpv2.up_view && uc_pos rpv2.view = rpv2.view
         align.appendValue(rpv1.getUCView(), rpv1.getSrc(), rpv2.getSrc(), cord_0);
@@ -2040,11 +2040,11 @@ int _calClipBamRecordLinkRange(String<BamAlignmentRecordLink> & records,
     for (int i = 0; i < (int)length(ranges_coverage); i++)
     {
         if (ranges_coverage[i].coverage < 2 &&
-            ranges_coverage[i].r_end - ranges_coverage[i].r_str > thd_min_coverage_len)
+            ranges_coverage[i].r_end - ranges_coverage[i].r_str > (int)thd_min_coverage_len)
         {
             ranges_coverage[it] = ranges_coverage[i];
             if (it > 0 && 
-                ranges_coverage[it].r_str - ranges_coverage[it - 1].r_end < thd_min_coverage_len)
+                ranges_coverage[it].r_str - ranges_coverage[it - 1].r_end < (int)thd_min_coverage_len)
             {
                 ranges_coverage[it - 1].r_end = ranges_coverage[it].r_end;
                 it--;
@@ -2288,7 +2288,7 @@ void printGaps(String<std::pair<uint64_t, uint64_t> > & gaps)
 /*========================================================
 =            Main functions of aligning cords            =
 =========================================================*/
-int const flag_clip_unset = 1 << 32;
+int const flag_clip_unset = 1 << 31;
 int const flag_clip_head = 1;
 int const flag_clip_tail = 2;
 void set_clip_head_flag (int &flag) {flag |= flag_clip_head;}
@@ -2736,7 +2736,7 @@ int alignCords (StringSet<String<Dna5> >& genomes,
         String<uint64_t> split_cords_end;
         uint64_t thd_joint_view_size = block_size + 500000;
         uint64_t thd_split = 3 * thd_joint_view_size;
-        if (clippedEndPosition(rstr[ri]) - clippedBeginPosition(rstr[ri]) > thd_split)
+        if (clippedEndPosition(rstr[ri]) - clippedBeginPosition(rstr[ri]) > (int64_t)thd_split)
         {
             //$This is to split the block of alignment into two sub-blocks
             //$init Global vars
