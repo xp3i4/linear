@@ -2984,7 +2984,7 @@ int reform_tiles_(String<Dna5> & seq1,
     {
         uint64_t thd_gap_size = gap_parms.thd_gap_len_min;
         unused(thd_gap_size);
-        if ((it == 0 || it > 0 && is_tile_end (tiles_str[it - 1])) && direction == g_map_left)
+        if ((it == 0 || (it > 0 && is_tile_end (tiles_str[it - 1]))) && direction == g_map_left)
         {
             it += reformExtendClipTile (seq1, seq2, comstr, tiles_str, tiles_end, it, g_sv_l, gap_parms);
         }
@@ -3830,7 +3830,7 @@ int reExtendChainOneSide(String<Dna5> & ref,
                               int64_t(lower)});
         for (ii = i_ptr_str; ii < i_ptr_end; ii++)
         {
-            if (get_tile_x(chain[ii]) - get_cord_x(chain[i_ptr_str]) >= upper) 
+            if (get_tile_x(chain[ii]) - get_cord_x(chain[i_ptr_str]) >= upper)
             {
                 break;
             } 
