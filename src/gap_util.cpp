@@ -2650,7 +2650,7 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
                             short dx = x - chain_x[k];
                             short dy = y - chain_y[k];
                             short da = dx - dy;
-                            if (std::abs(dy) <= shape_len && f_first) 
+                            if (std::abs(dy) <= (int)shape_len && f_first)
                             {
                                 k_str = k;
                                 f_first = false;
