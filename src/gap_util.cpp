@@ -2130,7 +2130,7 @@ int getExtendClipScore(uint64_t const & anchor1, uint64_t const & anchor2, Chain
     //d_err
     if (da == 0)
     {
-        score_dy == 0;
+        score_dy = 0;
     }
     if (da < 2)
     {
