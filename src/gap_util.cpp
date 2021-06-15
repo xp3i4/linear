@@ -1743,7 +1743,8 @@ int c_createAnchorsBlocks_ (String<uint64_t> & g_hs,
     if (x_lower == 0 && x_upper == 0)
     {
         dx_lower = ~0;
-        dx_upper = (1LL << 63) - 1;
+        dx_upper = std::numeric_limits<int64_t>::max();
+        //dout << "dxm" << dx_upper << "\n";
     }
     else 
     {
