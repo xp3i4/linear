@@ -439,7 +439,7 @@ void _printHit(String<uint64_t> & hit, CharString header)
 //return if range [x11, x12) and [x21, x22) has overlap
 bool _isRangeOverLap(uint64_t x11, uint64_t x12, uint64_t x21, uint64_t x22)
 {
-    return std::max(x11, x21) < std::min(x21, x22);
+    return std::max(x11, x21) < std::min(x12, x22);
 }
 
 bool _isCordyOverLap(uint64_t cord11, uint64_t cord12, uint64_t cord21, uint64_t cord22, uint64_t read_len)
@@ -542,7 +542,7 @@ int reformCords(String<uint64_t> & cords_str,
  */
 int scaleDxDy_(int64_t & dx, int64_t &d1, int64_t & dy, int64_t & d2)
 {
-    if ((d1 >= 0 && d2 >= 0) || (d1 <= 0 && d2 <= 0) && (d1 || d2))
+    if (dx * dy >= 0 && d1 * d2 >=0 && dx * d1 >= 0 && (dx || dy || d1 || d2))
     {
         int64_t c1 = std::abs(d1 * dy), c2 = std::abs(d2 * dx);
         if (c1 > c2)
