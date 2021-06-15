@@ -3852,7 +3852,7 @@ int reExtendChainOneSide(String<Dna5> & ref,
                           int64_t(upper)}); 
         for (ii = i_ptr_end; ii > i_ptr_str; ii--)
         {
-            if (int64_t((chain[i_ptr_end]) - get_tile_x(chain[ii])) >= lower)
+            if (int64_t(get_tile_x(chain[i_ptr_end]) - get_tile_x(chain[ii])) >= lower)
             {
                 break;
             }
