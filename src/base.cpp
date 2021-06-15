@@ -23,7 +23,10 @@ int64_t const LLMIN = -LLMAX;
 using std::cerr;
 
 Options::Options():
+        name("li\033[1;31mN\033[m\033[1;34mE\033[mar"),
+        version("1.8.2"),
         oPath(""),
+        slogan("\033[1;31mN\033[movel \033[1;34mE\033[mfficient \033[1;33mC\033[moncise"),
         gap_len(0),
         apx_chain_flag(1),
         aln_flag(0),
@@ -43,6 +46,9 @@ Options::Options():
            date += __DATE__;
         }
 std::string Options::getOutputPath() const {return oPath;}
+void Options::printRunInfo(){
+    std::cerr << name <<": " << slogan << std::endl; 
+}
 
 /*
  * flip strand from 0, 1 to -1, 1;
@@ -258,7 +264,8 @@ int loadRecords(StringSet<String<Dna5> > & seqs,
         }
         if (i == 0)
         {
-            serr.print_message ("--Read genomes      ", 0, 1, cerr);
+            serr.print_message ("--Read genomes \         
+                                   ", 0, 1, cerr);
         }
         std::string msg1 = "File: " + paths[i] + " ";
         serr.print_message (msg1, 2, 0, cerr);

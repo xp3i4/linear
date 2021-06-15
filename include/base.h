@@ -29,6 +29,9 @@ typedef uint64_t uintll;
 struct Options{
     typedef std::string PathType;
     typedef StringSet<PathType> PathsType;
+    std::string name;
+    std::string version;
+    std::string slogan;
     PathType oPath;
     PathsType r_paths;
     PathsType g_paths;
@@ -55,14 +58,13 @@ struct Options{
     int         p1;
 
 //global options status
-    std::string versions;
     std::string date; 
-
     std::string read_group;
     std::string sample_name;
     int sequence_sam_flag;
     Options();
     std::string getOutputPath() const;
+    void printRunInfo();
 }; 
 
 std::pair<uint, uint> 
