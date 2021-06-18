@@ -575,7 +575,7 @@ int _filterBlocksHits(StringSet<String<UPair> > & chains, String<uint64_t> & hit
     float thd_major_bound = 0.8 * len_current; // len > this * first major len is regarded as optional major chain
     uint thd_major_limit = 2;
     uint major_n = 1;
-    uint64_t thd_x_max_delta = read_len * 2; //max distance allowed any x to the x of the major chain
+    int64_t thd_x_max_delta = read_len * 2; //max distance allowed any x to the x of the major chain
     bool f_append = false;
     for (uint i = 1; i < length(chains); i++)
     {
@@ -601,8 +601,8 @@ int _filterBlocksHits(StringSet<String<UPair> > & chains, String<uint64_t> & hit
                     uint64_t end_major = hits[best_chain[k].second - 1];
                     uint64_t str_current = hits[chains[i][j].first];
                     uint64_t end_current = hits[chains[i][j].second - 1];
-                    int64_t dx_lower = int64_t(get_cord_x(str_major) - get_cord_x(str_current));
-                    int64_t dx_upper = int64_t(get_cord_x(end_current) - get_cord_x(end_major));
+                    int64_t dx_lower = get_cord_x(str_major) - get_cord_x(str_current);
+                    int64_t dx_upper = get_cord_x(end_current) - get_cord_x(end_major);
                     f_append = dx_lower <= thd_x_max_delta && dx_upper < thd_x_max_delta  &&
                                !_isCordyOverLap(str_major, end_major, str_current, end_current, read_len);
                 }
