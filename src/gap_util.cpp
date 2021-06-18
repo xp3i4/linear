@@ -646,11 +646,15 @@ int g_mapHs_kmer_(String<Dna5> & seq,
                    int step,  
                    uint64_t type)
 {
+    if (length(seq) < shape_len)
+    {
+        return 0;
+    }
     LShape shape(shape_len);
     hashInit(shape, begin(seq) + str);
     int count = 0; 
     uint64_t val = 0;
-    for (uint64_t k = str; k < end; k++)
+    for (uint64_t k = str; k < std::min(end, length(seq) - shape_len); k++)
     {
         val = hashNextV(shape, begin(seq) + k);
         if (++count == step)  //collecting every step bases
