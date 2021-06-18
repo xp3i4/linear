@@ -27,7 +27,7 @@ Options::Options():
         version("1.8.2"),
         oPath(""),
         slogan("\033[1;31mN\033[movel \033[1;34mE\033[mfficient \033[1;33mC\033[moncise"),
-        gap_len(0),
+        gap_len(1),
         apx_chain_flag(1),
         aln_flag(0),
         sam_flag(1),
@@ -40,7 +40,7 @@ Options::Options():
         feature_t(2), //apx2_48 by defalut
         read_group(""),
         sample_name(""),
-        sequence_sam_flag(0)
+        sequence_sam_flag(1)
         {
            date += __TIME__; 
            date += " ";

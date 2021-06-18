@@ -123,7 +123,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
         seqan::ArgParseArgument::STRING, "STR"
         ));
     addOption (parser, seqan::ArgParseOption(
-        "ss", "sequence_sam", "Set to Enable/Disable printing sequence segment of reads in the SAM/BAM format. -ss 0(Disabled) {DEFAULT}",
+        "ss", "sequence_sam", "Set to Enable/Disable printing sequence segment of reads in the SAM/BAM format. -ss 1(Enable) {DEFAULT}",
         seqan::ArgParseArgument::INTEGER, "INT"
         ));
     addOption(parser, seqan::ArgParseOption(
