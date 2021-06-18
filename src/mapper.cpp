@@ -822,8 +822,9 @@ int map(Mapper & mapper,
         //serr.print_message("\033[1;31m" + file2s[i] + "\033[0m ", 0, 0, cerr);
         if (fp_handler_.isPrintSam(mapper.getPrintFlag()))
         {
-            serr.print_message("\033[1;31m" + file3s[i] + "\033[0m ", 16, 1, cerr); 
+            serr.print_message("\033[1;31m" + file3s[i] + "\033[0m ", 0, 0, cerr); 
         }
+        serr.print_message(" ", 16, 1, cerr);  
     }
     //!!TODO::clear index;
     //mapper.index().clear(); 
