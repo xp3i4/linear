@@ -177,7 +177,7 @@ int mergeCordsBands2(String<uint64_t> & cords_str,
    the rectangle
  */
 LineSegment getRectangleBandStrEnd(uint64_t x_str, uint64_t y_str,
-        uint64_t x_end, uint64_t y_end, uint64_t band, uint64_t f_l_u)
+        uint64_t x_end, uint64_t y_end, uint64_t band, int64_t f_l_u)
 {
     if (f_l_u < 0) //lower band
     {
