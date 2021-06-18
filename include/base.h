@@ -40,6 +40,7 @@ struct Options{
     uint apx_chain_flag;
     uint aln_flag;
     uint sam_flag;
+    uint apf_flag;
     uint reform_ccs_cigar_flag;
     uint bal_flag;
 

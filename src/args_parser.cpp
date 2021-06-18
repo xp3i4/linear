@@ -28,7 +28,12 @@ parseCommandLine(Options & options, int argc, char const ** argv)
             new_vals = (char*)"1";
             new_args.push_back ((const char*)new_vals);
         }
-        if (std::string(argv[i]) == "-s" && (i + 1 >= argc || !is_number (argv[i + 1])))
+        if (std::string(argv[i]) == "-os" && (i + 1 >= argc || !is_number (argv[i + 1])))
+        {
+            new_vals = (char*)"1";
+            new_args.push_back ((const char*)new_vals);
+        }
+        if (std::string(argv[i]) == "-oa" && (i + 1 >= argc || !is_number (argv[i + 1])))
         {
             new_vals = (char*)"1";
             new_args.push_back ((const char*)new_vals);
@@ -102,7 +107,11 @@ parseCommandLine(Options & options, int argc, char const ** argv)
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
     addOption (parser, seqan::ArgParseOption(
-        "s", "sam_flag", "Set to Enable/Disbale the output in the format of SAM/BAM. -s or -s 1(Enable) {DEFAULT} ",
+        "os", "output_sam", "Set to Enable/Disbale the output in the format of SAM. -os or -s 1(Enable) {DEFAULT} ",
+        seqan::ArgParseArgument::INTEGER, "INT"
+        ));
+    addOption (parser, seqan::ArgParseOption(
+        "oa", "output_apf", "Set to Enable/Disbale the output in the format of APF. -oa or -oa 1(Enable) {DEFAULT} ",
         seqan::ArgParseArgument::INTEGER, "INT"
         ));
     addOption (parser, seqan::ArgParseOption(
@@ -178,7 +187,8 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     getOptionValue(options.gap_len, parser, "gap_len");
     getOptionValue(options.apx_chain_flag, parser, "apx_chain_flag");
     getOptionValue(options.aln_flag, parser, "aln_flag");
-    getOptionValue(options.sam_flag, parser, "sam_flag");
+    getOptionValue(options.sam_flag, parser, "output_sam");
+    getOptionValue(options.apf_flag, parser, "output_apf");
     getOptionValue(options.reform_ccs_cigar_flag, parser, "reform_ccs_cigar_flag");
     getOptionValue(options.read_group, parser, "read_group");
     getOptionValue(options.sample_name, parser, "sample_name");

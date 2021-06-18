@@ -108,7 +108,11 @@ MapParms parmt (
 struct F_Print_
 {
     void setPrintSam(uint & f){f |= 2;}
+    void unsetPrintSam(uint & f){f &= ~2;}
+    void setPrintApf(uint & f){f |= 4;}
+    void unsetPrintApf(uint & f){f &= ~4;}
     int isPrintSam(uint f){return f & 2;}
+    int isPrintApf(uint f){return f & 4;}
 }fp_handler_;
 /**
  * flags controlling map func;
@@ -222,6 +226,18 @@ void Mapper::loadOptions(Options & options)
     if (options.sam_flag)
     {
         fp_handler_.setPrintSam(f_print);
+    }
+    else 
+    {
+        fp_handler_.unsetPrintSam(f_print);
+    }
+    if (options.apf_flag)
+    {
+        fp_handler_.setPrintApf(f_print);
+    }
+    else
+    {
+        fp_handler_.unsetPrintApf(f_print);
     }
     fio_parms.f_reform_ccs = options.reform_ccs_cigar_flag;
     fio_parms.read_group = options.read_group;
@@ -500,9 +516,12 @@ int print_mapper_results(Mapper & mapper,
     ///.apf
     std::string file1 = mapper.getOutputPrefix() + ".apf";
     //std::cout << "file ====== "  << "\n";
-    open_mapper_of (mapper, file1);
-    print_cords_apf(mapper, f_p_mapper, p_in_id, p_out_id);
-    close_mapper_of(mapper);
+    if (fp_handler_.isPrintApf(mapper.getPrintFlag()))
+    {
+        open_mapper_of (mapper, file1);
+        print_cords_apf(mapper, f_p_mapper, p_in_id, p_out_id);
+        close_mapper_of(mapper);
+    }
     ///.gvf
     /*
     std::string file2 = mapper.getOutputPrefix() + ".gvf";
@@ -795,9 +814,16 @@ int map(Mapper & mapper,
     serr.print_message("--Write results to disk 100%", 0, 1, cerr);
     for (uint i = 0; i < length(file1s); i++)
     {
-        serr.print_message("Result files: \033[1;31m" + file1s[i] + "\033[0m ", 2, 0, cerr);
-        serr.print_message("\033[1;31m" + file2s[i] + "\033[0m ", 0, 0, cerr);
-        serr.print_message("\033[1;31m" + file3s[i] + "\033[0m ", 16, 1, cerr); 
+        serr.print_message("Result files: ", 2, 0, cerr);
+        if(fp_handler_.isPrintApf(mapper.getPrintFlag()))
+        {
+            serr.print_message("\033[1;31m" + file1s[i] + "\033[0m ", 0, 0, cerr);
+        }
+        //serr.print_message("\033[1;31m" + file2s[i] + "\033[0m ", 0, 0, cerr);
+        if (fp_handler_.isPrintSam(mapper.getPrintFlag()))
+        {
+            serr.print_message("\033[1;31m" + file3s[i] + "\033[0m ", 16, 1, cerr); 
+        }
     }
     //!!TODO::clear index;
     //mapper.index().clear(); 

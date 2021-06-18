@@ -31,6 +31,7 @@ Options::Options():
         apx_chain_flag(1),
         aln_flag(0),
         sam_flag(0),
+        apf_flag(1),
         reform_ccs_cigar_flag(0),
         bal_flag(1),
         sensitivity(1),
