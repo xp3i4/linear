@@ -646,7 +646,7 @@ int g_mapHs_kmer_(String<Dna5> & seq,
                    int step,  
                    uint64_t type)
 {
-    if (length(seq) < shape_len)
+    if (length(seq) < (unsigned)shape_len)
     {
         return 0;
     }

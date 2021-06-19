@@ -665,6 +665,7 @@ int clip_head_(Row<Align<String<Dna5>, ArrayGaps> >::Type & row1,
     }
 	setClippedBeginPosition(row1, maxxp);
 	setClippedBeginPosition(row2, maxxp);
+    (void)shift_head_len;
     return 0;
 }
 
@@ -1376,7 +1377,8 @@ int clip_rows_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
             i = d_j;
         }
     }
-
+    (void)it1_2;
+    (void)it2_2;
     return 0;
 }
 int clip_rows_segs (Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
@@ -2188,7 +2190,6 @@ int align_gap (GapRecordHolder & gap,
         insertBamRecord(bam_records[bam_next_id], row1, row2, g_id, bam_start_x, bam_start_y, 0);
         //int tmp = bam_next_id;
         //int tmp2 = tmp + 1;
-        int pre_bam_id = bam_id;
         for (int i = 1; i < (int)length(clips) - 1; i++)
         {
             int bam_start_x = clips_src1[i].first;
@@ -2199,7 +2200,6 @@ int align_gap (GapRecordHolder & gap,
             //addNextBamLink(bam_records, pre_bam_id, length(bam_records) - 1);
             //dout << "ag14" << bam_st<<  "\n";
             //std::cerr << "it=====" << pre_bam_id << length(bam_records) - 1 << "\n";
-            pre_bam_id = i;
         }
         //addNextBamLink(bam_records, length(bam_records) - 1, bam_next_id);
         //std::cerr << "it=====" << length(bam_records) - 1 << bam_next_id << "\n";
@@ -2615,8 +2615,8 @@ int alignCords (StringSet<String<Dna5> >& genomes,
     uint64_t cord_end;
     uint64_t pre_cord_str;
     uint64_t pre_cord_end;
-    uint64_t gap_str_cord;
-    uint64_t gap_end_cord;
+    uint64_t gap_str_cord = 0;
+    uint64_t gap_end_cord = 0;
     AlignCords align_cords; 
     double t5 = sysTime();
     align_cords.createAlignCords(genomes, read, comrev_read, cords_str_map, cords_end_map, 
