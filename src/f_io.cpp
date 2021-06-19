@@ -735,8 +735,8 @@ void createRectangleCigarPair (uint64_t cord1, uint64_t cord2,
                                CigarElement<> & cigar2,
                                int f_m)
 {
-    uint64_t dx = get_cord_x (cord2 - cord1);
-    uint64_t dy = get_cord_y (cord2 - cord1);
+    uint64_t dx = get_cord_x (cord2) - get_cord_x(cord1);
+    uint64_t dy = get_cord_y (cord2) - get_cord_y(cord1);
     cigar1.operation = (!f_m) ? '=' : 'X'; 
     if (dx >= dy) 
     {
