@@ -411,7 +411,8 @@ int createSAZTagCigar(String<CigarElement<> > & cigar,
     appendValue(cigar_simple, CigarElement<>('M', 0));
     appendValue(cigar_simple, CigarElement<>('I', 0));
     appendValue(cigar_simple, CigarElement<>('S', 0));
-    unsigned cm = 0, ci = 0;
+    int cm = 0;
+    int ci = 0;
     nm_i = 0;
     for (unsigned i = 0; i < length(cigar); i++)
     {
@@ -443,8 +444,9 @@ int createSAZTagCigar(String<CigarElement<> > & cigar,
             cigar_simple[3].count = cigar[i].count;
         }
     }
-    cigar_simple[1] = CigarElement<>('M', cm);
-    cigar_simple[2] = ci < 0 ? CigarElement<>('I', ci) : CigarElement<>('D', ci);
+    cigar_simple[1] = CigarElement<>('M', unsigned(cm));
+    cigar_simple[2] = ci < 0 ? CigarElement<>('I', unsigned(std::abs(ci))) : 
+        CigarElement<>('D', unsigned(std::abs(ci)));
     unsigned it = 0;
     //remove 0operation in cigar
     if (f_remove)
@@ -471,7 +473,7 @@ int createSAZTagCigar(String<CigarElement<> > & cigar,
    createSAZCigar
  */
 int mergeSAZTagCigar(String<CigarElement<> > & cigar_result,
-                  String<CigarElement<> > & saz_cigar)
+                     String<CigarElement<> > & saz_cigar)
 {
     for (unsigned i = 0; i < length(saz_cigar); i++)
     {
