@@ -51,13 +51,11 @@ void align2cigar_(String<CigarElement< > > &cigar,
     typename Iterator<TRow>::Type it1 = begin(gaps1);
     typename Iterator<TRow>::Type it2 = begin(gaps2);
     char op = '?', lastOp = ' ';
-    char last_op;
+    char last_op='*'; //initiated with any character of noncigar operation
     unsigned numOps = 0;
-    unsigned last_count;
     if (!empty(cigar))
     {
         last_op = back(cigar).operation;
-        last_count = back(cigar).count;
     }
     int flag = 0;
     for (; !atEnd(it1) && !atEnd(it2); goNext(it1), goNext(it2))
@@ -93,6 +91,7 @@ void align2cigar_(String<CigarElement< > > &cigar,
             {
                 if (!flag)
                 {
+                    std::cout << "last_op" << last_op << "\n";
                     if (last_op == lastOp)
                     {
                         back(cigar).count += numOps;
@@ -1037,7 +1036,6 @@ int findBestMerge_(AlignCache & align1,
     int64_t gaps_sum_const = 
         - align1.getUCView(0) * 2 + align1.getGSrcX(0) + align1.getGSrcY(0)
         + align2.getUCView(l) * 2 - align2.getGSrcX(l) - align2.getGSrcY(l);
-    int64_t min_gap_sum = 1LL << 60; //just a large number
     int64_t min_merge_score = 1LL << 60;
     int64_t f_min = 0;
     int64_t f_xy;
@@ -1092,7 +1090,9 @@ int findBestMerge_(AlignCache & align1,
         }
     }
     //dout << "fm" << min_gaps_len << min_clip2 << f_min << "\n";
+    unused(bit);
     unused(bit2);
+    unused(mask);
     return f_min ? 0 : (16 | 1);
 }
 int createMergedRows_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
@@ -1200,6 +1200,8 @@ int createMergedRows_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     //dout << "fmin1 " << min_gaps_len << " " << beginPosition(row21) << endPosition(row21) << clippedBeginPosition(row21) << clippedEndPosition(row21) << "\n";
     //std::cout << "fmin11" << row21 << "\n";
     //std::cout << "fmin11" << row22 << "\n";
+    unused(seqr);
+    unused(cord1);
     return 0;
 }
 /*
