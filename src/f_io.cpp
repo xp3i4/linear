@@ -604,16 +604,16 @@ int print_align_sam_header_ (StringSet<CharString> & genomesId,
                              FIOParms & fio_parms
                             )
 {
-    of << "@HD\tVN:1.6\n";
+    //of << "@HD\tVN:1.6\n";
     for (unsigned k = 0; k < length(genomesId); k++)
     {
         of << "@SQ\tSN:" << genomesId[k] << "\tLN:" << length(genomes[k]) << "\n";
     }
-    of << "@PG\tPN:" << "Linear\n";
+    of << "@PG\tID:1\tPN:Linear\n";
     if (fio_parms.read_group != "" && fio_parms.sample_name != "")
     {
         std::string sample_name = fio_parms.sample_name == "" ? "sample1" : fio_parms.sample_name;
-        of << "@RG\t ID:" << fio_parms.read_group << "\tSM:" << sample_name << "\n";
+        of << "@RG\tID:" << fio_parms.read_group << "\tSM:" << sample_name << "\n";
     }
     return 0;
 }
