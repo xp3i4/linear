@@ -1689,12 +1689,16 @@ int g_stream_(String<Dna5> & seq1, //genome
 int c_stream_(String<Dna5> & seq,String<uint64_t> & g_hs, 
               uint64_t sq_str, uint64_t sq_end, int step, int shape_len, uint64_t type)
 {
+    if (length(seq) < shape_len)
+    {
+        return 0;
+    }
     LShape shape(shape_len);
     hashInit_hs(shape, begin(seq) + sq_str, 0);
     int count = 0; 
     uint64_t val = 0;
 
-    for (uint64_t k = sq_str; k < sq_end; k++)
+    for (uint64_t k = sq_str; k < std::min(sq_end, length(seq) - shape_len); k++)
     {
         val = hashNext_hs(shape, begin(seq) + k);
         if (++count == step)  //collecting every step bases
@@ -2486,8 +2490,8 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
 
     int thd_da_upper = 3;
     int thd_da_lower = -3;
-    uint64_t hs_len1 = get_cord_x(extend_end - extend_str);
-    uint64_t hs_len2 = get_cord_y(extend_end - extend_str);
+    uint64_t hs_len1 = get_cord_x(extend_end) - get_cord_x(extend_str);
+    uint64_t hs_len2 = get_cord_y(extend_end) - get_cord_y(extend_str);
     unsigned shape_len = c_shape_len3;
     if (length(hashs) < hs_len1 ||
         hs_len1 < shape_len  || 
