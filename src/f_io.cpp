@@ -836,25 +836,33 @@ void cords2BamLink(String<uint64_t> & cords_str,
                    String<Dna5> & read,
                    uint64_t thd_large_X)
 {
-    unused(read);
     uint64_t cigar_str;
     uint64_t cord1_str;
     uint64_t cord2_str;
     uint64_t cord1_end;
     int g_id, g_beginPos, r_beginPos, strand;
-    int f_soft = 1; //soft clip in cigar;
+    int f_soft = 1; //soft clip in cigar; insert soft clip 'S', change to 0 if insert 'H'
     int f_new = 1;
     int flag = 0;
+    String<int> bam_records_ptrs; //pointer to bam records
+    String<int> cords_block_end_ptrs; //pointer to last cord of block
     for (unsigned i = 1; i < length(cords_str); i++)
     {
         if (f_new) //initiate a record for new block 
         {
+            //this is to add 'S' at the end of each block
+            if (i != 1)
+            {
+                appendValue(bam_records_ptrs, length(bam_link_records) - 1);
+                appendValue(cords_block_end_ptrs, i - 1);
+            }
+            //this is to inite a new block
             f_new = 0;
             g_id = get_cord_id(cords_str[i]);
             g_beginPos = get_cord_x(cords_str[i]);
             r_beginPos = get_cord_y(cords_str[i]);
             strand = get_cord_strand (cords_str[i]);
-            insertNewBamRecord (bam_link_records, g_id, g_beginPos, r_beginPos, strand, -1, 1, flag);
+            insertNewBamRecord (bam_link_records, g_id, g_beginPos, r_beginPos, strand, -1, f_soft, flag);
             cigar_str = cords_str[i];
             flag = 0;
         }
@@ -882,8 +890,26 @@ void cords2BamLink(String<uint64_t> & cords_str,
         {
             break;
         }
+        if (i == length(cords_str) - 1)
+        {
+            appendValue(bam_records_ptrs, length(bam_link_records) - 1);
+            appendValue(cords_block_end_ptrs, length(cords_str) - 1);
+        }
     }
-    unused(f_soft);
+    for (unsigned i = 0; i < length(cords_block_end_ptrs); i++)
+    {
+        char end_clip_op = f_soft ? 'S' : 'H';
+        int clipped_end_len = length(read) - get_cord_y(cords_end[cords_block_end_ptrs[i]]);
+        if (clipped_end_len > 0)
+        {
+            appendValue(bam_link_records[bam_records_ptrs[i]].cigar, 
+                CigarElement<>(end_clip_op, clipped_end_len));
+        }
+        else
+        {
+            //todo
+        }
+    }
 }
 //serial
 void cords2BamLink(StringSet<String<uint64_t> > & cords_str, 
