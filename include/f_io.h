@@ -21,6 +21,8 @@ struct FIOParms
     std::string read_group;
     std::string sample_name;
 
+    BamHeader bam_header;
+
     FIOParms();
 };
 

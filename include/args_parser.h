@@ -3,6 +3,6 @@
 #include "base.h"
 
 seqan::ArgumentParser::ParseResult
-parseCommandLine(Options & options, int argc, char const ** argv);
+parseCommandLine(Options & options);
 
 #endif

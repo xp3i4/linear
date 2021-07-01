@@ -23,7 +23,7 @@ class BamAlignmentRecordLink : public BamAlignmentRecord
 public:
     //the heads refers to the first record of each line 
     //line refers to each line in.sam
-    //line is compsed of several records in the String<bamAlig...>
+    //line is composed of several records in the String<bamAlig...>
     int next_id; //next records id
     String<CigarElement<> > saz_cigar;
     String<unsigned> heads_table; //table pointing to first record of each line in .sam 
@@ -33,6 +33,7 @@ public:
     void addNext(int id);
     int isEnd() const;
     int next() const;
+    void setEnd();
 };
 /*
  * The set of functions of manipulating String<BamAlignmentRecordLink> 
@@ -62,6 +63,16 @@ struct BamLinkStringOperator
     int createSAZTagOneLine(
             String<BamAlignmentRecordLink> & bam_records,
             int it);
+    /*
+     * Set @f_remove_null = 1 to remove not available record in the String<..> after the conversion
+     */
+    int convert2CompatibleFormat(
+            String<BamAlignmentRecordLink> & bam_records,
+            int f_remove_null);
+    int fillBamRecordLinkRecords(
+            String<BamAlignmentRecordLink>& bam_records,
+            StringSet<CharString> & genomesId,
+            CharString & readsId);
 };
 
 void align2cigar(String<CigarElement< > > &cigar,

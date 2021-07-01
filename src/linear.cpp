@@ -88,10 +88,10 @@ int process3(Mapper & mapper, Options & options, int p1)
 int main(int argc, char const ** argv)
 {
     double time = sysTime();
-    Options options;
+    Options options(argc, argv);
     options.printRunInfo();
     std::cerr << std::fixed << std::setprecision(2);
-    seqan::ArgumentParser::ParseResult res = parseCommandLine(options, argc, argv);
+    seqan::ArgumentParser::ParseResult res = parseCommandLine(options);
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res == seqan::ArgumentParser::PARSE_ERROR;
     Mapper mapper(options);

@@ -107,12 +107,19 @@ MapParms parmt (
  */ 
 struct F_Print_
 {
+    void setPrintApf(uint & f){f |= 1;}
+    void unsetPrintApf(uint & f){f &= ~1;}
     void setPrintSam(uint & f){f |= 2;}
     void unsetPrintSam(uint & f){f &= ~2;}
-    void setPrintApf(uint & f){f |= 4;}
-    void unsetPrintApf(uint & f){f &= ~4;}
+    void setPrintBamStd(uint & f){f |= 4;}
+    void unsetPrintBamStd(uint & f){f &= ~4;}
+    void setPrintBamPbsv(uint & f){f |= 8;}
+    void unsetPrintBamPbsv(uint & f){f &= ~8;}
+    int isPrintApf(uint f){return f & 1;}
     int isPrintSam(uint f){return f & 2;}
-    int isPrintApf(uint f){return f & 4;}
+    int isPrintBamStd(uint f){return f & 4;}
+    int isPrintBamPbsv(uint f){return f & 8;}
+    int isPrintSamBam(uint f){return isPrintSam(f) || isPrintBamPbsv(f) || isPrintBamStd(f);}
 }fp_handler_;
 /**
  * flags controlling map func;
@@ -136,6 +143,7 @@ Mapper::Mapper(Options & options):
 {
     loadOptions(options);
     loadGenomes();
+    setMapperBamHeaders(options);
 }
 
 void Mapper::loadOptions(Options & options)
@@ -223,6 +231,7 @@ void Mapper::loadOptions(Options & options)
     }
     //dout << "sam_flag " << options.sam_flag << f_print << options.apx_chain_flag << (f_map & 8) << "\n";
     //-------f_io parms-----
+    /*
     if (options.sam_flag)
     {
         fp_handler_.setPrintSam(f_print);
@@ -239,12 +248,40 @@ void Mapper::loadOptions(Options & options)
     {
         fp_handler_.unsetPrintApf(f_print);
     }
+    */
+    f_print = options.f_output_type;
     fio_parms.f_reform_ccs = options.reform_ccs_cigar_flag;
     fio_parms.read_group = options.read_group;
     fio_parms.sample_name = options.sample_name;
     fio_parms.f_print_seq = options.sequence_sam_flag;
     fio_parms.f_is_align = options.aln_flag;
+    //fio_parms.bam_header()
     //dout << "par" << options.sequence_sam_flag << fio_parms.f_sequence_sam << "\n";
+}
+int Mapper::setMapperBamHeaders(Options & options)
+{
+    if (options.isOutputSam() || options.isOutputBamPbsv() || options.isOutputBamStandard())
+    {
+        for (unsigned i = 0; i < length(getGenomesId()); i++)
+        {
+            appendValue(fio_parms.bam_header, BamHeaderRecord());
+            back(fio_parms.bam_header).type = seqan::BAM_HEADER_REFERENCE;
+            setTagValue("SN", getGenomesId()[i], back(fio_parms.bam_header));
+            setTagValue("LN", std::to_string(length(getGenomes()[i])), back(fio_parms.bam_header));
+        }
+        appendValue(fio_parms.bam_header, BamHeaderRecord());
+        back(fio_parms.bam_header).type = seqan::BAM_HEADER_READ_GROUP;
+        setTagValue("ID", options.sample_name, back(fio_parms.bam_header));
+        setTagValue("SM", options.read_group, back(fio_parms.bam_header));
+
+        appendValue(fio_parms.bam_header, BamHeaderRecord());
+        back(fio_parms.bam_header).type = seqan::BAM_HEADER_PROGRAM;
+        setTagValue("ID", "M1-3", back(fio_parms.bam_header));
+        setTagValue("PN", "Linear", back(fio_parms.bam_header));
+        setTagValue("CL", options.cmd_line, back(fio_parms.bam_header));
+    }
+
+    return 0;
 }
 int Mapper::createIndex(unsigned gstr, unsigned gend, bool efficient)
 {
@@ -456,7 +493,7 @@ int print_cords_sam(Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
     //todo:: fix this parm, too large
     if (f_p_mapper)
     {
-        //NOTE:change thd_large_X in p_calRecords
+        //NOTE:change thd_large_X in p_calRecords() where convert cords to bam record
         print_align_sam (mapper.getGenomes(),
                          mapper.getPReadsBuffer()[p_in_id],
                          mapper.getGenomesId(),
@@ -513,6 +550,7 @@ void close_mapper_of (Mapper & mapper)
 int print_mapper_results(Mapper & mapper, 
     int f_p_mapper, int p_in_id, int p_out_id) //parms to enable P_Mapper
 {
+
     ///.apf
     std::string file1 = mapper.getOutputPrefix() + ".apf";
     //std::cout << "file ====== "  << "\n";
@@ -543,8 +581,29 @@ int print_mapper_results(Mapper & mapper,
         {
             print_cords_sam(mapper, f_p_mapper, p_in_id, p_out_id);
         }
+        close_mapper_of(mapper);
     }
-    close_mapper_of(mapper);
+
+    ///.bam
+
+    std::string file4 = mapper.getOutputPrefix() + ".bam";
+    open_mapper_of (mapper, file4);
+    if (fp_handler_.isPrintBamStd(mapper.getPrintFlag()))
+    {
+        /*
+        if (fm_handler_.isAlign(mapper.getMapFlag()))
+        {
+            print_align_sam(mapper, f_p_mapper, p_in_id, p_out_id);
+        }
+        else
+        {
+            print_cords_sam(mapper, f_p_mapper, p_in_id, p_out_id);
+        }
+        */
+        close_mapper_of(mapper);
+    }
+
+    //add new file here
 
     mapper.setOfApp(); //set of_type to std::ios::app;
     return 0;

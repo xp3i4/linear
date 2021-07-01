@@ -315,7 +315,7 @@ std::string getFileName(std::string s, std::string delimiter, uint count)
     return s;
 }
 
-//Lightweight sam function of Seqan::write(bamAlignmentRecord)
+//This is to customize the SeqAn::write(sam)
 void writeSam(std::ofstream & target,
               BamAlignmentRecord & record,
               CharString genome_id,
@@ -604,82 +604,60 @@ int print_align_sam_header_ (StringSet<CharString> & genomesId,
                              FIOParms & fio_parms
                             )
 {
-    //of << "@HD\tVN:1.6\n";
-    for (unsigned k = 0; k < length(genomesId); k++)
-    {
-        of << "@SQ\tSN:" << genomesId[k] << "\tLN:" << length(genomes[k]) << "\n";
-    }
-    of << "@PG\tID:1\tPN:Linear\n";
-    if (fio_parms.read_group != "" && fio_parms.sample_name != "")
-    {
-        std::string sample_name = fio_parms.sample_name == "" ? "sample1" : fio_parms.sample_name;
-        of << "@RG\tID:" << fio_parms.read_group << "\tSM:" << sample_name << "\n";
-    }
+    BamFileIn bam_file_in;
+    BamFileOut bam_file_out(context(bam_file_in), of, Sam());
+    seqan::writeHeader(bam_file_out, fio_parms.bam_header);
+
+    unused(genomesId);
+    unused(genomes);
+
     return 0;
 }
 
-int print_align_sam_record_(StringSet<String<BamAlignmentRecord > > & records, 
-                            StringSet<CharString> & genomesId,
-                            StringSet<CharString> & readsId, 
-                            std::ofstream & of
-                            )
-{
-    for (unsigned i = 0; i < length(records); i++)
-    {
-        for (unsigned j = 0; j < length(records[i]); j++)
-        {
-            records[i][j].qName = readsId[i];
-            CharString g_id = genomesId[records[i][j].rID];
-            writeSam(of, records[i][j], g_id, "*");
-        }
-    }
-    return 0;
-}
 int print_align_sam_record_(StringSet<String<BamAlignmentRecordLink> > & records, 
                             StringSet<String<Dna5> > & genomes,
                             StringSet<String<Dna5> > & reads,
                             StringSet<CharString> & genomesId,
-                            StringSet<CharString> & readsId, 
+                            StringSet<CharString> & readsId,
                             std::ofstream & of,
                             FIOParms & fio_parms
                             )
 {
     BamLinkStringOperator fs;
+    //if (fio_parms.isPrint)
     for (unsigned i = 0; i < length(records); i++)
     {
-        fs.updateHeadsTable(records[i]);
         for (int j = 0; j < fs.getHeadNum(records[i]); j++)
         {
             int it = fs.getHead(records[i], j);
-            records[i][it].genome_id = genomesId[records[i][it].rID];
-        }
-        for (int j = 0; j < fs.getHeadNum(records[i]); j++)
-        {
-            int it = fs.getHead(records[i], j);
-            records[i][it].qName = readsId[i];
-            CharString g_id = genomesId[records[i][it].rID];
+            CharString g_id = records[i][it].genome_id;
             CharString gnext = "*";
-            fs.createSAZTagOneLine(records[i], it);
-            writeSam(of, records[i], genomes[records[i][it].rID], reads[i], it, 
+            writeSam(of, records[i], genomes[records[i][it].rID], reads[i], it,
                 g_id, gnext, fio_parms);
         }
     }
     return 0;
 }
+
 int print_align_sam (StringSet<String<Dna5> > & genms,
                      StringSet<String<Dna5> > & reads,
-                     StringSet<CharString> & genmsId,
-                     StringSet<CharString> & readsId,
+                     StringSet<CharString> & genms_id,
+                     StringSet<CharString> & reads_id,
                      StringSet<String<BamAlignmentRecordLink> > & bam_records,
                      std::ofstream & of,
                      int f_header,
                      FIOParms & fio_parms)
 {
+    BamLinkStringOperator fs;
+    for (unsigned i = 0; i < length(bam_records); i++)
+    {
+        fs.fillBamRecordLinkRecords(bam_records[i], genms_id, reads_id[i]);
+    }
     if (f_header)
     {
-        print_align_sam_header_(genmsId, genms, of, fio_parms);
+        print_align_sam_header_(genms_id, genms, of, fio_parms);
     }
-    print_align_sam_record_(bam_records, genms, reads, genmsId, readsId, of, fio_parms); 
+    print_align_sam_record_(bam_records, genms, reads, genms_id, reads_id, of, fio_parms);
     return 0;
 }
 
@@ -827,7 +805,7 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
  * Function to convert cords to bam
  * WARN::The @cords_str[0] and back(@cords_str) are required to have sign of block end 
    Otherwise will cause seg fault. 
- * NOTE::addjacent cords, cord1 and cord2, will be splitted into different bams 
+ * NOTE::adjacent cords, cord1 and cord2, will be split into different bams
    if !(cord1 < cord2)
  */
 void cords2BamLink(String<uint64_t> & cords_str, 
@@ -1115,6 +1093,7 @@ int reformCCSBams(StringSet<String<BamAlignmentRecordLink> > & bam_records,
     }
     return 0;
 }
+
 /*
  * Record containing operation 'X' > @thd_large_X is clipped as two records
  */

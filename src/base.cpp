@@ -34,6 +34,7 @@ Options::Options():
         apf_flag(1),
         reform_ccs_cigar_flag(0),
         bal_flag(1),
+        f_output_type(3),
         sensitivity(1),
         thread(16),
         index_t(2),
@@ -50,6 +51,42 @@ std::string Options::getOutputPath() const {return oPath;}
 void Options::printRunInfo(){
     std::cerr << name <<": " << slogan << std::endl; 
 }
+
+Options::Options(int argc, char const ** & argv) : Options()
+{
+    op_argc = argc;
+    op_argv = argv;
+    if (!empty(argv))
+    {
+        append(cmd_line, CharString(argv[1]));
+        for (int i = 1; i < argc; i++)
+        {
+            append(cmd_line, " ");
+            append(cmd_line, CharString(argv[i]));
+        }
+    }
+    std::cout << slogan << "\n";
+}
+
+
+unsigned  Options::isOutputApf()
+{
+    return f_output_type & 1;
+}
+unsigned Options::isOutputSam()
+{
+    return f_output_type & 2;
+}
+
+unsigned Options::isOutputBamPbsv()
+{
+    return f_output_type & 8;
+}
+unsigned Options::isOutputBamStandard()
+{
+    return f_output_type & 4;
+}
+
 
 /*
  * flip strand from 0, 1 to -1, 1;

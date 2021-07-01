@@ -9,10 +9,12 @@ bool is_number(const std::string& s)
 
 std::string CARTESIAN = "x";
 seqan::ArgumentParser::ParseResult
-parseCommandLine(Options & options, int argc, char const ** argv)
+parseCommandLine(Options & options)
 {
     //char const * str_g = "-g";
     //return 0;
+    int argc = options.op_argc;
+    char const ** & argv = options.op_argv;
     std::vector<const char*> new_args;
     char* new_vals;
     for (int i = 0; i < argc; i++)
@@ -93,6 +95,14 @@ parseCommandLine(Options & options, int argc, char const ** argv)
         "o", "output", "Set the path of output.",
             seqan::ArgParseArgument::STRING, "STR"));
     addOption(parser, seqan::ArgParseOption(
+        "ot", "output_type", "Set the type of output. 1 to enable .apf; 2 to enable .sam; 4 to enable \
+        standard bam; 8 to enable .bam for pbsv; Adding values, such as 1+2+4=7, with 7{DEFAULT} to enable .apf, .sam \
+        and .bam;\n \033[1;33mNote\033[m: The sv caller pbsv uses a non-standard format of sam/bam, \
+        in which delimiter of header is space rather than tab. The non-standard sam/bam can be called \
+        only by pbsv, while it's incompatible to tools following strictly to the sam/bam format, such as\
+        samtools. Hence enable the option with value 8 only when the bam is supposed to be called by pbsv",
+            seqan::ArgParseArgument::INTEGER, "INT"));
+    addOption(parser, seqan::ArgParseOption(
         "p", "preset", "Set preset of parms. -p 0 normal {DEFAULT} -p 1 efficient  -p 2 additional",
             seqan::ArgParseArgument::INTEGER, "INT"));
     addOption(parser, seqan::ArgParseOption(
@@ -106,6 +116,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
         "a", "aln_flag", "Set to Enable/Disable alignment. -a 0(Disable) {DEFAULT}",
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
+    /*
     addOption (parser, seqan::ArgParseOption(
         "os", "output_sam", "Set to Enable/Disbale the output in the format of SAM. -os or -s 1(Enable) {DEFAULT} ",
         seqan::ArgParseArgument::INTEGER, "INT"
@@ -114,6 +125,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
         "oa", "output_apf", "Set to Enable/Disbale the output in the format of APF. -oa or -oa 1(Enable) {DEFAULT} ",
         seqan::ArgParseArgument::INTEGER, "INT"
         ));
+    */
     addOption (parser, seqan::ArgParseOption(
         "rg", "read_group", "Set the name of read group specified in the SAM header",
         seqan::ArgParseArgument::STRING, "STR"
@@ -180,6 +192,7 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res;
     getOptionValue(options.oPath, parser, "output");
+    getOptionValue(options.f_output_type, parser, "output_type");
     getOptionValue(options.sensitivity, parser, "preset");
     getOptionValue(options.thread, parser, "thread");
     getOptionValue(options.index_t, parser, "index_type");
@@ -187,8 +200,10 @@ parseCommandLine(Options & options, int argc, char const ** argv)
     getOptionValue(options.gap_len, parser, "gap_len");
     getOptionValue(options.apx_chain_flag, parser, "apx_chain_flag");
     getOptionValue(options.aln_flag, parser, "aln_flag");
+    /*
     getOptionValue(options.sam_flag, parser, "output_sam");
     getOptionValue(options.apf_flag, parser, "output_apf");
+    */
     getOptionValue(options.reform_ccs_cigar_flag, parser, "reform_ccs_cigar_flag");
     getOptionValue(options.read_group, parser, "read_group");
     getOptionValue(options.sample_name, parser, "sample_name");

@@ -35,10 +35,15 @@ int BamAlignmentRecordLink::isEnd() const
 {
     return next_id < 0;
 }
-int BamAlignmentRecordLink::next() const 
+int BamAlignmentRecordLink::next() const
 {
     return next_id;
 }
+void BamAlignmentRecordLink::setEnd()
+{
+    next_id = -1;
+}
+
 
 void align2cigar_(String<CigarElement< > > &cigar,
         Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps1,
@@ -679,6 +684,70 @@ int BamLinkStringOperator::createSAZTagOneLine(
     }
     return 0;
 }
+/*
+ * Convert the format compatible to seqan::BamAlignmentRecord that each record can be called by
+ * seqan functions
+ */
+int BamLinkStringOperator::convert2CompatibleFormat(String<BamAlignmentRecordLink>& bam_records,
+                                                    int f_remove_null)
+{
+    String<int> its;
+    for (int i = 0; i < getHeadNum(bam_records); i++)
+    {
+        int head_it = getHead(bam_records, i);
+        int it = head_it;
+        appendValue(its, head_it);
+        while (1)
+        {
+            if (bam_records[it].isEnd())
+            {
+                break;
+            }
+            else
+            {
+                it = bam_records[it].next();
+            }
+            append(bam_records[head_it].cigar, bam_records[it].cigar);
+        }
+        bam_records[head_it].setEnd();
+    }
+    if (f_remove_null)
+    {
+        std::sort (begin(its), end(its));
+        for (int i = 0; i < (int)length(its); i++)
+        {
+            if (its[i] != i)
+            {
+                bam_records[i] = bam_records[its[i]];
+            }
+        }
+        resize(bam_records, length(its));
+        updateHeadsTable(bam_records);
+    }
+    return 0;
+}
+
+int BamLinkStringOperator::fillBamRecordLinkRecords(
+                    String<BamAlignmentRecordLink>& bam_records,
+                    StringSet<CharString> & genomesId,
+                    CharString & readsId)
+{
+    updateHeadsTable(bam_records);
+    for (int i = 0; i < getHeadNum(bam_records); i++)
+    {
+        int it = getHead(bam_records, i);
+        bam_records[it].genome_id = genomesId[bam_records[it].rID];
+    }
+    for (int i = 0; i < getHeadNum(bam_records); i++)
+    {
+        int it = getHead(bam_records, i);
+        bam_records[it].qName = readsId;
+        createSAZTagOneLine(bam_records, it);
+    }
+    return 0;
+}
+
+
 /*----------  row viewer customize  ----------*/
 int64_t RowPosViewer::init(TRow5A & row) //cordxy:coordinates of x or y
 {

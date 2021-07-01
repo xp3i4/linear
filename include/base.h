@@ -27,6 +27,10 @@ typedef unsigned uint;
 typedef uint64_t uintll;
 
 struct Options{
+    int op_argc;
+    char const ** op_argv;
+    CharString cmd_line;
+
     typedef std::string PathType;
     typedef StringSet<PathType> PathsType;
     std::string name;
@@ -43,6 +47,7 @@ struct Options{
     uint apf_flag;
     uint reform_ccs_cigar_flag;
     uint bal_flag;
+    uint f_output_type;
 
     unsigned    sensitivity;
     unsigned    thread;
@@ -64,8 +69,14 @@ struct Options{
     std::string sample_name;
     int sequence_sam_flag;
     Options();
+    Options(int,  char const ** &);
     std::string getOutputPath() const;
     void printRunInfo();
+    unsigned isOutputApf();
+    unsigned isOutputSam();
+    unsigned isOutputBamStandard();
+    unsigned isOutputBamPbsv();
+
 }; 
 
 std::pair<uint, uint> 

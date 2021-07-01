@@ -45,6 +45,7 @@ public:
     Mapper();
     Mapper(Options & options);
     void loadOptions(Options & options);
+    int setMapperBamHeaders(Options & options);
     StringSet<String<Dna5> > & getReads() {return record.seq1;}             
     StringSet<String<Dna5> > & getGenomes() {return record.seq2;}             
     MapParms & getMapParms() {return map_parms;}
