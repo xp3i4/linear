@@ -2388,6 +2388,7 @@ uint64_t apxMap (IndexDynamic & index,
         uint64_t map_end = create_cord (MAX_CORD_ID, MAX_CORD_X, length(read), 0);
         double t1 = sysTime();
         apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords_str, map_str, map_end, alg_type, thd_best_n);
+        print_cords(cords_str, "apx1");
         t1 = sysTime() - t1;
         double t2 = sysTime();
         String<UPair> str_ends;
@@ -2414,9 +2415,11 @@ uint64_t apxMap (IndexDynamic & index,
         gather_blocks_ (cords_str, str_ends, str_ends_p, 1, length(cords_str), length(read), thd_large_gap, thd_cord_size, 1, & is_cord_block_end, & set_cord_end);
         t2 = sysTime() - t2;
         double t3 = sysTime();
+        print_cords(cords_str, "apx3");
         chainApxCordsBlocks (cords_str, str_ends_p, length(read), thd_chain_blocks_lower, thd_chain_blocks_upper, alg_type);
         t3 = sysTime() - t3;
         clean_blocks_ (cords_str, thd_drop_len);
+        print_cords(cords_str, "apx2");
     }
     else
     {
