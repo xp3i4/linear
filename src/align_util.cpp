@@ -6,9 +6,14 @@ uint16_t bam_flag_rvcmp = 16;
 uint16_t bam_flag_rvcmp_nxt = 32;
 uint16_t bam_flag_suppl = 2048;
 
+BamLinkStringOperator bls_operator;
+
 BamAlignmentRecordLink::BamAlignmentRecordLink()
 {
     next_id = -1;
+    f_available = 1;
+    f_line_filled = 0;
+    f_new_available = 1;
     BamAlignmentRecord();
 }
 void BamAlignmentRecordLink::addNext(int id)
@@ -42,6 +47,39 @@ int BamAlignmentRecordLink::next() const
 void BamAlignmentRecordLink::setEnd()
 {
     next_id = -1;
+}
+void BamAlignmentRecordLink::setUnavailable()
+{
+    f_available = 0;
+}
+void BamAlignmentRecordLink::setAvailable()
+{
+    f_available = 1;
+}
+int BamAlignmentRecordLink::isAvailable()
+{
+    return f_available;
+}
+void BamAlignmentRecordLink::print(std::string header) 
+{
+    std::cout << header 
+              << " beginPos=" << beginPos
+              << " bin=" << bin
+              //<< " cigar=" << cigar
+              << " flag=" << flag
+              << " INVALID_LEN=" << INVALID_LEN
+              << " INVALID_POS=" << INVALID_POS
+              << " INVALID_REFID=" << INVALID_REFID
+              << " mapQ=" << mapQ
+              << " pNext=" << pNext
+              << " qName=" << qName
+              << " qual=" << qual
+              << " rID=" << rID
+              << " rNextId=" << rNextId
+              << " seq=" << seq
+              << " tags=" << tags
+              << " tLen=" << tLen
+              << "\n";
 }
 
 
@@ -516,6 +554,10 @@ int BamLinkStringOperator::getLineStrand(String<BamAlignmentRecordLink> & bam_re
 /*
  *  Update heads table of @bam_records.
     The heads table is stored in @bam_records[0].
+    Rules if a record is a head record:
+    1.its predecessor is isEnd() true
+    2.the line(in .sam) starting from this record is complete
+    Namely all records in this line are isAvailable() true
  */
 int BamLinkStringOperator::updateHeadsTable(String<BamAlignmentRecordLink> & bam_records)
 {
@@ -533,11 +575,17 @@ int BamLinkStringOperator::updateHeadsTable(String<BamAlignmentRecordLink> & bam
         if (!visit_tmp[i])
         {
             unsigned it = i;
+            int f_line_complete = 0;
             while (1)
             {
                 visit_tmp[it] = true;
-                if (bam_records[it].isEnd())
+                if (!bam_records[it].isAvailable())
                 {
+                    break;
+                }
+                else if (bam_records[it].isEnd())
+                {
+                    f_line_complete = 1;
                     break;
                 }
                 else
@@ -545,7 +593,10 @@ int BamLinkStringOperator::updateHeadsTable(String<BamAlignmentRecordLink> & bam
                     it = bam_records[it].next();
                 }
             }
-            appendValue(info_record.heads_table, i);
+            if (f_line_complete)
+            {
+                appendValue(info_record.heads_table, i);
+            }
         }
     }
     return 0;
@@ -668,7 +719,7 @@ int BamLinkStringOperator::createSAZTagOneLine(
         return 0;
     }
     updateHeadsTable(bam_records);
-    CharString saz_tag("SA:Z:");
+    CharString saz_tag;
     CharString empty_tag = saz_tag;
     for (int i = 0; i < getHeadNum(bam_records); i++)
     {
@@ -680,7 +731,78 @@ int BamLinkStringOperator::createSAZTagOneLine(
     }
     if (saz_tag != empty_tag)
     {
-        append(bam_records[it].tags, saz_tag);
+        BamTagsDict bam_tag(bam_records[it].tags);
+        seqan::setTagValue(bam_tag, "SA", saz_tag);
+    }
+    return 0;
+}
+int BamLinkStringOperator::fillBamRecordLinkRecords(
+                    String<BamAlignmentRecordLink>& bam_records,
+                    StringSet<String<Dna5> > & genomes,
+                    StringSet<CharString> & genomes_id,
+                    String<Dna5>& read,
+                    CharString & read_id,
+                    int f_print_seq,
+                    int f_is_align)
+{
+    updateHeadsTable(bam_records);
+    dout << "fbrlrs" << getHeadNum(bam_records) << f_print_seq << f_is_align << "\n";
+    for (int i = 0; i < getHeadNum(bam_records); i++)
+    {
+        int it = getHead(bam_records, i);
+        if (bam_records[it].f_line_filled)
+        {
+            continue;
+        }
+        if (f_print_seq)
+        {
+            Iterator<String<Dna5> >::Type it1 = begin(genomes[bam_records[it].rID]) + bam_records[it].beginPos;
+            Iterator<String<Dna5> >::Type it2 = begin(read);
+            int it3 = it;
+            //<<debug
+            //Iterator<String<Dna5> >::Type it11 = it1;
+            //Iterator<String<Dna5> >::Type it21 = it2;
+            //>>debug
+            String<Dna5> comp_reverse;
+            //dout << "fb3" << (int(bam_records[it].flag) & (int)16) << "\n";
+            if (int(bam_records[it].flag) & 16)
+            {
+                _compltRvseStr(read, comp_reverse);
+                it2 = begin(comp_reverse);
+            }
+            while (1)
+            {
+                for (unsigned j = 0; j < length(bam_records[it3].cigar); ++j)
+                {
+                    cigar2SamSeq(bam_records[it3].cigar[j], bam_records[it].seq, it1, it2, f_is_align);
+                    //std::cout << "fb1" << bam_records[it3].cigar[j].count << bam_records[it3].cigar[j].operation << " " << it1 - it11 << " " << it2 - it21 << bam_records[it].beginPos << " " << *it1 << " " << *it2<< "\n";
+                }
+                if (bam_records[it3].isEnd())
+                {
+                    break;
+                }
+                else 
+                {
+                    it3 = bam_records[it3].next();
+                }
+            }        
+        }
+        bam_records[it].genome_id = genomes_id[bam_records[it].rID];
+        bam_records[it].qName = read_id;
+        //bam_records[it].seq = CharString("*");
+        //bam_records[it].qual = Dna5String("*");
+    }
+    //Don't merge the loop with the loop above,
+    //since createSAZTagOneLine will use genome_id that's created in the above loop
+    for (int i = 0; i < getHeadNum(bam_records); i++)
+    {
+        int it = getHead(bam_records, i);
+        if (bam_records[it].f_line_filled)
+        {
+            continue;
+        }
+        createSAZTagOneLine(bam_records, it);
+        bam_records[it].f_line_filled = 1;
     }
     return 0;
 }
@@ -688,9 +810,13 @@ int BamLinkStringOperator::createSAZTagOneLine(
  * Convert the format compatible to seqan::BamAlignmentRecord that each record can be called by
  * seqan functions
  */
-int BamLinkStringOperator::convert2CompatibleFormat(String<BamAlignmentRecordLink>& bam_records,
-                                                    int f_remove_null)
+int BamLinkStringOperator::convert2SeqanCompatibleFormat(String<BamAlignmentRecordLink>& bam_records,
+                                                         int f_remove_null)
 {
+    if (empty(bam_records))
+    {
+        return 0;
+    }
     String<int> its;
     for (int i = 0; i < getHeadNum(bam_records); i++)
     {
@@ -708,6 +834,7 @@ int BamLinkStringOperator::convert2CompatibleFormat(String<BamAlignmentRecordLin
                 it = bam_records[it].next();
             }
             append(bam_records[head_it].cigar, bam_records[it].cigar);
+            bam_records[it].setUnavailable();
         }
         bam_records[head_it].setEnd();
     }
@@ -721,32 +848,57 @@ int BamLinkStringOperator::convert2CompatibleFormat(String<BamAlignmentRecordLin
                 bam_records[i] = bam_records[its[i]];
             }
         }
-        resize(bam_records, length(its));
-        updateHeadsTable(bam_records);
+        resize(bam_records, getHeadNum(bam_records));
     }
-    return 0;
-}
-
-int BamLinkStringOperator::fillBamRecordLinkRecords(
-                    String<BamAlignmentRecordLink>& bam_records,
-                    StringSet<CharString> & genomesId,
-                    CharString & readsId)
-{
     updateHeadsTable(bam_records);
-    for (int i = 0; i < getHeadNum(bam_records); i++)
+    /*
+    dout << "het2" << getHeadNum(bam_records) << "\n";
+    for (unsigned i = 0; i < length(bam_records[0].heads_table); i++)
     {
-        int it = getHead(bam_records, i);
-        bam_records[it].genome_id = genomesId[bam_records[it].rID];
+        dout << "het1" << bam_records[0].heads_table[i] << length(bam_records) << getHeadNum(bam_records) << "\n";
     }
-    for (int i = 0; i < getHeadNum(bam_records); i++)
-    {
-        int it = getHead(bam_records, i);
-        bam_records[it].qName = readsId;
-        createSAZTagOneLine(bam_records, it);
-    }
+    */
     return 0;
 }
 
+/*
+ * It's compatible to Seqan only when each head is the end of corresponding line as well.
+ * Namely each line is composed of only one record, the head record.
+ */
+int BamLinkStringOperator::isSeqanCompatible(String<BamAlignmentRecordLink>& bam_records)
+{
+    if (empty(bam_records))
+    {
+        return 1;
+    }
+    BamAlignmentRecordLink & info_record = bam_records[0];
+    for (unsigned i = 0; i < length(info_record.heads_table); i++)
+    {
+        if (!(bam_records[info_record.heads_table[i]].isEnd()))
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
+int BamLinkStringOperator::isNewAvailable(String<BamAlignmentRecordLink>& bam_records)
+{
+    return empty(bam_records) || bam_records[0].f_new_available;
+}
+void BamLinkStringOperator::setNewAvailable(String<BamAlignmentRecordLink>& bam_records)
+{
+    if (!empty(bam_records))
+    {
+        bam_records[0].f_new_available = 1;
+    }
+}
+void BamLinkStringOperator::setNewUnAvailable(String<BamAlignmentRecordLink>& bam_records)
+{
+    if (!empty(bam_records))
+    {
+       bam_records[0].f_new_available = 0;
+    }
+}
 
 /*----------  row viewer customize  ----------*/
 int64_t RowPosViewer::init(TRow5A & row) //cordxy:coordinates of x or y
@@ -1351,4 +1503,99 @@ void copyRow(TRow & row1, TRow & row2)
     row1._sourceEndPos = row2._sourceEndPos;
     row1._clippingBeginPos = row2._clippingBeginPos;
     row1._clippingEndPos = row2._clippingEndPos;
+}
+
+//infer seq bases (10th column) of SAM according to the given cigar element
+void cigar2SamSeq(CigarElement<> & cigar, IupacString & result, 
+    Iterator<String<Dna5> >::Type & it1, Iterator<String<Dna5> >::Type & it2,
+    int f_is_align)
+{
+    //dout << "c2s" << f_is_align << "\n";
+    if (!f_is_align)
+    {
+        if (cigar.operation == 'D')
+        {
+            it1 += cigar.count;
+        }
+        else if (cigar.operation == 'I')
+        {
+            for (unsigned i = 0; i < cigar.count; i++)
+            {
+                //appendValue(result, 'N');
+                appendValue(result, *it2);
+                it2++;
+            }
+        }
+        else if (cigar.operation == 'M')
+        {
+            for (unsigned i = 0; i < cigar.count; i++)
+            {
+                appendValue(result, *it1);
+                it1++;
+                it2++;
+            }
+        }
+        else if (cigar.operation == '=')
+        {
+            for (unsigned i = 0; i < cigar.count; i++)
+            {
+                appendValue(result, *it1);
+                it1++;
+                it2++;
+            }
+        }
+        else if (cigar.operation == 'X')
+        {
+            for (unsigned i = 0; i < cigar.count; i++)
+            {
+                appendValue(result, 'N');
+                it1++;
+                it2++;
+            }
+        }
+        else if (cigar.operation == 'S')
+        {
+            for (unsigned i = 0; i < cigar.count; i++)
+            {
+                appendValue(result, *it2);
+                it2++;
+            }
+        }
+        else if (cigar.operation == 'H')
+        {
+            it2 += cigar.count;
+        }
+    }
+    else
+    {
+        if (cigar.operation == 'D')
+        {
+            it1 += cigar.count;
+        }
+        else if (cigar.operation == 'I' || cigar.operation == 'M' ||
+                 cigar.operation == '=' || cigar.operation == 'X')
+        {
+            for (unsigned i = 0; i < cigar.count; i++)
+            {
+                appendValue(result, *it2);
+                if (cigar.operation != 'I')
+                {
+                    it1++;
+                }
+                it2++;
+            }
+        }
+        else if (cigar.operation == 'S')
+        {
+            for (unsigned i = 0; i < cigar.count; i++)
+            {
+                appendValue(result, *it2);
+                it2++;
+            }
+        }
+        else if (cigar.operation == 'H')
+        {
+            it2 += cigar.count;
+        }
+    }
 }

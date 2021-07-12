@@ -25,15 +25,24 @@ public:
     //line refers to each line in.sam
     //line is composed of several records in the String<bamAlig...>
     int next_id; //next records id
+    int f_available;
+    int f_line_filled; //if the line is filled (genomes_id, reads_id, tags filled)
+    int f_new_available; //flag used in String<Bam..> to state if new record is allowed to append
+    int nm_i; //nm:i tag in .sam, the heads holds the whole(sum of) value of the line
     String<CigarElement<> > saz_cigar;
     String<unsigned> heads_table; //table pointing to first record of each line in .sam 
     CharString genome_id;
-    int nm_i; //nm:i tag in .sam, the heads holds the whole(sum of) value of the line
+
     BamAlignmentRecordLink();
     void addNext(int id);
     int isEnd() const;
     int next() const;
     void setEnd();
+    void setUnavailable();
+    void setAvailable();
+    void setCord2BamDone();
+    int isAvailable();
+    void print(std::string header);
 };
 /*
  * The set of functions of manipulating String<BamAlignmentRecordLink> 
@@ -63,17 +72,26 @@ struct BamLinkStringOperator
     int createSAZTagOneLine(
             String<BamAlignmentRecordLink> & bam_records,
             int it);
+    int fillBamRecordLinkRecords(
+            String<BamAlignmentRecordLink>& bam_records,
+            StringSet<String<Dna5> > & genomes,
+            StringSet<CharString> & genomesId,
+            String<Dna5> & read,
+            CharString & read_id,
+            int f_print_seq,
+            int f_is_align);
     /*
      * Set @f_remove_null = 1 to remove not available record in the String<..> after the conversion
      */
-    int convert2CompatibleFormat(
+    int convert2SeqanCompatibleFormat(
             String<BamAlignmentRecordLink> & bam_records,
             int f_remove_null);
-    int fillBamRecordLinkRecords(
-            String<BamAlignmentRecordLink>& bam_records,
-            StringSet<CharString> & genomesId,
-            CharString & readsId);
+    int isSeqanCompatible(String<BamAlignmentRecordLink> & bam_records);
+    int isNewAvailable(String<BamAlignmentRecordLink> & bam_records);
+    void setNewAvailable(String<BamAlignmentRecordLink> & bam_records);
+    void setNewUnAvailable(String<BamAlignmentRecordLink> & bam_records);
 };
+extern BamLinkStringOperator bls_operator;
 
 void align2cigar(String<CigarElement< > > &cigar,
                  Row<Align<String<Dna5>,ArrayGaps> >::Type &gaps1,
@@ -197,5 +215,9 @@ extern int const flag_clip_tail;
 //copy row2 to row1
 //Row::_source is a struct of holder, which can't be copied by operator =
 void copyRow(TRow & row1, TRow & row2);
+
+void cigar2SamSeq(CigarElement<> & cigar, IupacString & result, 
+    Iterator<String<Dna5> >::Type & it1, Iterator<String<Dna5> >::Type & it2,
+    int f_is_align);
 
 #endif

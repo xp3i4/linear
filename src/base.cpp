@@ -65,7 +65,6 @@ Options::Options(int argc, char const ** & argv) : Options()
             append(cmd_line, CharString(argv[i]));
         }
     }
-    std::cout << slogan << "\n";
 }
 
 
@@ -649,3 +648,22 @@ int print_seq(String<Dna5> & seq, uint64_t str, uint64_t end, std::string header
 }
 int mod(int a, int b){int c = a % b; return c >= 0 ? c : c + b;}
 
+
+
+void F_Print_::setPrintApf(uint & f){f |= 1;}
+void F_Print_::unsetPrintApf(uint & f){f &= ~1;}
+void F_Print_::setPrintSam(uint & f){f |= 2;}
+void F_Print_::unsetPrintSam(uint & f){f &= ~2;}
+void F_Print_::setPrintBamStd(uint & f){f |= 4;}
+void F_Print_::unsetPrintBamStd(uint & f){f &= ~4;}
+void F_Print_::setPrintBamPbsv(uint & f){f |= 8;}
+void F_Print_::unsetPrintBamPbsv(uint & f){f &= ~8;}
+void F_Print_::clear(uint & f){f = 0;}
+int F_Print_::isPrintApf(uint f){return f & 1;}
+int F_Print_::isPrintSam(uint f){return f & 2;}
+int F_Print_::isPrintBam(uint f){return isPrintBamPbsv(f) || isPrintBamStd(f);}
+int F_Print_::isPrintBamStd(uint f){return f & 4;}
+int F_Print_::isPrintBamPbsv(uint f){return f & 8;}
+int F_Print_::isPrintSamBam(uint f){return isPrintSam(f) || isPrintBam(f);}
+
+F_Print_ fp_handler_;

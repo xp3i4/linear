@@ -101,26 +101,6 @@ MapParms parmt (
         
 ); 
 
-
-/**
- * flags controlling print func;
- */ 
-struct F_Print_
-{
-    void setPrintApf(uint & f){f |= 1;}
-    void unsetPrintApf(uint & f){f &= ~1;}
-    void setPrintSam(uint & f){f |= 2;}
-    void unsetPrintSam(uint & f){f &= ~2;}
-    void setPrintBamStd(uint & f){f |= 4;}
-    void unsetPrintBamStd(uint & f){f &= ~4;}
-    void setPrintBamPbsv(uint & f){f |= 8;}
-    void unsetPrintBamPbsv(uint & f){f &= ~8;}
-    int isPrintApf(uint f){return f & 1;}
-    int isPrintSam(uint f){return f & 2;}
-    int isPrintBamStd(uint f){return f & 4;}
-    int isPrintBamPbsv(uint f){return f & 8;}
-    int isPrintSamBam(uint f){return isPrintSam(f) || isPrintBamPbsv(f) || isPrintBamStd(f);}
-}fp_handler_;
 /**
  * flags controlling map func;
  */
@@ -136,6 +116,7 @@ struct F_Map_
     uint isMapGap (uint & f){return f & 2;}
     uint isAlign (uint & f){return f & 4;}
 }fm_handler_;
+
 
 Mapper::Mapper(Options & options):
                record(options),
@@ -255,6 +236,7 @@ void Mapper::loadOptions(Options & options)
     fio_parms.sample_name = options.sample_name;
     fio_parms.f_print_seq = options.sequence_sam_flag;
     fio_parms.f_is_align = options.aln_flag;
+    fio_parms.f_output_type = options.f_output_type;
     //fio_parms.bam_header()
     //dout << "par" << options.sequence_sam_flag << fio_parms.f_sequence_sam << "\n";
 }
@@ -452,49 +434,19 @@ int print_cords_apf(Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
     }
     return 0;
 }
-int print_align_sam (Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
-{
-    if (f_p_mapper)
-    {
-        print_align_sam(mapper.getGenomes(),
-                        mapper.getPReadsBuffer()[p_in_id],
-                        mapper.getGenomesId(),
-                        mapper.getPReadsIdBuffer()[p_in_id],
-                        mapper.getPBamLinksBuffer()[p_out_id],
-                        mapper.getOf(),
-                        mapper.isOfNew(),
-                        mapper.getFIOParms());
-    }
-    else
-    {
-        print_align_sam (mapper.getGenomes(),
-                         mapper.getReads(),
-                         mapper.getGenomesId(),
-                         mapper.getReadsId(),
-                         mapper.getBamRecords(),
-                         mapper.getOf(),
-                         mapper.isOfNew(),
-                         mapper.getFIOParms());  
-    }
-    return 0;
-}
 int print_clips_gvf(Mapper & mapper)
 {
-    print_clips_gvf_(mapper.getClips(), 
-                     mapper.getReadsId(), 
-                     mapper.getGenomesId(), 
+    print_clips_gvf_(mapper.getClips(),
+                     mapper.getReadsId(),
+                     mapper.getGenomesId(),
                      mapper.getOf());
     return 0;
 }
-int print_cords_sam(Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
+int print_align_sam_bam (Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
 {
-//    uint64_t thd_large_X = 80; //cigar containing X > this will be clipped into 2 records
-    uint64_t thd_large_X = 8000; //cigar containing X > this will be clipped into 2 records
-    //todo:: fix this parm, too large
     if (f_p_mapper)
     {
-        //NOTE:change thd_large_X in p_calRecords() where convert cords to bam record
-        print_align_sam (mapper.getGenomes(),
+        printAlignSamBam(mapper.getGenomes(),
                          mapper.getPReadsBuffer()[p_in_id],
                          mapper.getGenomesId(),
                          mapper.getPReadsIdBuffer()[p_in_id],
@@ -505,25 +457,37 @@ int print_cords_sam(Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
     }
     else
     {
-        //dout << "pcssd1" << length(mapper.getCords()) << length(mapper.getBamRecords()) << "\n";
-        int f_parallel = 1;
-        print_cords_sam(mapper.getCords(),
-                        mapper.getCords2(),
-                        mapper.getBamRecords(),
-                        mapper.getGenomesId(),
-                        mapper.getReadsId(),
-                        mapper.getGenomes(),
-                        mapper.getReads(),
-                        mapper.getCordSize(),
-                        mapper.getOf(),
-                        thd_large_X,
-                        mapper.getThreads(),
-                        mapper.isOfNew(),
-                        mapper.getFIOParms(),
-                        f_parallel);
+        printAlignSamBam(mapper.getGenomes(),
+                         mapper.getReads(),
+                         mapper.getGenomesId(),
+                         mapper.getReadsId(),
+                         mapper.getBamRecords(),
+                         mapper.getOf(),
+                         mapper.isOfNew(),
+                         mapper.getFIOParms());
     }
     return 0;
 }
+int print_align_sam (Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
+{
+    uint f_output_type_original = mapper.getFIOParms().f_output_type;
+    fp_handler_.clear(mapper.getFIOParms().f_output_type);
+    fp_handler_.setPrintSam(mapper.getFIOParms().f_output_type);
+    print_align_sam_bam(mapper,f_p_mapper, p_in_id, p_out_id);
+    mapper.getFIOParms().f_output_type = f_output_type_original;
+    return 0;
+}
+int print_align_bam (Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
+{
+    uint f_output_type_original = mapper.getFIOParms().f_output_type;
+    fp_handler_.clear(mapper.getFIOParms().f_output_type);
+    //setPrintBamStd and setPrintBamPbsv are both fine
+    fp_handler_.setPrintBamStd(mapper.getFIOParms().f_output_type);
+    print_align_sam_bam(mapper, f_p_mapper, p_in_id, p_out_id);
+    mapper.getFIOParms().f_output_type = f_output_type_original;
+    return 0;
+}
+
 /**
  * Open new or append to original 
  */
@@ -544,6 +508,7 @@ void close_mapper_of (Mapper & mapper)
 {
     close (mapper.getOf());
 }
+
 /** 
  * Print main apf sam and gvf
  */
@@ -567,39 +532,29 @@ int print_mapper_results(Mapper & mapper,
     print_clips_gvf(mapper);
     close_mapper_of(mapper);
     */
-
     ///.sam
-    std::string file3 = mapper.getOutputPrefix() + ".sam";
-    open_mapper_of (mapper, file3);
     if (fp_handler_.isPrintSam(mapper.getPrintFlag()))
     {
-        if (fm_handler_.isAlign(mapper.getMapFlag()))
+        if (!fm_handler_.isAlign(mapper.getMapFlag()))
         {
-            print_align_sam(mapper, f_p_mapper, p_in_id, p_out_id);
+            //formatCordsBam4Print(mapper, f_p_mapper);
         }
-        else
-        {
-            print_cords_sam(mapper, f_p_mapper, p_in_id, p_out_id);
-        }
+        std::string file3 = mapper.getOutputPrefix() + ".sam";
+        open_mapper_of (mapper, file3);
+        print_align_sam(mapper, f_p_mapper, p_in_id, p_out_id);
         close_mapper_of(mapper);
     }
 
     ///.bam
-
     std::string file4 = mapper.getOutputPrefix() + ".bam";
-    open_mapper_of (mapper, file4);
-    if (fp_handler_.isPrintBamStd(mapper.getPrintFlag()))
+    if (fp_handler_.isPrintBam(mapper.getPrintFlag()))
     {
-        /*
-        if (fm_handler_.isAlign(mapper.getMapFlag()))
+        if (!fm_handler_.isAlign(mapper.getMapFlag()))
         {
-            print_align_sam(mapper, f_p_mapper, p_in_id, p_out_id);
+            //formatCordsBam4Print(mapper, f_p_mapper);
         }
-        else
-        {
-            print_cords_sam(mapper, f_p_mapper, p_in_id, p_out_id);
-        }
-        */
+        open_mapper_of (mapper, file4);
+        print_align_bam(mapper, f_p_mapper, p_in_id, p_out_id);
         close_mapper_of(mapper);
     }
 
@@ -669,6 +624,7 @@ int map_(IndexDynamic & index,
          String<GapParms> & gap_parms,
          uint f_map,   //control flags
          uint threads,
+         int cord_size,
          int p1)
 {
     unused(reads_id);
@@ -742,7 +698,7 @@ int map_(IndexDynamic & index,
             }
         }
         c += 1;
-    } 
+    }
     #pragma omp for ordered
     for (unsigned j = 0; j < threads; j++)
     #pragma omp ordered
@@ -759,6 +715,12 @@ int map_(IndexDynamic & index,
         }
     }
 }
+    if (!fm_handler_.isAlign(f_map))
+    {
+        uint64_t thd_large_X = 8000;
+        int f_parallel = 1;
+        cords2BamLink(cords_str, cords_end, bam_records, reads, cord_size, thd_large_X, threads, f_parallel);
+    }
     return 0;
 }
 
@@ -780,9 +742,7 @@ int map(Mapper & mapper,
     unsigned blockSize = 50000;
     uint rstr = 0;
     SeqFileIn rFile;
-    StringSet<std::string> file1s;
-    StringSet<std::string> file2s;
-    StringSet<std::string> file3s;
+    StringSet<std::string> files_prefix;
     for (auto path : mapper.getRPaths())
     {
         if(!open(rFile, toCString(path)))
@@ -843,6 +803,7 @@ int map(Mapper & mapper,
                  mapper.getGapParms(),
                  mapper.getMapFlag(),
                  mapper.getThreads(), 
+                 mapper.getCordSize(),
                  p1);
             time2 = sysTime() - time2;
             double time3 = sysTime();
@@ -862,26 +823,25 @@ int map(Mapper & mapper,
             std::cerr <<  "--Map::file " << path << " block "<< k << " Size " << length(mapper.getReads()) << " Elapsed Time[s]: file_I/O " << time1 + time3 << " map "<< time2 << "\n";
             k++;
         }      
-        std::string file1 = mapper.getOutputPrefix() + ".apf";
-        std::string file2 = mapper.getOutputPrefix() + ".gvf";
-        std::string file3 = mapper.getOutputPrefix() + ".sam";
-        appendValue (file1s, file1);
-        appendValue (file2s, file2);
-        appendValue (file3s, file3);
+        appendValue (files_prefix, mapper.getOutputPrefix());
         close(rFile);
     }
     serr.print_message("--Write results to disk 100%", 0, 1, cerr);
-    for (uint i = 0; i < length(file1s); i++)
+    for (uint i = 0; i < length(files_prefix); i++)
     {
         serr.print_message("Result files: ", 2, 0, cerr);
         if(fp_handler_.isPrintApf(mapper.getPrintFlag()))
         {
-            serr.print_message("\033[1;31m" + file1s[i] + "\033[0m ", 0, 0, cerr);
+            serr.print_message("\033[1;31m" + files_prefix[i] + ".apf\033[0m ", 0, 0, cerr);
         }
         //serr.print_message("\033[1;31m" + file2s[i] + "\033[0m ", 0, 0, cerr);
         if (fp_handler_.isPrintSam(mapper.getPrintFlag()))
         {
-            serr.print_message("\033[1;31m" + file3s[i] + "\033[0m ", 0, 0, cerr); 
+            serr.print_message("\033[1;31m" + files_prefix[i] + ".sam\033[0m ", 0, 0, cerr);
+        }
+        if (fp_handler_.isPrintBam(mapper.getPrintFlag()))
+        {
+            serr.print_message("\033[1;31m" + files_prefix[i] + ".bam\033[0m ", 0, 0, cerr);
         }
         serr.print_message(" ", 16, 1, cerr);  
     }
@@ -1089,4 +1049,3 @@ int filter(Mapper & mapper,
     }
     return 0;
 }
-

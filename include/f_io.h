@@ -2,6 +2,7 @@
 #define LINEAR_HEADER_F_IO_H
 
 #include <seqan/bam_io.h>
+#include "base.h"
 #include "cords.h"
 #include "align_util.h"
 using namespace seqan;
@@ -17,6 +18,7 @@ struct FIOParms
     int f_print_seq;
     int f_sequence_sam;
     int f_is_align;
+    unsigned f_output_type; //call base.h::fp_hanler_ to set unset and resolve the type
 
     std::string read_group;
     std::string sample_name;
@@ -52,14 +54,14 @@ void printRows(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
                CharString header = ""
                );
 
-int print_align_sam (StringSet<String<Dna5> > & genms,
-                     StringSet<String<Dna5> > & reads,
-                     StringSet<CharString> & genmsId,
-                     StringSet<CharString> & readsId,
-                     StringSet<String<BamAlignmentRecordLink> > & bam_records,
-                     std::ofstream & of,
-                     int f_header, //if print header
-                     FIOParms & fio_parms);
+int printAlignSamBam (StringSet<String<Dna5> > & genms,
+                      StringSet<String<Dna5> > & reads,
+                      StringSet<CharString> & genmsId,
+                      StringSet<CharString> & readsId,
+                      StringSet<String<BamAlignmentRecordLink> > & bam_records,
+                      std::ofstream & of,
+                      int f_header, //if print header
+                      FIOParms & fio_parms);
 
 void addNextBamLink(String<BamAlignmentRecordLink> & bam_records,
                     int id, int next_id);
@@ -79,22 +81,21 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
  *  NOTE::addjacent cords, cord1 and cord2, will be break into different bams if cord1y > cord2y || cord1x >
     cord2x
  */
-/*
-void cords2BamLink(String<uint64_t> & cords_str, 
-                   String<uint64_t> & cords_end,
-                   String<BamAlignmentRecordLink> & bam_link_records);
-
-void cords2BamLink(StringSet<String<uint64_t> > & cords_str, 
-                   StringSet<String<uint64_t> > & cords_end,
-                   StringSet<String<BamAlignmentRecordLink> > & bam_link_records,
-                   int f_parallel);
-                   */
-void cords2BamLink(StringSet<String<uint64_t> > & cords_str, 
+void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
                    StringSet<String<uint64_t> > & cords_end,
                    StringSet<String<BamAlignmentRecordLink> > & bam_link_records,
                    StringSet<String<Dna5> > & reads,
                    int thd_cord_size,
                    uint64_t thd_large_X);
+
+void cords2BamLink(StringSet<String<uint64_t> > & cords_str, 
+                   StringSet<String<uint64_t> > & cords_end,
+                   StringSet<String<BamAlignmentRecordLink> > & bam_link_records,
+                   StringSet<String<Dna5> > & reads,
+                   int thd_cord_size,
+                   uint64_t thd_large_X,
+                   unsigned threads,
+                   int f_parallel);
 
 void print_cords_sam (StringSet<String<uint64_t> > & cordset_str,    
                       StringSet<String<uint64_t> > & cordset_end,    

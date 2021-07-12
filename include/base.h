@@ -274,4 +274,27 @@ template <typename T>
 void unused(T &&)
 { }
 
+/**
+ * flags of output type;
+ */
+struct F_Print_
+{
+    void setPrintApf(uint & f);
+    void unsetPrintApf(uint & f);
+    void setPrintSam(uint & f);
+    void unsetPrintSam(uint & f);
+    void setPrintBamStd(uint & f);
+    void unsetPrintBamStd(uint & f);
+    void setPrintBamPbsv(uint & f);
+    void unsetPrintBamPbsv(uint & f);
+    void clear(uint & f);
+    int isPrintApf(uint f);
+    int isPrintSam(uint f);
+    int isPrintBam(uint f);
+    int isPrintBamStd(uint f);
+    int isPrintBamPbsv(uint f);
+    int isPrintSamBam(uint f);
+};
+extern F_Print_ fp_handler_;
+
 #endif
