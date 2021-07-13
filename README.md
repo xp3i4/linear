@@ -125,7 +125,7 @@ This is a file
 ## Adapation to SVs callers
 Some of existing tools uses character of space rather than the tab in the SAM/BAM header. 
 Though it violates the standard definition, they are widly 
-Enable the output of .bam for pbsv with the option of <b>-o 8</b>.
+Enable the output of .bam for pbsv with the option of <b>-ot 8</b>.
 ## Adaption to seqeunce graphical tools (IGV)
 
 ## license
