@@ -1,50 +1,88 @@
-## Linear
-
+# Linear
+## alignment-free methods 
 Mapping reads efficiently. 
-
-## Usage
-
-read length < 1MBases
 
 ## Prerequisites
 
-| Platform                                              | Building tools            |
-| ----------------------------------------------------- | ------------------------- |
-| <img src="images/lx_icon.png" width="30"> Linux 4.9.0 | gcc  > 4.9; cmake > 3.0.0 |
+| Building tools  |   Version          |
+| ------------------- | ------------------------- |
+| Linux | 4.9.0|
+| gcc|>4.9|
+| cmake|>3.0.0|
 
-## Install
 
-```bash
-  $ CMake .
-  $ make linear 
-```
-## Usage
+### External libraries in the source
 
-```bash
-  $ linear read.fa genome.fa
-``` 
-Basic usage: Please use .fa, .fastq .fa.gz or .fastq.gz for input. 
-```bash
-  $ linear read_* x genome_*
-``` 
-When using the reqular expression to map mutltiple reads and genomes [cartesian product], please use the x argument to seperate the read part and genome part.
-
-## Built with
-
-### Included in the source
 - [SeqAn 2.0](<https://seqan.readthedocs.io/en/master/>)-Library for sequence analysis
 
-- [googletest](<https://github.com/google/googletest>)-Unit test(optional)
+- [googletest](<https://github.com/google/googletest>)-Unit test
 
-### Pre-install 
-- [zlib](<https://www.zlib.net/>)-(File compression I/O)
-If not installed by default on Debian (Ubuntu, Mint,..) based distributions:
+### Pre-install required
+- [zlib](<https://www.zlib.net/>)-(File compression I/O).
+  To install on Ubuntu based distributions:
 ```bash
    $sudo apt install zlib1g-dev libbz2-dev
 ```
 
-## File format
-### Approximate mapping file (.amf)
+## Build
+Create a new build directory. In the build directory
+```bash
+  $ CMake [path to git cloned source] 
+  $ make linear 
+```
+
+## Usage
+Support.fa(.gz), .fastq(.gz) for input.
+```bash
+$linear read.fa genome.fa
+``` 
+Please add 'x' when mapping more than one reads and genomes.
+```bash
+$linear *fa x *fa
+``` 
+Use -h for more details regarding options
+```bash
+$linear -h
+```
+
+## File format of results
+### SAM/BAM
+Standard format for alignment and map.
+The definition of SAM/BAM of alignment of Linear is identical to the standard.
+The definition of SAM/BAM of map of Linear is changed as the following table.
+
+
+|col |filed|Description|Status|
+|--|--|--|--|
+|   1  | QNAME | Query template NAME                       | Yes       |           
+|   2  | FLAG  | bitwise FLAG                              | Yes       | 
+|   3  | RNAME | Reference sequence NAME                   | Yes       | 
+|   4  | POS   | 1-based leftmost mapping POSition         | Yes       | 
+|   5  | MAPQ  | MAPping Quality                           | Yes       | 
+|   6  | CIGAR | CIGAR string                              | Changed   | 
+|   7  | RNEXT | Reference name of the mate/next read      | Yes       |
+|   8  | PNEXT | Position of the mate/next read            | Yes       |
+|   9  | TLEN  | observed Template LENgth                  | Yes       | 
+|   10 | SEQ   | segment SEQuence                          | Changed   |
+|   11 | QUAL  | ASCII of Phred-scaled base QUALity+33     | Yes       |
+|   12 | TAG   | Optional tags                             | Changed   |
+
+- 6th column of cigar
+
+<img src="images/cigar_apx_map.png" alt="drawing" width="300"/>
+- 10th column of SEQ is inferred according to the reference and the 4,6th column rather than segment of read.
+For cigar operation '=', the corresponding base from the reference rather than the read is inserted into the SEQ.
+Thus the operation of '=' in result of mapping doesn't necessarily mean the read is identical to the reference at the level of base pairs.
+This is different from the SEQ for alignment.
+The change of definitation is to make the SEQ of mapping compatible to existing tools
+For operations of 'M', 'X', 'I', and 'S' the corresponding bases in the read are inserted.
+This is identical to the SEQ for alignment.
+- 12th column, in which the definition of 'SA:Z' is changed because of the change of 6th and 10th columns.
+Other tags are identical to the standard.
+Standard definition of the tag can be found at [SAM/BAM format](https://samtools.github.io/hts-specs/SAMv1.pdf) and [Optional tags](https://samtools.github.io/hts-specs/SAMtags.pdf)
+
+### Approximate mapping file (.apf)
+This is a file
 
 ```
 @> S1_14253 10049 45 10049 + chr1 44948 9964 19212 
@@ -78,17 +116,21 @@ If not installed by default on Debian (Ubuntu, Mint,..) based distributions:
 [sam]()-sam file
 [gvf]()
 
-  
+## Adapation to SVs callers
+Some of existing tools uses character of space rather than the tab in the SAM/BAM header. 
+Though it violates the standard definition, they are widly 
+Enable the output of .bam for pbsv with the option of <b>-o 8</b>.
+## Adaption to seqeunce graphical tools (IGV)
 
 ## license
+BSD License 2.0
 
-Linear is licensed under the 3-clause BSD license
 
 ## Contact
 
 
 
-<img src="/home/cx/code/linear/linear/images/logo.svg" width="330">
+
 
 
 
