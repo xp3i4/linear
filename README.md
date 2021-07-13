@@ -69,8 +69,12 @@ The definition of SAM/BAM of map of Linear is changed as the following table.
 |   11 | QUAL  | ASCII of Phred-scaled base QUALity+33     | Yes       |
 |   12 | TAG   | Optional tags                             | Changed   |
 
-- 6th column of cigar is to denote a region in the alignment matrix.
+- 6th column of cigar is changed in the SAM/BAM of map.
+Standard cigar of denotes the alignment of bases, while cigar of map here extends segments in the alignment matrix to region.
+Specially, cigar of map in Linear is in the format of 'MG', where 'M' is allowed to be 'X' and '=' of standard cigar while 'G' is allowed to be 'I' and 'D' of standard cigar.
+An example of '200=80D' with the corresponding region is shown in the following figure, where the green region is the region of the cigar, where the alignment is supposed to be.
 <img src="images/cigar_apx_map.png" alt="drawing" width="300"/>
+
 - 10th column of SEQ is inferred according to the reference and the 4,6th column rather than segment of read.
 For cigar operation '=', the corresponding base from the reference rather than the read is inserted into the SEQ.
 Thus the operation of '=' in result of mapping doesn't necessarily mean the read is identical to the reference at the level of base pairs.
@@ -78,6 +82,7 @@ This is different from the SEQ for alignment.
 The change of definitation is to make the SEQ of mapping compatible to existing tools
 For operations of 'M', 'X', 'I', and 'S' the corresponding bases in the read are inserted.
 This is identical to the SEQ for alignment.
+
 - 12th column, in which the definition of 'SA:Z' is changed because of the change of 6th and 10th columns.
 Other tags are identical to the standard.
 Standard definition of the tag can be found at [SAM/BAM format](https://samtools.github.io/hts-specs/SAMv1.pdf) and [Optional tags](https://samtools.github.io/hts-specs/SAMtags.pdf)
