@@ -6,29 +6,31 @@ Mapping reads efficiently.
 
 | Building tools  |   Version          |
 | ------------------- | ------------------------- |
-| Linux | 4.9.0|
-| gcc|>4.9|
-| cmake|>3.0.0|
+|Linux<img src="images/linux_logo.png" width="16"/> | >4.9.0|
+|GCC<img src="images/gcc_logo.png" width="16"/>|>4.9|
+|CMake<img src="images/cmake_logo.png" width="16"/>|>3.0.0|
 
 
-### External libraries in the source
+### External libraries used in the source
 
-- [SeqAn 2.0](<https://seqan.readthedocs.io/en/master/>)-Library for sequence analysis
+- [SeqAn 2.0](<https://seqan.readthedocs.io/en/master/>)-Generci library for sequence analysis
 
 - [googletest](<https://github.com/google/googletest>)-Unit test
+
+- [skasort](https://github.com/skarupke/ska_sort)-A consice library of sorting algorithms
 
 ### Pre-install required
 - [zlib](<https://www.zlib.net/>)-(File compression I/O).
   To install on Ubuntu based distributions:
 ```bash
-   $sudo apt install zlib1g-dev libbz2-dev
+$sudo apt install zlib1g-dev libbz2-dev
 ```
 
 ## Build
 Create a new build directory. In the build directory
 ```bash
-  $ CMake [path to git cloned source] 
-  $ make linear 
+$CMake [path to git cloned source] 
+$make linear 
 ```
 
 ## Usage
@@ -67,8 +69,7 @@ The definition of SAM/BAM of map of Linear is changed as the following table.
 |   11 | QUAL  | ASCII of Phred-scaled base QUALity+33     | Yes       |
 |   12 | TAG   | Optional tags                             | Changed   |
 
-- 6th column of cigar
-
+- 6th column of cigar is to denote a region in the alignment matrix.
 <img src="images/cigar_apx_map.png" alt="drawing" width="300"/>
 - 10th column of SEQ is inferred according to the reference and the 4,6th column rather than segment of read.
 For cigar operation '=', the corresponding base from the reference rather than the read is inserted into the SEQ.
