@@ -88,9 +88,10 @@ Other tags are identical to the standard.
 Standard definition of the tag can be found at [SAM/BAM format](https://samtools.github.io/hts-specs/SAMv1.pdf) and [Optional tags](https://samtools.github.io/hts-specs/SAMtags.pdf)
 
 ### Approximate mapping file (.apf)
-This is the nonstandard format extended of map to provide a readable overview of the result of map, which is usefull for debug.
+This is the nonstandard format extended of map to provide readable overview of the result of map.
 The file can be enabled/disabled with the option '-ot'.
-The following are the notation of the header and record of apf
+The apf of one read contain the header and record
+The following are the definition of the header and record.
 |col |filed|Description|Type|
 |--|--|--|--|
 |1|@>|sign to start the header|string|
@@ -98,7 +99,7 @@ The following are the notation of the header and record of apf
 |3| QLEN|Query template LENGTH|int|
 |4| QSTR|Query template mapped START| int |
 |5| QEND|Query template mapped END| int |
-|5| QSTRD|Query template mapped STRAND|{+,-}|
+|5| QSTRD|Query template mapped main STRAND|{+,-}|
 |6| RNAME | Reference sequence NAME|String| 
 |6| RLEN | Reference sequence LENGTH|int| 
 |7| RSTR | Reference sequence mapped START|int| 
@@ -106,44 +107,33 @@ The following are the notation of the header and record of apf
 
 |col |filed|Description|Type|
 |--|--|--|--|
-|1|\|sign to start record|string|
-|2|N|Number of region|int|
-|3|QSTR|Query region start|int|
-|4|RSTR|Reference region start|int|
-|5|DY|Distance of current 3th col to last|int|
-|6|DX|Distance of current 4th col to last|int|
-|7|RSTRD|region strand|{+,-}|
+|1|\||sign to start record|string|
+|2|QSTR|Query region start|int|
+|3|RSTR|Reference region start|int|
+|4|DY|Distance of current 3th col to last|int|
+|5|DX|Distance of current 4th col to last|int|
+|6|RSTRD|region strand|{+,-}|
 
-
-Following is an example of the apf file.
+Following is an example of the apf the read mapped to the reference.
 ```
 @> S1_14253 10049 45 10049 + chr1 44948 9964 19212 
-| 45 9964 0 0 1 
-| 215 10119 170 155 2 
-| 352 10240 137 121 3 
-| 446 10327 94 87 4 
+| 45 9964 0 0 1 - 
+| 215 10119 170 155 2 -
+| 352 10240 137 121 3 -
+| 446 10327 94 87 4 - 
 ...
-| 2400 12112 144 128 17 
-| 2544 12256 144 144 18 
-| 2688 12384 144 128 19 
-| 2832 12528 144 144 20 
-| 2826 12515 -6 -13 21 
-|**+++++++++++ 6786 12607 3960 92 22 
-| 3118 12771 -3668 164 23 
-| 3196 12845 78 74 24 
+| 6656 16080 144 128 48 - 
+| 6800 16208 144 128 49 - 
+| 6944 16336 144 128 50 - 
+| 1931 16507 -5013 171 51 + 
+| 2126 16690 195 183 52 + 
+| 2309 16857 183 167 53 + 
+| 2462 16999 153 142 54 + 
+| 2592 17120 130 121 55 + 
+| 2674 17189 82 69 56 + 
 ...
-| 6656 16080 144 128 48 
-| 6800 16208 144 128 49 
-| 6944 16336 144 128 50 
-|**+++++++++++ 1931 16507 -5013 171 51 
-|**+++++++++++ 2126 16690 195 183 52 
-|**+++++++++++ 2309 16857 183 167 53 
-|**+++++++++++ 2462 16999 153 142 54 
-|**+++++++++++ 2592 17120 130 121 55 
-|**+++++++++++ 2674 17189 82 69 56 
-...
-| 9680 18839 0 7 68 
-| 9870 19020 190 181 69 
+| 9680 18839 0 7 68 - 
+| 9870 19020 190 181 69 -
 ```
 [sam]()-sam file
 [gvf]()
