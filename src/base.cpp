@@ -56,7 +56,7 @@ Options::Options(int argc, char const ** & argv) : Options()
 {
     op_argc = argc;
     op_argv = argv;
-    if (!empty(argv))
+    if (length(argv) < 1)
     {
         append(cmd_line, CharString(argv[1]));
         for (int i = 1; i < argc; i++)
