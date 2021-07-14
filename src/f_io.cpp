@@ -172,11 +172,13 @@ void print_cords_apf(CordsSetType & cords,
                 }
                 ///>print the coordinates
                 icon_strand = (get_cord_strand(cords[k][j]))?'-':'+';
-                std::string mark = "| ";
+                std::string mark = "|";
+                /*
                 if (icon_strand != main_icon_strand)
                 {
                     mark = (icon_strand == '+') ? "|+++++++++++ " :"|----------- ";
                 }
+                */
                 int64_t d1 = 0;//_DefaultCord.getCordY(cords[k][1]);
                 int64_t d2 = 0;
                 if (!fflag)
@@ -184,12 +186,14 @@ void print_cords_apf(CordsSetType & cords,
                     d1 = int64_t(get_cord_x(cords[k][j]) - get_cord_x(cords[k][j - 1]));
                     d2 = int64_t(get_cord_y(cords[k][j]) - get_cord_y(cords[k][j - 1]));
                 }
-                stream << mark  
+                stream << mark << " "  
                        << get_cord_y(cords[k][j]) << " " 
                        << get_cord_x(cords[k][j]) << " " 
                        << d2 << " " 
                        << d1 << " " 
-                       << get_cord_x (cords[k][j]) - get_cord_y(cords[k][j]) << "\n";
+                       //<< get_cord_x (cords[k][j]) - get_cord_y(cords[k][j]) << " "
+                       << icon_strand
+                       << "\n";
                 //of << stream.str();
                 //of << buffer;
                 cordCount++;
