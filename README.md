@@ -6,9 +6,9 @@ Mapping reads efficiently.
 
 | Building tools  |   Version          |
 | ------------------- | ------------------------- |
-|Linux<img src="images/linux_logo.png" width="16"/> | >4.9.0|
-|GCC<img src="images/gcc_logo.png" width="16"/>|>4.9|
-|CMake<img src="images/cmake_logo.png" width="16"/>|>3.0.0|
+|<img src="images/linux_logo.png" width="16"/> Linux| >4.9.0|
+|<img src="images/gcc_logo.png" width="16"/> GCC|>4.9|
+|<img src="images/cmake_logo.png" width="16"/> CMAKE|>3.0.0|
 
 
 ### External libraries used in the source
@@ -34,7 +34,7 @@ $make linear
 ```
 
 ## Usage
-Support.fa(.gz), .fastq(.gz) for input.
+Support .fa(.gz), .fastq(.gz) for input.
 ```bash
 $linear read.fa genome.fa
 ``` 
@@ -88,8 +88,34 @@ Other tags are identical to the standard.
 Standard definition of the tag can be found at [SAM/BAM format](https://samtools.github.io/hts-specs/SAMv1.pdf) and [Optional tags](https://samtools.github.io/hts-specs/SAMtags.pdf)
 
 ### Approximate mapping file (.apf)
-This is a file
+This is the nonstandard format extended of map to provide a readable overview of the result of map, which is usefull for debug.
+The file can be enabled/disabled with the option '-ot'.
+The following are the notation of the header and record of apf
+|col |filed|Description|Type|
+|--|--|--|--|
+|1|@>|sign to start the header|string|
+|2| QNAME|Query template NAME|string|
+|3| QLEN|Query template LENGTH|int|
+|4| QSTR|Query template mapped START| int |
+|5| QEND|Query template mapped END| int |
+|5| QSTRD|Query template mapped STRAND|{+,-}|
+|6| RNAME | Reference sequence NAME|String| 
+|6| RLEN | Reference sequence LENGTH|int| 
+|7| RSTR | Reference sequence mapped START|int| 
+|8| REND | Reference sequence mapped END|int| 
 
+|col |filed|Description|Type|
+|--|--|--|--|
+|1|\|sign to start record|string|
+|2|N|Number of region|int|
+|3|QSTR|Query region start|int|
+|4|RSTR|Reference region start|int|
+|5|DY|Distance of current 3th col to last|int|
+|6|DX|Distance of current 4th col to last|int|
+|7|RSTRD|region strand|{+,-}|
+
+
+Following is an example of the apf file.
 ```
 @> S1_14253 10049 45 10049 + chr1 44948 9964 19212 
 | 45 9964 0 0 1 
