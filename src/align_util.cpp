@@ -746,7 +746,6 @@ int BamLinkStringOperator::fillBamRecordLinkRecords(
                     int f_is_align)
 {
     updateHeadsTable(bam_records);
-    dout << "fbrlrs" << getHeadNum(bam_records) << f_print_seq << f_is_align << "\n";
     for (int i = 0; i < getHeadNum(bam_records); i++)
     {
         int it = getHead(bam_records, i);

@@ -244,23 +244,35 @@ int Mapper::setMapperBamHeaders(Options & options)
 {
     if (options.isOutputSam() || options.isOutputBamPbsv() || options.isOutputBamStandard())
     {
+        BamHeaderRecord tmp_bam_header;
         for (unsigned i = 0; i < length(getGenomesId()); i++)
         {
-            appendValue(fio_parms.bam_header, BamHeaderRecord());
-            back(fio_parms.bam_header).type = seqan::BAM_HEADER_REFERENCE;
-            setTagValue("SN", getGenomesId()[i], back(fio_parms.bam_header));
-            setTagValue("LN", std::to_string(length(getGenomes()[i])), back(fio_parms.bam_header));
+            clear(tmp_bam_header);
+            tmp_bam_header.type = seqan::BAM_HEADER_REFERENCE;
+            setTagValue("SN", getGenomesId()[i], tmp_bam_header);
+            setTagValue("LN", std::to_string(length(getGenomes()[i])), tmp_bam_header);
+            appendValue(fio_parms.bam_header, tmp_bam_header);
+            appendValue(fio_parms.bam_header2, tmp_bam_header);
         }
-        appendValue(fio_parms.bam_header, BamHeaderRecord());
-        back(fio_parms.bam_header).type = seqan::BAM_HEADER_READ_GROUP;
-        setTagValue("ID", options.sample_name, back(fio_parms.bam_header));
-        setTagValue("SM", options.read_group, back(fio_parms.bam_header));
+        clear(tmp_bam_header);
+        tmp_bam_header.type = seqan::BAM_HEADER_READ_GROUP;
+        setTagValue("ID", options.read_group, tmp_bam_header);
+        setTagValue("SM", options.sample_name, tmp_bam_header);
+        appendValue(fio_parms.bam_header, tmp_bam_header);
 
-        appendValue(fio_parms.bam_header, BamHeaderRecord());
-        back(fio_parms.bam_header).type = seqan::BAM_HEADER_PROGRAM;
-        setTagValue("ID", "M1-3", back(fio_parms.bam_header));
-        setTagValue("PN", "Linear", back(fio_parms.bam_header));
-        setTagValue("CL", options.cmd_line, back(fio_parms.bam_header));
+        clear(tmp_bam_header);
+        tmp_bam_header.type = seqan::BAM_HEADER_READ_GROUP;
+        setTagValue(" ID", options.read_group, tmp_bam_header);
+        setTagValue("SM", options.sample_name, tmp_bam_header);
+        appendValue(fio_parms.bam_header2, tmp_bam_header);
+
+        clear(tmp_bam_header);
+        tmp_bam_header.type = seqan::BAM_HEADER_PROGRAM;
+        setTagValue("ID", "M1-3", tmp_bam_header);
+        setTagValue("PN", "Linear", tmp_bam_header);
+        setTagValue("CL", options.cmd_line, tmp_bam_header);
+        appendValue(fio_parms.bam_header, tmp_bam_header);
+        appendValue(fio_parms.bam_header2, tmp_bam_header);
     }
 
     return 0;
@@ -371,10 +383,6 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
                 double t = sysTime();
                 alignCords(this->getGenomes(), reads[j], comStr, cords_str[j], cords_end[j], bam_records[j]);
                 t = sysTime() - t;
-                if (t > 100)
-                {
-                    dout << "pcal1" << t << reads_id[j] << "\n";
-                }
                 //check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
             }
         }
@@ -477,12 +485,20 @@ int print_align_sam (Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
     mapper.getFIOParms().f_output_type = f_output_type_original;
     return 0;
 }
-int print_align_bam (Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
+int print_align_bam_std (Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
 {
     uint f_output_type_original = mapper.getFIOParms().f_output_type;
     fp_handler_.clear(mapper.getFIOParms().f_output_type);
-    //setPrintBamStd and setPrintBamPbsv are both fine
     fp_handler_.setPrintBamStd(mapper.getFIOParms().f_output_type);
+    print_align_sam_bam(mapper, f_p_mapper, p_in_id, p_out_id);
+    mapper.getFIOParms().f_output_type = f_output_type_original;
+    return 0;
+}
+int print_align_bam_pbsv (Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
+{
+    uint f_output_type_original = mapper.getFIOParms().f_output_type;
+    fp_handler_.clear(mapper.getFIOParms().f_output_type);
+    fp_handler_.setPrintBamPbsv(mapper.getFIOParms().f_output_type);
     print_align_sam_bam(mapper, f_p_mapper, p_in_id, p_out_id);
     mapper.getFIOParms().f_output_type = f_output_type_original;
     return 0;
@@ -546,18 +562,29 @@ int print_mapper_results(Mapper & mapper,
     }
 
     ///.bam
-    std::string file4 = mapper.getOutputPrefix() + ".bam";
-    if (fp_handler_.isPrintBam(mapper.getPrintFlag()))
+    if (fp_handler_.isPrintBamStd(mapper.getPrintFlag()))
     {
         if (!fm_handler_.isAlign(mapper.getMapFlag()))
         {
             //formatCordsBam4Print(mapper, f_p_mapper);
         }
+        std::string file4 = mapper.getOutputPrefix() + ".bam";
         open_mapper_of (mapper, file4);
-        print_align_bam(mapper, f_p_mapper, p_in_id, p_out_id);
+        print_align_bam_std(mapper, f_p_mapper, p_in_id, p_out_id);
         close_mapper_of(mapper);
     }
-
+    //non-standard.bam for pbsv
+    if (fp_handler_.isPrintBamPbsv(mapper.getPrintFlag()))
+    {
+        if (!fm_handler_.isAlign(mapper.getMapFlag()))
+        {
+            //formatCordsBam4Print(mapper, f_p_mapper);
+        }
+        std::string file5 = mapper.getOutputPrefix() + "_pbsv.bam";
+        open_mapper_of (mapper, file5);
+        print_align_bam_pbsv(mapper, f_p_mapper, p_in_id, p_out_id);
+        close_mapper_of(mapper);
+    }
     //add new file here
 
     mapper.setOfApp(); //set of_type to std::ios::app;
@@ -839,9 +866,13 @@ int map(Mapper & mapper,
         {
             serr.print_message("\033[1;31m" + files_prefix[i] + ".sam\033[0m ", 0, 0, cerr);
         }
-        if (fp_handler_.isPrintBam(mapper.getPrintFlag()))
+        if (fp_handler_.isPrintBamStd(mapper.getPrintFlag()))
         {
             serr.print_message("\033[1;31m" + files_prefix[i] + ".bam\033[0m ", 0, 0, cerr);
+        }
+        if (fp_handler_.isPrintBamPbsv(mapper.getPrintFlag()))
+        {
+            serr.print_message("\033[1;31m" + files_prefix[i] + "_pbsv.bam\033[0m ", 0, 0, cerr);
         }
         serr.print_message(" ", 16, 1, cerr);  
     }

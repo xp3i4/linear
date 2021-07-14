@@ -503,7 +503,14 @@ int printAlignBamHeader (std::ofstream & of, FIOParms & fio_parms )
 {
     BamFileIn bam_file_in;
     BamFileOut bam_file_out(context(bam_file_in), of, Bam());
-    seqan::writeHeader(bam_file_out, fio_parms.bam_header);
+    if (fp_handler_.isPrintBamStd(fio_parms.f_output_type))
+    {
+        seqan::writeHeader(bam_file_out, fio_parms.bam_header);
+    }
+    else if (fp_handler_.isPrintBamPbsv(fio_parms.f_output_type))
+    {
+        seqan::writeHeader(bam_file_out, fio_parms.bam_header2);
+    }
 
     return 0;
 }
@@ -535,16 +542,13 @@ int printAlignBamRecord(StringSet<String<BamAlignmentRecordLink> > & bam_records
 {
     BamFileIn bam_file_in;
     BamFileOut bam_file_out(context(bam_file_in), of, Bam());
-    dout << "pab2" << length(bam_records) << "\n";
     for (unsigned i = 0; i < length(bam_records); i++)
     {
         bls_operator.convert2SeqanCompatibleFormat(bam_records[i], 1);
         for (int j = 0; j < bls_operator.getHeadNum(bam_records[i]); j++)
         {
             int it = bls_operator.getHead(bam_records[i], j);
-            bam_records[i][it].print("pab3");
             seqan::writeRecord(bam_file_out, bam_records[i][it]);
-            dout << "pab1" << length(bam_records[i]) << bls_operator.getHeadNum(bam_records[i]) << it << "\n";
         }
     }
     unused (fio_parms);
@@ -588,13 +592,10 @@ int printAlignSamBam (StringSet<String<Dna5> > & genms,
                       int f_header,
                       FIOParms & fio_parms)
 {
-    dout << "ps1" << fio_parms.f_output_type << fp_handler_.isPrintSam(fio_parms.f_output_type) << "\n";
     for (unsigned i = 0; i < length(bam_records); i++)
     {
-        dout << "ps2" << bls_operator.getHeadNum(bam_records[i]) << length(bam_records[i]) << "\n";
         bls_operator.fillBamRecordLinkRecords(bam_records[i], genms, genms_id,reads[i], reads_id[i], 
             fio_parms.f_print_seq, fio_parms.f_is_align);
-        dout << "ps3" << bls_operator.getHeadNum(bam_records[i]) << "\n";
     }
     if (fp_handler_.isPrintSam(fio_parms.f_output_type))
     {
@@ -602,7 +603,6 @@ int printAlignSamBam (StringSet<String<Dna5> > & genms,
     }
     else if (fp_handler_.isPrintBam(fio_parms.f_output_type))
     {
-        dout << "ps4" << "\n";
         printAlignBam(bam_records, of, f_header, fio_parms);
     }
     return 0;
@@ -761,14 +761,11 @@ int cords2BamLink(String<uint64_t> & cords_str,
                    String<Dna5> & read,
                    uint64_t thd_large_X)
 {
-    std::cout << "cdr3" << length(bam_link_records) << "\n";
     if (!empty(bam_link_records))
     {
-        dout << "cdx" << bam_link_records[0].f_new_available << "\n";
     }
     if (!bls_operator.isNewAvailable(bam_link_records))
     {
-        dout << "cdr" << length(bam_link_records) << '\n';
         return 1;
     }
     uint64_t cigar_str;
@@ -954,7 +951,6 @@ void shrink_cords_cigar(String<BamAlignmentRecordLink>  & bam_records)
             }
             else if (bam_records[i].cigar[j].count == 0)
             {
-                std::cout << "shrinkdj" << dj << "\n";
                 dj++;
             }
             else
@@ -1015,7 +1011,6 @@ int reformCCSBams(String<BamAlignmentRecordLink> & bam_records,
                 int compress_count = new_count;
                 char new_operation = bam_records[it].cigar[j1].operation;
                 char compress_operation = new_operation;
-                std::cout << "rcs3" << j1 << " " << new_count << " " << new_operation << "\n";
                 if (new_operation == 'I')
                 {
                     if (std::abs(xy + new_count) < fio_parms.thd_rcb_xy)

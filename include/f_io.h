@@ -24,6 +24,7 @@ struct FIOParms
     std::string sample_name;
 
     BamHeader bam_header;
+    BamHeader bam_header2; //supposed to be used by nonstand header like those used in pbsv
 
     FIOParms();
 };
