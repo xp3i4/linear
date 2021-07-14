@@ -94,12 +94,12 @@ The apf of one read contain the header and record
 The following are the definition of the header and record.
 |col |filed|Description|Type|
 |--|--|--|--|
-|1|@>|sign to start the header|string|
+|1|@|sign to start the header|{'@'}|
 |2| QNAME|Query template NAME|string|
 |3| QLEN|Query template LENGTH|int|
 |4| QSTR|Query template mapped START| int |
 |5| QEND|Query template mapped END| int |
-|5| QSTRD|Query template mapped main STRAND|{+,-}|
+|5| QSTRD|Query template mapped main STRAND|{'+','-'}|
 |6| RNAME | Reference sequence NAME|String| 
 |6| RLEN | Reference sequence LENGTH|int| 
 |7| RSTR | Reference sequence mapped START|int| 
@@ -112,7 +112,7 @@ The following are the definition of the header and record.
 |3|RSTR|Reference region start|int|
 |4|DY|Distance of current 3th col to last|int|
 |5|DX|Distance of current 4th col to last|int|
-|6|RSTRD|region strand|{+,-}|
+|6|RSTRD|region strand|{'+','-'}|
 
 Following is an example of the apf the read mapped to the reference.
 ```

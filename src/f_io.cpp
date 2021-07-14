@@ -157,7 +157,7 @@ void print_cords_apf(CordsSetType & cords,
                     {
                         stream << "\n";
                     } 
-                    stream << "@> "
+                    stream << "@ "
                        << readsId[k] << " " 
                        << length(reads[k]) << " "
                        << get_cord_y(cords[k][j]) << " " 
