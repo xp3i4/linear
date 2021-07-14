@@ -9,7 +9,8 @@ struct ChainScoreParms
     int64_t mean_d;  //mean of distance of kmers
     int64_t var_d;
     int chn_block_strand;
-    ChainScoreParms();
+    float gacs3_ins_read_len_ratio; //support ins of len < this * read_len, otherwise skip ins leaving unchanined
+    ChainScoreParms(float val_gacs3_ins_read_len_ratio = 1);
 };
 
 int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2, ChainScoreParms & chn_sc_parms);
