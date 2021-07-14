@@ -731,7 +731,6 @@ int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t
     int64_t dy_ = std::abs(dy);
     da = dx - dy;
     int score = 0;
-    dout << "gacs3" << f_type << da << dx << thd_dup_trigger << - std::max(dx_ / 4, int64_t(50)) << dy << dx << "\n";
     if (dy < thd_min_dy || dy > thd_max_dy || dx < thd_min_dx || dx_ > thd_max_dx)
     {
         score = INT_MIN;
@@ -749,10 +748,8 @@ int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t
         }
         else if (da < -std::max(dx_ / 4, int64_t(50))) 
         {
-            dout << "da" << dx << "\n";
             if (dx > thd_dup_trigger) //ins
             {
-                dout << "gacs31" << score_dx << "\n";
                 score = 80 - score_dx; // large dy is allowed
             }
             else //dup
