@@ -1,11 +1,16 @@
-<h1 align="center"><img width="450px" src="images/linear_logo-1.png"/></h1>
+<h1 align="center"><img width="550px" src="images/linear_logo-1.png"/></h1>
 
 ***
 
-## alignment-free methods 
-Mapping reads efficiently. 
+# Mapping efficiently. 
 
-## Prerequisites
+## It's alignment-free 
+The detection of structural variants commonly relies on the result of alignment, This strategy in exsiting tools remains unchanged from NGS sequencing to 3rd sequencing.
+However, rigid static gap model in alignment is inflexible to complex SVs hidden in the heterogeneity of SMRT sequencing.
+Conflicts of detecting novel SVs and exponential computational complexity is one of the main bottlenecks of alignment based pipelines.
+In this work we investigated the feasibility of alignment-free methods and implemented a new framework applying alignment-free methods enabling orders of magnitude faster speed of mapping, aligning and identifying SVs with improved sensitivity and flexibility.  
+
+## Build
 
 | Building tools  |   Version          |
 | ------------------- | ------------------------- |
@@ -29,8 +34,7 @@ Mapping reads efficiently.
 $sudo apt install zlib1g-dev libbz2-dev
 ```
 
-## Build
-Create a new build directory. In the build directory
+To build from the source create a new directory. In the build directory
 ```bash
 $CMake [path to git cloned source] 
 $make linear 
@@ -45,12 +49,15 @@ Please add 'x' when mapping more than one reads and genomes.
 ```bash
 $linear *fa x *fa
 ``` 
-Use -h for more details regarding options
+Use -h for more details of options
 ```bash
 $linear -h
 ```
 
 ## File format of results
+Output of Linear is based on standard formats for sequence alignment
+However some changes have been made to adapt the result of map.
+Theses changes include:
 ### SAM/BAM
 Standard format for alignment and map.
 The definition of SAM/BAM of alignment of Linear is identical to the standard.
@@ -91,8 +98,8 @@ Other tags are identical to the standard.
 Standard definition of the tag can be found at [SAM/BAM format](https://samtools.github.io/hts-specs/SAMv1.pdf) and [Optional tags](https://samtools.github.io/hts-specs/SAMtags.pdf)
 
 ### Approximate mapping file (.apf)
-This is the nonstandard format extended of map to provide readable overview of the result of map.
-The file can be enabled/disabled with the option '-ot'.
+This is the nonstandard format to provide readable overview of the result of map.
+The file can be enabled/disabled with the option '<b>-ot</b>'.
 The apf of one read contain the header and record
 The following are the definition of the header and record.
 |col |filed|Description|Type|
@@ -119,7 +126,7 @@ The following are the definition of the header and record.
 
 Following is an example of the apf the read mapped to the reference.
 ```
-@> S1_14253 10049 45 10049 + chr1 44948 9964 19212 
+@ S1_14253 10049 45 10049 + chr1 44948 9964 19212 
 | 45 9964 0 0 1 - 
 | 215 10119 170 155 2 -
 | 352 10240 137 121 3 -
