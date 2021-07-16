@@ -10,6 +10,8 @@ However, rigid static gap model in alignment is inflexible to complex SVs hidden
 Conflicts of detecting novel SVs and exponential computational complexity is one of the main bottlenecks of alignment based pipelines.
 In this work we investigated the feasibility of alignment-free methods and implemented a new framework applying alignment-free methods enabling orders of magnitude faster speed of mapping, aligning and identifying SVs with improved sensitivity and flexibility.  
 
+## It's a framework keeping improved
+
 ## Build
 
 | Building tools  |   Version          |
