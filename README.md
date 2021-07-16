@@ -1,4 +1,4 @@
-<h1 align="center"><img width="550px" src="images/linear_logo-1.svg"/></h1>
+<h1 align="center"><img width="450px" src="images/linear_logo-1.svg"/></h1>
 
 ***
 
@@ -45,7 +45,7 @@ Support .fa(.gz), .fastq(.gz) for input.
 ```bash
 $linear read.fa genome.fa
 ``` 
-Please add 'x' when mapping more than one reads and genomes.
+Please add <b>'x'</b> when mapping more than one reads and genomes.
 ```bash
 $linear *fa x *fa
 ``` 
