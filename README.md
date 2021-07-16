@@ -1,4 +1,4 @@
-<h1 align="center"><img width="550px" src="images/linear_logo-1.png"/></h1>
+<h1 align="center"><img width="550px" src="images/linear_logo-1.svg"/></h1>
 
 ***
 
