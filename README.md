@@ -138,11 +138,19 @@ Following is an example of the apf the read mapped to the reference.
 [sam]()-sam file
 [gvf]()
 
-## Adapation to SVs callers
-Some of existing tools uses character of space rather than the tab in the SAM/BAM header. 
-Though it violates the standard definition, they are widly 
-Enable the output of .bam for pbsv with the option of <b>-ot 8</b>.
-## Adaption to seqeunce graphical tools (IGV)
+## Adaption to existing pipelines
+The result of alignment is supposed to be called existing pipelines as many other aligners.
+Besides, the result of map (with the alignment completely disbaled) can be called by existing alignment based pipelines, such as the SVs caller.
+
+### Adapation to SVs callers
+The compatibility of the result of map to the SVs caller [PBSV](https://github.com/PacificBiosciences/pbsv) has been tested with PacBio long reads.
+It's worth to note the latest version (< 2.6.2) of PBSV takes nonstandard BAM whose delimitor of header is 'space' rather than 'tab'.
+To output bam compatible to PBSV, run with option <b>-sn 1 -rg 1-ot 8</b> enabled in Linear, or enable option <b>-s 1</b> in the PBSV.
+### Adaption to seqeunce graphical tools (IGV)
+The compatibility of the result of map to the IGV has been tested.
+.bam of map can be callerd directly.
+
+
 
 ## license
 BSD License 2.0
