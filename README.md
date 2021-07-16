@@ -1,4 +1,7 @@
-# Linear
+<h1 align="center"><img width="300px" src="images/linear_logo.png"/></h1>
+
+***
+
 ## alignment-free methods 
 Mapping reads efficiently. 
 
