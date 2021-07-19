@@ -1,16 +1,30 @@
-<h1 align="center"><img width="450px" src="images/linear_logo-1.svg"/></h1>
+<h1 align="center"><img width="350px" src="images/linear_logo-1.svg"/></h1>
 
 ***
 
-# Mapping efficiently. 
+## Why Linear
 
-## It's alignment-free 
+### It's alignment-free 
 The detection of structural variants commonly relies on the result of alignment, This strategy in exsiting tools remains unchanged from NGS sequencing to 3rd sequencing.
-However, rigid static gap model in alignment is inflexible to complex SVs hidden in the heterogeneity of SMRT sequencing.
+However, rigid static gap model in alignment is inflexible to complex SVs hidden in the heterogeneity of 3rd sequencing.
 Conflicts of detecting novel SVs and exponential computational complexity is one of the main bottlenecks of alignment based pipelines.
-In this work we investigated the feasibility of alignment-free methods and implemented a new framework applying alignment-free methods enabling orders of magnitude faster speed of mapping, aligning and identifying SVs with improved sensitivity and flexibility.  
+Thus we investigate the feasibility of alignment-free methods by developing Linear, a new framework applying alignment-free methods for mapping, aligning, SVs calling and so on.
 
-## It's a framework keeping improved
+### It's efficient
+Alignment-free method is commonly more efficient to computer.
+Additionaly, with many optimization in the implementation, Linear is commonly orders of magnitude faster to map, align and resolve SVs with improved sensitivity and flexibility.  
+
+### It's a rolling improved
+SVs models applied in Linear is much more flexible than these applied in the conventional alignment methods.
+Linear implemented several, but not limited to models of common SVs, such as ins, dels, invs. 
+Better implementation of models of higher sensitivity and efficiency are keeping developed and can be applied easily.
+
+### It's compatible to exisiting alignment based pipelines
+The alignment-free methods is compatible to the alignment based pipelines.
+Results of Linear can be called directly by several tools such as the SVs caller pbsv.
+Typical pairwise alignment is also available in Linear with at least 3 times faster implementaion than existing ones. 
+Additionally, it's promising to be even faster.
+Since the speedup is due to optimization of the method rather than the hardware-accelaration of existing aligners, which can be implemented in future.
 
 ## Build
 
@@ -169,6 +183,7 @@ BSD License 2.0
 
 
 ## Contact
+
 
 
 
