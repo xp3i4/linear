@@ -182,8 +182,6 @@ The compatibility of the result of map to the IGV has been tested.
 BSD License 2.0
 
 
-## Contact
-
 
 
 
