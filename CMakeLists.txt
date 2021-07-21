@@ -25,6 +25,6 @@ endif ()
 # ----------------------------------------------------------------------------
 
 include_directories(include)
-include_directories(external_third)
+include_directories(external)
 add_subdirectory(src)
 
