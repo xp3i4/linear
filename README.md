@@ -1,6 +1,7 @@
 <h1 align="center"><img width="350px" src="images/linear_logo-1.svg"/></h1>
 
 ***
+![example workflow](https://github.com/catx1024/linear/actions/workflows/cmake.yml/badge.svg)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 ![platforms](https://img.shields.io/badge/platform-linux-informational.svg)
 
