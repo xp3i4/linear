@@ -317,6 +317,7 @@ int writeSam(std::ofstream & target,
              CharString genome_id_next,
              FIOParms & fio_parms)
 {
+    unused(genome);
     int it_count = -1;
     BamAlignmentRecordLink & record = records[it];
     if (fio_parms.f_print_seq)

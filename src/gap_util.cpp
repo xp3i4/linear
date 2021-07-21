@@ -1689,7 +1689,7 @@ int g_stream_(String<Dna5> & seq1, //genome
 int c_stream_(String<Dna5> & seq,String<uint64_t> & g_hs, 
               uint64_t sq_str, uint64_t sq_end, int step, int shape_len, uint64_t type)
 {
-    if (length(seq) < shape_len)
+    if (length(seq) < unsigned(shape_len))
     {
         return 0;
     }
