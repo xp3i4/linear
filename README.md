@@ -1,20 +1,22 @@
 <h1 align="center"><img width="350px" src="images/linear_logo-1.svg"/></h1>
 
 ***
+[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 ## Why Linear
 
 ### It's alignment-free 
-The detection of structural variants commonly relies on the result of alignment, This strategy in exsiting tools remains unchanged from NGS sequencing to 3rd sequencing.
+Alignment is expensive.
+The detection of structural variants commonly relies on the alignment. The strategy remains unchanged from NGS sequencing to 3rd sequencing.
 However, rigid static gap model in alignment is inflexible to complex SVs hidden in the heterogeneity of 3rd sequencing.
-Conflicts of detecting novel SVs and exponential computational complexity is one of the main bottlenecks of alignment based pipelines.
-Thus we investigate the feasibility of alignment-free methods by developing Linear, a new framework applying alignment-free methods for mapping, aligning, SVs calling and so on.
+Conflicts of resolving SVs and exponential computational complexity is one of the main bottlenecks of alignment based pipelines.
+Thus we investigate the feasibility of alignment-free methods by developing Linear applying alignment-free methods for mapping, aligning, SVs calling and so on.
 
 ### It's efficient
-Alignment-free method is commonly more efficient to computer.
-Additionaly, with many optimization in the implementation, Linear is commonly orders of magnitude faster to map, align and resolve SVs with improved sensitivity and flexibility.  
+Alignment-free method is commonly more efficient to compute.
+Additionally, with flexible optimization in the implementation, Linear is commonly orders of magnitude faster to map, align and resolve SVs with improved sensitivity and flexibility.  
 
-### It's a rolling improved
+### It's keeping improved
 SVs models applied in Linear is much more flexible than these applied in the conventional alignment methods.
 Linear implemented several, but not limited to models of common SVs, such as ins, dels, invs. 
 Better implementation of models of higher sensitivity and efficiency are keeping developed and can be applied easily.
@@ -22,7 +24,7 @@ Better implementation of models of higher sensitivity and efficiency are keeping
 ### It's compatible to exisiting alignment based pipelines
 The alignment-free methods is compatible to the alignment based pipelines.
 Results of Linear can be called directly by several tools such as the SVs caller pbsv.
-Typical pairwise alignment is also available in Linear with at least 3 times faster implementaion than existing ones. 
+Typical pairwise alignment is also available in Linear with at least 3 times faster implementation than existing ones. 
 Additionally, it's promising to be even faster.
 Since the speedup is due to optimization of the method rather than the hardware-accelaration of existing aligners, which can be implemented in future.
 
@@ -105,7 +107,7 @@ An example of '200=80D' with the corresponding region is shown in the following 
 For cigar operation '=', the corresponding base from the reference rather than the read is inserted into the SEQ.
 Thus the operation of '=' in result of mapping doesn't necessarily mean the read is identical to the reference at the level of base pairs.
 This is different from the SEQ for alignment.
-The change of definitation is to make the SEQ of mapping compatible to existing tools
+The change of definition is to make the SEQ of mapping compatible to existing tools
 For operations of 'M', 'X', 'I', and 'S' the corresponding bases in the read are inserted.
 This is identical to the SEQ for alignment.
 
@@ -168,18 +170,16 @@ Following is an example of the apf the read mapped to the reference.
 The result of alignment is supposed to be called existing pipelines as many other aligners.
 Besides, the result of map (with the alignment completely disbaled) can be called by existing alignment based pipelines, such as the SVs caller.
 
-### Adapation to SVs callers
+### Adaption to SVs callers
 The compatibility of the result of map to the SVs caller [PBSV](https://github.com/PacificBiosciences/pbsv) has been tested with PacBio long reads.
-It's worth to note the latest version (< 2.6.2) of PBSV takes nonstandard BAM whose delimitor of header is 'space' rather than 'tab'.
+It's worth to note the latest version (< 2.6.2) of PBSV takes nonstandard BAM whose delimiter of header is 'space' rather than 'tab'.
 To output bam compatible to PBSV, run with option <b>-sn 1 -rg 1-ot 8</b> enabled in Linear, or enable option <b>-s 1</b> in the PBSV.
 ### Adaption to seqeunce graphical tools (IGV)
 The compatibility of the result of map to the IGV has been tested.
-.bam of map can be callerd directly.
+.bam of map can be called directly.
 
 
 
-## license
-BSD License 2.0
 
 
 
