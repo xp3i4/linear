@@ -1,10 +1,10 @@
+#include <iostream>
 #include "base.h"
 #include "cords.h"
 #include "shape_extend.h"
 #include "index_util.h"
-#include "cluster_util.h"
 #include "pmpfinder.h"
- 
+
 using namespace seqan;
 using std::cout;
 using std::endl;
@@ -51,13 +51,6 @@ void FeaturesDynamic::setFeatureType(int type)
     {
         setFs2_48();
     }
-}
-unsigned FeaturesDynamic::getAbortScore()
-{
-    if (isFs1_16()){return apx_parm1_16 -> abort_score;}
-    if (isFs1_32()){return apx_parm1_32 -> abort_score;}
-    if (isFs2_48()){return apx_parm2_48 -> abort_score;}
-    return -1;
 }
 ApxMapParm1_16 _apx_parm1_16;
 ApxMapParm1_32 _apx_parm1_32;
@@ -208,7 +201,6 @@ unsigned getFeatureWindowDelta(FeaturesDynamic & fs)
     {
         return fs.apx_parm1_16->windowDelta;
     }
-    return -1;
 }
 unsigned getFeatureWindowDelta(StringSet<FeaturesDynamic> & fss)
 {
@@ -236,7 +228,6 @@ unsigned getFeatureWindowSize(FeaturesDynamic & fs)
     {
         return fs.apx_parm1_16->windowSize;
     }
-    return 0;
 }
 unsigned getFeatureWindowSize(StringSet<FeaturesDynamic> & fss)
 {
@@ -489,11 +480,9 @@ int64_t __scriptDist63_31(int const & s1, int const & s2)
 int64_t _scriptDist63_31(int const & s11, int const & s12, int const & s13,
                          int const & s21, int const & s22, int const & s23)
 {
-    int64_t res = __scriptDist63_31(s11, s21) +
-                  __scriptDist63_31(s12, s22) +
-                  __scriptDist63_31(s13, s23);
-    return res;
-    
+    return __scriptDist63_31(s11, s21) +
+           __scriptDist63_31(s12, s22) +
+           __scriptDist63_31(s13, s23);
 }
 //wrapper into 96 bit integer.
 //Distance of one pair of scpirts(48mer of each)
@@ -521,7 +510,7 @@ int64_t _windowDist2_48(Iterator<String<int96> >::Type it1,  //feature string it
  *   They are add to the 31bits and cut off the 30bits by & infi_mask30
  */
 short infiN = 31; //for base '*N' 'N*' and 'TT' 
-unsigned infi_mask30 = (unsigned(1) << 31) - 1;
+unsigned infi_mask30 = (1 << 31) - 1;
 short units[25] = {
 /*A**/ 0,             6,             12,            18,            infiN, 
 /*C**/ 24,            (1 << 8) + 0,  (1 << 8) + 6,  (1 << 8) + 12, infiN,
@@ -537,19 +526,21 @@ void add2merInt96 (int96 & val, TIter5 it)
 }
 int createFeatures2_48(TIter5 it_str, TIter5 it_end, String<int96> & f, ApxMapParm2_48 & parm)
 {
+    double t = sysTime();
     int addMod3[3] = {1, 2, 0};   // adMod3[i] = ++ i % 3;
     int96 zero96 = {0, 0, 0};
     std::vector<int96> buffer(3, zero96); //buffer of 3 cells in one script
     resize (f, (it_end - it_str - window48) / parm.scpt_step + 1); 
     setInt96(f[0], zero96);
-    for (unsigned i = 0; i < 3; i++) //init f[0]
+    for (int i = 0; i < 3; i++) //init f[0]
     {
-        for (unsigned j = i << parm.scpt_bit; j < (i << parm.scpt_bit) + parm.scpt_step; j++)
+        for (int j = i << parm.scpt_bit; j < (i << parm.scpt_bit) + parm.scpt_step; j++)
         {
             add2merInt96(buffer[i], it_str + j);
         }
         incInt96(f[0], buffer[i]);
     }
+    //std::cerr << " cf48 time " << sysTime() - t << "\n";
     int next = 1; //stream f[next]
     int ii = 0;
     for (int i = parm.scpt_step; i < it_end - it_str - window48 - 1; i += parm.scpt_step) 
@@ -565,7 +556,6 @@ int createFeatures2_48(TIter5 it_str, TIter5 it_end, String<int96> & f, ApxMapPa
         ii = addMod3[ii];
         next++;
     }
-    resize(f, next);
     return 0;
 }
 int createFeatures2_48(TIter5 it_str, TIter5 it_end, String<int96> & f, unsigned threads, ApxMapParm2_48 & parm)
@@ -605,10 +595,10 @@ int createFeatures2_48(TIter5 it_str, TIter5 it_end, String<int96> & f, unsigned
     int96 zero96 = {0, 0, 0};
     std::vector<int96> buffer(3, zero96); //buffer of 3 cells in one script
     setInt96(f[next], zero96);
-    for (unsigned i = 0; i < 3; i++) //init buffer and f[next]
+    for (int i = 0; i < 3; i++) //init buffer and f[next]
     {
-        unsigned tmp = thd_begin + (i << parm.scpt_bit); 
-        for (unsigned j = tmp; j < tmp + parm.scpt_step; j++)
+        int tmp = thd_begin + (i << parm.scpt_bit); 
+        for (int j = tmp; j < tmp + parm.scpt_step; j++)
         {
             add2merInt96(buffer[i], it_str + j);
         }
@@ -651,13 +641,10 @@ unsigned __windowDist(FeaturesDynamic & f1,
     {
         return _windowDist1_32 (begin(f1.fs1_32) + x1, begin(f2.fs1_32) + x2, *(f1.apx_parm1_32));
     }
-    else
-    {
-        return -1;
-    }
 }
 
 //The wrapper is(only) used in the gap.cpp
+//Do not call this function frequently since the condition branch will drain the performance.
 //NOTE::boundary of features is checked in this function
 unsigned _windowDist(FeaturesDynamic & f1,
                      FeaturesDynamic & f2,
@@ -665,8 +652,7 @@ unsigned _windowDist(FeaturesDynamic & f1,
 {
     if (f1.isFs2_48())
     {
-        uint64_t d = f2.apx_parm2_48->scpt_num * (f2.apx_parm2_48->scpt_int_step  - 1);
-        if (x1 + d < length(f1.fs2_48) && x2 + d < length(f2.fs2_48))
+        if (x1 < length(f1.fs2_48) && x2 < length(f2.fs2_48))
         {
             return _windowDist2_48 (begin(f1.fs2_48) + x1, begin(f2.fs2_48) + x2, *(f2.apx_parm2_48));
         }
@@ -696,10 +682,6 @@ unsigned _windowDist(FeaturesDynamic & f1,
         {
             return f1.apx_parm1_32->abort_score;
         }
-    }
-    else
-    {
-        return -1;
     }
 }
 
@@ -875,28 +857,32 @@ uint64_t previousWindow(FeaturesDynamic & f1, //read
     uint64_t y;
     uint64_t new_cord = 0;
     ApxMapParmBase * parm;
+    unsigned len1, len2; 
 
     if (f1.isFs2_48())
     {
         parm = f1.apx_parm2_48;
+        len1 = length(f1.fs2_48);
+        len2 = length(f2.fs2_48);
     }
     else if (f1.isFs1_16())
     {
         parm = f1.apx_parm1_16;
+        len1 = length(f1.fs1_16);
+        len2 = length(f2.fs1_16);
     }
     else if (f1.isFs1_32())
     {
         parm = f2.apx_parm1_32;
-    }
-    else
-    {
-        return 0;
+        len1 = length(f1.fs1_32);
+        len2 = length(f2.fs1_32);
     }
     
     if (y_suf < parm->med || x_suf < parm->sup)
         return 0;
     else 
         y = y_suf - parm->med;
+
     unsigned min = ~0;
     for (uint64_t x = x_suf - parm->sup; x < x_suf - parm->inf; x += 1) 
     {
@@ -1069,7 +1055,7 @@ uint64_t nextWindow(FeaturesDynamic & f1,
     uint64_t y;
     uint64_t new_cord = 0;
     unsigned min = ~0;
-    ApxMapParmBase* parm;
+    ApxMapParmBase * parm;
     unsigned len1, len2; 
     if (f1.isFs2_48())
     {
@@ -1089,11 +1075,7 @@ uint64_t nextWindow(FeaturesDynamic & f1,
         len1 = length(f1.fs1_32);
         len2 = length(f2.fs1_32);
     }
-    else
-    {
-        //delete parm;
-        return 0;
-    }
+
     if (y_pre + parm->sup * 2 > len1 || x_pre + parm->sup * 2> len2)
         return 0;
     else 
@@ -1126,7 +1108,6 @@ uint64_t nextWindow(FeaturesDynamic & f1,
         }
     }
     score = min;
-    //dout << "nextwindows" << score << "\n";
     return new_cord;
 }
 
@@ -1141,6 +1122,7 @@ bool extendWindow(FeaturesDynamic & f1,
     uint64_t new_cord = 0;
     while ((new_cord = previousWindow(f1, f2, back(cords), score)) && get_cord_y(new_cord) >= cordy_str)
     {
+        dout << "ep1" << score << "\n";
         appendValue(cords, new_cord);
     } 
     uint cords_p_end = length(cords);
@@ -1150,6 +1132,7 @@ bool extendWindow(FeaturesDynamic & f1,
     }
     while ((new_cord = nextWindow(f1, f2, back(cords), score)) && get_cord_y(new_cord) + window_size < cordy_end)
     {
+        dout << "en1" << score << "\n";
         appendValue(cords, new_cord);
     }
     return true;    
@@ -1181,7 +1164,8 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
  * endCord for double strand index
  */
  bool endCord(String<uint64_t> & cord,
-              unsigned & preCordStart)
+              unsigned & preCordStart,
+              float const & thd_min_block_len)
 {
     _DefaultCord.setMaxLen(cord, length(cord) - preCordStart);   
     _DefaultHit.setBlockEnd(back(cord));
@@ -1191,7 +1175,7 @@ bool initCord(typename Iterator<String<uint64_t> >::Type & it,
 /*
  * nextCord for double strand sequence
  * readstr <= nextcody < read_end
- * NOTE::if failed should return new_cord = 0
+ * NOTE::if failed should reteurn new_cord = 0
  */
  uint64_t nextCord(typename Iterator<String<uint64_t> >::Type & it, 
                typename Iterator<String<uint64_t> >::Type const & hitEnd, 
@@ -1251,7 +1235,8 @@ bool path_dst_1(typename Iterator<String<uint64_t> >::Type hitBegin,
                 String<uint64_t> & cords,
                 uint64_t read_str, //required to be on the forward strand
                 uint64_t read_end, // ...forward strand
-                uint64_t read_len)
+                uint64_t read_len,
+                float const & thd_min_block_len)
 {
     if (hitBegin > hitEnd)
     {
@@ -1275,7 +1260,7 @@ bool path_dst_1(typename Iterator<String<uint64_t> >::Type hitBegin,
         }
         while (nextCord(it, hitEnd, f1, f2, preBlockPtr, cords, read_str, read_end, read_len, thd_cord_size));
         set_cord_end (back(cords));
-        return endCord(cords, preBlockPtr);   
+        return endCord(cords, preBlockPtr, thd_min_block_len);   
     }
     set_cord_end (back(cords));
     return false;
@@ -1291,14 +1276,15 @@ int path_dst_2(typename Iterator<String<uint64_t> >::Type hitBegin,
                String<uint64_t> & cords,
                uint64_t read_str, //required to be on the forward strand
                uint64_t read_end, // ...forward strand
-               uint64_t read_len)
+               uint64_t read_len,
+               float const & thd_min_block_len)
 {
     typedef Iterator<String<uint64_t> >::Type Iter; 
     if (hitBegin >= hitEnd - 1) //at leat 2 patterns
     {
         return 0;
     }
-    unsigned thd_cord_size = getFeatureWindowSize(f1);
+    int thd_cord_size = getFeatureWindowSize(f1);
     float score = 0;
 
     if (empty(cords))
@@ -1310,10 +1296,17 @@ int path_dst_2(typename Iterator<String<uint64_t> >::Type hitBegin,
     uint64_t cordy_str, cordy_end;
     bool f_sp_l = false; 
     bool f_sp_r = false; 
+    bool f_block_str = false;
     bool f_block_end = false;
     bool f_append = false;
     Iterator <String<uint64_t> >::Type itt_next = hitBegin + 1; //hitBegin + 1 < hitEnd for sure 
     Iter itt_first = hitBegin; //point 2 first of block
+    //<<debug
+    for (int i = 0; i < hitEnd - hitBegin; i++)
+    {
+        dout << "phits1" << get_cord_y(*(hitBegin + i)) << "\n";
+    }
+    //>>debug
     for (Iterator<String<uint64_t> >::Type itt = hitBegin; itt < hitEnd; itt = itt_next++) 
     {
         ready_str = get_cord_strand(*itt) ? read_len - read_end : read_str;  
@@ -1350,7 +1343,7 @@ int path_dst_2(typename Iterator<String<uint64_t> >::Type hitBegin,
         {
             if (!f_sp_l && get_cord_y(*(itt_next - 1)) >= thd_cord_size && get_cord_x(*(itt_next - 1)) >= thd_cord_size)
             {
-                uint64_t new_cord = shift_cord(*(itt_next - 1), -int(thd_cord_size), -int(thd_cord_size));
+                uint64_t new_cord = shift_cord(*(itt_next - 1), -thd_cord_size, -thd_cord_size);
                 cordy_str =isFirstHit(itt) ? read_str : get_cord_y(new_cord);
                 cordy_end = get_cord_y(*(itt_next - 1)); //don't change it, sv 
                 appendValue(cords, new_cord);
@@ -1395,13 +1388,12 @@ int path_dst_2(typename Iterator<String<uint64_t> >::Type hitBegin,
 {
     unsigned distThd = getWindowThresholdReject(f2);
     int ii_move = 0;
-    
     for (Iterator<String<uint64_t> >::Type it = beginHits(hits); it < endHits(hits); it++)
     {
         unsigned dist = _windowDist(f1[get_cord_strand(*it)], f2[get_cord_id(*it)], 
                                     _DefaultCord.cord2Cell(get_cord_y(*it)),
                                     _DefaultCord.cord2Cell(get_cord_x(*it)));
-        if(dist < distThd )//|| dist == f1[0].getAbortScore()) //keep kmers of abort score
+        if(dist < distThd)
         {
             *(it - ii_move) = *it;
         } 
@@ -1414,7 +1406,6 @@ int path_dst_2(typename Iterator<String<uint64_t> >::Type hitBegin,
             _DefaultHit.setBlockEnd(*(it - ii_move));
         }
     }
-    
     resize (hits, length(hits) - ii_move);
     return 0;
 }
@@ -1426,26 +1417,26 @@ bool path_dst(String<uint64_t> & hits,
               uint64_t read_str,
               uint64_t read_end,
               uint64_t read_len,
-              int alg_type)
+              int alg_type,
+              float const & thd_min_block_len)
 {
     if (isHitsEmpty(hits)) 
     {
         return true;
     }
     if (alg_type == 1){
-        return path_dst_1 (beginHits(hits), endHits(hits), f1, f2, cords, read_str, read_end, read_len);
+        return path_dst_1 (beginHits(hits), endHits(hits), f1, f2, cords, read_str, read_end, read_len, thd_min_block_len);
     }
     else if (alg_type == 2){
+       print_cords(hits, "pd1");
        _filterHits(hits, f1, f2);
-       //print_cords(hits, "pd1");
-       path_dst_2 (beginHits(hits), endHits(hits), f1, f2, cords, read_str, read_end, read_len);
+       print_cords(hits, "pd2");
+       path_dst_2 (beginHits(hits), endHits(hits), f1, f2, cords, read_str, read_end, read_len, thd_min_block_len);
+       print_cords(cords, "pd3");
     }
     return 0;
 }
 
-/*==================================================
-=          @Section::Mapping and anchoring         =
-===================================================*/
 /*__________________________________________________
   ---------- @sub::apx chain additionals ----------*/
 /*
@@ -1527,7 +1518,20 @@ int clean_blocks_ (String<uint64_t> & cords, uint64_t thd_drop_len)
     return 0;
 }
 
-
+//shortcut to extract y value of cords and convert them to y value(stry, endy) on the forward strand (y projection)
+UPair getUPForwardy(UPair str_end, uint64_t read_len)
+{
+    if (get_cord_strand(str_end.first))
+    {
+        return UPair(read_len - get_cord_y(str_end.second) - 1,
+                     read_len - get_cord_y(str_end.first) - 1);
+    }
+    else
+    {
+        return UPair(get_cord_y(str_end.first),
+                     get_cord_y(str_end.second));
+    }
+}
 /*
  * WARN::1.
    gaps use cord structure to record y coordinate for simplicity. 
@@ -1542,7 +1546,6 @@ int gather_gaps_y_ (String<uint64_t> & cords,
                     uint64_t read_len,
                     uint64_t thd_gap_size)
 {
-    unused(cords);
     uint64_t cord_frt = shift_cord(0, 0, 0); //cord at front 
     uint64_t cord_end = shift_cord(0, 0, read_len - 1); //..end
 
@@ -1551,7 +1554,7 @@ int gather_gaps_y_ (String<uint64_t> & cords,
         appendValue (gaps, UPair(cord_frt, cord_end));
         return 0;
     }
-    std::sort (begin(str_ends), end(str_ends), [&read_len](UPair & i, UPair & j)
+    std::sort (begin(str_ends), end(str_ends), [& cords, &read_len](UPair & i, UPair & j)
     {
         uint64_t y1 = get_cord_strand(i.first) ? 
                       read_len - get_cord_y(i.second) - 1 : get_cord_y(i.first);
@@ -1696,9 +1699,8 @@ int chainApxCordsBlocks (String<uint64_t> & cords,
     else if (alg_type == 2)
     {
         //chainBlocksSimple_(cords, str_ends_p, read_len, thd_chain_blocks_lower, thd_chain_blocks_upper);
-        int thd_min_chain_len = 1;
         int thd_drop_score = 0;
-        ChainScoreMetric chn_score(thd_min_chain_len, thd_drop_score, &getApxChainScore3);
+        ChainScoreMetric chn_score(thd_drop_score, &getApxChainScore3);
         chainBlocksCords(cords, str_ends_p, chn_score, read_len, 16, 2, &unset_cord_end, &set_cord_end, 1); //2 major chains limit
     }
     return 0;
@@ -1720,6 +1722,7 @@ unsigned getDIndexMatchAll (DIndex & index,
     for (unsigned k = read_str; k < read_end; k++)
     {
         hashNexth(shape, begin(read) + k);
+        uint64_t pre = ~0;
         if (++dt == mapParm.alpha)
         {
             dt = 0;
@@ -1758,10 +1761,12 @@ unsigned getDIndexMatchAll (DIndex & index,
                         if (shape2DIndexCordy(shape) == getDIndexCordy(val))
                         {
                             _DefaultHit.setLongPattern(new_anchor);
+                            //std::cout << "long 1 id" << get_cord_id(new_anchor) << " " << get_cord_x(new_anchor) << "\n";
                         }
                         /*
                         else
                         {
+                            std::cout << "long 0 id" << get_cord_id(new_anchor) << " " << get_cord_x(new_anchor) << "\n";
                         }
                         */
                         appendValue(set, new_anchor);
@@ -1793,9 +1798,11 @@ unsigned getDIndexMatchAll (DIndex & index,
     uint64_t read_end = get_cord_y(map_end);
     uint64_t idx_str = _DefaultCord.getCordX(map_str); //NOTE:: id included = id|x
     uint64_t idx_end = _DefaultCord.getCordX(map_end);
-    for (unsigned k = read_str; k < read_end - shape.span; k++)
+
+    for (unsigned k = read_str; k < read_end; k++)
     {
         hashNexth(shape, begin(read) + k);
+        uint64_t pre = ~0;
         if (++dt == mapParm.alpha)
         {
             dt = 0;
@@ -1813,7 +1820,8 @@ unsigned getDIndexMatchAll (DIndex & index,
                         _DefaultHs.getHsBodyY(index.ysa[pos]) == 0))
                 {
                     uint64_t idx = _DefaultHs.getHsBodyS(index.ysa[pos]);
-                    if(idx >= idx_str && idx < idx_end)
+                    if (_DefaultHs.getHsBodyS(pre - index.ysa[pos]) > mapParm.kmerStep &&
+                        idx >= idx_str && idx < idx_end)
                     {
                         uint64_t id = _getSA_i1(idx);
                         uint64_t x  = _getSA_i2(idx);
@@ -1827,6 +1835,7 @@ unsigned getDIndexMatchAll (DIndex & index,
                             uint64_t new_anchor = make_anchor (id, x, k, FORWARD_STRAND);
                             appendValue (set, new_anchor);
                         }
+                        pre = index.ysa[pos];
                     }
                     if (++pos > length(index.ysa) - 1)
                     {
@@ -1840,16 +1849,12 @@ unsigned getDIndexMatchAll (DIndex & index,
 }
 
 /*
- * Filter anchors in @anchors that can be chained and record i of such @anchors[i] in @anchors_list
- * error rate = 1/2 ^ @thd_anchor_err_bit, =2 recommended(that err=0.25) 
-   @thd_anchor_accept_density is the number of anchors every 1000 bases
-   @thd_anchor_accept_min = 2; the minium anchors every 1000 bases to accepet the block of anchors
+ * filter anchors in @anchors that can be chained and record i of thoes @anchors[i] in @anchors_list
  */
 uint64_t filterAnchorsList(String<uint64_t> & anchors, 
     String<std::pair<unsigned, unsigned> > & anchors_list, 
     uint64_t shape_len, uint64_t thd_anchor_accept_density, uint64_t thd_anchor_accept_min, unsigned thd_anchor_err_bit)
 {
-    (void)shape_len;
     if (length(anchors) <= 1)
     {
         return 0;
@@ -1859,7 +1864,7 @@ uint64_t filterAnchorsList(String<uint64_t> & anchors,
     double t1 = sysTime();
     sort_ska(begin(anchors), end(anchors));
     uint64_t ak2 = anchors[1]; //2/4, 3/4
-    uint64_t block_str = 1, count_anchors = 0;
+    uint64_t block_str = 1, sc = 0, count_anchors = 0;
     t1 = sysTime() - t1;
     double t2 = sysTime();
     uint64_t min_y = ULLMAX, max_y = 0;
@@ -1894,7 +1899,6 @@ uint64_t filterAnchorsList(String<uint64_t> & anchors,
         }
     } 
     t2 = sysTime() - t2;
-    //dout << "fl1" << t1/t2 << "\n";
     return 0;
 }
 
@@ -1986,7 +1990,7 @@ uint64_t filterAnchors2(Anchors & anchors, uint64_t shape_len, uint64_t thd_anch
         }
     }
     t3 = sysTime() - t3;
-    //double t = t1 + t2 + t3;
+    double t = t1 + t2 + t3;
     resize (anchors.set, ii);
     return 0;
 }
@@ -2003,28 +2007,30 @@ uint64_t filterAnchors(Anchors & anchors, uint64_t shape_len, uint64_t thd_ancho
 
         //filterAnchors2(anchors, shape_len, thd_anchor_accept_lens, thd_anchor_err_bit, thd_max_anchors_num, thd_anchor_accept_err);
     }
-    (void) thd_max_anchors_num;
-    (void) thd_anchor_accept_err;
     return 0;
 }
 
 uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read_str, uint64_t read_end, MapParms & mapParm)
 {
+    float thd_err_rate = 0.2;
     float thd_anchor_accept_dens = 0.001; //todo::tune err, kmer step related
     float thd_anchor_accept_lens_rate = 0.01;
+    int thd_anchor_accept_lens = thd_anchor_accept_lens_rate * (read_end - read_str);
     float thd_anchor_err = 0.2;
-    int64_t thd_anchor_accept_lens = thd_anchor_accept_lens_rate * (read_end - read_str);
+    int thd_sig = 10;
     if (anchors.length() <= 1)
     {
         return 0;
     }
     uint64_t ak2 = anchors[0], ak3 = anchors[0]; //2/4, 3/4
-    int64_t c_b = mapParm.shapeLen, sb = 1;
+    uint64_t c_b = mapParm.shapeLen, sb = 1, sc = 0;
     double t1 = sysTime();
     anchors.sort(anchors.begin(), anchors.end());
     t1 = sysTime() - t1;
     double t2 = sysTime();
+    //anchors[0] = anchors[1];
     ak2=anchors[0];
+    uint64_t mask = (1ULL << 20) - 1;
     uint64_t min_y = ~0ULL, max_y = 0;
 
     for (unsigned k = 1; k < anchors.length(); k++)
@@ -2127,12 +2133,12 @@ int preFilterChains1(String<uint64_t> & hits, String<int>  & hits_score, String<
     int i_move = 0;  //distance to move str_end_p
     int ii_move = 0; //distance to move hits
 
-    for (unsigned i = 1; i < length(str_ends_p); i++)
+    for (int i = 1; i < length(str_ends_p); i++)
     {
         f_omit = 0;
         uint64_t stry2 = get_cord_y(hits[str_ends_p[i].first]);
         uint64_t endy2 = get_cord_y(hits[str_ends_p[i].second - 1]);
-        for (unsigned j = 0; j < i - i_move; j++)
+        for (int j = 0; j < i - i_move; j++)
         {
             uint64_t stry1 = get_cord_y(hits[str_ends_p[j].first]);
             uint64_t endy1 = get_cord_y(hits[str_ends_p[j].second - 1]);
@@ -2146,7 +2152,7 @@ int preFilterChains1(String<uint64_t> & hits, String<int>  & hits_score, String<
         }
         if (!f_omit && i_move)
         {
-            for (unsigned k = str_ends_p[i].first; k < str_ends_p[i].second; k++)
+            for (int k = str_ends_p[i].first; k < str_ends_p[i].second; k++)
             {
                 hits[k - ii_move] = hits[k];
                 hits_score[k - ii_move] = hits_score[k];
@@ -2163,74 +2169,95 @@ int preFilterChains1(String<uint64_t> & hits, String<int>  & hits_score, String<
 
 /* Break the chains from the last step into none-overlapperd pieces
  * Note::Corresponding str_ends is not required, so update str_ends manually according to the @str_ends_p after calling
- * getCordXY:: get_cord_y to cut by y coordinates or get_cord_x ...
  */
-int preFilterChains2(String<uint64_t> & hits,  String<UPair> & str_ends_p, void (*setEndFunc)(uint64_t &), uint64_t (*getCordXY)(uint64_t))
+int preFilterChains2(String<uint64_t> & hits,  String<UPair> & str_ends_p, void (*setEndFunc)(uint64_t &))
 {
     //second round : break any overlaps
     String<UPair> str_ends_p_tmp;
-    String<uint64_t> xy_strs;
-    String<uint64_t> xycuts;
-    resize (xy_strs, length(str_ends_p));
-    resize (xycuts, 2 * length(str_ends_p));
+    String<uint64_t> ystrs;
+    String<uint64_t> ycuts;
+    resize (ystrs, length(str_ends_p));
+    resize (ycuts, 2 * length(str_ends_p));
     uint64_t const mask = 1ULL << 62; //a constant large enough
-    for (unsigned i = 0; i < length(str_ends_p); i++) //init xycuts
+    for (int i = 0; i < length(str_ends_p); i++) //init ycuts
     {
-        xycuts[2 * i] = str_ends_p[i].first;
-        xycuts[2 * i + 1] = (str_ends_p[i].second - 1) | mask;  //mask to distinguish the .first and .second
+        ycuts[2 * i] = str_ends_p[i].first;
+        ycuts[2 * i + 1] = (str_ends_p[i].second - 1) | mask;  //mask to distinguish the .first and .second
+//        dout << "cuts3" << get_cord_y(hits[str_ends_p[i].first]) << get_cord_y(hits[str_ends_p[i].second - 1]) << "\n";
+        dout << "cuts3" << str_ends_p[i].first << str_ends_p[i].second << "\n";
     }
-    for (unsigned i = 0; i < length(xy_strs); i++) //init
+    for (int i = 0; i < length(ystrs); i++) //init
     {
-        xy_strs[i] = str_ends_p[i].first;
+        ystrs[i] = str_ends_p[i].first;
     }
-    std::sort(begin(xycuts), end(xycuts), [&hits, &mask, &getCordXY](uint64_t & a, uint64_t & b){
-        return getCordXY(hits[a & (~mask)]) < getCordXY(hits[b & (~mask)]);  //& erase mask sign when sort
+    std::sort(begin(ycuts), end(ycuts), [&hits, &mask](uint64_t & a, uint64_t & b){
+        return get_cord_y(hits[a & (~mask)]) < get_cord_y(hits[b & (~mask)]);  //& erase mask sign when sort
     });
-    for (unsigned i = 0; i < length(xycuts); i++)
+    for (int i = 0; i < length(ycuts); i++)
     {
-        uint64_t cuty = getCordXY(hits[(xycuts[i] & (~mask))]);
-        for (unsigned j = 0; j < length(xy_strs) && xy_strs[j] < length(hits); j++)
+        //dout << "cuts2" << get_cord_y(hits[ycuts[i]] & (~mask)) << "\n";
+        uint64_t cuty = get_cord_y(hits[(ycuts[i] & (~mask))]);
+        for (int j = 0; j < length(ystrs) && ystrs[j] < length(hits); j++)
         {
-            if (cuty < getCordXY(hits[xy_strs[j]])){
+            if (cuty < get_cord_y(hits[ystrs[j]])){
                 continue;
             }
-            for (unsigned k = xy_strs[j]; k < str_ends_p[j].second; k++)
+            dout << "cuts4" << j << cuty << get_cord_y(hits[ystrs[j]]) << get_cord_y(hits[str_ends_p[j].second - 1]) << "\n";
+            for (int k = ystrs[j]; k < str_ends_p[j].second; k++)
             {
-                if (xycuts[i] & mask)
+                dout << "cuts5" << get_cord_y(hits[k]) << "\n";
+/*
+                if (get_cord_y(hits[k]) >= cuty)
                 {
-                    if (getCordXY(hits[k]) == cuty)
+                    dout << "cuts1" << cuty << get_cord_y(hits[k]) << "\n";
+                    uint64_t lowery = ystrs[j];
+                    uint64_t uppery = (ycuts[i] & mask) ? (k + 1) : (k);
+                    if (lowery != uppery)
                     {
-                        uint64_t lowery = xy_strs[j];
+                        appendValue (str_ends_p_tmp, UPair(lowery, uppery));
+                        ystrs[j] = uppery;
+                    }
+                    break;
+                }
+                */
+                if (ycuts[i] & mask)
+                {
+                    if (get_cord_y(hits[k]) == cuty)
+                    {
+                        uint64_t lowery = ystrs[j];
                         uint64_t uppery = k + 1;
                         if (lowery != uppery)
                         {
                             appendValue(str_ends_p_tmp, UPair(lowery, uppery));
-                            xy_strs[j] = uppery;
+                            dout << "up1" << lowery << uppery << cuty << "\n";
+                            ystrs[j] = uppery;
                         }
                         break;
                     }
-                    else if (getCordXY(hits[k]) > cuty)
+                    else if (get_cord_y(hits[k]) > cuty)
                     {
-                        uint64_t lowery = xy_strs[j];
+                        uint64_t lowery = ystrs[j];
                         uint64_t uppery = k;
                         if (lowery != uppery)
                         {
                             appendValue (str_ends_p_tmp, UPair(lowery, uppery));
-                            xy_strs[j] = uppery;
+                            dout << "up2" << lowery << uppery << "\n";
+                            ystrs[j] = uppery;
                         }
                         break;
                     }
                 }
                 else
                 {
-                    if (getCordXY(hits[k]) >= cuty)
+                    if (get_cord_y(hits[k]) >= cuty)
                     {
-                        uint64_t lowery = xy_strs[j];
+                        uint64_t lowery = ystrs[j];
                         uint64_t uppery = k;
                         if (lowery != uppery)
                         {
                             appendValue (str_ends_p_tmp, UPair(lowery, uppery));
-                            xy_strs[j] = uppery;
+                            dout << "up3" << lowery << uppery << "\n";
+                            ystrs[j] = uppery;
                         }
                         break;
                     }
@@ -2238,12 +2265,18 @@ int preFilterChains2(String<uint64_t> & hits,  String<UPair> & str_ends_p, void 
             }
         }
     }
+    for (int i = 0; i < length(str_ends_p_tmp); i++)
+    {
+        dout << "stptmp" << str_ends_p_tmp[i].first << str_ends_p_tmp[i].second << "\n";
+    }
     str_ends_p = str_ends_p_tmp;
     std::sort (begin(str_ends_p), end(str_ends_p), [](UPair & a, UPair & b){return a.second < b.second;});
-    for (unsigned i = 0; i < length(str_ends_p); i++)
+    for (int i = 0; i < length(str_ends_p); i++)
     {
         setEndFunc(hits[str_ends_p[i].second - 1]);
+        dout << "strpp1" << str_ends_p[i].second << "\n";
     }
+
     return 0;
 }
 
@@ -2252,7 +2285,7 @@ int getAnchorHitsChains(Anchors & anchors, String<uint64_t> & hits, uint64_t sha
     uint64_t thd_anchor_accept_density, uint64_t thd_anchor_accept_min, uint64_t thd_large_gap, unsigned thd_anchor_err_bit, uint64_t thd_max_anchors_num, int64_t thd_anchor_accept_err, unsigned alg_type_filter) 
 {
     double t1 = sysTime();
-    //dout << "pmp1" << anchors.length() << "\n";
+    //print_cords(anchors.set, "ga21");
     filterAnchors(anchors, shape_len, thd_anchor_accept_density, thd_anchor_accept_min, thd_anchor_err_bit, thd_max_anchors_num, thd_anchor_accept_err, alg_type_filter) ;
     t1 = sysTime() - t1;
     double t2 = sysTime();
@@ -2260,21 +2293,27 @@ int getAnchorHitsChains(Anchors & anchors, String<uint64_t> & hits, uint64_t sha
     String<UPair> str_ends_p;
     String<int>   str_ends_p_score;
     String<int> hits_score; 
+    //print_cords(anchors.set, "ccanchor");
     initHitsScore(hits_score); //be sure hit_score has the same structure with Hits
+    dout << "ach2" << length(anchors.set) << "\n";
     chainAnchorsHits(anchors.set, hits, hits_score);
+    print_cords(hits, "achits1");
     gather_blocks_ (hits, str_ends, str_ends_p, 1, length(hits), read_len, thd_large_gap, 0, 0, & is_cord_block_end, & set_cord_end);
     preFilterChains1 (hits, hits_score, str_ends_p);
-    preFilterChains2 (hits, str_ends_p, &set_cord_end, &get_cord_y);
-    preFilterChains2 (hits, str_ends_p, &set_cord_end, &get_cord_x);
+    print_cords(hits, "cchits1");
+    preFilterChains2 (hits, str_ends_p, &set_cord_end);
     resize (str_ends_p_score, length(str_ends_p));
-    for (unsigned i = 0; i < length(str_ends_p); i++)
+    for (int i = 0; i < length(str_ends_p); i++)
     {
         //note the hits_score is in denscending order
         str_ends_p_score[i] = hits_score[str_ends_p[i].first] - hits_score[str_ends_p[i].second - 1];
+        dout << "strp11" << str_ends_p[i].first << str_ends_p[i].second << "\n";
     }
+    print_cords(hits, "cchits2");
     chainBlocksHits(hits, str_ends_p, str_ends_p_score, read_len);
+    print_cords(hits, "cchits3");
     t2 = sysTime() - t2;
-    //double ts = t1 + t2;
+    double ts = t1 + t2;
     return 0;
 }
 
@@ -2291,6 +2330,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
                        int alg_type,
                        int thd_best_n)
 {
+    std::cout << "mnmp0\n";
     //alg_type = 1;
     uint64_t read_str = get_cord_y(map_str);
     uint64_t read_end = get_cord_y(map_end);
@@ -2319,6 +2359,12 @@ uint64_t mnMapReadList(IndexDynamic & index,
         int64_t thd_anchor_accept_err = 2500; //(-2500, 2500) 2500=avearge_read_len(10k) * average_err (25%) , use int64_t, not uint64_t
         uint64_t thd_large_gap = 600;     
         unsigned thd_anchor_err_bit = 2; //  = 1/2^2 = 0.25
+        int alg_type_filter = 1; 
+        if (length(anchors) > 2000)
+        {
+            alg_type_filter = 2;
+        }
+        //print_cords(anchors.set, "ccanchor");
         getAnchorHitsChains(anchors, hits, mapParm.shapeLen, length(read), thd_anchor_accept_density, thd_anchor_accept_min, thd_large_gap, thd_anchor_err_bit, thd_max_anchors_num, thd_anchor_accept_err, 2);
         t = sysTime() - t;
         
@@ -2341,16 +2387,17 @@ uint64_t apxMap_ (IndexDynamic & index,
                   uint64_t map_str,
                   uint64_t map_end,
                   int alg_type,
+                  float cordLenThr,
                   int thd_best_n) //flag if chain_blocks
 {
     clear (hits);
     anchors.init(1);
     initHits(hits);
-    
     mnMapReadList(index, read, anchors, map_str, map_end, mapParm, hits, alg_type, thd_best_n);
     uint64_t read_str = get_cord_y(map_str);
     uint64_t read_end = get_cord_y(map_end);
-    path_dst(hits, f1, f2, cords, read_str, read_end, length(read), alg_type);
+    path_dst(hits, f1, f2, cords, read_str, read_end, length(read), alg_type, cordLenThr);
+    //print_cords(cords, "cds1");
     return 0;
 }
 
@@ -2362,8 +2409,8 @@ uint64_t apxMap (IndexDynamic & index,
                  StringSet<FeaturesDynamic> & f1,
                  StringSet<FeaturesDynamic> & f2,
                  String<UPair> & apx_gaps,
-                 String<uint64_t> & cords_str, 
-                 String<uint64_t> & cords_end,
+                 String<uint64_t> & cords, 
+                 float cordLenThr,
                  int f_chain)
 {
     double tts = sysTime();
@@ -2379,7 +2426,6 @@ uint64_t apxMap (IndexDynamic & index,
     {
         MapParms mapParm1 = mapParm;
         MapParms mapParm2 = mapParm;
-
         mapParm2.alpha = 7;
         mapParm2.listN = mapParm2.listN2;
         thd_best_n = 999; //unlimited best hit;
@@ -2387,36 +2433,39 @@ uint64_t apxMap (IndexDynamic & index,
         uint64_t map_str = 0ULL;
         uint64_t map_end = create_cord (MAX_CORD_ID, MAX_CORD_X, length(read), 0);
         double t1 = sysTime();
-        apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords_str, map_str, map_end, alg_type, thd_best_n);
+        apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, map_str, map_end, alg_type, cordLenThr, thd_best_n);
+        //print_cords(cords, "cds3");
         t1 = sysTime() - t1;
         double t2 = sysTime();
         String<UPair> str_ends;
         String<UPair> str_ends_p;
-        clean_blocks_ (cords_str, thd_drop_len);
-        gather_blocks_ (cords_str, str_ends, str_ends_p, 1, length(cords_str), length(read), thd_large_gap, thd_cord_size, 1, &is_cord_block_end, &set_cord_end);
-        gather_gaps_y_ (cords_str, str_ends, apx_gaps, length(read), thd_large_gap);
-        //uint64_t map_d = thd_cord_size >> 1; // cords + to map areas
-        //uint64_t str_y = 0;                  //stry y of interval between two consecutive blocks
-        for (unsigned i = 0; i < length(apx_gaps); i++) //check large gap and remap the gaps
+        clean_blocks_ (cords, thd_drop_len);
+        gather_blocks_ (cords, str_ends, str_ends_p, 1, length(cords), length(read), thd_large_gap, thd_cord_size, 1, &is_cord_block_end, &set_cord_end);
+        gather_gaps_y_ (cords, str_ends, apx_gaps, length(read), thd_large_gap);
+        //print_cords(cords, "cds3");
+        uint64_t map_d = thd_cord_size >> 1; // cords + to map areas
+        uint64_t str_y = 0;                  //stry y of interval between two consecutive blocks
+        for (int i = 0; i < length(apx_gaps); i++) //check large gap and re map the gaps
         {
             UPair y = getUPForwardy (apx_gaps[i], length(read));
             uint64_t y1 = y.first;
             uint64_t y2 = y.second;   
+            //dout << "apxgap" << y1 << y2 <<  "\n";
             thd_best_n = 1; //best hit only
             map_str =  y1; 
             map_end =  create_cord(MAX_CORD_ID, MAX_CORD_X, y2, 0);
-            //dout << "apx1" << y1 << y2 << "\n";
-            apxMap_(index, read, anchors, mapParm2, hit, f1, f2, cords_str, map_str, map_end, alg_type, thd_best_n);
+            //apxMap_(index, read, anchors, mapParm2, hit, f1, f2, cords, map_str, map_end, alg_type, cordLenThr, thd_best_n);
+            //print_cords(cords, "ag1");
         }
         
         clear (str_ends);
         clear (str_ends_p);
-        gather_blocks_ (cords_str, str_ends, str_ends_p, 1, length(cords_str), length(read), thd_large_gap, thd_cord_size, 1, & is_cord_block_end, & set_cord_end);
+        gather_blocks_ (cords, str_ends, str_ends_p, 1, length(cords), length(read), thd_large_gap, thd_cord_size, 1, & is_cord_block_end, & set_cord_end);
         t2 = sysTime() - t2;
         double t3 = sysTime();
-        chainApxCordsBlocks (cords_str, str_ends_p, length(read), thd_chain_blocks_lower, thd_chain_blocks_upper, alg_type);
+        chainApxCordsBlocks (cords, str_ends_p, length(read), thd_chain_blocks_lower, thd_chain_blocks_upper, alg_type);
         t3 = sysTime() - t3;
-        clean_blocks_ (cords_str, thd_drop_len);
+        clean_blocks_ (cords, thd_drop_len);
     }
     else
     {
@@ -2427,27 +2476,25 @@ uint64_t apxMap (IndexDynamic & index,
         mapParm2.listN = mapParm2.listN2;
 
         int alg_type = 1;
-        apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords_str, 0, length(read), alg_type, thd_best_n);
-        if (_DefaultCord.getMaxLen(cords_str) < length(read) * senThr)
+        apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, 0, length(read), alg_type, cordLenThr, thd_best_n);
+        if (_DefaultCord.getMaxLen(cords) < length(read) * senThr)
         {
-            clear(cords_str);
-            apxMap_ (index, read, anchors, mapParm2, hit, f1, f2, cords_str, 0, length(read), alg_type, thd_best_n);
+            clear(cords);
+            apxMap_ (index, read, anchors, mapParm2, hit, f1, f2, cords, 0, length(read), alg_type, cordLenThr, thd_best_n);
         }   
-        clean_blocks_ (cords_str, thd_drop_len);
+        clean_blocks_ (cords, thd_drop_len);
     }
-    resize(cords_end, length(cords_str));
+
     //Mark signs used in the alignment part
     int seg = 0; //add sgn to cords 
-    int64_t d = shift_cord (0ULL, int64_t(thd_cord_size), int64_t(thd_cord_size));
-    for (unsigned i = 0; i < length(cords_str); i++)
+    for (int i = 0; i < length(cords); i++)
     {
-        set_cord_recd(cords_str[i], seg);
-        set_cord_main(cords_str[i]);
-        if (_DefaultCord.isBlockEnd(cords_str[i]))
+        set_cord_recd(cords[i], seg);
+        set_cord_main(cords[i]);
+        if (_DefaultCord.isBlockEnd(cords[i]))
         {
             seg = 1 - seg;
         }
-        cords_end[i] = cords_str[i] + d;
     }
     tts = sysTime() - tts;
     return 0;
@@ -2462,6 +2509,7 @@ uint64_t filterGenomes (IndexDynamic & index,
                  StringSet<FeaturesDynamic> & f2,
                  String<UPair> & apx_gaps,
                  String<uint64_t> & cords, 
+                 float cordLenThr,
                  int f_chain)
 {
     int thd_best_n = 999; //unlimited best hit;
@@ -2470,9 +2518,7 @@ uint64_t filterGenomes (IndexDynamic & index,
     mapParm2.alpha = mapParm2.alpha2;
     mapParm2.listN = mapParm2.listN2;
     int alg_type = 1;
-    apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, 0, length(read), alg_type,thd_best_n);
-    (void)f_chain;
-    (void)(length(apx_gaps));
+    apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords, 0, length(read), alg_type, cordLenThr, thd_best_n);
     return 0;
 }
 
@@ -2592,6 +2638,7 @@ bool isOverlap (uint64_t cord1, uint64_t cord2,
         if (cord && get_cord_y (cord) >  y_bound && get_cord_x(cord) > x_bound && score < thd_accept_score)
         {
             appendValue (tmp, cord);
+   
         }
         else
         {

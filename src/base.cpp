@@ -1,78 +1,98 @@
-// ==========================================================================
-//                           Mapping SMRT reads 
-// ==========================================================================
-// Copyright (c) 2006-2016, Knut Reinert, FU Berlin
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-//
-//     * Redistributions of source code must retain the above copyright
-//       notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above copyright
-//       notice, this list of conditions and the following disclaimer in the
-//       documentation and/or other materials provided with the distribution.
-//     * Neither the name of Knut Reinert or the FU Berlin nor the names of
-//       its contributors may be used to endorse or promote products derived
-//       from this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL KNUT REINERT OR THE FU BERLIN BE LIABLE
-// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-// OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-// DAMAGE.
-//
-// ==========================================================================
-// Author: cxpan <chenxu.pan@fu-berlin.de>
-// ==========================================================================
 #include "base.h"
-
+#include "ska_sort.hpp"
 using namespace seqan;
 
 //===================================================================
 // variable and type def
 //===================================================================
-const unsigned base_shape_len_ = 25;
-const float base_alpha_ = 0.75;
+
+const float    base_alpha_      = 0.75;
+const unsigned base_shape_len_  = 25;
 const unsigned base_block_size_ = 100;
-const unsigned base_delta_ = 32; 
-const unsigned base_threshold_= 30; 
-const unsigned base_kmer_step_ = 1000;
-const uint64_t base_llt_max_ = ~0;
+const unsigned base_delta_      = 32; 
+const unsigned base_threshold_  = 30; 
+const unsigned base_kmer_step_  = 1000;
+const uint64_t base_llt_max_    = ~0;
+
+unsigned const UMAX = (1 << 30) - 1;
+uint64_t const ULLMAX = ~0;
+int64_t const LLMAX = (1LL << 62) - 1; //(1ULL << 63) - 1 integer overflow on some compilers
+int64_t const LLMIN = -LLMAX;
+
+
+using std::cerr;
 
 Options::Options():
-        rPath(""),
-        gPath(""),
-        oPath("mapper_result.txt"),
-        Sensitive(false),
+        name("li\033[1;31mN\033[m\033[1;34mE\033[mar"),
+        version("1.8.2"),
+        slogan("\033[1;31mN\033[movel \033[1;34mE\033[mfficient \033[1;33mC\033[moncise"),
+        oPath(""),
+        gap_len(1),
+        apx_chain_flag(1),
+        aln_flag(0),
+        sam_flag(1),
+        apf_flag(1),
+        reform_ccs_cigar_flag(0),
+        bal_flag(1),
+        f_output_type(3),
         sensitivity(1),
-        thread(16){}
-
-std::string Options::getGenomePath() const {return gPath;};
-std::string Options::getReadPath() const {return rPath;};
-std::string Options::getOutputPath() const {return oPath;};
-int Options::print()
-{
-    
-    std::cerr << "reads path " << rPath << std::endl
-              << "genomes Path " << gPath << std::endl
-              << "output path " << oPath << std::endl
-              << "Sensitive " << Sensitive << std::endl;
-    return 0;
+        thread(16),
+        index_t(2),
+        feature_t(2), //apx2_48 by defalut
+        read_group(""),
+        sample_name(""),
+        sequence_sam_flag(1)
+        {
+           date += __TIME__; 
+           date += " ";
+           date += __DATE__;
+        }
+std::string Options::getOutputPath() const {return oPath;}
+void Options::printRunInfo(){
+    std::cerr << name <<": " << slogan << std::endl; 
 }
+
+Options::Options(int argc, char const ** & argv) : Options()
+{
+    op_argc = argc;
+    op_argv = argv;
+    if (length(argv) < 1)
+    {
+        append(cmd_line, CharString(argv[1]));
+        for (int i = 1; i < argc; i++)
+        {
+            append(cmd_line, " ");
+            append(cmd_line, CharString(argv[i]));
+        }
+    }
+}
+
+
+unsigned  Options::isOutputApf()
+{
+    return f_output_type & 1;
+}
+unsigned Options::isOutputSam()
+{
+    return f_output_type & 2;
+}
+
+unsigned Options::isOutputBamPbsv()
+{
+    return f_output_type & 8;
+}
+unsigned Options::isOutputBamStandard()
+{
+    return f_output_type & 4;
+}
+
 
 /*
  * flip strand from 0, 1 to -1, 1;
  * strand = 0, 1, other values is not allowed
  * return -1 , 1
  */
- uint64_t _nStrand(uint64_t strand)
+uint64_t _nStrand(uint64_t strand)
 {
     return (strand << 1) - 1;
 }
@@ -81,12 +101,12 @@ int Options::print()
  * do nothing if strand = 0
  * len is the length of the sequences;
  */
- uint64_t _flipCoord (uint64_t coord, uint64_t len, uint64_t strand)
+uint64_t _flipCoord (uint64_t coord, uint64_t len, uint64_t strand)
 {
     return len * strand - _nStrand(strand) * coord;
 }
 
-MapParm::MapParm():
+MapParms::MapParms():
         blockSize(base_block_size_),
         delta(base_delta_),
         threshold(base_threshold_),
@@ -105,7 +125,7 @@ MapParm::MapParm():
         senThr(0.8),
         clsThr(0.1)
     {}
-MapParm::MapParm(unsigned bs, unsigned dt, unsigned thr, 
+MapParms::MapParms(unsigned bs, unsigned dt, unsigned thr, 
             unsigned ks, unsigned sl, unsigned st,
             unsigned ad, unsigned mr, unsigned listn,
             unsigned listn2,
@@ -128,7 +148,7 @@ MapParm::MapParm(unsigned bs, unsigned dt, unsigned thr,
         senThr(sent),
         clsThr(clst)
         {} 
-MapParm::MapParm(MapParm & parm):
+MapParms::MapParms(MapParms & parm):
         blockSize(parm.blockSize),
         delta(parm.delta),
         threshold(parm.threshold),
@@ -154,94 +174,161 @@ std::ifstream::pos_type _filesize(const char* filename)
     return in.tellg(); 
 }
 
-int readRecords_block (StringSet<CharString> & ids, StringSet<String<Dna5> > & reads, String<int> & lens, SeqFileIn & fin, int blockSize)
-{
-    int start = length(reads);
-    readRecords(ids, reads, fin, blockSize);
-    for (unsigned k = 0; k < length(reads) - start; k++)
-    {
-        appendValue (lens, length(reads[start + k]));
-    }
-    return 0;
-}
-
 /*
- *[]::lr
+ *[]::load all genome from path [.fa]
  */
-int PMRecord::loadRecord(Options & options)
+std::pair<uint, uint> loadRecords(StringSet<String<Dna5> > & seqs, 
+            StringSet<CharString> & ids, 
+            Options::PathType path)
 {
-    double time = sysTime();
-    SeqFileIn gFile(toCString(options.gPath));
-    double fileSize = _filesize (toCString(options.gPath));
+    //double time = sysTime();
+    SeqFileIn gFile;
+    std::pair<uint, uint> res;
+    if (!open(gFile, toCString(path)))
+    {
+        serr.print_message("\033[1;31mError:\033[0m can't open file ", 2, 0, std::cerr);
+        serr.print_message(toCString(path), 0, 1, std::cerr);
+        res =std::make_pair (uint(~0), uint(~0));
+        return res;
+    }
+    double fileSize = _filesize (toCString(path));
     bool flag = false;
     unsigned seqCount = 0;
     double currentFileSize = 0;
-    std::fstream fin (toCString(options.gPath), std::fstream::in);
     StringSet<String<char> > dotstatus;
     resize(dotstatus, 3);
     dotstatus[0] = ".   ";
     dotstatus[1] = "..  ";
     dotstatus[2] = "... ";
-#pragma omp parallel
-{
-    #pragma omp sections
+    unsigned len_sum = 0;
+    int error = 0;
+    #pragma omp parallel
     {
-        #pragma omp section
+        #pragma omp sections
         {
-            //unsigned preSeqCount = 0;
-            String <char> probar;
-            float prepercent = 0, percent = 0, showpercent = 0, v = 0.87 ;
-            unsigned k = 1;
-            while (!flag)
+            #pragma omp section
             {
-                prepercent = percent;
-                percent = currentFileSize / fileSize * 100;
-                percent = (percent > 100)?prepercent:percent;
-                showpercent += v;
-                showpercent = (showpercent > percent)?percent:showpercent;
-                
-                std::cerr << "                                                            \r";
-                if (seqCount > 2)
+                //unsigned preSeqCount = 0;
+                String <char> probar;
+                float prepercent = 0, percent = 0, showpercent = 0, v = 0.87 ;
+                unsigned k = 1;
+                while (!flag)
                 {
-                    std::cerr << ">>Read genomes" << dotstatus[(k - 1)/10 %3] << "            " << seqCount << "/" << std::setprecision(2) << std::fixed << showpercent << "%\r";
+                    prepercent = percent;
+                    percent = currentFileSize / fileSize * 100;
+                    percent = (percent > 100)?prepercent:percent;
+                    showpercent += v;
+                    showpercent = (showpercent > percent)?percent:showpercent;
+                    
+                    std::cerr << "                                                            \r";
+                    if (seqCount > 2)
+                    {
+                        std::cerr << "=>Read genomes" << dotstatus[(k - 1)/10 %3] << "            " 
+                        << seqCount << "/" << std::setprecision(2) << std::fixed << showpercent << "%\r";
+                    }
+                    else
+                    {
+                        std::cerr << "=>Read genomes" << dotstatus[(k - 1)/10 %3] << "\r";
+                    }
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    k++;
                 }
-                else
-                {
-                    std::cerr << ">>Read genomes" << dotstatus[(k - 1)/10 %3] << "\r";
-                }
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                k++;
             }
-        }
-        #pragma omp section
-        {
-            PMRecord::RecId tmp_id;
-            PMRecord::RecSeq tmp_seq;
-            while (!atEnd(gFile))
+            #pragma omp section
             {
-                clear (tmp_id);
-                clear (tmp_seq);
-                readRecord (tmp_id, tmp_seq, gFile);
-                currentFileSize += length(tmp_seq);
-                appendValue (id2, tmp_id);
-                appendValue (seq2, tmp_seq);
-                ++seqCount;
+                PMRecord::RecId tmp_id;
+                PMRecord::RecSeq tmp_seq;
+                while (!atEnd(gFile))
+                {
+                    clear (tmp_id);
+                    clear (tmp_seq);
+                    try
+                    {
+                        readRecord (tmp_id, tmp_seq, gFile);
+                                            }
+                    catch (Exception const & e)
+                    {
+                        std::string msg1 = "File: " + path + " ";
+                        serr.print_message (msg1, 2, 0, std::cerr);
+                        serr.print_message ("[", 20, 0, std::cerr);
+                        serr.print_message("\033[1;31mError:\033[0m can't read records in file]", 0, 1, std::cerr);
+                        error = 1;
+                    }
+                    for (unsigned i = 0; i < length(tmp_id); i++)
+                    {
+                        if (tmp_id[i] == ' ')
+                        {
+                            resize(tmp_id, i);
+                            break;
+                        }
+                    }
+                    currentFileSize += length(tmp_seq);
+                    appendValue (ids, tmp_id);
+                    appendValue (seqs, tmp_seq);
+                    len_sum += length(tmp_seq);
+                    ++seqCount;
+                }
+                flag = true;
             }
-            flag = true;
         }
     }
+    if (error)
+    {
+        res = std::make_pair(uint(~0), uint(~0));
+    }
+    else
+    {
+        res = std::make_pair (len_sum, seqCount);
+    }
+    return res;
 }
-    std::cerr << "--Read genomes                "<< length(seq2) <<"/100%                   \n";
-    std::cerr << "  File: " << options.gPath ;
-    std::cerr << "  Elapsed time [s] " << sysTime() - time << std::endl;
-    return 0;
+
+int loadRecords(StringSet<String<Dna5> > & seqs, 
+                StringSet<CharString> & ids, 
+                Options::PathsType & paths)
+{
+    int status = 0;
+    for (uint i = 0 ; i < length(paths); i++)
+    {
+        double time = sysTime();
+        std::pair<uint, uint> res = loadRecords(seqs, ids, paths[i]);
+        uint len_sum = res.first;
+        uint seqCount = res.second; 
+        if (len_sum == uint(~0) || seqCount == uint(~0))
+        {
+            status += 1;
+            continue;
+        }
+        if (i == 0)
+        {
+            serr.print_message ("--Read genomes ", 0, 1, cerr);
+        }
+        std::string msg1 = "File: " + paths[i] + " ";
+        serr.print_message (msg1, 2, 0, cerr);
+
+        serr.print_message ("[", 20, 0, cerr);
+        serr.print_message (double(seqCount), 0, 0, cerr);
+        serr.print_message (" sequences; ", 0, 0, cerr);
+
+        serr.print_message (double(len_sum >> 20), 0, 0, cerr);
+        serr.print_message (" mbases; ", 0, 0, cerr);
+
+        std::string msg3 = "Elapsed time[s] ";
+        serr.print_message (msg3, 0, 0, cerr);
+        serr.print_message (sysTime() - time, 0, 0, cerr);
+        
+        serr.print_message ("\033[1;32m 100%\033[0m", 0, 0, cerr);
+
+        serr.print_message ("]", 0, 1, cerr);
+        //serr.print_message ()
+
+    }
+    return status;
 }
 
 PMRecord::PMRecord(Options & options)
 {
-    readPath = options.rPath;
-    genomePath = options.gPath;
-    loadRecord(options);
+    (void) options;
 }
 
  void Anchors::init(AnchorType val, unsigned range)
@@ -268,25 +355,6 @@ PMRecord::PMRecord(Options & options)
     set[p] = (pos1 << AnchorBase::bit) + pos2;
 }
 
- Anchors::AnchorType Anchors::getPos1(unsigned p) const 
-{
-    return set[p] >> AnchorBase::bit;
-}
-
- Anchors::AnchorType Anchors::getPos2(unsigned p) const
-{
-    return set[p] & AnchorBase::mask;
-}
-
- Anchors::AnchorType Anchors::deltaPos1(unsigned p1, unsigned p2)
-{
-    return (set[p1] >> AnchorBase::bit) - (set[p2] >> AnchorBase::bit);
-}
-
- Anchors::AnchorType Anchors::deltaPos2(unsigned p1, unsigned p2)
-{
-    return AnchorBase::mask & (set[p1] - set[p2]);
-}
  Anchors::Iter Anchors::begin()
 {
     return seqan::begin(set);
@@ -297,13 +365,14 @@ PMRecord::PMRecord(Options & options)
 }
  void Anchors::sort(Anchors::Iter sortBegin, Anchors::Iter sortEnd)
 {
-    std::sort(sortBegin, sortEnd);
+    //std::sort(sortBegin, sortEnd);
+    ska_sort(sortBegin, sortEnd);
 }
  void Anchors::sortPos2(Anchors::Iter sortBegin, Anchors::Iter sortEnd){
     AnchorBase::AnchorType mask = AnchorBase::mask;
     std::sort(sortBegin, sortEnd,
     [& mask](AnchorBase::AnchorType & a, 
-                AnchorBase::AnchorType & b)
+             AnchorBase::AnchorType & b)
     {
         return (a & mask) < (b & mask);
     }) ;
@@ -315,30 +384,30 @@ PMRecord::PMRecord(Options & options)
 uint64_t & Anchors::operator [](unsigned p)
 {
     return set[p];
-};
+}
 unsigned Anchors::length() 
 {
     return seqan::length(set);
-};
+}
 
-void MapParm::print()
+void MapParms::print()
 {
     std::cerr << "blockSize " << blockSize << std::endl
-            << "alpha " << alpha << std::endl
-            << "alpha2 " << alpha2 << "\n"
-            << "listN " << listN << "\n"
-            << "listN2 " << listN2 << "\n"
-            << "senThr " << senThr << "\n"
-            << "delta " << delta << std::endl
-            << "threshold " << threshold << std::endl
-            << "kmerStep " << kmerStep << std::endl
-            << "shapeLen " << shapeLen << std::endl
-            //<<  "sensitivity " << sensitivity << "\n"
-            << "anchorDeltaThr " << anchorDeltaThr << "\n"
-            << "minReadLen " << minReadLen << "\n"
-            << "anchorLenThr" << anchorLenThr << "\n"
-            << "rcThr " << rcThr << "\n"
-            << "cordThr" << cordThr << "\n";
+              << "alpha " << alpha << std::endl
+              << "alpha2 " << alpha2 << "\n"
+              << "listN " << listN << "\n"
+              << "listN2 " << listN2 << "\n"
+              << "senThr " << senThr << "\n"
+              << "delta " << delta << std::endl
+              << "threshold " << threshold << std::endl
+              << "kmerStep " << kmerStep << std::endl
+              << "shapeLen " << shapeLen << std::endl
+              //<<  "sensitivity " << sensitivity << "\n"
+              << "anchorDeltaThr " << anchorDeltaThr << "\n"
+              << "minReadLen " << minReadLen << "\n"
+              << "anchorLenThr" << anchorLenThr << "\n"
+              << "rcThr " << rcThr << "\n"
+              << "cordThr" << cordThr << "\n";
 }
 
 static const String<Dna5> _complt = "tgcan";
@@ -346,8 +415,9 @@ static const String<Dna5> _complt = "tgcan";
 {
     resize(res, length(str));
     for (unsigned k = 0; k < length(str); k++)
-     //   res[k]=_complt[str[k] - 'A'];
+    {
         res[k] = _complt[(unsigned)ordValue(str[k])];
+    }
 }
 
  void _compltRvseStr(String<Dna5> & str, String<Dna5> & res)
@@ -360,3 +430,240 @@ static const String<Dna5> _complt = "tgcan";
         //std::cout << (unsigned)ordValue(str[length(str) - k - 1]) << std::endl;
     }
 }
+/*----------  Debug ostream to replace ostream ----------*/
+Dout dout;
+Gout & operator << (Dout & d, int n)
+{
+    unused(d);
+    Gout *p = new Gout;
+    *p << n;
+    return *p;
+}
+Gout & operator << (Dout & d, unsigned n)
+{
+    unused(d);
+    Gout *p = new Gout;
+    *p << n;
+    return *p;  
+}
+Gout & operator << (Dout & d, int64_t n)
+{
+    unused(d);
+    Gout *p = new Gout;
+    *p << n;
+    return *p;
+}
+Gout & operator << (Dout & d, uint64_t n)
+{
+    unused(d);
+    Gout *p = new Gout;
+    *p << n;
+    return *p;
+}
+Gout & operator << (Dout & d, CharString n)
+{
+    unused(d);
+    Gout *p = new Gout;
+    *p << n;
+    return *p;
+}
+Gout & operator << (Dout & d, String<int64_t> & n)
+{
+    unused(d);
+    Gout *p = new Gout;
+    *p << n;
+    return *p;
+}
+Gout & operator << (Dout & d, double n)
+{
+    unused(d);
+    Gout *p = new Gout;
+    *p << n;
+    return *p;
+}
+
+Gout & Gout::operator << (int n)
+{
+    buffer << n << " "; 
+    return *this;
+}
+Gout & Gout::operator << (unsigned n)
+{
+    buffer << n << " "; 
+    return *this;
+}
+Gout & Gout::operator << (int64_t n)
+{
+    buffer << n << " "; 
+    return *this;
+}
+Gout & Gout::operator << (uint64_t n)
+{
+    buffer << n << " "; 
+    return *this;
+}
+Gout & Gout::operator << (CharString n)
+{
+    buffer << n << " ";
+    if (n == "\n")
+    {
+        std::cout << buffer.str();
+        //buffer.str("");
+        delete this;
+        //return NULL;
+    }
+    return *this;
+}
+Gout & Gout::operator << (String<int64_t> & ns)
+{
+    for (auto n : ns)
+    {
+        buffer << n << " ";
+    }
+    return * this;
+}
+Gout & Gout::operator << (double n)
+{
+    buffer << n << " " ;
+    return * this;
+}
+
+void ostreamWapper::print_message(std::string strs, 
+                                  size_t start, 
+                                  int end_type, 
+                                  std::ostream & os)
+{
+    std::string spaces = "";
+    if (start > length(contents))
+    {
+        for (uint i = 0; i < start - length(contents); i++)
+        {
+            append (spaces, " ");
+        }
+    }
+    append(contents, spaces);
+    append(contents, strs);
+    if (end_type == 1)
+    {
+        os << contents << "\n";
+        contents = "";
+    }
+    else if (end_type == 2)
+    {
+        os << contents << "\r";
+        contents = "";
+    }
+}
+
+void ostreamWapper::print_message(double data, 
+                                  size_t start, 
+                                  int end_type, 
+                                  std::ostream & os)
+{
+    float d = int(data * 100);
+    std::ostringstream strs;
+    strs << (d / 100);
+    std::string str = strs.str();
+    print_message(str, start, end_type, os);
+}
+
+void ostreamWapper::print_message(unsigned data, 
+                                  size_t start, 
+                                  int end_type, 
+                                  std::ostream & os)
+{
+    std::ostringstream strs;
+    strs << data;
+    std::string str = strs.str();
+    print_message(str, start, end_type, os);
+}
+void ostreamWapper::print_message(int data, 
+                                  size_t start, 
+                                  int end_type, 
+                                  std::ostream & os)
+{
+    std::ostringstream strs;
+    strs << data;
+    std::string str = strs.str();
+    print_message(str, start, end_type, os);
+}
+
+ostreamWapper serr;
+
+std::string _2stdstring (CharString str)
+{
+    std::string rsl;
+    for (unsigned i = 0; i < length(str); i++)
+    {
+        rsl.push_back(char(str[i]));
+    }
+    return rsl;
+}
+
+CmpInt64 & CmpInt64::init(int64_t & rslt, int64_t init_val) 
+{ 
+    p_rslt = & rslt;
+    *p_rslt = init_val;
+    return *this;
+}
+CmpInt64 & CmpInt64::min(int64_t & rslt, int64_t val) 
+{
+    return init(rslt, val);
+}
+CmpInt64 & CmpInt64::max(int64_t & rslt, int64_t val) 
+{
+    return init(rslt, val);
+}
+CmpInt64 & CmpInt64::operator << (int64_t n)
+{
+    if (*p_rslt > n)
+    {
+        *p_rslt = n;
+    }
+    return *this;
+}
+CmpInt64 & CmpInt64::operator >> (int64_t n)
+{
+    if (*p_rslt < n)
+    {
+        *p_rslt = n;
+    }
+    return *this;
+}
+
+void sort_ska(Iterator<String<uint64_t> >::Type it_str, Iterator<String<uint64_t> >::Type it_end)
+{
+    ska_sort(it_str, it_end);
+}
+
+int print_seq(String<Dna5> & seq, uint64_t str, uint64_t end, std::string header)
+{
+    std::cout << header << " ";
+    for (unsigned i = str; i < end && i < length(seq); i++)
+    {
+        std::cout << seq[i];
+    }
+    std::cout << "\n";
+    return 0;
+}
+int mod(int a, int b){int c = a % b; return c >= 0 ? c : c + b;}
+
+
+
+void F_Print_::setPrintApf(uint & f){f |= 1;}
+void F_Print_::unsetPrintApf(uint & f){f &= ~1;}
+void F_Print_::setPrintSam(uint & f){f |= 2;}
+void F_Print_::unsetPrintSam(uint & f){f &= ~2;}
+void F_Print_::setPrintBamStd(uint & f){f |= 4;}
+void F_Print_::unsetPrintBamStd(uint & f){f &= ~4;}
+void F_Print_::setPrintBamPbsv(uint & f){f |= 8;}
+void F_Print_::unsetPrintBamPbsv(uint & f){f &= ~8;}
+void F_Print_::clear(uint & f){f = 0;}
+int F_Print_::isPrintApf(uint f){return f & 1;}
+int F_Print_::isPrintSam(uint f){return f & 2;}
+int F_Print_::isPrintBam(uint f){return isPrintBamPbsv(f) || isPrintBamStd(f);}
+int F_Print_::isPrintBamStd(uint f){return f & 4;}
+int F_Print_::isPrintBamPbsv(uint f){return f & 8;}
+int F_Print_::isPrintSamBam(uint f){return isPrintSam(f) || isPrintBam(f);}
+
+F_Print_ fp_handler_;

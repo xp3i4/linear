@@ -1,8 +1,7 @@
-#ifndef SEQAN_HEADER_INDEX_UTIL_H
-#define SEQAN_HEADER_INDEX_UTIL_H
+#ifndef LINEAR_HEADER_INDEX_UTIL_H
+#define LINEAR_HEADER_INDEX_UTIL_H
 #include <seqan/parallel.h>
 #include <seqan/sequence.h>
-//#include <seqan/index.h>
 #include "shape_extend.h"
 
 using namespace seqan;
@@ -40,13 +39,49 @@ extern const unsigned blocklimit;
 extern const unsigned index_shape_len;
 extern const float def_alpha;
 
-//========================================================
-//The is the section to optimize 25-mer index for mapping
+/*=============================================
+=  short mer direct index for error rate > 0.2 =
+=============================================*/
+
+class DIndex 
+{
+    String <int> dir;
+    String <int64_t> hs;
+    void * pt_dir[2];
+    void * pt_hs[2];
+    int pt;
+    LShape shape;
+public:
+    DIndex();
+    DIndex(unsigned); //shape_len
+    String<int> & getDir();
+    String<int64_t> & getHs();
+    LShape & getShape();
+    int fullSize();
+    int getShapeLen();
+    void clear();
+}; 
+uint64_t shape2DIndexCordy(LShape & shape);
+uint64_t getDIndexCordy(uint64_t index_val);
+int createDIndex(StringSet<String<Dna5> > & seqs, 
+                 DIndex & index, 
+                 unsigned gstr,
+                 unsigned gend,
+                 int64_t thd_min_step, 
+                 int64_t thd_max_step,
+                 int64_t thd_omit_block,
+                 unsigned threads
+                );
+int64_t queryHsStr(DIndex & index, int64_t xval);
+int64_t queryHsEnd(DIndex & index, int64_t xval);
+
+/*=============================================
+=        Section to optimize 25-mer index     =
+=============================================*/
 //Structt Hs: String<uint64_t>
 //Types of node in Hs: 1.head node and 2.body node
 //Head: Headflag[1] = 0|sortFlag[1]|N/A[2]|Pointer[20]| xvalue[40]
 //Body: bodyflag[1] = 1|N/A[2]|yvalue[20] |typeCode[1]|sa[40]
-static const unsigned XValueBit = 40;
 
 struct HsBase
 {
@@ -107,8 +142,9 @@ struct Hs
                     uint64_t const & bit = _DefaultHsBase.bodyYBit,
                     uint64_t const & flag = _DefaultHsBase.typeFlag2);
     void setHsBodyReverseStrand(uint64_t & val);
-    bool isHsBodyReverseStrand(uint64_t & val);
     void setHsBodyY(uint64_t & val, uint64_t y, uint64_t const & bit = _DefaultHsBase.bodyYBit, uint64_t const & mask = _DefaultHsBase.bodyYMask);
+    uint64_t getHsBodyStrand(uint64_t & val);
+    uint64_t getLength(String<uint64_t> & ); //length equals num of head of ptr != 0 and body excludes the addition info empty Head nodes ptr==0 at the end of the array.
     
 };
 extern Hs _DefaultHs;
@@ -136,26 +172,73 @@ class HIndex
 {
 public:
 
-    String<HType1>     ysa;
+    String<HType1>                          ysa;
+    String<HType1>                          ysa_str_end;
+    String<std::pair<uint64_t, uint64_t> >  ysa_sorted_records;
     XString            xstr;
     LShape             shape;
     double             alpha;    
-    uint64_t emptyDir;
+    uint64_t           emptyDir;
 
     HIndex();
-    HIndex(StringSet<String<Dna5> > const & text);
+    HIndex(unsigned shape_len, float index_alpha);
     bool isEmptyDir(uint64_t);
+    bool ifYsaSorted(uint64_t g_str, uint64_t g_end);
+    bool insertYsaSortedRecord(uint64_t g_str, uint64_t g_end);
     void clear();
+    LShape & getShape();
 }; 
 
-typedef HIndex LIndex;
-
+typedef HIndex LIndex; 
 uint64_t _getSA_i1(uint64_t const & node);
 uint64_t _getSA_i2(uint64_t const & node);
 uint64_t getXDir(HIndex const & index, uint64_t const & xval, uint64_t const & yval);
 uint64_t getXYDir(HIndex const & index, uint64_t const & xval, uint64_t const & yval);
-bool createHIndex(StringSet<String<Dna5> > & seq, LIndex & index, unsigned & threads, bool efficient);
 
+bool createHIndex(StringSet<String<Dna5> > & seq, 
+                  LIndex & index, 
+                  unsigned gstr,
+                  unsigned gend,
+                  unsigned & threads, 
+                  unsigned thd_step, 
+                  bool efficient);
+
+/*===============================================
+=            Section of IndexDynamic            =
+===============================================*/
+
+extern int const typeDIx;
+extern int const typeHIx;
+extern int const typeMIx;
+extern int const typeFIx;
+struct IndexDynamic 
+{
+    HIndex hindex;
+    DIndex dindex;
+    int typeIx;
+    int isHIndex();
+    int isDIndex();
+    int isMIndex();
+    void setHIndex();
+    void setDIndex();
+    void setMIndex();   //mapper index
+    void setMHIndex();  //mapper::HIndx
+    void setMDIndex();  //mapper::DIndex
+    void setFIndex();   //filter index
+    void setFDIndex();  //filter::Dindex
+    void setFHIndex();  //filter::HIndex;
+    void setIndexType(int);
+    void clearIndex();
+    IndexDynamic(StringSet<String<Dna5> > &);
+};
+
+bool createIndexDynamic(StringSet<String<Dna5> > & seq, 
+                        IndexDynamic & index, 
+                        unsigned gstr,
+                        unsigned gend,
+                        unsigned threads, 
+                        bool efficient);
 // uint64_t getXDir(LIndex const & index, uint64_t const & xval, uint64_t const & yval)
 
+/*=====  End of Section comment block  ======*/
 #endif
