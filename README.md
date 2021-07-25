@@ -18,6 +18,8 @@ Thus we investigate the feasibility of alignment-free methods by developing Line
 Alignment-free method is commonly more efficient to compute.
 Additionally, with flexible optimization in the implementation, Linear is commonly orders of magnitude faster to map, align and resolve SVs with improved sensitivity and flexibility.  
 
+<img src="images/map_pixel.svg" width=600>
+
 ### It's keeping improved
 SVs models applied in Linear is much more flexible than these applied in the conventional alignment methods.
 Linear implemented several, but not limited to models of common SVs, such as ins, dels, invs. 
@@ -41,7 +43,7 @@ Since the speedup is due to optimization of the method rather than the hardware-
 
 ### External libraries used in the source
 
-- [SeqAn 2.0](<https://seqan.readthedocs.io/en/master/>)-Generci library for sequence analysis
+- [SeqAn 2.0](<https://seqan.readthedocs.io/en/master/>)-Generic library for sequence analysis
 
 - [googletest](<https://github.com/google/googletest>)-Unit test
 
@@ -54,18 +56,18 @@ Since the speedup is due to optimization of the method rather than the hardware-
 $sudo apt install zlib1g-dev libbz2-dev
 ```
 
-To build from the source create a new directory. In the build directory
+To build from the source create a new building directory. In the building directory
 ```bash
-$CMake [path to git cloned source] 
+$CMake [path to source] 
 $make linear 
 ```
 
 ## Usage
-Support .fa(.gz), .fastq(.gz) for input.
+Support input of .fa(.gz) and .fastq(.gz).
 ```bash
 $linear read.fa genome.fa
 ``` 
-Please add <b>'x'</b> when mapping more than one reads and genomes.
+Please add argument <b>'x'</b> if mapping more than one reads and genomes.
 ```bash
 $linear *fa x *fa
 ``` 
@@ -74,9 +76,9 @@ Use -h for more details of options
 $linear -h
 ```
 
-## File format of results
-Output of Linear is based on standard formats for sequence alignment
-However some changes have been made to adapt the result of map.
+## Format of files
+Output of map in Linear is based on standard formats for sequence alignment.
+However some definitions have been extended to adapt to the result of map.
 Theses changes include:
 ### SAM/BAM
 Standard format for alignment and map.
@@ -99,13 +101,14 @@ The definition of SAM/BAM of map of Linear is changed as the following table.
 |   11 | QUAL  | ASCII of Phred-scaled base QUALity+33     | Yes       |
 |   12 | TAG   | Optional tags                             | Changed   |
 
-- 6th column of cigar is changed in the SAM/BAM of map.
+- The 6th column of cigar is changed in the SAM/BAM of map.
 Standard cigar of denotes the alignment of bases, while cigar of map here extends segments in the alignment matrix to region.
 Specially, cigar of map in Linear is in the format of 'MG', where 'M' is allowed to be 'X' and '=' of standard cigar while 'G' is allowed to be 'I' and 'D' of standard cigar.
 An example of '200=80D' with the corresponding region is shown in the following figure, where the green region is the region of the cigar, where the alignment is supposed to be.
+
 <img src="images/cigar_apx_map.png" alt="drawing" width="300"/>
 
-- 10th column of SEQ is inferred according to the reference and the 4,6th column rather than segment of read.
+- The 10th column of SEQ is inferred according to the reference and the 4,6th column rather than segment of read.
 For cigar operation '=', the corresponding base from the reference rather than the read is inserted into the SEQ.
 Thus the operation of '=' in result of mapping doesn't necessarily mean the read is identical to the reference at the level of base pairs.
 This is different from the SEQ for alignment.
@@ -113,7 +116,7 @@ The change of definition is to make the SEQ of mapping compatible to existing to
 For operations of 'M', 'X', 'I', and 'S' the corresponding bases in the read are inserted.
 This is identical to the SEQ for alignment.
 
-- 12th column, in which the definition of 'SA:Z' is changed because of the change of 6th and 10th columns.
+- The 12th column, in which the definition of 'SA:Z' is changed because of the change of 6th and 10th columns.
 Other tags are identical to the standard.
 Standard definition of the tag can be found at [SAM/BAM format](https://samtools.github.io/hts-specs/SAMv1.pdf) and [Optional tags](https://samtools.github.io/hts-specs/SAMtags.pdf)
 
@@ -169,8 +172,8 @@ Following is an example of the apf the read mapped to the reference.
 [gvf]()
 
 ## Adaption to existing pipelines
-The result of alignment is supposed to be called existing pipelines as many other aligners.
-Besides, the result of map (with the alignment completely disbaled) can be called by existing alignment based pipelines, such as the SVs caller.
+The result of alignment is can be called by existing pipelines like other aligners.
+Besides, the result of map (with the alignment completely disbaled) can be called by existing alignment based pipelines, such as the SVs caller as well.
 
 ### Adaption to SVs callers
 The compatibility of the result of map to the SVs caller [PBSV](https://github.com/PacificBiosciences/pbsv) has been tested with PacBio long reads.
