@@ -37,7 +37,7 @@ Options::Options():
         f_output_type(3),
         sensitivity(1),
         thread(16),
-        index_t(2),
+        index_t(1),
         feature_t(2), //apx2_48 by defalut
         read_group(""),
         sample_name(""),

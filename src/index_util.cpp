@@ -1615,7 +1615,7 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
                  unsigned threads)
 {
     //std::cerr << std::fixed << std::setprecision(2);
-    serr.print_message("=>Index::Initiate ", 0, 2, std::cerr);
+    serr.print_message("=>Index::Initiating ", 0, 2, std::cerr);
     double t = sysTime();
     LShape & t_shape = index.getShape();
     String<int> & dir = index.getDir();
@@ -1640,6 +1640,8 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
             LShape shape = t_shape;
             hashInit (shape, begin(seqs[i]) + t_str);
             //dout << "cdx1 " << t_str<< t_end <<"\n";
+            int64_t t_percent_cerr = (t_end - t_str) * 1 / 50; //cerr percent every 2%
+            int64_t j_count = 0;
             for (int64_t j = t_str; j < t_end; j++)
             {
                 hashNexth(shape, begin(seqs[i]) + j);
@@ -1654,6 +1656,14 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
                     }
                     count = 0;
                 }
+                if (t_id == 0 && j_count == t_percent_cerr)
+                {
+                    j_count = 0; 
+                    serr.print_message("=>Index::Initiating [", 0, 0, std::cerr);
+                    serr.print_message(int(float(j - t_str) / (t_end - t_str) * 100), 0, 0, std::cerr);
+                    serr.print_message("%]", 0, 2, std::cerr);
+                }
+                ++j_count;
             }
         }
     }
@@ -1671,8 +1681,8 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
     int64_t EmptyVal = create_cord(length(seqs),0,0,0); 
     //make sure genomeid >= length(seqs) and cord y be 0! y points to next empty.
     resize (hs, sum, EmptyVal);
-    serr.print_message("--Index::Initiate   ", 0, 1, std::cerr);
-    serr.print_message("=>Index::Hash", 0, 2, std::cerr);
+    serr.print_message("--Index::Initiate[100%]   ", 0, 1, std::cerr);
+    serr.print_message("=>Index::Hashing", 0, 2, std::cerr);
     for (uint64_t i = 0; i < length(seqs); i++)
     {
         String<int64_t> t_blocks;
@@ -1693,6 +1703,8 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
             LShape shape = t_shape;
             hashInit (shape, begin(seqs[i]) + t_str);
             //dout << "strd " << t_str << t_end << "\n";
+            int64_t t_percent_cerr = (t_end - t_str) * 1 / 50;
+            int64_t j_count = 0;
             for (int64_t j = t_str; j < t_end; j++)
             {
                 hashNexth (shape, begin(seqs[i]) + j);
@@ -1722,12 +1734,20 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
                     } 
                     count = 0;
                 }
+                if (t_id == 0 && j_count == t_percent_cerr)
+                {
+                    j_count = 0; 
+                    serr.print_message("=>Index::Hashing [", 0, 0, std::cerr);
+                    serr.print_message(int(float(j - t_str) / (t_end - t_str) * 100), 0, 0, std::cerr);
+                    serr.print_message("%]", 0, 2, std::cerr);
+                }
+                ++j_count;
             }  
         }
     }
     //dout << "size" << float(length(dir)) * 8 / 1024/1024/1024 << float(length(hs)) /128/1024/1024 << "\n";
     //std::cout << "createDIndex " << sysTime() - t << " " << sysTime() - t2 << "\n";
-    serr.print_message("Index::Hash        ", 2, 1, std::cerr);
+    serr.print_message("Index[100%]                    ", 2, 1, std::cerr);
     serr.print_message("End creating index ", 2, 0, std::cerr);
     serr.print_message("Elapsed time[s] ", 2, 0, std::cerr);
     serr.print_message(sysTime() - t, 2, 1, std::cerr);
