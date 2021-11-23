@@ -134,7 +134,6 @@ void align2cigar_(String<CigarElement< > > &cigar,
             {
                 if (!flag)
                 {
-                    std::cout << "last_op" << last_op << "\n";
                     if (last_op == lastOp)
                     {
                         back(cigar).count += numOps;
