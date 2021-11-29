@@ -264,7 +264,7 @@ AlignGapParms::AlignGapParms ():
         thd_clip_score(80),   //density score: clip when density is < 0.8
         thd_reject_score(130),      //calculate density within the window
         thd_accept_score(140),  //the mini distanse between two clips.
-        thd_min_interval(20),
+        thd_min_interval(50),
         thd_accept_density(4.5),
         cbrlht_thd_src_d_bps(200),
         thd_clip_view_len(1000)
@@ -1363,6 +1363,7 @@ int clip_rows_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
                     appendValue(clip_records, clip_pair);
                     appendValue(clip_records_src1, clip_pair_src1);
                     appendValue(clip_records_src2, clip_pair_src2);
+                    dout << "cs1" << clip_pair_src2.first << clip_pair_src2.second << clip_pair.first - last_clip << thd_min_interval << "\n";
                     ++ct_clips;
                 }
                 else
@@ -2158,7 +2159,6 @@ int align_gap (GapRecordHolder & gap,
     int bam_next_id = gap.getBamSegIdTail();
     //WARNING::modify band::too large band
     TRow row1, row2, row3, row4 ;
-    //dout << "ag3" << get_cord_id(str_cord) << get_cord_id(end_cord) << get_cord_y(str_cord) << get_cord_y(end_cord) << get_cord_x(str_cord) << get_cord_x(end_cord) << band << "\n";
     //return 0;
     align_cord (row1, row2, genomes[g_id], read, comrev_read, str_cord, end_cord, band, band);
     //Head and tail are already merged, so view_str = 0.
@@ -2214,6 +2214,8 @@ int align_gap (GapRecordHolder & gap,
                                         clips_src2[i + 1].first);
             cmpRevCord (seg_str_cord, seg_end_cord, 
                         seg_str_cord, seg_end_cord, length(read));
+            //<<debug
+            //>>debug
             seg_str_cord = shift_cord(seg_str_cord, -thd_alg_extnd, -thd_alg_extnd);
             seg_end_cord = shift_cord(seg_end_cord, thd_alg_extnd, thd_alg_extnd);
             int seg_band = std::max(get_cord_x(seg_end_cord - seg_str_cord),
@@ -2227,18 +2229,22 @@ int align_gap (GapRecordHolder & gap,
                             seg_str_cord,align_gap_parms);
             //int tmp3 = tmp2;
             //>>debug
-            
+            /*
             if (empty(seg_clips))
             {
 
             //dout << "ag18" << length(seg_clips) << "\n";
+            dout << "ag4" << clips_src2[i].first << clips_src2[i].second << "\n";
             int bam_start_x = clips_src1[i].second;
             int bam_start_y = clips_src2[i].second;
             int bam_strand = get_cord_strand(str_cord);
                 setClippedPositions(row1, row2, clips[i].second, clips[i + 1].first);
             insertNewBamRecord(bam_records, row1, row2, g_id, bam_start_x, bam_start_y, bam_strand, -1, 1, 2048); 
+                std::cout << "ag71 " << bam_start_x << " " << bam_start_y << " "<< row4 << clips[i].second << clips[i + 1].first << "\n";
             }
+            */
             //<<debug
+
             for (int j = 0; j < (int)length(seg_clips); j++)
             {
                 int bam_start_x = seg_clips_src1[j].first;
