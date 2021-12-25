@@ -588,6 +588,9 @@ int printAlignBam(StringSet<String<BamAlignmentRecordLink> > & bam_records,
     return 0;
 }
 
+/*
+ * Make sure length(reads) == length(reads_id) == length(bam_records)
+ */
 int printAlignSamBam (StringSet<String<Dna5> > & genms,
                       StringSet<String<Dna5> > & reads,
                       StringSet<CharString> & genms_id,
@@ -597,6 +600,12 @@ int printAlignSamBam (StringSet<String<Dna5> > & genms,
                       int f_header,
                       FIOParms & fio_parms)
 {
+    if (length(reads) != length(bam_records) ||
+        length(reads) != length(reads_id))
+    {
+        std::cout << "[ERROR]::printAlignSamBam\n";
+        return 0;
+    }
     for (unsigned i = 0; i < length(bam_records); i++)
     {
         bls_operator.fillBamRecordLinkRecords(bam_records[i], genms, genms_id,reads[i], reads_id[i], 

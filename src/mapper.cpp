@@ -390,6 +390,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
     if (!fm_handler_.isAlign(f_map)) 
     {
         uint64_t thd_large_X = 8000; 
+        clear(bam_records);
         cords2BamLink (cords_str, cords_end, bam_records, reads, this->getCordSize(), thd_large_X);
     }
     counters.setCalCounter(counters.getCalCounter() + length(reads));
@@ -746,6 +747,7 @@ int map_(IndexDynamic & index,
     {
         uint64_t thd_large_X = 8000;
         int f_parallel = 1;
+        clear(bam_records);
         cords2BamLink(cords_str, cords_end, bam_records, reads, cord_size, thd_large_X, threads, f_parallel);
     }
     return 0;
