@@ -690,6 +690,36 @@ void createRectangleCigarPair (uint64_t cord1, uint64_t cord2,
         cigar2.count = dy - dx;
     }
 }
+/*
+ * cigar1 \in {'=' or 'X'}
+   cigar2 \in {'I' or 'D'}
+ */
+void socreCigarPair(CigarElement<> & cigar1, CigarElement<> & cigar2, BamAlignmentRecordLinkScore & score,
+        int thd_variant_indel_min_len = 100)
+{
+    if ((cigar1.operation == '=' || cigar1.operation == 'X') &&
+        (cigar2.operation == 'I' || cigar2.operation == 'D'))
+    {
+        if (cigar1.operation == '=')
+        {
+            score.s1 += cigar1.count;
+            score.s3 += cigar1.count;
+        }
+        else
+        {
+            score.s2 += cigar1.count;
+        }
+        //supposed to be seq error
+        score.s2 += cigar2.count < thd_variant_indel_min_len ? cigar2.count : 0;
+        if (cigar2.operation == 'I')
+        {
+            score.s3 += cigar2.count;
+        }
+        std::cout << "sc2 " << cigar1.count << cigar1.operation << " " 
+                            << cigar2.count << cigar2.operation << " "
+                            << score.s1 << " " << score.s2 << "\n";
+    }
+}
 
 /*
  * Find cigar from cord1_str to cord2_str
@@ -701,7 +731,8 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
                       uint64_t cord1_str, 
                       uint64_t cord1_end,
                       uint64_t cord2_str, 
-                      String<CigarElement<> > & cigar)
+                      String<CigarElement<> > & cigar,
+                      BamAlignmentRecordLinkScore & score)
 {
     CigarElement<> cigar1, cigar2;
     uint64_t next_cigar_str;
@@ -758,8 +789,7 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
         if (cigar2.count) appendCigarShrink(cigar, cigar2);
         next_cigar_str = cord2_str;
     }
-    
-    //dout << "next_cigar_str" << get_cord_y(next_cigar_str) << get_cord_y(cord2_str) << "\n";
+    socreCigarPair(cigar1, cigar2, score);
     return next_cigar_str;
 }
 /*
@@ -770,10 +800,11 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
    if !(cord1 < cord2)
  */
 int cords2BamLink(String<uint64_t> & cords_str,
-                   String<uint64_t> & cords_end,
-                   String<BamAlignmentRecordLink> & bam_link_records,
-                   String<Dna5> & read,
-                   uint64_t thd_large_X)
+                  String<uint64_t> & cords_end,
+                  String<CordInfo> & cords_info,
+                  String<BamAlignmentRecordLink> & bam_link_records,
+                  String<Dna5> & read,
+                  uint64_t thd_large_X)
 {
     if (!empty(bam_link_records))
     {
@@ -792,6 +823,8 @@ int cords2BamLink(String<uint64_t> & cords_str,
     int flag = 0;
     String<int> bam_records_ptrs; //pointer to bam records
     String<int> cords_block_end_ptrs; //pointer to last cord of block
+    float cigar_score = 0;
+    int cigar_count = 0;
     for (unsigned i = 1; i < length(cords_str); i++)
     {
         if (f_new) //initiate a record for new block 
@@ -817,6 +850,7 @@ int cords2BamLink(String<uint64_t> & cords_str,
                           cords_str[i + 1], cords_end[i + 1],
                           thd_large_X)) // last cord of current block
         {
+            dout << "s14" << i << get_cord_y(cords_str[i]) <<get_cord_y(cords_str[i + 1]) << "\n";
             cord1_str = cords_str[i];
             cord1_end = cords_end[i];
             cord2_str = cords_end[i];
@@ -829,9 +863,11 @@ int cords2BamLink(String<uint64_t> & cords_str,
             cord1_end = cords_end[i];
             cord2_str = cords_str[i + 1];
         }
+        float score_tmp = 0;
         cigar_str = cord2cigar_ (cigar_str, 
                                  cord1_str, cord1_end, cord2_str, 
-                                 back(bam_link_records).cigar);
+                                 back(bam_link_records).cigar,
+                                 back(bam_link_records).score);
         if (cigar_str == ~(uint64_t)0) //error
         {
             break;
@@ -856,13 +892,39 @@ int cords2BamLink(String<uint64_t> & cords_str,
             //todo
         }
     }
+
+    for (unsigned i = 0; i < length(bam_records_ptrs); i++) 
+    {
+        unsigned j_end = i == length(bam_records_ptrs) - 1 ?  length(bam_link_records) : bam_records_ptrs[i + 1];
+        unsigned ptr = bam_records_ptrs[i];
+        int s1 = 0;
+        int s2 = 0;
+        int s3 = 0;
+        for (unsigned j = bam_records_ptrs[i]; j < j_end; j++)  
+        {
+            s1 += bam_link_records[j].score.s1;
+            s2 += bam_link_records[j].score.s2;
+            s3 += bam_link_records[j].score.s3;
+        }
+///*
+        bam_link_records[ptr].mapQ =  10 * s1 * s3 / ((s2 + 1) * length(read)); // +1 in case of s2 =0
+        if (bam_link_records[ptr].mapQ >= 255)
+        {
+            bam_link_records[ptr].mapQ = 255;
+        }
+ //       */
+        bam_link_records[ptr].mapQ = cords_info[i].score;
+        dout << "s12" << s1 << s2 << s3 << ptr << i << cords_info[i].score << length(cords_info) << "\n";
+    }
     bls_operator.setNewUnAvailable(bam_link_records);
 
+    print_cords(cords_str, "s13");
     return 0;
 }
 //serial
 void cords2BamLink(StringSet<String<uint64_t> > & cords_str, 
                    StringSet<String<uint64_t> > & cords_end,
+                   StringSet<String<CordInfo> > & cords_info,
                    StringSet<String<BamAlignmentRecordLink> > & bam_link_records,
                    StringSet<String<Dna5> > & reads,
                    int thd_cord_size,
@@ -881,11 +943,11 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
             {
                 appendValue(tmp_end, shift_cord(cords_str[i][j], thd_cord_size, thd_cord_size));
             }
-            cords2BamLink (cords_str[i], tmp_end, bam_link_records[ii], reads[i], thd_large_X);
+            cords2BamLink (cords_str[i], tmp_end, cords_info[i], bam_link_records[ii], reads[i], thd_large_X);
         }
         else
         {
-            cords2BamLink (cords_str[i], cords_end[i], bam_link_records[ii], reads[i], thd_large_X);
+            cords2BamLink (cords_str[i], cords_end[i], cords_info[i], bam_link_records[ii], reads[i], thd_large_X);
         }
         ii++;
     }
@@ -893,6 +955,7 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
 
 void cords2BamLink(StringSet<String<uint64_t> > & cords_str, 
                    StringSet<String<uint64_t> > & cords_end,
+                   StringSet<String<CordInfo> > & cords_info,
                    StringSet<String<BamAlignmentRecordLink> > & bam_link_records,
                    StringSet<String<Dna5> > & reads,
                    int thd_cord_size,
@@ -915,11 +978,11 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
                 {
                     appendValue(tmp_end, shift_cord(cords_str[i][j], thd_cord_size, thd_cord_size));
                 }
-                cords2BamLink (cords_str[i], tmp_end, bam_link_records_tmp[ii], reads[i], thd_large_X);
+                cords2BamLink (cords_str[i], tmp_end, cords_info[i], bam_link_records_tmp[ii], reads[i], thd_large_X);
             }
             else
             {
-                cords2BamLink (cords_str[i], cords_end[i], bam_link_records_tmp[ii], reads[i], thd_large_X);
+                cords2BamLink (cords_str[i], cords_end[i], cords_info[i], bam_link_records_tmp[ii], reads[i], thd_large_X);
             }
             ii++;
         }
@@ -934,6 +997,7 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
 
 void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
                    StringSet<String<uint64_t> > & cords_end,
+                   StringSet<String<CordInfo> > & cords_info,
                    StringSet<String<BamAlignmentRecordLink> > & bam_link_records,
                    StringSet<String<Dna5> > & reads,
                    int thd_cord_size,
@@ -943,11 +1007,11 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
 {
     if (f_parallel)
     {
-        cords2BamLink (cords_str, cords_end, bam_link_records, reads, thd_cord_size, thd_large_X, threads);
+        cords2BamLink (cords_str, cords_end, cords_info, bam_link_records, reads, thd_cord_size, thd_large_X, threads);
     }
     else
     {
-        cords2BamLink (cords_str, cords_end, bam_link_records, reads, thd_cord_size, thd_large_X);
+        cords2BamLink (cords_str, cords_end, cords_info, bam_link_records, reads, thd_cord_size, thd_large_X);
     }
 }
 
@@ -1085,7 +1149,7 @@ int reformCCSBams(StringSet<String<BamAlignmentRecordLink> > & bam_records,
 
 /*
  * Record containing operation 'X' > @thd_large_X is clipped as two records
- */
+ *
 void print_cords_sam (StringSet<String<uint64_t> > & cordset_str,    
      StringSet<String<uint64_t> > & cordset_end,    
      StringSet<String<BamAlignmentRecordLink> > & bam_records,
@@ -1121,4 +1185,4 @@ void print_cords_sam (StringSet<String<uint64_t> > & cordset_str,
     //>>debug
     printAlignSamBam (genms, reads, genmsId, readsId, bam_records, of, f_header, fio_parms);
 }   
-
+*/

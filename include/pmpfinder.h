@@ -159,6 +159,7 @@ uint64_t apxMap (IndexDynamic & index,
                  String<UPair> & apx_gaps,
                  String<uint64_t> & cords_str, 
                  String<uint64_t> & cords_end, 
+                 String<CordInfo> & cords_info,
                  int f_chain);
 uint64_t filterGenomes (IndexDynamic & index,
                  String<Dna5> & read,

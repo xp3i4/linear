@@ -91,6 +91,7 @@ typedef P_Buffer<StringSet<String<Dna5> > > P_ReadsBuffer;
 typedef P_Buffer<StringSet<CharString> > P_ReadsIdsBuffer;
 typedef P_Buffer<std::string> P_ReadsPathsBuffer;
 typedef P_Buffer<StringSet<String<uint64_t> > > P_CordsBuffer;
+typedef P_Buffer<StringSet<String<CordInfo> > > P_CordsInfoBuffer;
 typedef P_Buffer<StringSet<String<BamAlignmentRecordLink> > > P_BamLinkBuffer;
 
 struct P_Parms
@@ -159,6 +160,7 @@ struct P_Tasks{
     //Group2:buffers of output
     P_CordsBuffer * p_cords1_buffer; //cords_str
     P_CordsBuffer * p_cords2_buffer; //cords_end
+    P_CordsInfoBuffer * p_cords_info_buffer;
     P_BamLinkBuffer * p_bam_link_buffer;
 
     //tasks of each thread : tasks[thread_id] 
@@ -183,11 +185,12 @@ struct P_Tasks{
     int f_printRunningInfos;
     seqan::SeqFileIn fin;
     std::ofstream fout;
-    void initPTasks(P_ReadsBuffer &,  P_ReadsIdsBuffer &, P_ReadsPathsBuffer &, P_CordsBuffer &, P_CordsBuffer &, P_BamLinkBuffer &, 
+    void initPTasks(P_ReadsBuffer &,  P_ReadsIdsBuffer &, P_ReadsPathsBuffer &,
+                    P_CordsBuffer &, P_CordsBuffer &, P_CordsInfoBuffer &, P_BamLinkBuffer &,
         StringSet<std::string> &, StringSet<std::string> &, int);
     P_Tasks();
     P_Tasks(P_ReadsBuffer &, P_ReadsIdsBuffer &, P_ReadsPathsBuffer&, 
-        P_CordsBuffer &, P_CordsBuffer &, P_BamLinkBuffer &, 
+        P_CordsBuffer &, P_CordsBuffer &, P_CordsInfoBuffer &, P_BamLinkBuffer &, 
         StringSet<std::string> &, StringSet<std::string> &, int);
     void startRunTasks();
     //printInfos
@@ -235,6 +238,7 @@ protected:
     P_ReadsPathsBuffer reads_paths_buffer;
     P_CordsBuffer cords1_buffer;
     P_CordsBuffer cords2_buffer;
+    P_CordsInfoBuffer cords_info_buffer;
     P_BamLinkBuffer bam_link_buffer;
 
 public:
@@ -245,6 +249,7 @@ public:
     P_ReadsPathsBuffer & getPReadsPathsBuffer();
     P_CordsBuffer & getPCords1Buffer();
     P_CordsBuffer & getPCords2Buffer();
+    P_CordsInfoBuffer & getPCordsInfoBuffer();
     P_BamLinkBuffer & getPBamLinksBuffer();
     void initBuffers(int reads_buffer_size, int cords_buffer_size, 
         StringSet<std::string> &, StringSet<std::string> &, int, P_Parms &);

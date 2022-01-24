@@ -15,8 +15,9 @@ class Mapper : public P_Mapper
     MapParms     map_parms;
     String<GapParms>  gap_parms_set; //each thread keep a copy of gap parms
     IndexDynamic index_dynamic;
-    StringSet<String<uint64_t> >  cordSet;
-    StringSet<String<uint64_t> >  cordSet2;
+    StringSet<String<uint64_t> > cordSet;
+    StringSet<String<uint64_t> > cordSet2;
+    StringSet<String<CordInfo> > cords_info;
     std::ofstream of;
     unsigned _thread;
     String<size_t> rlens;
@@ -52,6 +53,7 @@ public:
     IndexDynamic & getIndex() {return index_dynamic;}
     StringSet<String<uint64_t> > & getCords() {return cordSet;}             
     StringSet<String<uint64_t> > & getCords2() {return cordSet2;}            
+    StringSet<String<CordInfo> > & getCordsInfo() {return cords_info;}
     
     void printCords(std::ostream & );
     void printCordsRaw();

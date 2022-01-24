@@ -118,14 +118,15 @@ int getBestChains(String<uint64_t>     & anchors, //todo:: anchor1 anchor2 of di
    Despite this, this function is more simple and efficient to compute.
  */
 template <class ChainElementType>
-int traceBackChains0(String<ChainElementType> & elements,  StringSet<String<ChainElementType> > & chains, String<ChainsRecord> & chain_records, String<int> & chains_score, int _chain_min_len, int _chain_abort_score, int bestn)
+int traceBackChains0(String<ChainElementType> & elements,  StringSet<String<ChainElementType> > & chains, String<
+    ChainsRecord> & chain_records, String<int> & chains_score, int _chain_min_len, int _chain_abort_score, int bestn,
+    float thd_stop_chain_len_ratio)
 {
     String<ChainElementType> chain;
     String<int> chain_score;
     int delete_score = -1000;
     int search_times = 8;
-    int num_chains = 0;
-    for (int i = 0; i < search_times && num_chains++ <= bestn; i++) 
+    for (int i = 0; i < search_times; i++) 
     {
         bool f_done = true;
         int max_2nd_score = -1;
@@ -143,10 +144,19 @@ int traceBackChains0(String<ChainElementType> & elements,  StringSet<String<Chai
                 f_done = false;
             }
         }
+        if (!empty(chains))
+        {
+            if (max_len > length(chains[0]) * thd_stop_chain_len_ratio) 
+            {
+                f_done = false;
+            }
+        }
         if (f_done || max_score == 0)
         {
             break;
         }
+        
+        dout << "tr1" << max_len << "\n";
         if (max_len > _chain_min_len && max_score / (max_len - 1) > _chain_abort_score) //max_len is the number of anchors, ..-1 is the number of connection(interval) between anchors
         {
             for (int j = max_str; j != chain_end; j = chain_records[j].p2anchor)
@@ -176,6 +186,7 @@ int traceBackChains0(String<ChainElementType> & elements,  StringSet<String<Chai
             }
             if (!empty(chain))
             {
+                dout << "tr2" << length(chain) << "\n";
                 appendValue(chains, chain);
                 append(chains_score, chain_score);
                 clear(chain);
@@ -197,8 +208,16 @@ int traceBackChains0(String<ChainElementType> & elements,  StringSet<String<Chai
    It will drain the computational efficiency especially in case of repeats which creates many, over thousands of candidates of chains.
  */
 template <class ChainElementType>
-int traceBackChains1(String<ChainElementType> & elements,  StringSet<String<ChainElementType> > & chains, String<ChainsRecord> & chain_records, String<int> & chains_score, int _chain_min_len, int _chain_abort_score, int bestn)
+int traceBackChains1(String<ChainElementType> & elements,  
+                     StringSet<String<ChainElementType> > & chains, 
+                     String<ChainsRecord> & chain_records, 
+                     String<int> & chains_score, 
+                     int _chain_min_len, 
+                     int _chain_abort_score, 
+                     int bestn, 
+                     float thd_stop_chain_len_ratio)
 {
+    int f_stop = 0;
     String<ChainElementType> chain;
     String<int> chain_score;
     //int delete_score = -1000;
@@ -246,7 +265,7 @@ int traceBackChains1(String<ChainElementType> & elements,  StringSet<String<Chai
     }
     std::sort (begin(tree_score_ranks), end(tree_score_ranks), 
         [](std::pair<int, int> & a, std::pair<int, int> & b){return a.second > b.second;});
-    for (int i = 0; i < std::min(bestn, int(length(tree_score_ranks))); i++) 
+    for (unsigned i = 0; i < length(tree_score_ranks); i++) 
     {
         int max_score = leaves[tree_score_ranks[i].first][1];
         int max_len = leaves[tree_score_ranks[i].first][2];
@@ -261,10 +280,20 @@ int traceBackChains1(String<ChainElementType> & elements,  StringSet<String<Chai
             }
             if (!empty(chain))
             {
-                appendValue(chains, chain);
-                append(chains_score, chain_score);
-                clear(chain);
-                clear(chain_score);
+                if (!empty(chains))
+                {
+                    if (float(length(chain)) / length(chains[0]) < thd_stop_chain_len_ratio && i > bestn)
+                    {
+                        f_stop = 1;
+                    }
+                }
+                if (!f_stop)
+                {
+                    appendValue(chains, chain);
+                    append(chains_score, chain_score);
+                    clear(chain);
+                    clear(chain_score);
+                }
             }
         } 
     }  
@@ -272,7 +301,10 @@ int traceBackChains1(String<ChainElementType> & elements,  StringSet<String<Chai
 }
 
 template <class ChainElementType>
-int traceBackChains(String<ChainElementType> & elements,  StringSet<String<ChainElementType> > & chains, String<ChainsRecord> & chain_records, String<int> & chains_score, int _chain_min_len, int _chain_abort_score, int bestn)
+int traceBackChains(String<ChainElementType> & elements,  StringSet<String<ChainElementType> > & chains, 
+    String<ChainsRecord> & chain_records, String<int> & chains_score, int _chain_min_len, 
+    int _chain_abort_score, int bestn,
+    float thd_stop_chain_len_ratio)
 {
     unsigned thd_root_num = 50;
     String<int> tmp_count;
@@ -289,12 +321,12 @@ int traceBackChains(String<ChainElementType> & elements,  StringSet<String<Chain
     if (root_num > thd_root_num)
     {
         traceBackChains0(elements, chains, chain_records, chains_score, 
-            _chain_min_len, _chain_abort_score, bestn);
+            _chain_min_len, _chain_abort_score, bestn, thd_stop_chain_len_ratio);
     }
     else
     {
         traceBackChains1(elements, chains, chain_records, chains_score,
-            _chain_min_len, _chain_abort_score, bestn);
+            _chain_min_len, _chain_abort_score, bestn, thd_stop_chain_len_ratio);
     }
     return 0;
 }
@@ -361,13 +393,14 @@ int chainAnchorsBase(String<uint64_t> & anchors, StringSet<String<uint64_t> > & 
     String<int> & anchors_chains_score, uint it_str, uint it_end,  uint thd_chain_depth, uint64_t thd_chain_dx_depth, 
     int thd_best_n, ChainScoreMetric & chn_metric, uint64_t (*get_anchor_x) (uint64_t))
 {
+    float thd_stop_chain_len_ratio = 0.7;
     if (length(anchors) < 2){
         return 0;
     }
     String<ChainsRecord> chain_records;
     resize (chain_records, length(anchors));
     getBestChains (anchors, chain_records, it_str, it_end, thd_chain_depth, thd_chain_dx_depth, chn_metric, get_anchor_x);
-    traceBackChains(anchors, anchors_chains, chain_records, anchors_chains_score, chn_metric.getMinChainLen(), chn_metric.getAbortScore(), thd_best_n);
+    traceBackChains(anchors, anchors_chains, chain_records, anchors_chains_score, chn_metric.getMinChainLen(), chn_metric.getAbortScore(), thd_best_n, thd_stop_chain_len_ratio);
     return 0;
 }
 
@@ -463,7 +496,15 @@ int getBestChains2(String<uint64_t> & hits,
  * @records is supposed to be in the format of cords
  * @chains[0] is the best chain
  */
-int chainBlocksBase(StringSet<String<UPair> > & chains, String<uint64_t> & records, String<UPair> & str_ends_p, String<int> & str_ends_p_score, uint64_t read_len, ChainScoreMetric & chn_metric, int thd_best_n, int f_sort = 1)
+int chainBlocksBase(StringSet<String<UPair> > & chains, 
+                    String<uint64_t> & records, 
+                    String<UPair> & str_ends_p, 
+                    String<int> & str_ends_p_score, 
+                    uint64_t read_len, 
+                    ChainScoreMetric & chn_metric, 
+                    int thd_best_n, 
+                    int f_sort = 1,
+                    float thd_stop_chain_len_ratio = 0.7)
 {
     if (length(str_ends_p) < 2) {
         return 0;
@@ -494,7 +535,7 @@ int chainBlocksBase(StringSet<String<UPair> > & chains, String<uint64_t> & recor
 
     resize (chain_records, length(str_ends_p_tmp));
     getBestChains2(records, str_ends_p_tmp, str_ends_p_score_tmp, chain_records, read_len, chn_metric);
-    traceBackChains(str_ends_p_tmp, chains, chain_records, chains_score, chn_metric.getMinChainLen(), chn_metric.getAbortScore(), thd_best_n);
+    traceBackChains(str_ends_p_tmp, chains, chain_records, chains_score, chn_metric.getMinChainLen(), chn_metric.getAbortScore(), thd_best_n, thd_stop_chain_len_ratio);
     return 0;
 }
 
@@ -555,6 +596,7 @@ int _filterBlocksHits(StringSet<String<UPair> > & chains, String<uint64_t> & hit
     {
         return 0;
     }
+    print_cords(hits, "fb1") ;
     //step 2 filter major chain and remove poorly chained hits blocks
     //chains[0] is the major chain
     String<UPair> best_chain;
@@ -571,6 +613,21 @@ int _filterBlocksHits(StringSet<String<UPair> > & chains, String<uint64_t> & hit
         len_current += chains[0][i].second - chains[0][i].first;
         best_chain[i] = chains[0][i];
     }
+    //<<degbu
+    for (uint k = 0; k < length(chains); k++)
+    {
+        String<uint64_t> htmps;
+        for (uint i = 0; i < length(chains[k]); i++)
+        {
+            for (uint j = chains[k][i].first; j < chains[k][i].second; j++)
+            {
+                appendValue(htmps, hits[j]);
+                _DefaultHit.unsetBlockEnd(back(htmps));
+            }
+        }
+        print_cords(htmps, "fb2");
+    }
+    //>>debug
     _DefaultHit.setBlockEnd(back(hits_tmp));
     //process the chains left
     float thd_major_bound = 0.8 * len_current; // len > this * first major len is regarded as optional major chain
@@ -636,9 +693,10 @@ int chainBlocksHits(String<uint64_t> & hits, String<UPair> & str_ends_p, String<
     int thd_min_chain_len = 1;
     int thd_drop_score = 0;
     int thd_best_n = 3;
+    float thd_stop_chain_len_ratio = 0.7;
     StringSet<String<UPair> > hits_chains;
     ChainScoreMetric chn_score(thd_min_chain_len, thd_drop_score, &getApxChainScore2); //init the score as the length of the blocks
-    chainBlocksBase(hits_chains, hits, str_ends_p, str_ends_p_score, read_len, chn_score, thd_best_n);
+    chainBlocksBase(hits_chains, hits, str_ends_p, str_ends_p_score, read_len, chn_score, thd_best_n,  thd_stop_chain_len_ratio);
     _filterBlocksHits(hits_chains, hits, read_len);
     return 0;
 }

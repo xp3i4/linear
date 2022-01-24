@@ -40,6 +40,39 @@ extern const unsigned index_shape_len;
 extern const float def_alpha;
 
 /*=============================================
+=            StringSet for dindex           =
+=============================================*/
+class SIndex
+{
+    std::vector<std::vector<int64_t> > hs; 
+    LShape shape;
+public:
+    int cas_key;
+    String<bool> cas_keys;
+    SIndex();
+    SIndex(unsigned); //shape_len
+    std::vector<std::vector<int64_t> > & getHs();
+    LShape & getShape();
+    int fullSize();
+    int getShapeLen();
+    int64_t getVal(int64_t, int64_t);
+    int printStatistics();
+    int64_t queryHsStr(int64_t);
+    int64_t queryHsEnd(int64_t);
+    int64_t queryHsBlockLen(int64_t);
+    void clear();
+};
+int createSIndex(StringSet<String<Dna5> > & seqs, 
+                 SIndex & index, 
+                 unsigned gstr,
+                 unsigned gend,
+                 int64_t thd_min_step, 
+                 int64_t thd_max_step,
+                 int64_t thd_omit_block,
+                 unsigned threads
+                );
+
+/*=============================================
 =  short mer direct index for error rate > 0.2 =
 =============================================*/
 
@@ -208,6 +241,7 @@ bool createHIndex(StringSet<String<Dna5> > & seq,
 ===============================================*/
 
 extern int const typeDIx;
+extern int const typeSIx;
 extern int const typeHIx;
 extern int const typeMIx;
 extern int const typeFIx;
@@ -215,12 +249,15 @@ struct IndexDynamic
 {
     HIndex hindex;
     DIndex dindex;
+    SIndex sindex;
     int typeIx;
     int isHIndex();
+    int isSIndex();
     int isDIndex();
     int isMIndex();
     void setHIndex();
     void setDIndex();
+    void setSIndex();
     void setMIndex();   //mapper index
     void setMHIndex();  //mapper::HIndx
     void setMDIndex();  //mapper::DIndex

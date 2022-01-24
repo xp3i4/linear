@@ -209,4 +209,11 @@ int reformCordsDxDy1(String<uint64_t> & cords_str,
                      unsigned & i1,
                      unsigned & i2,
                      CordsParms & cords_parms);
+
+struct CordInfo
+{
+    float score; 
+
+    CordInfo(float score);
+};
 #endif

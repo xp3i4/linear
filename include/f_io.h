@@ -84,6 +84,7 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
  */
 void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
                    StringSet<String<uint64_t> > & cords_end,
+                   StringSet<String<CordInfo> > & cords_info,
                    StringSet<String<BamAlignmentRecordLink> > & bam_link_records,
                    StringSet<String<Dna5> > & reads,
                    int thd_cord_size,
@@ -91,6 +92,7 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
 
 void cords2BamLink(StringSet<String<uint64_t> > & cords_str, 
                    StringSet<String<uint64_t> > & cords_end,
+                   StringSet<String<CordInfo> > & cords_info,
                    StringSet<String<BamAlignmentRecordLink> > & bam_link_records,
                    StringSet<String<Dna5> > & reads,
                    int thd_cord_size,
@@ -98,6 +100,7 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
                    unsigned threads,
                    int f_parallel);
 
+/*
 void print_cords_sam (StringSet<String<uint64_t> > & cordset_str,    
                       StringSet<String<uint64_t> > & cordset_end,    
                       StringSet<String<BamAlignmentRecordLink> > & bam_records,
@@ -112,4 +115,5 @@ void print_cords_sam (StringSet<String<uint64_t> > & cordset_str,
                       int f_header,
                       FIOParms & fio_parms,
                       int f_parallel = 1);
+                      */
 #endif

@@ -18,6 +18,16 @@ struct SAZTag
     String<bool> bam_records_is_chimeric;
     String<bool> bam_records_is_block_end;
 };
+struct BamAlignmentRecordLinkScore
+{
+    int s1;
+    int s2;
+    int s3;
+    int s4;
+    int s5;
+    
+    BamAlignmentRecordLinkScore();
+};
 class BamAlignmentRecordLink : public BamAlignmentRecord 
 { 
 public:
@@ -32,6 +42,7 @@ public:
     String<CigarElement<> > saz_cigar;
     String<unsigned> heads_table; //table pointing to first record of each line in .sam 
     CharString genome_id;
+    BamAlignmentRecordLinkScore score;
 
     BamAlignmentRecordLink();
     void addNext(int id);

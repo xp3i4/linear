@@ -8,12 +8,19 @@ uint16_t bam_flag_suppl = 2048;
 
 BamLinkStringOperator bls_operator;
 
+BamAlignmentRecordLinkScore::BamAlignmentRecordLinkScore()
+{
+    s1 = s2 = s3 = s4 = s5 = 0;
+}
+
 BamAlignmentRecordLink::BamAlignmentRecordLink()
 {
     next_id = -1;
     f_available = 1;
     f_line_filled = 0;
     f_new_available = 1;
+    score.s1 = 0;
+    score.s2 = 0;
     BamAlignmentRecord();
 }
 void BamAlignmentRecordLink::addNext(int id)
@@ -1546,7 +1553,14 @@ void cigar2SamSeq(CigarElement<> & cigar, IupacString & result,
         {
             for (unsigned i = 0; i < cigar.count; i++)
             {
-                appendValue(result, 'N');
+                if (*it1 != *it2)
+                {
+                    appendValue(result, *it2);
+                }
+                else
+                {
+                    appendValue(result, 'N');
+                }
                 it1++;
                 it2++;
             }

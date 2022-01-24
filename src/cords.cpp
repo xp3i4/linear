@@ -678,5 +678,10 @@ int reformCordsDxDy1(String<uint64_t> & cords_str,
     return 0;
 }
 
+CordInfo::CordInfo(float s)
+{
+    score = s;
+}
+
 
 

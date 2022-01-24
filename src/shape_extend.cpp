@@ -135,6 +135,30 @@ uint64_t hashNexth(LShape & me, TIterS it)
     me.leftChar = ordValue((ShapeType)*(it));
     return me.x < 0 ? me.hValue : me.crhValue;
 }
+
+/*
+uint64_t hashNexth_hpc(LShape & me, TIterS & it, TIterS it_end)
+{
+    SEQAN_ASSERT_GT((unsigned)me.span, 0u);
+    uint64_t mask = getMask((me.span << 1) - 2);
+    int v2 = ordValue((ShapeType)*(it + me.span - 1 ));
+    me.hValue = ((me.hValue & mask) << 2) + v2;
+    me.crhValue = ((me.crhValue >> 2) & mask) + 
+                  ((COMP4 - v2) << ((me.span << 1) - 2));
+    me.x += (v2 - me.leftChar) << 1;
+    me.leftChar = ordValue((ShapeType)*(it));
+    TIterS it_origin = it + me.span - 1
+    TIterS it_next = it + me.spand;
+
+    while (it_next < it_end && *it_next == *it_origin)
+    {
+        ++it_next;
+    }
+    it = it_next < it_end ? it_next - me.span + 1 : it_end - me.span + 1;
+    return me.x < 0 ? me.hValue : me.crhValue;
+}
+*/
+
 /**
  *  calculate hash value for single strand
  * calculate hValue;

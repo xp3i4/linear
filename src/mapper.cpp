@@ -340,12 +340,15 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
     StringSet<CharString> & reads_id = reads_ids_buffer[in_id]; 
     StringSet<String<uint64_t> > & cords_str = cords1_buffer[out_id];
     StringSet<String<uint64_t> > & cords_end = cords2_buffer[out_id];
+    StringSet<String<CordInfo> > & cords_info = cords_info_buffer[out_id];
     StringSet<String<BamAlignmentRecordLink> > & bam_records = bam_link_buffer[out_id];
     clear(cords_str);
     clear(cords_end);
+    clear(cords_info);
     clear(bam_records);
     resize(cords_str, length(reads));
     resize(cords_end, length(reads));
+    resize(cords_info, length(reads));
     resize(bam_records, length(reads));
 
     Anchors anchors;
@@ -362,6 +365,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
     resize (clips, length(cords_str));
     int f_chain = fm_handler_.isApxChain(f_map) ? 1 : 0; 
     CordsParms cords_parms;
+    dout << "fdone3" << "\n";
     for (unsigned j = 0; j < length(reads); j++)
     {
         if (length(reads[j]) > thd_min_read_len)
@@ -371,7 +375,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
             //clear(f1[1].fs2_48);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
             createFeatures(begin(comStr), end(comStr), f1[1]);
-            apxMap(this->getIndex(), reads[j], anchors, this->getMapParms(), crhit, f1, f2, apx_gaps, cords_str[j], cords_end[j], f_chain);
+            apxMap(this->getIndex(), reads[j], anchors, this->getMapParms(), crhit, f1, f2, apx_gaps, cords_str[j], cords_end[j], cords_info[j], f_chain);
             if (fm_handler_.isMapGap(f_map))
             {
                 gap_parms_set[thread_id].read_id = reads_id[j];
@@ -387,13 +391,16 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
             }
         }
     } 
+    dout << "fdone2" << "\n";
     if (!fm_handler_.isAlign(f_map)) 
     {
         uint64_t thd_large_X = 8000; 
         clear(bam_records);
-        cords2BamLink (cords_str, cords_end, bam_records, reads, this->getCordSize(), thd_large_X);
+        //print_cords(cords_str[0], "pca1");
+        cords2BamLink (cords_str, cords_end, cords_info, bam_records, reads, this->getCordSize(), thd_large_X);
     }
     counters.setCalCounter(counters.getCalCounter() + length(reads));
+    dout << "fdone1" << "\n";
 
     return 0;
 }
@@ -646,6 +653,7 @@ int map_(IndexDynamic & index,
          MapParms & mapParm,
          StringSet<String<uint64_t> > & cords_str,
          StringSet<String<uint64_t> > & cords_end,
+         StringSet<String<CordInfo> > & cords_info,
          StringSet<String<uint64_t> > & clips,
          StringSet<String<Dna5> > & seqs,
          StringSet<String<BamAlignmentRecordLink> >& bam_records,
@@ -684,6 +692,7 @@ int map_(IndexDynamic & index,
     String<uint64_t> crhit;
     StringSet<String<uint64_t> > cordsTmp;  //cords_str
     StringSet<String<uint64_t> > cordsTmp2; //cords_end
+    StringSet<String<CordInfo> > cords_info_tmp;
     StringSet<FeaturesDynamic> f1;
     StringSet<String<uint64_t> > clipsTmp;
     StringSet<String<BamAlignmentRecordLink> > bam_records_tmp;
@@ -694,6 +703,7 @@ int map_(IndexDynamic & index,
     }
     resize(cordsTmp, ChunkSize);
     resize(cordsTmp2, ChunkSize);
+    resize(cords_info_tmp, ChunkSize);
     resize(clipsTmp, ChunkSize);
     resize(bam_records_tmp, ChunkSize);
     resize(f1, 2);
@@ -713,7 +723,7 @@ int map_(IndexDynamic & index,
             _compltRvseStr(reads[j], comStr);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
             createFeatures(begin(comStr), end(comStr), f1[1]);
-            apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c],cordsTmp2[c], f_chain);
+            apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordsTmp2[c], cords_info_tmp[c], f_chain);
             if (fm_handler_.isMapGap(f_map))
             {
                 mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], clipsTmp[c], apx_gaps, f1, f2, gap_parms[thd_id]);
@@ -748,7 +758,7 @@ int map_(IndexDynamic & index,
         uint64_t thd_large_X = 8000;
         int f_parallel = 1;
         clear(bam_records);
-        cords2BamLink(cords_str, cords_end, bam_records, reads, cord_size, thd_large_X, threads, f_parallel);
+        cords2BamLink(cords_str, cords_end, cords_info, bam_records, reads, cord_size, thd_large_X, threads, f_parallel);
     }
     return 0;
 }
@@ -826,6 +836,7 @@ int map(Mapper & mapper,
                  mapper.getMapParms(), 
                  mapper.getCords(),  //cords_str 
                  mapper.getCords2(), //cords_end
+                 mapper.getCordsInfo(),
                  mapper.getClips(),
                  mapper.getGenomes(),
                  mapper.getBamRecords(),
@@ -930,6 +941,7 @@ int filter_(IndexDynamic & index,
             MapParms & mapParm,
             StringSet<String<uint64_t> > & cords_str,
             StringSet<String<uint64_t> > & cords_end,
+            StringSet<String<CordInfo> > & cords_info,
             StringSet<String<uint64_t> > & clips,
             StringSet<String<Dna5> > & seqs,
             StringSet<String<BamAlignmentRecordLink> > & bam_records,
@@ -983,7 +995,7 @@ int filter_(IndexDynamic & index,
             _compltRvseStr(reads[j], comStr);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
             createFeatures(begin(comStr), end(comStr), f1[1]);
-            apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordsTmp2[c], f_chain);
+            apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordsTmp2[c], cords_info[c], f_chain);
             //filterGenomes(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordLenThr, f_chain);
         }
         c += 1;
@@ -1056,6 +1068,7 @@ int filter(Mapper & mapper,
                  mapper.getMapParms(), 
                  mapper.getCords(),  //cords_str 
                  mapper.getCords2(), //cords_end
+                 mapper.getCordsInfo(),
                  mapper.getClips(),
                  mapper.getGenomes(),
                  mapper.getBamRecords(),

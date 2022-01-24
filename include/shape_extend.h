@@ -27,6 +27,7 @@ uint64_t hashInit(LShape & me, TIterS it);
 uint64_t hashInit_hs(LShape & me, TIterS it, int d);
 uint64_t hashNext(LShape & me, TIterS it);
 uint64_t hashNexth(LShape & me, TIterS it);
+uint64_t hashNexth_hpc(LShape & me, TIterS & it, TIterS it_end);
 uint64_t hashNext_hs(LShape & me, TIterS it);
 uint64_t hashPre_hs(LShape & me, TIterS it);
 uint64_t hashNextV(LShape & me, TIterS it);
