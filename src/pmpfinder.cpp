@@ -921,7 +921,6 @@ uint64_t previousWindow(FeaturesDynamic & f1, //read
         } 
     }
     score += min;
-    dout << "p_score" << min << "\n";
     return new_cord;
 }
 
@@ -1137,7 +1136,7 @@ int extendWindow(FeaturesDynamic & f1,
                   String<uint64_t> & cords, 
                   uint64_t cordy_str,  //extend window between [read_str, read_end) of the read
                   uint64_t cordy_end,  //read_str & read_end are on the same strand of (back(cords))
-                  float & score)
+                  float &  score)
 {
     uint cords_p_str = length(cords) - 1;
     uint64_t new_cord = 0;
@@ -2399,7 +2398,7 @@ int getAnchorHitsChains(Anchors & anchors,
     initHitsScore(hits_score); //be sure hit_score has the same structure with Hits
     chainAnchorsHits(anchors.set, hits, hits_score);
     print_cords(hits, "gach2");
-    return 0;
+    //return 0;
     gather_blocks_ (hits, str_ends, str_ends_p, 1, length(hits), read_len, thd_large_gap, 0, 0, & is_cord_block_end, & set_cord_end);
     //preFilterChains1 (hits, hits_score, str_ends_p, 0.5);
 //    dout << "ga1" << length(hits) << back(str_ends_p).second << "\n";
@@ -2608,7 +2607,6 @@ uint64_t apxMap (IndexDynamic & index,
         clean_blocks_ (cords_str, thd_drop_len, 50);
         //print_cords(cords_str, "ap2");
         //>>!!!!!!!!! comment for debug, restore after debug
-        /*
         gather_blocks_ (cords_str, str_ends, str_ends_p, 1, length(cords_str), length(read), thd_large_gap, thd_cord_size, 1, &is_cord_block_end, &set_cord_end);
         gather_gaps_y_ (cords_str, str_ends, apx_gaps, length(read), thd_large_gap);
         //uint64_t map_d = thd_cord_size >> 1; // cords + to map areas
@@ -2626,20 +2624,19 @@ uint64_t apxMap (IndexDynamic & index,
             apxMap_(index, read, anchors, mapParm2, hit, f1, f2, cords_str, cords_info, map_str, map_end, alg_type, thd_best_n);
         //print_cords(cords_str, "ap3");
         }
-        */
         //>>!!!!!!!!! comment for debug, restore after debug
         print_cords(cords_str, "ap2");
         //>>!!!!!!!!! comment for debug, restore after debug
         clear (str_ends);
         clear (str_ends_p);
-        /*
+        
         gather_blocks_ (cords_str, str_ends, str_ends_p, 1, length(cords_str), length(read), thd_large_gap, thd_cord_size, 1, & is_cord_block_end, & set_cord_end);
         t2 = sysTime() - t2;
         double t3 = sysTime();
         chainApxCordsBlocks (cords_str, str_ends_p, length(read), thd_chain_blocks_lower, thd_chain_blocks_upper, alg_type);
         t3 = sysTime() - t3;
         print_cords(cords_str, "ap3");
-        */
+        
         clean_blocks_ (cords_str, thd_drop_len, 50);
         //<<!!!!!!!!! comment for debug, restore after debug
         print_cords(cords_str, "ap4");
