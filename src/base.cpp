@@ -19,7 +19,7 @@ uint64_t const ULLMAX = ~0;
 int64_t const LLMAX = (1LL << 62) - 1; //(1ULL << 63) - 1 integer overflow on some compilers
 int64_t const LLMIN = -LLMAX;
 
-bool f_debug = false;
+bool f_debug = true;
 
 using std::cerr;
 
@@ -528,9 +528,7 @@ Gout & Gout::operator << (CharString n)
         if (n == "\n")
         {
             std::cout << buffer.str();
-            //buffer.str("");
-            delete this;
-            //return NULL;
+            buffer.str("");
         }
     }
     return *this;

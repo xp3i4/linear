@@ -77,7 +77,7 @@ int getBestChains(String<uint64_t>     & anchors, //todo:: anchor1 anchor2 of di
         new_max_score = -1;
         //for (int j = j_str; j < i; j++)
         for (int j = i - 1; 
-             j >= j_str || get_anchor_x(anchors[j]) - get_anchor_x(anchors[i]) < thd_chain_dx_depth; 
+             j >=0 && (j >= j_str || get_anchor_x(anchors[j]) - get_anchor_x(anchors[i]) < thd_chain_dx_depth); 
              j--)
         {
             new_score = chn_metric.getScore(anchors[j], anchors[i], chn_metric.chn_score_parms);

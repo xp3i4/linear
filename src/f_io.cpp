@@ -831,7 +831,7 @@ int cords2BamLink(String<uint64_t> & cords_str,
     int n_block = -1;
     for (unsigned i = 1; i < length(cords_str); i++)
     {
-        if (is_cord_block_end(cords_str[i]))
+        if (is_cord_block_end(cords_str[i - 1]))
         {
             ++n_block;
         }
@@ -859,7 +859,7 @@ int cords2BamLink(String<uint64_t> & cords_str,
                           cords_str[i + 1], cords_end[i + 1],
                           thd_large_X)) // last cord of current block
         {
-            dout << "s14" << i << get_cord_y(cords_str[i]) <<get_cord_y(cords_str[i + 1]) << "\n";
+            //dout << "s14" << i << get_cord_y(cords_str[i]) <<get_cord_y(cords_str[i + 1]) << "\n";
             cord1_str = cords_str[i];
             cord1_end = cords_end[i];
             cord2_str = cords_end[i];
