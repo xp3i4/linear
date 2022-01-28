@@ -1839,8 +1839,8 @@ unsigned getDIndexMatchAll (DIndex & index,
     for (unsigned k = read_str; k < read_end; k++)
     {
         hashNexth(shape, begin(read) + k);
-//        if (++dt == mapParm.alpha)
-        if (++dt == 1)
+        if (++dt == mapParm.alpha)
+//        if (++dt == 1)
         {
             dt = 0;
             uint64_t xval = hashNextX(shape, begin(read) + k);

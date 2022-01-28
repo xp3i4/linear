@@ -2483,15 +2483,14 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
             */
             //index.sindex.printStatistics();
             //index.sindex.clear();
-            dout << "sinx done" << "\n";
             //return createDIndex_serial(seqs, index.dindex, 4, 10);
         }
         else if (index.isDIndex())
         {
-            int64_t thd_min_step = 1;
-            int64_t thd_max_step = 1;
-            int64_t thd_omit_block = 1024; //std::min(1024, (1 << DINDEXY_BITS1) - 1);  
-            unsigned thd_shape_len = 17;
+            int64_t thd_min_step = 8;
+            int64_t thd_max_step = 10; 
+            int64_t thd_omit_block = 200; //std::min(1024, (1 << DINDEXY_BITS1) - 1);  
+            unsigned thd_shape_len = 21;
             index.dindex.getShape().init_shape_parm(thd_shape_len);
             //std::cout << "cidx" << index.typeIx << "\n";
             //TODO::parm wrapping 
