@@ -690,7 +690,8 @@ void createRectangleCigarPair (uint64_t cord1, uint64_t cord2,
         cigar2.count = dy - dx;
     }
 }
-/*
+/**
+ * Score the cigar pair (cigar1, cigar2)
  * cigar1 \in {'=' or 'X'}
    cigar2 \in {'I' or 'D'}
  */
@@ -825,8 +826,13 @@ int cords2BamLink(String<uint64_t> & cords_str,
     String<int> cords_block_end_ptrs; //pointer to last cord of block
     float cigar_score = 0;
     int cigar_count = 0;
+    int n_block = -1;
     for (unsigned i = 1; i < length(cords_str); i++)
     {
+        if (is_cord_block_end(cords_str[i]))
+        {
+            ++n_block;
+        }
         if (f_new) //initiate a record for new block 
         {
             //this is to add 'S' at the end of each block
@@ -842,6 +848,7 @@ int cords2BamLink(String<uint64_t> & cords_str,
             r_beginPos = get_cord_y(cords_str[i]);
             strand = get_cord_strand (cords_str[i]);
             insertNewBamRecord (bam_link_records, g_id, g_beginPos, r_beginPos, strand, -1, f_soft, flag);
+            back(bam_link_records).mapQ = cords_info[n_block].score;
             cigar_str = cords_str[i];
             flag = 0;
         }
@@ -893,9 +900,10 @@ int cords2BamLink(String<uint64_t> & cords_str,
         }
     }
 
+/*
     for (unsigned i = 0; i < length(bam_records_ptrs); i++) 
     {
-        unsigned j_end = i == length(bam_records_ptrs) - 1 ?  length(bam_link_records) : bam_records_ptrs[i + 1];
+        unsigned j_end = i == length(bam_records_ptrs) - 1 ? length(bam_link_records) : bam_records_ptrs[i + 1];
         unsigned ptr = bam_records_ptrs[i];
         int s1 = 0;
         int s2 = 0;
@@ -906,19 +914,19 @@ int cords2BamLink(String<uint64_t> & cords_str,
             s2 += bam_link_records[j].score.s2;
             s3 += bam_link_records[j].score.s3;
         }
-///*
+//
         bam_link_records[ptr].mapQ =  10 * s1 * s3 / ((s2 + 1) * length(read)); // +1 in case of s2 =0
         if (bam_link_records[ptr].mapQ >= 255)
         {
             bam_link_records[ptr].mapQ = 255;
         }
- //       */
         bam_link_records[ptr].mapQ = cords_info[i].score;
         dout << "s12" << s1 << s2 << s3 << ptr << i << cords_info[i].score << length(cords_info) << "\n";
     }
+*/
     bls_operator.setNewUnAvailable(bam_link_records);
 
-    print_cords(cords_str, "s13");
+    //print_cords(cords_str, "s13");
     return 0;
 }
 //serial

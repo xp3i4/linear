@@ -1785,6 +1785,14 @@ int chainApxCordsBlocks (String<uint64_t> & cords,
                     uint64_t id = get_cord_id(val);
                     uint64_t strand = FORWARD_STRAND;
                     uint64_t cordx = get_cord_x(val);
+                    //<<debug
+                    uint64_t d=cordx - cordy;
+                    //dout << "gsma1" << cordy << cordx << "\n";
+                    if (cordx > 187822388 - 100 && cordx < 187822388 + 10000)
+                    {
+                        dout << "gsma2" << cordy << cordx << "\n";
+                    }
+                    //>>debug
                     if (get_cord_strand(val) ^ shape.strand)
                     {
                         cordy = length(read) - 1 - cordy;
@@ -1830,13 +1838,28 @@ unsigned getDIndexMatchAll (DIndex & index,
     LShape shape(index.getShape());
     uint64_t xpre = 0;
     hashInit(shape, begin(read));
+    dout << "gdix1" << read_str << read_end << "\n";
+    String<Dna5> rd;
     for (unsigned k = read_str; k < read_end; k++)
     {
         hashNexth(shape, begin(read) + k);
-        if (++dt == mapParm.alpha)
+//        if (++dt == mapParm.alpha)
+        if (++dt == 1)
         {
             dt = 0;
-            if(hashNextX(shape, begin(read) + k) ^ xpre)
+            uint64_t xval = hashNextX(shape, begin(read) + k);
+            //<<debug
+            /*
+            String<Dna5> kmer;
+            for (int ii = 0; ii < 9; ii++)
+            {
+                appendValue(kmer, *(begin(read) + k + ii));
+            }
+            appendValue(rd, *(begin(read) + k));
+            std::cout << "gkm1 " << k << " " << shape.XValue << " "<< shape.hValue << " " << shape.strand << " " << kmer << " " << shape.x << " x " << read_str << " " << read_end << "\n";
+            */
+            //>>debug
+            if(xval ^ xpre)
             {
                 int64_t str_ = queryHsStr(index, shape.XValue);
                 int64_t end_ = queryHsEnd(index, shape.XValue);
@@ -1845,6 +1868,7 @@ unsigned getDIndexMatchAll (DIndex & index,
                 {
                     continue; 
                 }
+                //dout << "gdidx1" << end_ - str_ << "\n";
                 for (int64_t i = str_; i < end_; i++)
                 {
                     //double t1 = sysTime();
@@ -1858,6 +1882,12 @@ unsigned getDIndexMatchAll (DIndex & index,
                         cordy = length(read) - 1 - cordy;
                         strand = REVERSE_STRAND;
                     }
+                    //<<debug
+                    //if (cordx > 187822388 && cordx < 187822388 + 10000)
+                    //{
+                        //dout << "gdidx3" << cordx << cordy << int64_t(cordx- cordy)<< strand << id << "\n";
+                    //}
+                    //>>debug
                     //NOTE: make sure data structure of anchor is same to cord
                     //!TODO::when val < cordy:  map reads to itself
                     //val - cordy out of bounds.
@@ -1866,17 +1896,16 @@ unsigned getDIndexMatchAll (DIndex & index,
                     if (cordx > cordy)
                     {
                         uint64_t new_anchor = make_anchor(id, cordx, cordy, strand);
+                        //dout << "gdidx2" << id << cordx << cordy << strand << "\n";
                         //todo::may out of boundary
                         //val = shift_cord (val, -cordy, cordy - get_cord_y(val));
                         if (shape2DIndexCordy(shape) == getDIndexCordy(val))
                         {
                             _DefaultHit.setLongPattern(new_anchor);
                         }
-                        /*
                         else
                         {
                         }
-                        */
                         appendValue(set, new_anchor);
                     }
                     //t2 = sysTime() - t2;
@@ -1885,6 +1914,7 @@ unsigned getDIndexMatchAll (DIndex & index,
             }
         }
     }
+    std::cout << "rdrd " << rd << "\n";
     return 0;    
 }
 /**
@@ -2394,23 +2424,22 @@ int getAnchorHitsChains(Anchors & anchors,
     String<UPair> str_ends;
     String<UPair> str_ends_p;
     String<int>   str_ends_p_score;
-    //String<int> hits_score; 
-    initHitsScore(hits_score); //be sure hit_score has the same structure with Hits
+    initHitsScore(hits_score); 
+    //printAnchors(anchors.set, "gach1");
     chainAnchorsHits(anchors.set, hits, hits_score);
     print_cords(hits, "gach2");
-    //return 0;
     gather_blocks_ (hits, str_ends, str_ends_p, 1, length(hits), read_len, thd_large_gap, 0, 0, & is_cord_block_end, & set_cord_end);
     //preFilterChains1 (hits, hits_score, str_ends_p, 0.5);
-//    dout << "ga1" << length(hits) << back(str_ends_p).second << "\n";
+    //dout << "ga1" << length(hits) << back(str_ends_p).second << "\n";
     preFilterChains2 (hits, str_ends_p, &set_cord_end, &get_cord_y);
-//    dout << "ga2" << length(hits) << back(str_ends_p).second << "\n";
+    //dout << "ga2" << length(hits) << back(str_ends_p).second << "\n";
     preFilterChains2 (hits, str_ends_p, &set_cord_end, &get_cord_x);
     resize (str_ends_p_score, length(str_ends_p));
     for (unsigned i = 0; i < length(str_ends_p); i++)
     {
         //note the hits_score is in denscending order
         str_ends_p_score[i] = hits_score[str_ends_p[i].first] - hits_score[str_ends_p[i].second - 1];
-   //     dout << "gach2" << str_ends_p[i].first << str_ends_p[i].second << "\n";
+        //dout << "gach2" << str_ends_p[i].first << str_ends_p[i].second << "\n";
     }
     print_cords(hits, "gach3");
     chainBlocksHits(hits, str_ends_p, str_ends_p_score, read_len);
@@ -2442,7 +2471,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
     if (index.isHIndex())
     {  
         getHIndexMatchAll(index.hindex, read, anchors.set, map_str, map_end, mapParm);    
-        print_cords(anchors.set, "mh1");
+        //print_cords(anchors.set, "mh1");
     }   
     else if (index.isDIndex())
     {
@@ -2561,6 +2590,7 @@ uint64_t apxMap_ (IndexDynamic & index,
             dout << "cors3" << max_score << cords_info[i].score << i << "\n";
         }
     path_dst(hits, f1, f2, cords, read_str, read_end, length(read), alg_type);
+    print_cords(hits, "cors5");
     return 0;
 }
 
@@ -2611,7 +2641,6 @@ uint64_t apxMap (IndexDynamic & index,
         gather_gaps_y_ (cords_str, str_ends, apx_gaps, length(read), thd_large_gap);
         //uint64_t map_d = thd_cord_size >> 1; // cords + to map areas
         //uint64_t str_y = 0;                  //stry y of interval between two consecutive blocks
-        //
         for (unsigned i = 0; i < length(apx_gaps); i++) //check large gap and remap the gaps
         {
             UPair y = getUPForwardy (apx_gaps[i], length(read));
@@ -2622,21 +2651,18 @@ uint64_t apxMap (IndexDynamic & index,
             map_end =  create_cord(MAX_CORD_ID, MAX_CORD_X, y2, 0);
             //dout << "apx1" << y1 << y2 << "\n";
             apxMap_(index, read, anchors, mapParm2, hit, f1, f2, cords_str, cords_info, map_str, map_end, alg_type, thd_best_n);
-        //print_cords(cords_str, "ap3");
         }
         //>>!!!!!!!!! comment for debug, restore after debug
         print_cords(cords_str, "ap2");
         //>>!!!!!!!!! comment for debug, restore after debug
         clear (str_ends);
         clear (str_ends_p);
-        
         gather_blocks_ (cords_str, str_ends, str_ends_p, 1, length(cords_str), length(read), thd_large_gap, thd_cord_size, 1, & is_cord_block_end, & set_cord_end);
         t2 = sysTime() - t2;
         double t3 = sysTime();
         chainApxCordsBlocks (cords_str, str_ends_p, length(read), thd_chain_blocks_lower, thd_chain_blocks_upper, alg_type);
         t3 = sysTime() - t3;
         print_cords(cords_str, "ap3");
-        
         clean_blocks_ (cords_str, thd_drop_len, 50);
         //<<!!!!!!!!! comment for debug, restore after debug
         print_cords(cords_str, "ap4");
@@ -2662,33 +2688,13 @@ uint64_t apxMap (IndexDynamic & index,
     //Mark signs used in the alignment part
     int seg = 0; //add sgn to cords 
     int64_t d = shift_cord (0ULL, int64_t(thd_cord_size), int64_t(thd_cord_size));
-    float cs = 0;
-    float cs2 = 0;
-    int nc = 0;
-    uint64_t pre_cord = cords_str[1];
     for (unsigned i = 0; i < length(cords_str); i++)
     {
         set_cord_recd(cords_str[i], seg);
         set_cord_main(cords_str[i]);
-        if (i != 0)
-        {
-            //cs += std::abs( int64_t(get_cord_x(cords_str[i]) - get_cord_y(cords_str[i]) 
-              //              - get_cord_x(pre_cord) + get_cord_y(pre_cord)));
-            //cs2 += std::abs( int64_t(get_cord_x(cords_str[i]) + get_cord_y(cords_str[i]) 
-             //               - get_cord_x(pre_cord) - get_cord_y(pre_cord)));
- 
-            pre_cord = cords_str[i];
-            nc++;
-        }
         if (_DefaultCord.isBlockEnd(cords_str[i]))
         {
             seg = 1 - seg;
-            //dout << "cs" << cs/nc << cs2/nc<< "\n";
-            if (i + 1< length(cords_str))
-            {
-                pre_cord = cords_str[i + 1];
-            }
-            cs = 0;
         }
         cords_end[i] = cords_str[i] + d;
     }

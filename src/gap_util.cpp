@@ -1196,8 +1196,9 @@ int g_CreateChainsFromAnchors_(String<uint64_t> & anchors, String<uint64_t> & ti
     uint64_t thd_chain_dx_depth = 80;
     std::sort(begin(anchors), end(anchors), [](uint64_t & a, uint64_t & b){return g_hs_anchor_getX(a) > g_hs_anchor_getX(b);});
     int thd_best_n = 20;
+    float thd_stop_chain_len_ratio = 0.7;
     chainAnchorsBase(anchors, anchors_chains, anchors_chains_score, 0, length(anchors), 
-        thd_chain_depth, thd_chain_dx_depth, thd_best_n, gap_parms.chn_score1, &g_hs_anchor_getX);
+        thd_chain_depth, thd_chain_dx_depth, thd_best_n, thd_stop_chain_len_ratio, gap_parms.chn_score1, &g_hs_anchor_getX);
     resize (tiles, lengthSum(anchors_chains)); 
     int it = 0;
     for (int i = 0; i < (int)length(anchors_chains); i++)
@@ -2361,9 +2362,10 @@ uint64_t extendClipRange(String<Dna5> & seq1,
     String<int> anchors_chains_score;
     uint thd_chain_depth = 15;
     uint64_t thd_chain_dx_depth = 30;
+    float thd_stop_chain_len_ratio = 0.7;
     std::sort(begin(g_hs_anchors), end(g_hs_anchors), [](uint64_t & a, uint64_t & b){return g_hs_anchor_getX(a) > g_hs_anchor_getX(b);});
     chainAnchorsBase(g_hs_anchors, anchors_chains, anchors_chains_score, 0, length(g_hs_anchors), 
-        thd_chain_depth, thd_chain_dx_depth, thd_best_n, gap_parms.chn_ext_clip_metric1, &g_hs_anchor_getX);
+        thd_chain_depth, thd_chain_dx_depth, thd_best_n, thd_stop_chain_len_ratio, gap_parms.chn_ext_clip_metric1, &g_hs_anchor_getX);
     if (empty(anchors_chains))
     {
         return 1;
@@ -3328,9 +3330,10 @@ int mapAlongChain(String<Dna5> & seq1,
     String<int> anchors_chains_score;
     uint thd_chain_depth = 15;
     uint64_t thd_chain_dx_depth = 30;
+    float thd_stop_chain_len_ratio = 0.7;
 
     chainAnchorsBase(hs_anchors, anchors_chains, anchors_chains_score, 0, length(hs_anchors), 
-        thd_chain_depth, thd_chain_dx_depth, thd_best_n, gap_parms.chn_ext_clip_metric1, &g_hs_anchor_getX); 
+        thd_chain_depth, thd_chain_dx_depth, thd_best_n, thd_stop_chain_len_ratio, gap_parms.chn_ext_clip_metric1, &g_hs_anchor_getX); 
     if (!empty (anchors_chains))
     {//choose the first chain
         int f_strand = getStrand(chains[0]);

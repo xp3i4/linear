@@ -1655,6 +1655,16 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
                 if (++count > thd_min_step)
                 {
                     hashNextX(shape, begin(seqs[i]) + j);
+            //<<debug
+                    /*
+            String<Dna5> kmer;
+            for (int ii = 0; ii < 9; ii++)
+            {
+                appendValue(kmer, *(begin(seqs[i]) + j + ii));
+            }
+            std::cout << "cdx1 " << j << " " << shape.XValue << " " << shape.hValue << " " << shape.strand << " "<< kmer << " " << shape.x << " x"<< "\n";
+            */
+            //>>debug
                     if (preVal != shape.XValue || j - last_j > thd_max_step)
                     {
                         atomicInc(dir[shape.XValue]);
@@ -2435,7 +2445,7 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
 
             int64_t thd_min_step = 8 ;
             int64_t thd_max_step = thd_shape_len + 5;
-            int64_t thd_omit_block = 1024; 
+            int64_t thd_omit_block = 1024000; 
 
             index.sindex.getShape().init_shape_parm(thd_shape_len);
             //std::cout << "cidx" << index.typeIx << "\n";
@@ -2478,10 +2488,10 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
         }
         else if (index.isDIndex())
         {
-            int64_t thd_min_step = 8;
-            int64_t thd_max_step = 10;
-            int64_t thd_omit_block = 200; //std::min(1024, (1 << DINDEXY_BITS1) - 1);  
-            unsigned thd_shape_len = 21;
+            int64_t thd_min_step = 1;
+            int64_t thd_max_step = 1;
+            int64_t thd_omit_block = 1024; //std::min(1024, (1 << DINDEXY_BITS1) - 1);  
+            unsigned thd_shape_len = 17;
             index.dindex.getShape().init_shape_parm(thd_shape_len);
             //std::cout << "cidx" << index.typeIx << "\n";
             //TODO::parm wrapping 
