@@ -19,6 +19,7 @@ uint64_t const ULLMAX = ~0;
 int64_t const LLMAX = (1LL << 62) - 1; //(1ULL << 63) - 1 integer overflow on some compilers
 int64_t const LLMIN = -LLMAX;
 
+bool f_debug = false;
 
 using std::cerr;
 
@@ -431,7 +432,12 @@ static const String<Dna5> _complt = "tgcan";
     }
 }
 /*----------  Debug ostream to replace ostream ----------*/
-Dout dout;
+Gout dout;
+Gout::Gout(bool f_p)
+{
+    f_print = f_p;
+}
+/*
 Gout & operator << (Dout & d, int n)
 {
     unused(d);
@@ -481,50 +487,71 @@ Gout & operator << (Dout & d, double n)
     *p << n;
     return *p;
 }
-
+*/
 Gout & Gout::operator << (int n)
 {
-    buffer << n << " "; 
+    if (f_print)
+    {
+        buffer << n << " "; 
+    }
     return *this;
 }
 Gout & Gout::operator << (unsigned n)
 {
-    buffer << n << " "; 
+    if (f_print)
+    {
+        buffer << n << " "; 
+    }
     return *this;
 }
 Gout & Gout::operator << (int64_t n)
 {
-    buffer << n << " "; 
+    if (f_print)
+    {
+        buffer << n << " "; 
+    }
     return *this;
 }
 Gout & Gout::operator << (uint64_t n)
 {
-    buffer << n << " "; 
+    if (f_print)
+    {
+        buffer << n << " "; 
+    }
     return *this;
 }
 Gout & Gout::operator << (CharString n)
 {
-    buffer << n << " ";
-    if (n == "\n")
+    if (f_print)
     {
-        std::cout << buffer.str();
-        //buffer.str("");
-        delete this;
-        //return NULL;
+        buffer << n << " ";
+        if (n == "\n")
+        {
+            std::cout << buffer.str();
+            //buffer.str("");
+            delete this;
+            //return NULL;
+        }
     }
     return *this;
 }
 Gout & Gout::operator << (String<int64_t> & ns)
 {
-    for (auto n : ns)
+    if (f_print)
     {
-        buffer << n << " ";
-    }
+        for (auto n : ns)
+        {
+            buffer << n << " ";
+        }
+    }  
     return * this;
 }
 Gout & Gout::operator << (double n)
 {
-    buffer << n << " " ;
+    if (f_print)
+    {
+        buffer << n << " " ;
+    }
     return * this;
 }
 

@@ -18,6 +18,7 @@ extern uint64_t INFI_CORD;
 extern uint64_t MAX_CORD_ID;
 extern uint64_t MAX_CORD_X ;
 extern uint64_t MAX_CORD_Y ;
+extern bool     f_debug;
 
 /*
  * Cord(C): pair of bitwised coordinates of two sequences;
@@ -172,7 +173,7 @@ void set_cord_end (uint64_t &);
 void unset_cord_end(uint64_t &);
 void set_cord_block_end(uint64_t & val);
 void print_cord(uint64_t, CharString = "");
-void print_cords(String<uint64_t> &, CharString = "");
+void print_cords(String<uint64_t> &, CharString = "", bool f_print = f_debug);
 void set_cord_main (uint64_t & cord);
 void set_cord_gap (uint64_t & cord);
 void set_cord_recd(uint64_t & cord, uint64_t sgn);
@@ -193,7 +194,7 @@ uint64_t getAnchorX(uint64_t anchor);
 typedef std::pair<uint64_t, uint64_t> UPair;
 UPair getUPForwardy(UPair str_end, uint64_t read_len);
 
-void printAnchors(String<uint64_t> & anchors, CharString header);
+void printAnchors(String<uint64_t> & anchors, CharString header = "", bool f_print = f_debug);
 int reformCords(String<uint64_t> & cords_str,
                 String<uint64_t> & cords_end,
                 int (*reformCordFunc) (String<uint64_t> &, String<uint64_t> &, String<int> &,

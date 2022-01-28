@@ -1788,10 +1788,6 @@ int chainApxCordsBlocks (String<uint64_t> & cords,
                     //<<debug
                     uint64_t d=cordx - cordy;
                     //dout << "gsma1" << cordy << cordx << "\n";
-                    if (cordx > 187822388 - 100 && cordx < 187822388 + 10000)
-                    {
-                        dout << "gsma2" << cordy << cordx << "\n";
-                    }
                     //>>debug
                     if (get_cord_strand(val) ^ shape.strand)
                     {

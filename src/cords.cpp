@@ -267,27 +267,30 @@ uint64_t is_cord_block_end (uint64_t cord)
     return _DefaultCord.isBlockEnd(cord);
 }
 
-void print_cords(String<uint64_t> & cords, CharString header)
+void print_cords(String<uint64_t> & cords, CharString header, bool f_print)
 {
-    std::cout << header << "_cords_header \n";
-    int64_t prex = 0, prey = 0;
-    for (uint i = 0; i < length(cords); i++)
+    if  (f_print)
     {
-        std::cout << header << " " << i << " id= "
-                  << get_cord_id(cords[i]) << " strand= "
-                  << get_cord_strand(cords[i]) << " "
-                  << get_cord_x(cords[i])  << " "
-                  << get_cord_y (cords[i]) << " " 
-                  << int64_t(get_cord_x(cords[i]) - prex) << " "
-                  << int64_t(get_cord_y(cords[i]) - prey) << " "
-                  << length(cords) << "\n";
-        prex = get_cord_x(cords[i]);
-        prey = get_cord_y(cords[i]);
-        if (is_cord_block_end(cords[i]))
+        std::cout << header << "_cords_header \n";
+        int64_t prex = 0, prey = 0;
+        for (uint i = 0; i < length(cords); i++)
         {
-            prex = 0; 
-            prey = 0;
-            std::cout << header << " end\n\n";
+            std::cout << header << " " << i << " id= "
+                      << get_cord_id(cords[i]) << " strand= "
+                      << get_cord_strand(cords[i]) << " "
+                      << get_cord_x(cords[i])  << " "
+                      << get_cord_y (cords[i]) << " " 
+                      << int64_t(get_cord_x(cords[i]) - prex) << " "
+                      << int64_t(get_cord_y(cords[i]) - prey) << " "
+                      << length(cords) << "\n";
+            prex = get_cord_x(cords[i]);
+            prey = get_cord_y(cords[i]);
+            if (is_cord_block_end(cords[i]))
+            {
+                prex = 0; 
+                prey = 0;
+                std::cout << header << " end\n\n";
+            }
         }
     }
 }
@@ -419,19 +422,22 @@ void _printHit(unsigned j, unsigned id1, unsigned id2, String<uint64_t> & hit, u
     }
 }
 
-void _printHit(String<uint64_t> & hit, CharString header)
+void _printHit(String<uint64_t> & hit, CharString header, bool f_print)
 {
-    std::cout << header << " ";
-    for (unsigned k = 0; k < length(hit); k++)
+    if (f_print)
     {
-        std::cout << "[P]::_printHit() " 
-              << get_cord_id(_DefaultCord.hit2Cord(hit[k])) << " " 
-              << get_cord_x(_DefaultCord.hit2Cord(hit[k])) << " " 
-              << get_cord_y(hit[k]) << "\n";
-        if (_DefaultHit.isBlockEnd(hit[k]))
+        std::cout << header << " ";
+        for (unsigned k = 0; k < length(hit); k++)
         {
-            std::cout << "[P]::_printHit() end\n";
+            std::cout << "[P]::_printHit() " 
+                  << get_cord_id(_DefaultCord.hit2Cord(hit[k])) << " " 
+                  << get_cord_x(_DefaultCord.hit2Cord(hit[k])) << " " 
+                  << get_cord_y(hit[k]) << "\n";
+            if (_DefaultHit.isBlockEnd(hit[k]))
+            {
+                std::cout << "[P]::_printHit() end\n";
 
+            }
         }
     }
 }
@@ -470,17 +476,20 @@ UPair getUPForwardy(UPair str_end, uint64_t read_len)
     }
 }
 
-void printAnchors(String<uint64_t> & anchors, CharString header)
+void printAnchors(String<uint64_t> & anchors, CharString header, bool f_print)
 {
-    for (auto anchor : anchors)
+    if (f_print)
     {
-        uint64_t cord = _DefaultCord.hit2Cord_dstr(anchor);
-        std::cout << header << " "
-             << get_cord_x(cord) << " "
-             << get_cord_strand(cord) << " "
-             << get_cord_y(cord) << " " 
-             << get_cord_x(cord) - get_cord_y(cord) << " "
-             << "\n";
+        for (auto anchor : anchors)
+        {
+            uint64_t cord = _DefaultCord.hit2Cord_dstr(anchor);
+            std::cout << header << " "
+                 << get_cord_x(cord) << " "
+                 << get_cord_strand(cord) << " "
+                 << get_cord_y(cord) << " " 
+                 << get_cord_x(cord) - get_cord_y(cord) << " "
+                 << "\n";
+        }
     }
 }
 /*----------  Reform Cords  ----------*/

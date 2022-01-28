@@ -9,6 +9,8 @@
 using namespace seqan;
 using std::ostringstream;
 
+extern bool f_debug;
+
 extern const float    base_alpha_;
 extern const unsigned base_shape_len_;
 extern const unsigned base_block_size_;
@@ -205,6 +207,7 @@ void _compltRvseStr(String<Dna5> & str, String<Dna5> & res);
 
 struct Gout //debug cout utility
 {
+    bool f_print;
     std::ostringstream buffer;
     Gout & operator << (int);
     Gout & operator << (unsigned);
@@ -214,10 +217,15 @@ struct Gout //debug cout utility
     Gout & operator << (String<int64_t> &);
     Gout & operator << (double);
 
+    Gout(bool f_p = f_debug);
     void deleteThisNew(); // call to delete the object when it's created by new;
 };
+extern Gout dout;
+/*
 struct Dout 
-{};
+{
+    
+};
 Gout & operator << (Dout & d, int n);
 Gout & operator << (Dout & d, unsigned n);
 Gout & operator << (Dout & d, int64_t n);
@@ -225,7 +233,7 @@ Gout & operator << (Dout & d, uint64_t n);
 Gout & operator << (Dout & d, CharString n);
 Gout & operator << (Dout & d, String<int64_t> & n);
 Gout & operator << (Dout & d, double n);
-extern Dout dout;
+*/
 
 class ostreamWapper
 {

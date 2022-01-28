@@ -716,9 +716,11 @@ void socreCigarPair(CigarElement<> & cigar1, CigarElement<> & cigar2, BamAlignme
         {
             score.s3 += cigar2.count;
         }
+        /*
         std::cout << "sc2 " << cigar1.count << cigar1.operation << " " 
                             << cigar2.count << cigar2.operation << " "
                             << score.s1 << " " << score.s2 << "\n";
+                            */
     }
 }
 
