@@ -365,7 +365,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
     resize (clips, length(cords_str));
     int f_chain = fm_handler_.isApxChain(f_map) ? 1 : 0; 
     CordsParms cords_parms;
-    dout << "fdone3" << "\n";
+    //dout << "fdone3" << "\n";
     for (unsigned j = 0; j < length(reads); j++)
     {
         if (length(reads[j]) > thd_min_read_len)
@@ -391,7 +391,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
             }
         }
     } 
-    dout << "fdone2" << "\n";
+    //dout << "fdone2" << "\n";
     if (!fm_handler_.isAlign(f_map)) 
     {
         uint64_t thd_large_X = 8000; 
@@ -400,7 +400,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
         cords2BamLink (cords_str, cords_end, cords_info, bam_records, reads, this->getCordSize(), thd_large_X);
     }
     counters.setCalCounter(counters.getCalCounter() + length(reads));
-    dout << "fdone1" << "\n";
+    //dout << "fdone1" << "\n";
 
     return 0;
 }
