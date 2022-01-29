@@ -1685,7 +1685,6 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
         }
     }
     //double t4 = sysTime();
-    std::cerr << "count1" << length(dir) << t_shape.span << "\n";
     int64_t sum = 0;
     for (uint64_t i = 0; i < length(dir); i++)
     {
@@ -1696,7 +1695,6 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
         sum += dir[i];
         dir[i] = sum - dir[i];
     }
-    std::cerr << "count2\n\n";
     int64_t EmptyVal = create_cord(length(seqs),0,0,0); 
     //make sure genomeid >= length(seqs) and cord y be 0! y points to next empty.
     resize (hs, sum, EmptyVal);
@@ -2064,26 +2062,25 @@ int _createSIndexHsThreadUnit(String<Dna5> & seq,
     for (int64_t i = seq_str; i < seq_end; i++)
     {
         hashNexth(shape, begin(seq) + i);
-//        hashNexth_hpc(shape, it, begin(seq) + seq_end);
+        //hashNexth_hpc(shape, it, begin(seq) + seq_end);
         if (i - last_i > thd_min_step)
         {
             hashNextX(shape, begin(seq) + i);
             //hashNextX(shape, it);
             if ((preVal != shape.XValue ) || i - last_i > thd_max_step)
- //           if ((preVal != shape.XValue && index.queryHsBlockLen(shape.XValue) < thd_rehash) || i - last_i > thd_max_step)
+            //if ((preVal != shape.XValue && index.queryHsBlockLen(shape.XValue) < thd_rehash) || i - last_i > thd_max_step)
             {
-                //while (1)
-                //{
-                   // if (!atomicCas(index.cas_keys[shape.XValue], false, true))
-                    //{
-                        #pragma omp critical
+                while (1)
+                {
+                    if (!atomicCas(index.cas_keys[shape.XValue], false, true))
+                    {
                         hs[shape.XValue].push_back(create_cord(genome_n, i, 0, shape.strand));
-                     //   atomicCas(index.cas_keys[shape.XValue], true, false);
+                        atomicCas(index.cas_keys[shape.XValue], true, false);
                         last_i = i; 
                         preVal = shape.XValue;
-                      //  break;
-                    //}
-                //}
+                        break;
+                    }
+                }
             }
         }
     }
@@ -2099,11 +2096,12 @@ int createSIndex(StringSet<String<Dna5> > & seqs,
                  unsigned threads)
 {
     serr.print_message("=>SIndex::Initiating ", 0, 2, std::cerr);
-    double t = sysTime();
+    double t0 = sysTime();
     LShape & t_shape = index.getShape();
     _initSIndexHs(index, threads);
     serr.print_message("--SIndex::Initiate[100%]   ", 0, 1, std::cerr);
     serr.print_message("=>SIndex::Hashing", 0, 2, std::cerr);
+    double t1 = sysTime();
     for (int64_t i = gstr; i < gend; i++)
     {
         String<int64_t> t_blocks;
@@ -2122,6 +2120,7 @@ int createSIndex(StringSet<String<Dna5> > & seqs,
                 thd_min_step, thd_max_step, thd_omit_block, t_str, t_end, t_id);
         }
     }
+    t1 = sysTime() - t1;
     //index.printStatistics();
     #pragma omp for 
     for (int64_t i = 0; i < length(index.getHs()); i++)
@@ -2138,10 +2137,16 @@ int createSIndex(StringSet<String<Dna5> > & seqs,
     serr.print_message("SIndex::Hash[100%]                    ", 2, 1, std::cerr);
     serr.print_message("End creating index ", 2, 0, std::cerr);
     serr.print_message("Elapsed time[s] ", 2, 0, std::cerr);
-    serr.print_message(sysTime() - t, 2, 1, std::cerr);
+    serr.print_message(sysTime() - t0, 2, 1, std::cerr);
     return 0;
 }
-
+CreateSIndexParms::CreateSIndexParms()
+{
+    thd_shape_len = 24;
+    thd_min_step = 8; 
+    thd_max_step = 10;
+    thd_omit_block = 1024;
+}
 
 /*----------  MDindex  ----------*/
 int _createDIndexFromHs(String<uint64_t> & hs, String<uint64_t> & hs_str_end, DIndex & index, int64_t thd_omit_block, unsigned threads)
@@ -2441,15 +2446,13 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
         if (index.isSIndex())
         //if (1)
         {
-            unsigned thd_shape_len = 17;
+            unsigned thd_shape_len = 21;
 
             int64_t thd_min_step = 8 ;
-            int64_t thd_max_step = thd_shape_len + 5;
-            int64_t thd_omit_block = 1024000; 
+            int64_t thd_max_step = 10;//thd_shape_len + 5;
+            int64_t thd_omit_block = 200;//1024000; 
 
             index.sindex.getShape().init_shape_parm(thd_shape_len);
-            //std::cout << "cidx" << index.typeIx << "\n";
-            //TODO::parm wrapping 
             createSIndex(seqs, index.sindex, thd_min_step, thd_max_step, thd_omit_block,
                                 gstr, gend, threads);
             //test
@@ -2492,8 +2495,6 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
             int64_t thd_omit_block = 200; //std::min(1024, (1 << DINDEXY_BITS1) - 1);  
             unsigned thd_shape_len = 21;
             index.dindex.getShape().init_shape_parm(thd_shape_len);
-            //std::cout << "cidx" << index.typeIx << "\n";
-            //TODO::parm wrapping 
             return createDIndex(seqs, index.dindex, thd_min_step, thd_max_step, thd_omit_block,
                                 gstr, gend, threads);
             //return createDIndex_serial(seqs, index.dindex, 4, 10);
@@ -2509,7 +2510,6 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
             uint64_t thd_blocklimit = 1024;
             float alpha = 1.6;
             index.hindex.shape.init_shape_parm(thd_shape_len / 2 * 2 + 1);
-            //dout << "span" << index.hindex.shape.span << "\n";
             index.hindex.alpha = alpha;
             return createHIndex(seqs, index.hindex, 
                                 gstr, gend, 

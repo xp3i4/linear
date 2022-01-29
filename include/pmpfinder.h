@@ -5,6 +5,64 @@
 #include "base.h"
 #include "index_util.h"
 using namespace seqan;
+/*----------  Parms  ----------*/
+struct GetDHitListParms : public Parms
+{
+    int thd_list_n;
+    int thd_best_n;
+    String<int> thd_list_ns;
+    String<int> thd_best_ns;
+
+    GetDHitListParms();
+    void toggle (int i);
+};
+
+
+struct GetIndexMatchAllParms : public Parms
+{
+    int thd_alpha;
+    int thd_delta;
+    String<int> thd_alphas;
+
+    GetIndexMatchAllParms();
+    void toggle (int i);
+};
+
+struct GetHIndexMatchAllParms : public GetIndexMatchAllParms {};
+struct GetDIndexMatchAllParms : public GetIndexMatchAllParms {};
+struct GetSIndexMatchAllParms : public GetIndexMatchAllParms {};
+
+struct ChainAnchorsHitsParms : public Parms
+{
+    int thd_best_n;
+    int thd_drop_score; 
+    int thd_min_chain_len;
+    uint64_t thd_chain_depth;
+    uint64_t thd_chain_dx_depth;
+    float thd_stop_chain_len_ratio;
+
+    ChainAnchorsHitsParms();
+};
+
+struct ApxParms : public Parms
+{
+    float thd_sen;
+
+    ApxParms();
+};
+
+struct PMPParms : public Parms
+{
+    GetDHitListParms       pm_gdl;
+    GetHIndexMatchAllParms pm_ghima;
+    GetDIndexMatchAllParms pm_gdima;
+    GetSIndexMatchAllParms pm_gsima;
+    ChainAnchorsHitsParms  pm_cah;
+    ApxParms               pm_apx;
+
+    PMPParms();
+    void toggle (int i);
+};
 
 //NOTE:Length of read < 1M;
 typedef std::array<int, 3> int96;
@@ -152,7 +210,6 @@ uint64_t mnMapReadList(IndexDynamic & index,
 uint64_t apxMap (IndexDynamic & index,
                  String<Dna5> & read,
                  Anchors & anchors,
-                 MapParms & mapParm,
                  String<uint64_t> & hit, 
                  StringSet<FeaturesDynamic> & f1,
                  StringSet<FeaturesDynamic> & f2,
@@ -160,7 +217,10 @@ uint64_t apxMap (IndexDynamic & index,
                  String<uint64_t> & cords_str, 
                  String<uint64_t> & cords_end, 
                  String<CordInfo> & cords_info,
-                 int f_chain);
+                 int f_chain,
+                 GlobalParms & pm_g,
+                 PMPParms & pm_pmp);
+/*
 uint64_t filterGenomes (IndexDynamic & index,
                  String<Dna5> & read,
                  Anchors & anchors,
@@ -171,6 +231,7 @@ uint64_t filterGenomes (IndexDynamic & index,
                  String<UPair> & apx_gaps,
                  String<uint64_t> & cords, 
                  int f_chain);
+                 */
 int gather_blocks_ (String<uint64_t> & cords, 
                     String<UPair> & str_ends,   //result [] closed 
                     String<UPair> & str_ends_p, //result pointer [,) right open

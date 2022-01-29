@@ -80,6 +80,16 @@ struct Options{
     unsigned isOutputBamPbsv();
 
 }; 
+struct Parms
+{
+    void toggle(int i);
+};
+
+struct GlobalParms // : public Parms
+{
+    unsigned shape_len;
+    GlobalParms();
+};
 
 std::pair<uint, uint> 
 loadRecords(StringSet<String<Dna5> > & seqs, 
@@ -169,35 +179,6 @@ struct PMRes
  uint64_t _nStrand(uint64_t strand);
  uint64_t _flipCoord (uint64_t coord, uint64_t len, uint64_t strand);
 
-struct MapParms{
-    unsigned    blockSize;
-    unsigned    delta;
-    unsigned    threshold;
-    unsigned    kmerStep;
-    unsigned    shapeLen;
-    unsigned    sensitivity;
-    unsigned    anchorDeltaThr;
-    unsigned    minReadLen;
-    unsigned    listN;
-    unsigned    listN2;
-    float       alpha;
-    float       alpha2;
-    float       anchorLenThr;
-    float       rcThr;
-    float       cordThr;
-    float       senThr;
-    float       clsThr;
-      
-    MapParms();
-    MapParms(unsigned bs, unsigned dt, unsigned thr, 
-            unsigned ks, unsigned sl, unsigned st,
-            unsigned ad, unsigned mr, unsigned listn,
-            unsigned listn2,
-            float ap, float ap2, float alt, float rt, float ct, float sent, float clst);
-    MapParms(MapParms & parm);
-    void setMapParm(Options & options);
-    void print ();
-};
 
 int readRecords_block (StringSet<CharString> & ids, StringSet<String<Dna5> > & reads, String<size_t> & lens, SeqFileIn & fin, int blockSize);
 void _compltStr(String<Dna5> & str, String<Dna5> & res);

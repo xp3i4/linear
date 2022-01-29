@@ -8,6 +8,25 @@
 using namespace seqan;
 using std::cout;
 using std::endl;
+//Note: Register in PMPParms() and PMPParms:toggle for every new parm
+PMPParms::PMPParms()
+{
+    GetDHitListParms();
+    GetHIndexMatchAllParms();
+    GetDIndexMatchAllParms();
+    GetSIndexMatchAllParms();
+    ChainAnchorsHitsParms();
+    ApxParms();
+}
+void PMPParms::toggle(int i)
+{
+    pm_gdl.toggle(i);
+    pm_ghima.toggle(i);
+    pm_gdima.toggle(i);
+    pm_gsima.toggle(i);
+    pm_cah.toggle(i);
+    pm_apx.toggle(i);
+}
 
 int const typeFeatures1_16 = 0;
 int const typeFeatures1_32 = 1;
@@ -307,7 +326,6 @@ unsigned getWindowThresholdReject(StringSet<FeaturesDynamic> & fss)
         return 0; //reject all
     }
 }
-
 
 /*----------  Script encoding type I 1_32  ----------*/
 //script:16 bits short int, contains 3 segments
@@ -1748,13 +1766,28 @@ int chainApxCordsBlocks (String<uint64_t> & cords,
 
 /*________________________________________________
  ----------  streaming index features  ----------*/
- unsigned getSIndexMatchAll (SIndex & index,
-                             String<Dna5> & read,
-                             String<uint64_t> & set,
-                             uint64_t read_str,   //map [read_str, read_end) of read
-                             uint64_t read_end,
-                             MapParms & mapParm)
+GetIndexMatchAllParms::GetIndexMatchAllParms()
 {
+    appendValue(thd_alphas, 15); 
+    appendValue(thd_alphas, 7);
+    thd_delta = 64; 
+    toggle(1);
+}
+void GetIndexMatchAllParms::toggle(int i)
+{
+    if (i < (int)length(thd_alphas) && i >= 0)
+    {
+        thd_alpha = thd_alphas[i];
+    }
+}
+unsigned getSIndexMatchAll (SIndex & index,
+                            String<Dna5> & read,
+                            String<uint64_t> & set,
+                            uint64_t read_str,   //map [read_str, read_end) of read
+                            uint64_t read_end,
+                            PMPParms & pm_pmp)
+{
+    GetSIndexMatchAllParms & pm_gsima = pm_pmp.pm_gsima;
     //dout << "gsima1" << mapParm.alpha<< "\n";
     int dt = 0;
     LShape shape(index.getShape());
@@ -1763,7 +1796,7 @@ int chainApxCordsBlocks (String<uint64_t> & cords,
     for (unsigned k = read_str; k < read_end; k++)
     {
         hashNexth(shape, begin(read) + k);
-        if (++dt == mapParm.alpha)
+        if (++dt == pm_gsima.thd_alpha)
         //if (++dt == 1)
         {
             dt = 0;
@@ -1828,8 +1861,9 @@ unsigned getDIndexMatchAll (DIndex & index,
                             String<uint64_t> & set,
                             uint64_t read_str,   //map [read_str, read_end) of read
                             uint64_t read_end,
-                            MapParms & mapParm)
+                            PMPParms & pm_pmp)
 {
+    GetDIndexMatchAllParms & pm_gdima = pm_pmp.pm_gdima;
     int dt = 0;
     LShape shape(index.getShape());
     uint64_t xpre = 0;
@@ -1839,7 +1873,7 @@ unsigned getDIndexMatchAll (DIndex & index,
     for (unsigned k = read_str; k < read_end; k++)
     {
         hashNexth(shape, begin(read) + k);
-        if (++dt == mapParm.alpha)
+        if (++dt == pm_gdima.thd_alpha)
 //        if (++dt == 1)
         {
             dt = 0;
@@ -1859,7 +1893,7 @@ unsigned getDIndexMatchAll (DIndex & index,
             {
                 int64_t str_ = queryHsStr(index, shape.XValue);
                 int64_t end_ = queryHsEnd(index, shape.XValue);
-                //if (end_ - str_ > mapParm.delta || end_ - str_ == 0)
+                //if (end_ - str_ > pm_gdima.delta || end_ - str_ == 0)
                 if (end_ - str_ == 0)
                 {
                     continue; 
@@ -1921,11 +1955,12 @@ unsigned getDIndexMatchAll (DIndex & index,
                            String<uint64_t> & set,
                            uint64_t map_str,
                            uint64_t map_end,
-                           MapParms & mapParm)
+                           PMPParms & pm_pmp)
 {   
+    GetHIndexMatchAllParms & pm_ghima = pm_pmp.pm_ghima;
     int dt = 0;
     LShape shape(index.shape);
-    dout << "gh1" << shape.span << shape.weight << mapParm.delta << "\n";
+    dout << "gh1" << shape.span << shape.weight << "\n";
     uint64_t xpre = 0;
     hashInit(shape, begin(read));
     uint64_t read_str = get_cord_y(map_str);
@@ -1935,7 +1970,7 @@ unsigned getDIndexMatchAll (DIndex & index,
     for (unsigned k = read_str; k < read_end - shape.span; k++)
     {
         hashNexth(shape, begin(read) + k);
-        if (++dt == mapParm.alpha)
+        if (++dt == pm_ghima.thd_alpha)
         {
             dt = 0;
             if(hashNextX(shape, begin(read) + k) ^ xpre)
@@ -1943,7 +1978,7 @@ unsigned getDIndexMatchAll (DIndex & index,
                 xpre = shape.XValue;
                 uint64_t pos = getXDir(index, shape.XValue, shape.YValue);
                 uint64_t ptr = _DefaultHs.getHeadPtr(index.ysa[pos-1]);
-                if (index.isEmptyDir(pos) || ptr >= mapParm.delta)
+                if (index.isEmptyDir(pos) || ptr >= (uint64_t) pm_ghima.thd_delta)
                 {
                     dt = 0;
                     continue;
@@ -2067,7 +2102,7 @@ uint64_t filterAnchors1(Anchors & anchors, uint64_t shape_len, uint64_t thd_anch
 /*
  * filter by long patterns
  */
-uint64_t filterAnchors2(Anchors & anchors, uint64_t shape_len, uint64_t thd_anchor_accept_density, uint64_t thd_anchor_accept_min, unsigned thd_anchor_err_bit, uint64_t thd_max_anchors_num, int64_t thd_anchor_accept_err)
+uint64_t filterAnchors2(Anchors & anchors, uint64_t shape_len, uint64_t thd_anchor_accept_density, uint64_t thd_anchor_accept_min, unsigned thd_anchor_err_bit, uint64_t thd_max_anchors_num, uint64_t thd_anchor_accept_err)
 {    
     //double t1 = sysTime();
     if (anchors.length() <= 1)
@@ -2115,7 +2150,8 @@ uint64_t filterAnchors2(Anchors & anchors, uint64_t shape_len, uint64_t thd_anch
     {
         for (unsigned j = 0; j < length(anchors_xmean); j++) 
         {
-            if (std::abs(int64_t(get_cord_x(anchors[i]) - anchors_xmean[j])) < thd_anchor_accept_err)
+            uint64_t d_anchor = std::abs(int64_t(get_cord_x(anchors[i]) - anchors_xmean[j]));
+            if (d_anchor < thd_anchor_accept_err)
             {
                 anchors[ii] = anchors[i];
                 _DefaultHit.unsetLongPattern(anchors[ii]);
@@ -2130,7 +2166,14 @@ uint64_t filterAnchors2(Anchors & anchors, uint64_t shape_len, uint64_t thd_anch
     return 0;
 }
 
-uint64_t filterAnchors(Anchors & anchors, uint64_t shape_len, uint64_t thd_anchor_accept_density, uint64_t thd_anchor_accept_min, unsigned thd_anchor_err_bit, uint64_t thd_max_anchors_num, int64_t thd_anchor_accept_err, int alg_type)
+uint64_t filterAnchors(Anchors & anchors, 
+                       uint64_t shape_len, 
+                       uint64_t thd_anchor_accept_density, 
+                       uint64_t thd_anchor_accept_min, 
+                       unsigned thd_anchor_err_bit, 
+                       uint64_t thd_max_anchors_num, 
+                       uint64_t thd_anchor_accept_err, 
+                       int alg_type)
 {
     //printAnchors (anchors.set, "fas1");
     if(alg_type == 1)
@@ -2149,7 +2192,11 @@ uint64_t filterAnchors(Anchors & anchors, uint64_t shape_len, uint64_t thd_ancho
     return 0;
 }
 
-uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read_str, uint64_t read_end, MapParms & mapParm)
+uint64_t getDAnchorList(Anchors & anchors, 
+                        String<int64_t> & list, 
+                        uint64_t read_str, 
+                        uint64_t read_end, 
+                        GlobalParms & pm_g)
 {
     float thd_anchor_accept_dens = 0.001; //todo::tune err, kmer step related
     float thd_anchor_accept_lens_rate = 0.01;
@@ -2160,7 +2207,7 @@ uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read
         return 0;
     }
     uint64_t ak2 = anchors[0], ak3 = anchors[0]; //2/4, 3/4
-    int64_t c_b = mapParm.shapeLen, sb = 1;
+    int64_t c_b = pm_g.shape_len, sb = 1;
     double t1 = sysTime();
     anchors.sort(anchors.begin(), anchors.end());
     t1 = sysTime() - t1;
@@ -2178,7 +2225,7 @@ uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read
         if (f_continuous)
         {
             int64_t dy = get_cord_y(anchors.set[k]) - get_cord_y(anchors.set[k - 1]);
-            dy = std::min(std::abs(dy), int64_t(mapParm.shapeLen));
+            dy = std::min(std::abs(dy), int64_t(pm_g.shape_len));
             c_b += dy; 
             ak2 = anchors[(sb + k) >> 1]; //update the ak to the median 
             ak3 = anchors[k - ((k - sb) >> 2)];
@@ -2197,7 +2244,7 @@ uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read
             sb = k;
             ak2 = anchors[k];
             ak3 = anchors[k];
-            c_b = mapParm.shapeLen;
+            c_b = pm_g.shape_len;
             min_y = get_cord_y(anchors[k]);
             max_y = get_cord_y(anchors[k]);
         }
@@ -2206,17 +2253,18 @@ uint64_t getDAnchorList(Anchors & anchors, String<int64_t> & list, uint64_t read
     return 0;
 }
 
-uint64_t getDHitList(String<uint64_t> & hits, String<int64_t> & list, Anchors & anchors, MapParms & mapParm, int thd_best_n)
+uint64_t getDHitList(String<uint64_t> & hits, String<int64_t> & list, Anchors & anchors, PMPParms & pm_pmp)
 {
+    GetDHitListParms & pm_gdl = pm_pmp.pm_gdl;
     uint64_t mask = (1ULL << 20) - 1;
     if (!empty(list))
     {
         std::sort (begin(list), end(list), std::greater<uint64_t>());
-        int tmp = length(list) > mapParm.listN ? mapParm.listN : length(list);
+        int tmp = (int) length(list) > pm_gdl.thd_list_n ? pm_gdl.thd_list_n : length(list);
         int record_num = 1;
         for (int k = 0; k < tmp; k++)
         {
-            if (record_num > thd_best_n)
+            if (record_num > pm_gdl.thd_best_n)
             {
                 break;
             }
@@ -2245,15 +2293,32 @@ uint64_t getDHitList(String<uint64_t> & hits, String<int64_t> & list, Anchors & 
        return 0;
     }
 }
+GetDHitListParms::GetDHitListParms()
+{
+    appendValue(thd_list_ns, 10);
+    appendValue(thd_list_ns, 20);
+    appendValue(thd_best_ns, 999);
+    appendValue(thd_best_ns, 1);
+    toggle (1);
+}
+void GetDHitListParms::toggle(int i)
+{
+    if (i < (int)length(thd_list_ns) && i >= 0)
+    {
+        thd_list_n = thd_list_ns[i];
+        thd_best_n = thd_best_ns[i];
+    }
+}
 
-uint64_t getDAnchorMatchList(Anchors & anchors, uint64_t read_str, uint64_t read_end, MapParms & mapParm, String<uint64_t> & hit, int thd_best_n)
+uint64_t getDAnchorMatchList(Anchors & anchors, String<uint64_t> & hits, uint64_t read_str, uint64_t read_end, 
+    GlobalParms & pm_g, PMPParms & pm_pmp )
 {
     String <int64_t> list;
     double t1 = sysTime();
-    getDAnchorList (anchors, list, read_str, read_end, mapParm);
+    getDAnchorList (anchors, list, read_str, read_end, pm_g);
     t1 = sysTime() - t1;
     double t2 = sysTime();
-    getDHitList(hit, list, anchors, mapParm, thd_best_n);
+    getDHitList (hits, list, anchors, pm_pmp);
     t2 = sysTime() - t2;
     return 0;
 }
@@ -2397,29 +2462,67 @@ int preFilterChains2(String<uint64_t> & hits,  String<UPair> & str_ends_p, void 
     return 0;
 }
 
+int chainAnchorsHits(String<uint64_t> & anchors,
+                     String<uint64_t> & hits,
+                     String<int> & hits_chains_score,
+                     PMPParms & pm_pmp)
+{
+    double t0 = sysTime();
+    ChainAnchorsHitsParms & pm_cah = pm_pmp.pm_cah;
+    ChainScoreMetric chn_score(pm_cah.thd_min_chain_len, pm_cah.thd_drop_score, &getApxChainScore);
+    StringSet<String<uint64_t> > anchors_chains;
+    std::sort(begin(anchors), end(anchors), 
+        [](uint64_t & a, uint64_t & b){return getAnchorX(a) > getAnchorX(b);});
+    double t1 = sysTime();
+    chainAnchorsBase(anchors, anchors_chains, hits_chains_score, 0, length(anchors), pm_cah.thd_chain_depth, 
+       pm_cah.thd_chain_dx_depth, pm_cah.thd_best_n, pm_cah.thd_stop_chain_len_ratio, chn_score, &getAnchorX);
+    t1 = sysTime() - t1;
+    //additoinal filter and convert to hits
+    for (unsigned i = 0; i < length(anchors_chains); i++)
+    {
+        for (unsigned j = 0; j <length(anchors_chains[i]); j++)
+        {
+            appendValue(hits, _DefaultCord.hit2Cord_dstr(anchors_chains[i][j]));
+        }
+        _DefaultHit.setBlockEnd(back(hits));
+    } 
+    dout << "cahs" << t1 / (sysTime() - t0) << length (anchors) << "\n";
+    return 0;
+}
+ChainAnchorsHitsParms::ChainAnchorsHitsParms()
+{
+    thd_best_n = 50;
+    thd_drop_score = 45; 
+    thd_min_chain_len = 1;
+    thd_chain_depth = 20;
+    thd_chain_dx_depth = 300;
+    thd_stop_chain_len_ratio = 0.7;    
+}
+
 //chain anchors to hits
 int getAnchorHitsChains(Anchors & anchors, 
                         String<uint64_t> & hits, 
                         String<int> & hits_score,
-                        uint64_t shape_len, 
                         uint64_t read_len, 
                         uint64_t thd_anchor_accept_density, 
                         uint64_t thd_anchor_accept_min, 
                         uint64_t thd_large_gap, 
                         unsigned thd_anchor_err_bit, 
                         uint64_t thd_max_anchors_num, 
-                        int64_t thd_anchor_accept_err, 
-                        unsigned alg_type_filter) 
+                        uint64_t thd_anchor_accept_err, 
+                        unsigned alg_type_filter,
+                        GlobalParms & pm_g,
+                        PMPParms & pm_pmp) 
 {
     double t0 = sysTime();
     //dout << "pmp1" << anchors.length() << "\n";
-    filterAnchors(anchors, shape_len, thd_anchor_accept_density, thd_anchor_accept_min, thd_anchor_err_bit, thd_max_anchors_num, thd_anchor_accept_err, alg_type_filter) ;
+    filterAnchors(anchors, pm_g.shape_len, thd_anchor_accept_density, thd_anchor_accept_min, thd_anchor_err_bit, thd_max_anchors_num, thd_anchor_accept_err, alg_type_filter) ;
     String<UPair> str_ends;
     String<UPair> str_ends_p;
     String<int>   str_ends_p_score;
     initHitsScore(hits_score); 
     //printAnchors(anchors.set, "gach1");
-    chainAnchorsHits(anchors.set, hits, hits_score);
+    chainAnchorsHits(anchors.set, hits, hits_score, pm_pmp);
     //print_cords(hits, "gach2");
     double t2 = sysTime();
     gather_blocks_ (hits, str_ends, str_ends_p, 1, length(hits), read_len, thd_large_gap, 0, 0, & is_cord_block_end, & set_cord_end);
@@ -2450,13 +2553,13 @@ int getAnchorHitsChains(Anchors & anchors,
 uint64_t mnMapReadList(IndexDynamic & index,
                        String<Dna5> & read,
                        Anchors & anchors,
-                       uint64_t map_str,
-                       uint64_t map_end,
-                       MapParms & mapParm,
                        String<uint64_t> & hits,
                        String<int> & hits_score,
+                       uint64_t map_str,
+                       uint64_t map_end,
                        int alg_type,
-                       int thd_best_n)
+                       GlobalParms & pm_g,
+                       PMPParms & pm_pmp)
 {
     //alg_type = 1;
     uint64_t read_str = get_cord_y(map_str);
@@ -2464,23 +2567,23 @@ uint64_t mnMapReadList(IndexDynamic & index,
     double tt1 = sysTime();
     if (index.isHIndex())
     {  
-        getHIndexMatchAll(index.hindex, read, anchors.set, map_str, map_end, mapParm);    
+        getHIndexMatchAll(index.hindex, read, anchors.set, map_str, map_end, pm_pmp);    
         //print_cords(anchors.set, "mh1");
     }   
     else if (index.isDIndex())
     {
-        getDIndexMatchAll(index.dindex, read, anchors.set, read_str, read_end, mapParm);    
+        getDIndexMatchAll(index.dindex, read, anchors.set, read_str, read_end, pm_pmp);    
     }
     else if (index.isSIndex())
     {
-        getSIndexMatchAll(index.sindex, read, anchors.set, read_str, read_end, mapParm);    
+        getSIndexMatchAll(index.sindex, read, anchors.set, read_str, read_end, pm_pmp);    
     }
     tt1 = sysTime() - tt1;
     //dout << "mnm1" << tt1 << length(anchors.set) << alg_type << "\n";
     double tt2 = sysTime();
     if (alg_type == 1)
     {
-        getDAnchorMatchList(anchors, read_str, read_end, mapParm, hits, thd_best_n);
+        getDAnchorMatchList(anchors, hits, read_str, read_end, pm_g, pm_pmp);
     }
     else if (alg_type == 2)
     {
@@ -2492,7 +2595,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
         int64_t thd_anchor_accept_err = 2500; //(-2500, 2500) 2500=avearge_read_len(10k) * average_err (25%) , use int64_t, not uint64_t
         uint64_t thd_large_gap = 600;     
         unsigned thd_anchor_err_bit = 2; //  = 1/2^2 = 0.25
-        getAnchorHitsChains(anchors, hits, hits_score, mapParm.shapeLen, length(read), thd_anchor_accept_density, thd_anchor_accept_min, thd_large_gap, thd_anchor_err_bit, thd_max_anchors_num, thd_anchor_accept_err, 2);
+        getAnchorHitsChains(anchors, hits, hits_score, length(read), thd_anchor_accept_density, thd_anchor_accept_min, thd_large_gap, thd_anchor_err_bit, thd_max_anchors_num, thd_anchor_accept_err, 2, pm_g, pm_pmp);
         t = sysTime() - t;
         
     }
@@ -2508,7 +2611,6 @@ uint64_t mnMapReadList(IndexDynamic & index,
 uint64_t apxMap_ (IndexDynamic & index,
                   String<Dna5> & read,
                   Anchors & anchors,
-                  MapParms & mapParm,
                   String<uint64_t> & hits, 
                   StringSet<FeaturesDynamic> & f1,
                   StringSet<FeaturesDynamic> & f2,
@@ -2517,7 +2619,8 @@ uint64_t apxMap_ (IndexDynamic & index,
                   uint64_t map_str,
                   uint64_t map_end,
                   int alg_type,
-                  int thd_best_n) //flag if chain_blocks
+                  GlobalParms & pm_g,
+                  PMPParms & pm_pmp)
 {
     clear (hits);
     anchors.init(1);
@@ -2526,7 +2629,8 @@ uint64_t apxMap_ (IndexDynamic & index,
     String<int> hits_score;
     double t0 = sysTime();
     double t1 = sysTime();
-    mnMapReadList(index, read, anchors, map_str, map_end, mapParm, hits, hits_score, alg_type, thd_best_n);
+    mnMapReadList(index, read, anchors, hits, hits_score, map_str, map_end, alg_type, 
+        pm_g, pm_pmp);
     t1 = sysTime() - t1;
     //print_cords(hits, "app1");
     uint64_t read_str = get_cord_y(map_str);
@@ -2572,14 +2676,14 @@ uint64_t apxMap_ (IndexDynamic & index,
         pre_dxy = dxy;
     }
     int64_t max_score = 1;
-        for (int i = 0; i < length(cords_info); i++)
+        for (int i = 0; i < (int) length(cords_info); i++)
         {
             if (max_score < cords_info[i].score)
             {
                 max_score = cords_info[i].score;
             }
         }
-        for (int i = 0; i < length(cords_info); i++)
+        for (int i = 0; i < (int) length(cords_info); i++)
         {
             //cords_info[i].score *= float (100) / max_score;
             cords_info[i].score = 100 - i;
@@ -2595,7 +2699,6 @@ uint64_t apxMap_ (IndexDynamic & index,
 uint64_t apxMap (IndexDynamic & index,
                  String<Dna5> & read,
                  Anchors & anchors,
-                 MapParms & mapParm,
                  String<uint64_t> & hit, 
                  StringSet<FeaturesDynamic> & f1,
                  StringSet<FeaturesDynamic> & f2,
@@ -2603,7 +2706,9 @@ uint64_t apxMap (IndexDynamic & index,
                  String<uint64_t> & cords_str, 
                  String<uint64_t> & cords_end,
                  String<CordInfo> & cords_info,
-                 int f_chain)
+                 int f_chain,
+                 GlobalParms & pm_g,
+                 PMPParms    & pm_pmp)
 {
     double tts = sysTime();
     int64_t thd_cord_size = getFeatureWindowSize(f1); 
@@ -2612,21 +2717,15 @@ uint64_t apxMap (IndexDynamic & index,
     int64_t thd_chain_blocks_upper = 10000; //two blocks of cords will be combined to one if they can be combined and close enough (< this)
     int64_t thd_drop_len = 2;
     thd_drop_len = std::min (thd_drop_len, int64_t(length(read) * 0.05 / thd_cord_size)); //drop blocks length < this
-    int thd_best_n = 999; //unlimited best hit;
     clear(apx_gaps);
     if (f_chain)
     {
-        MapParms mapParm1 = mapParm;
-        MapParms mapParm2 = mapParm;
-
-        mapParm2.alpha = 7;
-        mapParm2.listN = mapParm2.listN2;
-        thd_best_n = 999; //unlimited best hit;
         int alg_type = 2; //algorithm 1 sort, algorithm 2, dp
         uint64_t map_str = 0ULL;
         uint64_t map_end = create_cord (MAX_CORD_ID, MAX_CORD_X, length(read), 0);
         double t1 = sysTime();
-        apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords_str, cords_info, map_str, map_end, alg_type, thd_best_n);
+        apxMap_(index, read, anchors, hit, f1, f2, cords_str, cords_info, map_str, map_end, alg_type, 
+            pm_g, pm_pmp);
         t1 = sysTime() - t1;
         double t2 = sysTime();
         String<UPair> str_ends;
@@ -2644,11 +2743,12 @@ uint64_t apxMap (IndexDynamic & index,
             UPair y = getUPForwardy (apx_gaps[i], length(read));
             uint64_t y1 = y.first;
             uint64_t y2 = y.second;   
-            thd_best_n = 1; //best hit only
+            pm_pmp.toggle(1); 
             map_str =  y1; 
             map_end =  create_cord(MAX_CORD_ID, MAX_CORD_X, y2, 0);
             //dout << "apx1" << y1 << y2 << "\n";
-            apxMap_(index, read, anchors, mapParm2, hit, f1, f2, cords_str, cords_info, map_str, map_end, alg_type, thd_best_n);
+            apxMap_(index, read, anchors, hit, f1, f2, cords_str, cords_info, map_str, map_end, alg_type, pm_g, pm_pmp);
+            pm_pmp.toggle(0);
         }
         //>>!!!!!!!!! comment for debug, restore after debug
         //print_cords(cords_str, "ap2");
@@ -2667,18 +2767,15 @@ uint64_t apxMap (IndexDynamic & index,
     }
     else
     {
-        float senThr = mapParm.senThr / thd_cord_size;  
-        MapParms mapParm1 = mapParm;
-        MapParms mapParm2 = mapParm;
-        mapParm2.alpha = mapParm2.alpha2;
-        mapParm2.listN = mapParm2.listN2;
-
+        float senThr = pm_pmp.pm_apx.thd_sen / thd_cord_size;
         int alg_type = 1;
-        apxMap_(index, read, anchors, mapParm1, hit, f1, f2, cords_str, cords_info, 0, length(read), alg_type, thd_best_n);
+        apxMap_(index, read, anchors, hit, f1, f2, cords_str, cords_info, 0, length(read), alg_type, pm_g, pm_pmp);
         if (_DefaultCord.getMaxLen(cords_str) < length(read) * senThr)
         {
             clear(cords_str);
-            apxMap_ (index, read, anchors, mapParm2, hit, f1, f2, cords_str, cords_info, 0, length(read), alg_type, thd_best_n);
+            pm_pmp.toggle(1);
+            apxMap_ (index, read, anchors, hit, f1, f2, cords_str, cords_info, 0, length(read), alg_type, pm_g, pm_pmp);
+            pm_pmp.toggle(0);
         }   
         clean_blocks_ (cords_str, thd_drop_len);
     }
@@ -2700,6 +2797,11 @@ uint64_t apxMap (IndexDynamic & index,
     //print_cords(cords_str, "ap5");
     return 0;
 }
+ApxParms::ApxParms()
+{
+    thd_sen = 0.7;
+}
+
 
 /*
 uint64_t filterGenomes (IndexDynamic & index,

@@ -410,36 +410,6 @@ int chainAnchorsBase(String<uint64_t> & anchors, StringSet<String<uint64_t> > & 
     return 0;
 }
 
-int chainAnchorsHits(String<uint64_t> & anchors, String<uint64_t> & hits, String<int> & hits_chains_score)
-{
-    double t0 = sysTime();
-    int thd_min_chain_len = 1;
-    int thd_drop_score = 45; //<<TODO, change the score!
-    uint64_t thd_chain_depth = 20;
-    uint64_t thd_chain_dx_depth = 300;
-    float thd_stop_chain_len_ratio = 0.7;
-    ChainScoreMetric chn_score(thd_min_chain_len, thd_drop_score, &getApxChainScore);
-    StringSet<String<uint64_t> > anchors_chains;
-    std::sort(begin(anchors), end(anchors), 
-        [](uint64_t & a, uint64_t & b){return getAnchorX(a) > getAnchorX(b);});
-    int thd_best_n = 50;
-    double t1 = sysTime();
-    chainAnchorsBase(anchors, anchors_chains, hits_chains_score, 0, length(anchors), thd_chain_depth, 
-        thd_chain_dx_depth, thd_best_n, thd_stop_chain_len_ratio, chn_score, &getAnchorX);
-    t1 = sysTime() - t1;
-    //additoinal filter and convert to hits
-    for (unsigned i = 0; i < length(anchors_chains); i++)
-    {
-        for (unsigned j = 0; j <length(anchors_chains[i]); j++)
-        {
-            appendValue(hits, _DefaultCord.hit2Cord_dstr(anchors_chains[i][j]));
-        }
-        _DefaultHit.setBlockEnd(back(hits));
-    } 
-    dout << "cahs" << t1 / (sysTime() - t0) << length (anchors) << "\n";
-    return 0;
-}
-
 /*
  * This is the copy version of getBestChains() for ChainBlock using the same algorithm.
  * Note::So synchronsize with the getBesctChains().

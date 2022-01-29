@@ -87,6 +87,14 @@ unsigned Options::isOutputBamStandard()
     return f_output_type & 4;
 }
 
+void Parms::toggle(int i)
+{}
+
+GlobalParms::GlobalParms()
+{
+    shape_len = 21;
+}
+
 
 /*
  * flip strand from 0, 1 to -1, 1;
@@ -106,68 +114,6 @@ uint64_t _flipCoord (uint64_t coord, uint64_t len, uint64_t strand)
 {
     return len * strand - _nStrand(strand) * coord;
 }
-
-MapParms::MapParms():
-        blockSize(base_block_size_),
-        delta(base_delta_),
-        threshold(base_threshold_),
-        kmerStep(base_kmer_step_),
-        shapeLen(base_shape_len_),
-        sensitivity(0),
-        anchorDeltaThr(),
-        minReadLen(1000),
-        listN(1),
-        listN2(1),
-        alpha(base_alpha_),
-        alpha2(0.5),
-        anchorLenThr(0.02),                  // anchors with lenghth > this parameter is pushed into the queue
-        rcThr(0.8),                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
-        cordThr(0.8),
-        senThr(0.8),
-        clsThr(0.1)
-    {}
-MapParms::MapParms(unsigned bs, unsigned dt, unsigned thr, 
-            unsigned ks, unsigned sl, unsigned st,
-            unsigned ad, unsigned mr, unsigned listn,
-            unsigned listn2,
-            float ap, float ap2, float alt, float rt, float ct, float sent, float clst):
-        blockSize(bs),
-        delta(dt),
-        threshold(thr),
-        kmerStep(ks),
-        shapeLen(sl),
-        sensitivity(st),
-        anchorDeltaThr(ad),
-        minReadLen(mr),
-        listN(listn),
-        listN2(listn2),
-        alpha(ap),
-        alpha2(ap2),
-        anchorLenThr(alt),                  // anchors with lenghth > this parameter is pushed into the queue
-        rcThr(rt),                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
-        cordThr(ct),
-        senThr(sent),
-        clsThr(clst)
-        {} 
-MapParms::MapParms(MapParms & parm):
-        blockSize(parm.blockSize),
-        delta(parm.delta),
-        threshold(parm.threshold),
-        kmerStep(parm.kmerStep),
-        shapeLen(parm.shapeLen),
-        sensitivity(parm.sensitivity),
-        anchorDeltaThr(),
-        minReadLen(parm.minReadLen),
-        listN(parm.listN),
-        listN2(parm.listN2),
-        alpha(parm.alpha),
-        alpha2(parm.alpha2),
-        anchorLenThr(parm.anchorLenThr),
-        rcThr(parm.rcThr),
-        cordThr(parm.cordThr),
-        senThr(parm.senThr),
-        clsThr(parm.clsThr)
-        {}
 
 std::ifstream::pos_type _filesize(const char* filename)
 {
@@ -389,26 +335,6 @@ uint64_t & Anchors::operator [](unsigned p)
 unsigned Anchors::length() 
 {
     return seqan::length(set);
-}
-
-void MapParms::print()
-{
-    std::cerr << "blockSize " << blockSize << std::endl
-              << "alpha " << alpha << std::endl
-              << "alpha2 " << alpha2 << "\n"
-              << "listN " << listN << "\n"
-              << "listN2 " << listN2 << "\n"
-              << "senThr " << senThr << "\n"
-              << "delta " << delta << std::endl
-              << "threshold " << threshold << std::endl
-              << "kmerStep " << kmerStep << std::endl
-              << "shapeLen " << shapeLen << std::endl
-              //<<  "sensitivity " << sensitivity << "\n"
-              << "anchorDeltaThr " << anchorDeltaThr << "\n"
-              << "minReadLen " << minReadLen << "\n"
-              << "anchorLenThr" << anchorLenThr << "\n"
-              << "rcThr " << rcThr << "\n"
-              << "cordThr" << cordThr << "\n";
 }
 
 static const String<Dna5> _complt = "tgcan";

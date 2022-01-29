@@ -75,8 +75,6 @@ MapParms parm2 (
         0.8,                      //cordThr length of cord < cordThr are abandoned
         0.8,                     //senthr: length of cord < senthr are erased duing path
         0.1                      //clsthr: thread of cluster
-
-        
 ); 
 
 
@@ -375,7 +373,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
             //clear(f1[1].fs2_48);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
             createFeatures(begin(comStr), end(comStr), f1[1]);
-            apxMap(this->getIndex(), reads[j], anchors, this->getMapParms(), crhit, f1, f2, apx_gaps, cords_str[j], cords_end[j], cords_info[j], f_chain);
+            apxMap(getIndex(), reads[j], anchors, crhit, f1, f2, apx_gaps, cords_str[j], cords_end[j], cords_info[j], f_chain, getMapParms().pm_g, getMapParms().pm_pmp);
             if (fm_handler_.isMapGap(f_map))
             {
                 gap_parms_set[thread_id].read_id = reads_id[j];
@@ -723,7 +721,7 @@ int map_(IndexDynamic & index,
             _compltRvseStr(reads[j], comStr);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
             createFeatures(begin(comStr), end(comStr), f1[1]);
-            apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordsTmp2[c], cords_info_tmp[c], f_chain);
+            apxMap(index, reads[j], anchors, crhit, f1, f2, apx_gaps, cordsTmp[c], cordsTmp2[c], cords_info_tmp[c], f_chain, mapParm.pm_g, mapParm.pm_pmp);
             if (fm_handler_.isMapGap(f_map))
             {
                 mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], clipsTmp[c], apx_gaps, f1, f2, gap_parms[thd_id]);
@@ -995,7 +993,7 @@ int filter_(IndexDynamic & index,
             _compltRvseStr(reads[j], comStr);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
             createFeatures(begin(comStr), end(comStr), f1[1]);
-            apxMap(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordsTmp2[c], cords_info[c], f_chain);
+            apxMap(index, reads[j], anchors, crhit, f1, f2, apx_gaps, cordsTmp[c], cordsTmp2[c], cords_info[c], f_chain, mapParm.pm_g, mapParm.pm_pmp);
             //filterGenomes(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordLenThr, f_chain);
         }
         c += 1;
@@ -1094,4 +1092,97 @@ int filter(Mapper & mapper,
         close(rFile);
     }
     return 0;
+}
+
+MapParms::MapParms():
+        blockSize(base_block_size_),
+        delta(base_delta_),
+        threshold(base_threshold_),
+        kmerStep(base_kmer_step_),
+        shapeLen(base_shape_len_),
+        sensitivity(0),
+        anchorDeltaThr(),
+        minReadLen(1000),
+        listN(1),
+        listN2(1),
+        alpha(base_alpha_),
+        alpha2(0.5),
+        anchorLenThr(0.02),                  // anchors with lenghth > this parameter is pushed into the queue
+        rcThr(0.8),                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
+        cordThr(0.8),
+        senThr(0.8),
+        clsThr(0.1)
+    {
+        GlobalParms();
+        PMPParms();
+    }
+
+MapParms::MapParms(unsigned bs, unsigned dt, unsigned thr, 
+            unsigned ks, unsigned sl, unsigned st,
+            unsigned ad, unsigned mr, unsigned listn,
+            unsigned listn2,
+            float ap, float ap2, float alt, float rt, float ct, float sent, float clst):
+        blockSize(bs),
+        delta(dt),
+        threshold(thr),
+        kmerStep(ks),
+        shapeLen(sl),
+        sensitivity(st),
+        anchorDeltaThr(ad),
+        minReadLen(mr),
+        listN(listn),
+        listN2(listn2),
+        alpha(ap),
+        alpha2(ap2),
+        anchorLenThr(alt),                  // anchors with lenghth > this parameter is pushed into the queue
+        rcThr(rt),                        // when max anchors in the queue with length < this parameters, reverse complement search will be conducted
+        cordThr(ct),
+        senThr(sent),
+        clsThr(clst)
+        {
+            GlobalParms();
+            PMPParms();
+        }
+
+MapParms::MapParms(MapParms & parm):
+        blockSize(parm.blockSize),
+        delta(parm.delta),
+        threshold(parm.threshold),
+        kmerStep(parm.kmerStep),
+        shapeLen(parm.shapeLen),
+        sensitivity(parm.sensitivity),
+        anchorDeltaThr(),
+        minReadLen(parm.minReadLen),
+        listN(parm.listN),
+        listN2(parm.listN2),
+        alpha(parm.alpha),
+        alpha2(parm.alpha2),
+        anchorLenThr(parm.anchorLenThr),
+        rcThr(parm.rcThr),
+        cordThr(parm.cordThr),
+        senThr(parm.senThr),
+        clsThr(parm.clsThr)
+        {
+            GlobalParms();
+            PMPParms();
+        }
+
+void MapParms::print()
+{
+    std::cerr << "blockSize " << blockSize << std::endl
+              << "alpha " << alpha << std::endl
+              << "alpha2 " << alpha2 << "\n"
+              << "listN " << listN << "\n"
+              << "listN2 " << listN2 << "\n"
+              << "senThr " << senThr << "\n"
+              << "delta " << delta << std::endl
+              << "threshold " << threshold << std::endl
+              << "kmerStep " << kmerStep << std::endl
+              << "shapeLen " << shapeLen << std::endl
+              //<<  "sensitivity " << sensitivity << "\n"
+              << "anchorDeltaThr " << anchorDeltaThr << "\n"
+              << "minReadLen " << minReadLen << "\n"
+              << "anchorLenThr" << anchorLenThr << "\n"
+              << "rcThr " << rcThr << "\n"
+              << "cordThr" << cordThr << "\n";
 }

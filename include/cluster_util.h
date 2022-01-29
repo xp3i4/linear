@@ -45,7 +45,7 @@ struct ChainsRecord
 
     int isLeaf();
 };
-int chainAnchorsHits(String<uint64_t> & anchors, String<uint64_t> & hits, String<int> & hits_chains_score);
+//int chainAnchorsHits(String<uint64_t> & anchors, String<uint64_t> & hits, String<int> & hits_chains_score, ChainAnchorsHitsParms & pm_cah);
 int chainBlocksHits(String<uint64_t> & hits, String<UPair> & str_ends_p, String<int> & str_ends_p_score, uint64_t read_len);
 int getBestChains(String<uint64_t> & anchor, String<ChainsRecord> & chains,
                   int (*getScore) (uint64_t const &, uint64_t const &));

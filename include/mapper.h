@@ -7,7 +7,38 @@
 #include "gap.h"
 #include "parallel_io.h"
 //#include "mapparm.h"
+struct MapParms{
+    unsigned    blockSize;
+    unsigned    delta;
+    unsigned    threshold;
+    unsigned    kmerStep;
+    unsigned    shapeLen;
+    unsigned    sensitivity;
+    unsigned    anchorDeltaThr;
+    unsigned    minReadLen;
+    unsigned    listN;
+    unsigned    listN2;
+    float       alpha;
+    float       alpha2;
+    float       anchorLenThr;
+    float       rcThr;
+    float       cordThr;
+    float       senThr;
+    float       clsThr;
 
+    GlobalParms pm_g;
+    PMPParms pm_pmp; 
+      
+    MapParms();
+    MapParms(unsigned bs, unsigned dt, unsigned thr, 
+            unsigned ks, unsigned sl, unsigned st,
+            unsigned ad, unsigned mr, unsigned listn,
+            unsigned listn2,
+            float ap, float ap2, float alt, float rt, float ct, float sent, float clst);
+    MapParms(MapParms & parm);
+    void setMapParm(Options & options);
+    void print ();
+};
 
 class Mapper : public P_Mapper 
 {

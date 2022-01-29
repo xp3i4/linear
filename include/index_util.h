@@ -42,6 +42,26 @@ extern const float def_alpha;
 /*=============================================
 =            StringSet for dindex           =
 =============================================*/
+struct CreatIndexParms : public Parms
+{
+    int64_t thd_shape_len;
+    int64_t thd_min_step;
+    int64_t thd_max_step;
+    int64_t thd_omit_block;
+};
+struct CreateSIndexParms : public CreatIndexParms
+{
+    CreateSIndexParms();
+};
+struct CreateDIndexParms : public CreatIndexParms
+{
+    CreateDIndexParms();
+};
+struct CreateHIndexParms : public CreatIndexParms
+{
+    CreateHIndexParms();
+};
+
 class SIndex
 {
     std::vector<std::vector<int64_t> > hs; 
