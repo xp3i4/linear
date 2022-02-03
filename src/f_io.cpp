@@ -850,7 +850,7 @@ int cords2BamLink(String<uint64_t> & cords_str,
             r_beginPos = get_cord_y(cords_str[i]);
             strand = get_cord_strand (cords_str[i]);
             insertNewBamRecord (bam_link_records, g_id, g_beginPos, r_beginPos, strand, -1, f_soft, flag);
-            back(bam_link_records).mapQ = cords_info[n_block].score;
+            //back(bam_link_records).mapQ = cords_info[n_block].score;
             cigar_str = cords_str[i];
             flag = 0;
         }
