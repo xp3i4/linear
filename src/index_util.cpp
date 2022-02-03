@@ -1628,9 +1628,17 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
     String<int> & dir = index.getDir();
     String<int64_t> & hs = index.getHs();
     resize (dir, index.fullSize(), 0);
-    for (int64_t i = gstr; i < gend; i++)
+    unsigned genome_lens_sum = 0;
+    float current_lens_ratio = 0;
+    float finished_ratio = 0;
+    for (unsigned i = gstr; i < gend; i++)
+    {
+        genome_lens_sum += length(seqs[i]);
+    }
+    for (unsigned i = gstr; i < gend; i++)
     {
         String<int64_t> t_blocks;
+        current_lens_ratio = float(length(seqs[i])) / genome_lens_sum;
         for (unsigned j = 0; j < threads; j++)
         {
             appendValue(t_blocks, length(seqs[i]) / threads * j); 
@@ -1647,7 +1655,7 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
             LShape shape = t_shape;
             hashInit (shape, begin(seqs[i]) + t_str);
             //dout << "cdx1 " << t_str<< t_end <<"\n";
-            int64_t t_percent_cerr = (t_end - t_str) * 1 / 50; //cerr percent every 2%
+            int64_t t_percent_cerr = (t_end - t_str) * 2 / 100; //cerr percent every 2%
             int64_t j_count = 0;
             for (int64_t j = t_str; j < t_end; j++)
             {
@@ -1676,8 +1684,11 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
                 if (t_id == 0 && j_count == t_percent_cerr)
                 {
                     j_count = 0; 
+                    finished_ratio += float(t_percent_cerr) / (t_end - t_str) * 100 * current_lens_ratio;
+
+                    //std::cout << "idx1 " << finished_ratio << " " << i << " " << gend << " " << current_lens_ratio << " j " << j << " "<< t_str << " " << t_end << "\n";
                     serr.print_message("=>Index::Initiating [", 0, 0, std::cerr);
-                    serr.print_message(int(float(j - t_str) / (t_end - t_str) * 100), 0, 0, std::cerr);
+                    serr.print_message(int(finished_ratio), 0, 0, std::cerr);
                     serr.print_message("%]", 0, 2, std::cerr);
                 }
                 ++j_count;
@@ -1700,9 +1711,13 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
     resize (hs, sum, EmptyVal);
     serr.print_message("--Index::Initiate[100%]   ", 0, 1, std::cerr);
     serr.print_message("=>Index::Hashing", 0, 2, std::cerr);
+
+    current_lens_ratio = 0;
+    finished_ratio = 0;
     for (uint64_t i = 0; i < length(seqs); i++)
     {
         String<int64_t> t_blocks;
+        current_lens_ratio = float(length(seqs[i])) / genome_lens_sum;
         for (unsigned j = 0; j < threads; j++)
         {
             appendValue(t_blocks, length(seqs[i]) / threads * j); 
@@ -1754,8 +1769,9 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
                 if (t_id == 0 && j_count == t_percent_cerr)
                 {
                     j_count = 0; 
+                    finished_ratio += float(t_percent_cerr) / (t_end - t_str) * 100 * current_lens_ratio;
                     serr.print_message("=>Index::Hashing [", 0, 0, std::cerr);
-                    serr.print_message(int(float(j - t_str) / (t_end - t_str) * 100), 0, 0, std::cerr);
+                    serr.print_message(int(finished_ratio), 0, 0, std::cerr);
                     serr.print_message("%]", 0, 2, std::cerr);
                 }
                 ++j_count;
@@ -1764,7 +1780,7 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
     }
     //dout << "size" << float(length(dir)) * 8 / 1024/1024/1024 << float(length(hs)) /128/1024/1024 << "\n";
     //std::cout << "createDIndex " << sysTime() - t << " " << sysTime() - t2 << "\n";
-    serr.print_message("Index[100%]                    ", 2, 1, std::cerr);
+    serr.print_message("Index::Hash    [100%]              ", 2, 1, std::cerr);
     serr.print_message("End creating index ", 2, 0, std::cerr);
     serr.print_message("Elapsed time[s] ", 2, 0, std::cerr);
     serr.print_message(sysTime() - t, 2, 1, std::cerr);
@@ -2038,6 +2054,7 @@ int _createSIndexHsThreadUnit0(String<Dna5> & seq,
  * All threads access the same dir which is a StringSet
  * More memory efficient than indepent StringSet for each thread
  * Thread safe not tested 
+ * @finished_ratio can be modified by one thread only
  */
 int _createSIndexHsThreadUnit(String<Dna5> & seq, 
                  SIndex & index,
@@ -2047,7 +2064,9 @@ int _createSIndexHsThreadUnit(String<Dna5> & seq,
                  int64_t thd_omit_block,
                  unsigned seq_str,
                  unsigned seq_end,
-                 unsigned thread_id)
+                 unsigned thread_id,
+                 unsigned genome_lens_sum,
+                 float & finished_ratio)
 {
     LShape & t_shape = index.getShape();
     std::vector<std::vector<int64_t> > & hs = index.getHs();
@@ -2059,8 +2078,12 @@ int _createSIndexHsThreadUnit(String<Dna5> & seq,
     //hashInit (shape, it);
     hashInit(shape, begin(seq) + seq_str);
     int64_t preVal = -1;
+    unsigned j_count = 0;
+    int64_t t_percent_cerr = (seq_end - seq_str) * 2 / 100; //cerr percent every 2%
+    float current_lens_ratio = 0;
     for (int64_t i = seq_str; i < seq_end; i++)
     {
+        current_lens_ratio = float(length(seq)) / genome_lens_sum;
         hashNexth(shape, begin(seq) + i);
         //hashNexth_hpc(shape, it, begin(seq) + seq_end);
         if (i - last_i > thd_min_step)
@@ -2083,6 +2106,16 @@ int _createSIndexHsThreadUnit(String<Dna5> & seq,
                 }
             }
         }
+        if (thread_id == 0 && j_count == t_percent_cerr)
+        {
+            j_count = 0; 
+            finished_ratio += float(t_percent_cerr) / (seq_end - seq_str) * 100 * current_lens_ratio;
+            std::cout << "idx1 " << finished_ratio <<  "\n";
+            serr.print_message("=>Index::Hashing [", 0, 0, std::cerr);
+            serr.print_message(int(finished_ratio), 0, 0, std::cerr);
+            serr.print_message("%]", 0, 2, std::cerr);
+        }
+        ++j_count;
     }
     return 0;
 }
@@ -2095,13 +2128,19 @@ int createSIndex(StringSet<String<Dna5> > & seqs,
                  unsigned gend,
                  unsigned threads)
 {
-    serr.print_message("=>SIndex::Initiating ", 0, 2, std::cerr);
     double t0 = sysTime();
+    serr.print_message("=>SIndex::Initiating ", 0, 2, std::cerr);
     LShape & t_shape = index.getShape();
     _initSIndexHs(index, threads);
     serr.print_message("--SIndex::Initiate[100%]   ", 0, 1, std::cerr);
     serr.print_message("=>SIndex::Hashing", 0, 2, std::cerr);
     double t1 = sysTime();
+    unsigned genome_lens_sum = 0;
+    float finished_ratio = 0;
+    for (unsigned i = gstr; i < gend; i++)
+    {
+        genome_lens_sum += length(seqs[i]);
+    }
     for (int64_t i = gstr; i < gend; i++)
     {
         String<int64_t> t_blocks;
@@ -2117,7 +2156,7 @@ int createSIndex(StringSet<String<Dna5> > & seqs,
             int64_t t_end = t_blocks[t_id + 1];
             LShape shape = t_shape;
             _createSIndexHsThreadUnit (seqs[i], index, i, 
-                thd_min_step, thd_max_step, thd_omit_block, t_str, t_end, t_id);
+                thd_min_step, thd_max_step, thd_omit_block, t_str, t_end, t_id, genome_lens_sum, finished_ratio);
         }
     }
     t1 = sysTime() - t1;
