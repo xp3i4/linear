@@ -4086,12 +4086,6 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
     }
     reform_tiles(ref, read, comstr, tiles_str1, tiles_end1, sp_tiles1, 
                  gap_str1, gap_end1, direction1, gap_parms);
-    //<<debug
-    if (!empty(tiles_end1))
-    {
-    //    back(tiles_end1) = shift_tile(back(tiles_end1), -95, -95);
-    }
-    //>>debug
     //direction = -1 part
     gap_parms.direction = direction2; 
     mapExtendResultFilter_(tiles_str2, tiles_end2, gap_str2, gap_end2, direction2, gap_parms);
@@ -4203,15 +4197,10 @@ int createTilesFromAnchors2_(String<Dna5> & ref,
             unsigned len = length(tiles_str);
             uint64_t head_tile = tmp_tiles[pre_i];
             uint64_t tail_tile = tmp_tiles[i];
-            //<<debug
-            //if (!get_tile_strand(tmp_tiles[pre_i])) 
-            //{
-            //>>debug
             i += reExtendClipOneSide(ref, read, comstr, tmp_tiles, gap_str, gap_end,
                                      pre_i, i, -1, gap_parms);
             i += reExtendClipOneSide(ref, read, comstr, tmp_tiles, gap_str, gap_end, 
                                      pre_i, i, 1, gap_parms);
-            //}
             if (!(empty(tmp_tiles) || pre_i < 0 || i <0))
             {
                 copy_tile_sgn(head_tile, tmp_tiles[pre_i]);
@@ -4225,11 +4214,7 @@ int createTilesFromAnchors2_(String<Dna5> & ref,
                     remove_tile_sgn_end(back(tiles_end));
                 }
             }
-        //}
             pre_i = i + 1;    
-            //<<debug
-            //return 0;
-            //>>debug 
         }
     }    
     t2=sysTime() - t2;
@@ -4423,22 +4408,8 @@ int filterGapAnchors(String<uint64_t> & anchors,
 {
     String<std::pair<unsigned, unsigned> > anchors_list;
     _createGapAnchorsList(anchors, anchors_list, uint64_t(0), uint64_t(20), uint64_t(20), unsigned(0));
-    //<<debug
-    //for (unsigned i = 0; i < length(anchors_list); i++)
-    //{
-        //dout << "cts2" << length(anchors) << anchors_list[i].first << anchors_list[i].second << gap_parms.read_id << "\n";
-    //}
-    //>>debug
     _filterGapAnchorsList(anchors, anchors_list, gap_str, gap_end, 
         direction, gap_parms);
-    //>>debug
-    //for (unsigned i = 0; i < length(anchors_list); i++)
-    //{
-    //    dout << "cts3" << length(anchors) << anchors_list[i].first << anchors_list[i].second << gap_parms.read_id << "\n";
-    //}
-    //>>debug
-    
-    
     unsigned it = 0;
     for (unsigned i = 0; i < length(anchors_list); i++)
     {

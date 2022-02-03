@@ -262,13 +262,13 @@ int traceBackChains1(String<ChainElementType> & elements,
     
     String<std::pair<int,int> > tree_score_ranks;
     resize(tree_score_ranks, length (leaves));
-    for (unsigned i = 0; i < length(leaves); i++)
+    for (int i = 0; i < (int) length(leaves); i++)
     {
         tree_score_ranks[i] = std::pair<int, int> (i, leaves[i][1]);
     }
     std::sort (begin(tree_score_ranks), end(tree_score_ranks), 
         [](std::pair<int, int> & a, std::pair<int, int> & b){return a.second > b.second;});
-    for (unsigned i = 0; i < std::min(bestn, int(length(tree_score_ranks))); i++) 
+    for (int i = 0; i < std::min(bestn, int(length(tree_score_ranks))); i++)
     {
         int max_score = leaves[tree_score_ranks[i].first][1];
         int max_len = leaves[tree_score_ranks[i].first][2];
@@ -396,17 +396,17 @@ int chainAnchorsBase(String<uint64_t> & anchors, StringSet<String<uint64_t> > & 
     String<int> & anchors_chains_score, uint it_str, uint it_end,  uint thd_chain_depth, uint64_t thd_chain_dx_depth, 
     int thd_best_n, float thd_stop_chain_len_ratio, ChainScoreMetric & chn_metric, uint64_t (*get_anchor_x) (uint64_t))
 {
-    double t0 = sysTime();
+    //double t0 = sysTime();
     if (length(anchors) < 2){
         return 0;
     }
     String<ChainsRecord> chain_records;
     resize (chain_records, length(anchors));
-    double t1 = sysTime();
+    //double t1 = sysTime();
     getBestChains (anchors, chain_records, it_str, it_end, thd_chain_depth, thd_chain_dx_depth, chn_metric, get_anchor_x);
-    t1 = sysTime() - t1;
+    //t1 = sysTime() - t1;
     traceBackChains(anchors, anchors_chains, chain_records, anchors_chains_score, chn_metric.getMinChainLen(), chn_metric.getAbortScore(), thd_best_n, thd_stop_chain_len_ratio);
-    dout << "cab1" << t1 / (sysTime() - t0) << "\n";
+    //dout << "cab1" << t1 / (sysTime() - t0) << "\n";
     return 0;
 }
 
@@ -444,13 +444,6 @@ int getBestChains2(String<uint64_t> & hits,
                              hits[str_ends_p[i].first], hits[str_ends_p[i].second - 1],
                                    read_len, chn_metric.chn_score_parms);
 
-            //<<debug
-            uint64_t cs1 = hits[str_ends_p[j].first];
-            uint64_t ce1 = hits[str_ends_p[j].second - 1];
-            uint64_t cs2 = hits[str_ends_p[i].first];
-            uint64_t ce2 = hits[str_ends_p[i].second - 1];
-            //dout << "gb2" << new_score << new_max_score << j_str << i << get_cord_y(cs1) << get_cord_y(ce1) << get_cord_y(cs2) << get_cord_y(ce2) << get_cord_x(cs1) << get_cord_x(ce1) << get_cord_x(cs2) << get_cord_x(ce2) << "\n";
-            //>>debug
             if (new_score > 0 && new_score + chain_records[j].score + str_ends_p_score[i] >= new_max_score)
             {
                 max_j = j;
@@ -527,23 +520,7 @@ int chainBlocksBase(StringSet<String<UPair> > & chains,
 
     resize (chain_records, length(str_ends_p_tmp));
     getBestChains2(records, str_ends_p_tmp, str_ends_p_score_tmp, chain_records, read_len, chn_metric);
-    //<<debug
-    //for (unsigned i =0 ; i < length(str_ends_p_tmp); i++)
-    //{
-    //    dout << "cbb1" << str_ends_p_tmp[i].first << str_ends_p_tmp[i].second << length(records) << "\n";
-    //}
-    //>>debug
     traceBackChains(str_ends_p_tmp, chains, chain_records, chains_score, chn_metric.getMinChainLen(), chn_metric.getAbortScore(), thd_best_n, thd_stop_chain_len_ratio);
-    //<<debug
-    //for (unsigned i =0 ; i < length(chains); i++)
-    //{
-        //dout << "cbb2" << i << "\n";
-        //for (unsigned j = 0; j < length(chains[i]); j++)
-        //{
-        //    dout << "cbb2" << chains[i][j].first << chains[i][j].second << length(records) << "\n";
-        //}
-    //}
-    //>>debug
     return 0;
 }
 
@@ -623,21 +600,6 @@ int _filterBlocksHits(StringSet<String<UPair> > & chains, String<uint64_t> & hit
         len_current += chains[0][i].second - chains[0][i].first;
         best_chain[i] = chains[0][i];
     }
-    //<<debug
-    for (uint k = 0; k < length(chains); k++)
-    {
-        String<uint64_t> htmps;
-        for (uint i = 0; i < length(chains[k]); i++)
-        {
-            for (uint j = chains[k][i].first; j < chains[k][i].second; j++)
-            {
-                appendValue(htmps, hits[j]);
-                _DefaultHit.unsetBlockEnd(back(htmps));
-            }
-        }
-        //print_cords(htmps, "fb2");
-    }
-    //>>debug
     _DefaultHit.setBlockEnd(back(hits_tmp));
     //process the chains left
     float thd_major_bound = 0.8 * len_current; // len > this * first major len is regarded as optional major chain
@@ -1066,26 +1028,12 @@ int chainBlocksCords(String<uint64_t> & cords,
     chn_score.chn_score_parms.chn_block_strand = 1;
     chainBlocksSingleStrand(cords, str_ends_p2, cords_chains2, chn_score, read_len, thd_init_cord_score);
     int best_strand = getChainBlocksBestStrand(cords_chains1, cords_chains2);
-    //<<debug
-    //print_cords(cords, "cbc1");
-    //for (int i = 0; i < length(str_ends_p); i++)
-    //{
-    //    dout << "cbc1" << str_ends_p[i].first << str_ends_p[i].second  << "\n";
-    //}
-    //>>debug
     if (best_strand == 0)
     {
         str_ends_p = str_ends_p1;
         revertChainBlockStrand(cords_chains1, cords, best_strand, read_len);
         _filterBlocksCords (cords_chains1, cords, read_len, thd_major_limit, unsetEndFunc, 
         setEndFunc, f_header);
-    //<<debug
-    //print_cords(cords, "cbc20");
-    //for (int i = 0; i < length(str_ends_p); i++)
-    //{
-    //    dout << "cbc20" << str_ends_p[i].first << str_ends_p[i].second  << "\n";
-    //}
-    //>>debug
     }
     else
     {
@@ -1093,13 +1041,6 @@ int chainBlocksCords(String<uint64_t> & cords,
         revertChainBlockStrand(cords_chains2, cords, best_strand, read_len);
         _filterBlocksCords (cords_chains2, cords, read_len, thd_major_limit, unsetEndFunc, 
         setEndFunc, f_header);  
-            //<<debug
-    //print_cords(cords, "cbc21");
-    //for (int i = 0; i < length(str_ends_p); i++)
-    //{
-    //    dout << "cbc21" << str_ends_p[i].first << str_ends_p[i].second  << "\n";
-    //}
-    //>>debug
     }
     return 0;
 }

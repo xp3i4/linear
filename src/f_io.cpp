@@ -696,7 +696,7 @@ void createRectangleCigarPair (uint64_t cord1, uint64_t cord2,
    cigar2 \in {'I' or 'D'}
  */
 void socreCigarPair(CigarElement<> & cigar1, CigarElement<> & cigar2, BamAlignmentRecordLinkScore & score,
-        int thd_variant_indel_min_len = 100)
+        unsigned thd_variant_indel_min_len = 100)
 {
     if ((cigar1.operation == '=' || cigar1.operation == 'X') &&
         (cigar2.operation == 'I' || cigar2.operation == 'D'))
@@ -826,8 +826,6 @@ int cords2BamLink(String<uint64_t> & cords_str,
     int flag = 0;
     String<int> bam_records_ptrs; //pointer to bam records
     String<int> cords_block_end_ptrs; //pointer to last cord of block
-    float cigar_score = 0;
-    int cigar_count = 0;
     int n_block = -1;
     for (unsigned i = 1; i < length(cords_str); i++)
     {
@@ -850,7 +848,7 @@ int cords2BamLink(String<uint64_t> & cords_str,
             r_beginPos = get_cord_y(cords_str[i]);
             strand = get_cord_strand (cords_str[i]);
             insertNewBamRecord (bam_link_records, g_id, g_beginPos, r_beginPos, strand, -1, f_soft, flag);
-            back(bam_link_records).mapQ = cords_info[n_block].score;
+            //back(bam_link_records).mapQ = cords_info[n_block].score;
             cigar_str = cords_str[i];
             flag = 0;
         }
@@ -872,7 +870,6 @@ int cords2BamLink(String<uint64_t> & cords_str,
             cord1_end = cords_end[i];
             cord2_str = cords_str[i + 1];
         }
-        float score_tmp = 0;
         cigar_str = cord2cigar_ (cigar_str, 
                                  cord1_str, cord1_end, cord2_str, 
                                  back(bam_link_records).cigar,
@@ -923,7 +920,6 @@ int cords2BamLink(String<uint64_t> & cords_str,
             bam_link_records[ptr].mapQ = 255;
         }
         bam_link_records[ptr].mapQ = cords_info[i].score;
-        dout << "s12" << s1 << s2 << s3 << ptr << i << cords_info[i].score << length(cords_info) << "\n";
     }
 */
     bls_operator.setNewUnAvailable(bam_link_records);
