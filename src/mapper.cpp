@@ -722,10 +722,28 @@ int map_(IndexDynamic & index,
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
             createFeatures(begin(comStr), end(comStr), f1[1]);
             apxMap(index, reads[j], anchors, crhit, f1, f2, apx_gaps, cordsTmp[c], cordsTmp2[c], cords_info_tmp[c], f_chain, mapParm.pm_g, mapParm.pm_pmp);
+                //<<degbug
+                //for (unsigned n = 0; n < length(cordsTmp[c]); n++)
+                //{
+                    //dout << "pcal1" << get_cord_x(cordsTmp[c][n]) <<  get_cord_x(cordsTmp2[c][n]) << "\n";
+                //}
+                //>>debug
             if (fm_handler_.isMapGap(f_map))
             {
                 mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], clipsTmp[c], apx_gaps, f1, f2, gap_parms[thd_id]);
+                //<<degbug
+                //for (unsigned n = 0; n < length(cordsTmp[c]); n++)
+                //{
+                    //dout << "pcal2" << get_cord_x(cordsTmp[c][n]) <<  get_cord_x(cordsTmp2[c][n]) << "\n";
+                //}
+                //>>debug
                 reformCords(cordsTmp[c], cordsTmp2[c], &reformCordsDxDy1, cords_parms);
+                //<<degbug
+                //for (unsigned n = 0; n < length(cordsTmp[c]); n++)
+                //{
+                    //dout << "pcal3" << get_cord_x(cordsTmp[c][n]) <<  get_cord_x(cordsTmp2[c][n]) << "\n";
+                //}
+                //>>debug
             }
             if (fm_handler_.isAlign(f_map))
             {
@@ -741,6 +759,7 @@ int map_(IndexDynamic & index,
     {
         append(cords_str, cordsTmp);
         append(cords_end, cordsTmp2);
+        append(cords_info, cords_info_tmp);
         if (fm_handler_.isMapGap(f_map))
         {
             append(clips, clipsTmp);

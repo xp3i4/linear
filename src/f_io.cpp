@@ -682,6 +682,7 @@ void createRectangleCigarPair (uint64_t cord1, uint64_t cord2,
         cigar2.operation = 'D';
         cigar1.count = dy;
         cigar2.count = dx - dy;
+        dout << "crc" << cigar2.count << get_cord_x(cord1) << get_cord_x(cord2) << get_cord_y(cord1) << get_cord_y(cord2) << "\n";
     }
     else 
     {
@@ -747,6 +748,8 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
     uint64_t y12 = get_cord_y(cord1_end);
     uint64_t x21 = get_cord_x(cord2_str);
     uint64_t y21 = get_cord_y(cord2_str);
+
+    dout << "c2c1" << x11 << y11 << x12 << y12 << x21 << y21 << "\n";
 
     if (x0 - y0 != x11 - y11) 
     {
@@ -992,6 +995,7 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
             }
             else
             {
+                dout << "c2bbl" << length(cords_end) << length(cords_info) << length(bam_link_records_tmp) << length(reads) << "\n";
                 cords2BamLink (cords_str[i], cords_end[i], cords_info[i], bam_link_records_tmp[ii], reads[i], thd_large_X);
             }
             ii++;

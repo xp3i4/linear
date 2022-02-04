@@ -758,6 +758,11 @@ int chainBlocksHits(String<uint64_t> & hits, String<UPair> & str_ends_p, String<
 */
 int getChainBlockDxDy(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len, int strand, int64_t & dx, int64_t & dy)
 {
+    dout << "gbdxy1" << strand << "\n";
+    //print_cord(cord11, "gbdxy1");
+    //print_cord(cord12, "gbdxy1");
+    //print_cord(cord21, "gbdxy1");
+    //print_cord(cord22, "gbdxy1");
     if (get_cord_strand(cord11) != unsigned(strand))
     {
         if (get_cord_strand(cord22) != unsigned(strand))
@@ -921,6 +926,7 @@ int chainBlocksSingleStrand(String<uint64_t> & cords, String<UPair> & str_ends_p
     String<int> str_ends_p_score;
     resize(str_ends_p_score, length(str_ends_p));
     int strand = chn_score.chn_score_parms.chn_block_strand;
+    dout << "cbss1 <<<" << strand << "\n";
     if (strand)
     {
         std::sort (begin(str_ends_p), end(str_ends_p), [&cords, &read_len](UPair & a, UPair &b){
@@ -948,10 +954,23 @@ int chainBlocksSingleStrand(String<uint64_t> & cords, String<UPair> & str_ends_p
         //init the score as the length of the blocks
         str_ends_p_score[i] = (str_ends_p[i].second - str_ends_p[i].first) * thd_init_cord_score;
     }
+    //<<debug
+    //for (unsigned i = 0; i < length(str_ends_p); i++)
+    //{
+    //    dout << "cbss1" << str_ends_p[i].first << str_ends_p[i].second << "\n";
+    //}
+    //>>debug
     int thd_best_n1 = 3; //unlimited
     float thd_stop_chain_len_ratio = 0.7;
     chainBlocksBase(cords_chains, cords, str_ends_p, str_ends_p_score, read_len, 
         chn_score, thd_best_n1, 0, thd_stop_chain_len_ratio);
+    //<<debug
+    //for (unsigned i = 0; i < length(cords_chains); i++)
+    //for (unsigned j = 0; j < length(cords_chains[i]); j++)
+    //{
+        //dout << "cbss2" << cords_chains[i][j].first << cords_chains[i][j].second << "\n";
+    //}
+    //>>debug
     //dout << "cbs1" << length(cords_chains) << "\n";
     return 0;
 }

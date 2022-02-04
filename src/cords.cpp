@@ -504,7 +504,7 @@ int reformCords(String<uint64_t> & cords_str,
                 String<int> & bands21,
                 String<int> & bands22,
                 int (*reformCordFunc) (String<uint64_t> &, String<uint64_t> &, String<int> &,
-                    String<int> &, String<int> &, String<int> &, unsigned &, unsigned &,  CordsParms &),
+                    String<int> &, String<int> &, String<int> &, unsigned &, CordsParms &),
                 CordsParms & cords_parms,
                 int f_bands)
 {
@@ -513,19 +513,19 @@ int reformCords(String<uint64_t> & cords_str,
         return 0;
     }
     //uint64_t lower_bound, upper_bound;
-    unsigned i1 = 0, i2 = 1;
-    while (i2 < length(cords_str))
+    unsigned it = 1;
+    while (it < length(cords_str))
     {
-        reformCordFunc(cords_str, cords_end, bands11, bands12, bands21, bands22, i1, i2, cords_parms);
+        reformCordFunc(cords_str, cords_end, bands11, bands12, bands21, bands22, it, cords_parms);
     }
-    resize(cords_str, i1);
-    resize(cords_end, i2);
+    //resize(cords_str, i1);
+    //resize(cords_end, i2);
     if (f_bands)
     {
-        resize(bands11, i1);
-        resize(bands12, i1);
-        resize(bands21, i1);
-        resize(bands22, i1);
+        resize(bands11, length(cords_str));
+        resize(bands12, length(cords_str));
+        resize(bands21, length(cords_str));
+        resize(bands22, length(cords_str));
     }
     return 0;
 }
@@ -536,7 +536,7 @@ int reformCords(String<uint64_t> & cords_str,
 int reformCords(String<uint64_t> & cords_str,
                 String<uint64_t> & cords_end,
                 int (*reformCordFunc) (String<uint64_t> &, String<uint64_t> &, String<int> &,
-                    String<int> &, String<int> &, String<int> &, unsigned &, unsigned &,  CordsParms &),
+                    String<int> &, String<int> &, String<int> &, unsigned &, CordsParms &),
                 CordsParms & cords_parms)
 {
     String<int> bands_null;
@@ -594,53 +594,39 @@ int reformCordsDxDy1(String<uint64_t> & cords_str,
                      String<int> & bands12,
                      String<int> & bands21,
                      String<int> & bands22,
-                     unsigned & i1,
-                     unsigned & i2,
+                     unsigned & it,
                      CordsParms & cords_parms) 
 {
     unused(bands11);
     unused(bands12);
     unused(bands21);
     unused(bands22);
-
+    dout << "rfc " << it << length(cords_str) << "\n";
+    unsigned i1 = it - 1, i2 = it;
     uint64_t cord11 = cords_str[i1], cord12 = cords_end[i1];
     uint64_t cord21 = cords_str[i2], cord22 = cords_end[i2];
-    //print_cord(cord11, "rcdxy2");
-    if (get_cord_strand(cord11 ^ cord22))
-    {
-        ++i1;
-        ++i2;
-        return 1; 
-    }
     int64_t dx1 = get_cord_x(cord21) - get_cord_x(cord11);
     int64_t dy1 = get_cord_y(cord21) - get_cord_y(cord11);
     uint64_t lower_bound_str, upper_bound_str;
-    //int f = 0;
-    /*
-    if (i1 + 1 < i2)
+    if (get_cord_x(cords_str[it]) > get_cord_x(cords_end[it]) || get_cord_y(cords_str[it]) > get_cord_y(cords_end[it]))
     {
-        cords_str[i1 + 1] = cords_str[i2];
-        cords_end[i1 + 1] = cords_end[i2];
-    }
-    if (dx1 > 0 && dx1 < cords_parms.thd_rcdxdy_merge_min_dx &&
-        dx2 > 0 && dx2 < cords_parms.thd_rcdxdy_merge_min_dx &&
-        dy1 > 0 && dy1 < cords_parms.thd_rcdxdy_merge_min_dy &&
-        dy2 > 0 && dy2 < cords_parms.thd_rcdxdy_merge_min_dy)
-    {
-        cords_end[i1] = cords_end[i2];
-        ++i2;   //cords[i2] is merged
-        return 0;
-    }*/
-    if ((dx1 < 0 && dx1 > cords_parms.thd_rcdxdy_min_dx) || 
-        (dy1 < 0 && dy1 > cords_parms.thd_rcdxdy_min_dy))
-    {
-        if (get_cord_strand (cords_str[i1] ^ cords_str[i1]) || 
-            _DefaultCord.isBlockEnd(cords_str[i1]))
+        if (_DefaultCord.isBlockEnd(cords_str[it]))
         {
-            ++i1;
-            ++i2;
-            return 0;
+            set_cord_block_end(cords_str[it - 1]);
+            set_cord_block_end(cords_end[it - 1]);
         }
+        erase(cords_str, it);
+        erase(cords_end, it);
+        return 1;
+    }
+    else if (get_cord_strand(cord11 ^ cord22) || _DefaultCord.isBlockEnd(cord11))
+    {
+        ++it;
+        return 1; 
+    }
+    else if ((dx1 < 0 && dx1 > cords_parms.thd_rcdxdy_min_dx) || 
+             (dy1 < 0 && dy1 > cords_parms.thd_rcdxdy_min_dy))
+    {
         if (i1 == 0 || _DefaultCord.isBlockEnd(cords_str[i1 - 1]))
         {
             lower_bound_str = 0;
@@ -681,9 +667,13 @@ int reformCordsDxDy1(String<uint64_t> & cords_str,
             cords_str[i1] = cord11; cords_end[i1] = cord12;
             cords_str[i2] = cord21; cords_end[i2] = cord22;
         }
+        ++it;
+    } 
+    else 
+    {
+        ++it; //normal 
     }
-    ++i1;
-    ++i2;
+
     return 0;
 }
 

@@ -149,6 +149,7 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                         gap_str1, gap_end1,
                         gap_str2, gap_end2, 
                         thd_dxy_min, gap_parms);
+
             //!add post process here            
             if (!empty(tiles_str1))
             {
@@ -273,6 +274,7 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                      */   
                     mapGeneric (seqs, read, comstr, f1, f2, tiles_str1, tiles_end1, 
                         t_gap_str, t_gap_end, gap_parms);
+                                g_print_tiles_(tiles_end1, "mgs11");
                     if (!empty(tiles_str1))
                     {
                         erase(tiles_str1, 0); //inserted by reform_tiles
@@ -304,6 +306,7 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         }
         resize(tiles_str, length(tiles_str) - 2);
         resize(tiles_end, length(tiles_end) - 2);
+        //g_print_tiles_(tiles_end, "mgs3");
     //}
     return 0;
 }
@@ -386,7 +389,11 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                 if (max_gap_overlap_y > thd_cord_gap)
                 {
                     mapGap_ (seqs, read, comstr, gap_str, gap_end, f1, f2, tiles_str, tiles_end, clips, direction, thd_dxy_min, gap_parms);
+                    //g_print_tiles_(tiles_end, "mg1");
                     insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size, thd_max_segs_num);
+                    //<<debug
+                    //g_print_tiles_(tiles_end, "mg2");
+                    //>>debug
                 }
                 //_DefaultHit.setBlockEnd(cords_str[i - 1 + length(tiles_str)]);
                 //_DefaultHit.setBlockEnd(cords_end[i - 1 + length(tiles_str)]);

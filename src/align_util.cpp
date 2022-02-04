@@ -765,8 +765,8 @@ int BamLinkStringOperator::fillBamRecordLinkRecords(
             Iterator<String<Dna5> >::Type it2 = begin(read);
             int it3 = it;
             //<<debug
-            //Iterator<String<Dna5> >::Type it11 = it1;
-            //Iterator<String<Dna5> >::Type it21 = it2;
+            Iterator<String<Dna5> >::Type it11 = it1;
+            Iterator<String<Dna5> >::Type it21 = it2;
             //>>debug
             String<Dna5> comp_reverse;
             //dout << "fb3" << (int(bam_records[it].flag) & (int)16) << "\n";
@@ -779,8 +779,8 @@ int BamLinkStringOperator::fillBamRecordLinkRecords(
             {
                 for (unsigned j = 0; j < length(bam_records[it3].cigar); ++j)
                 {
+                    //std::cout << "fb1" << bam_records[it3].cigar[j].count << bam_records[it3].cigar[j].operation << " " << it1 - it11 << " " << it2 - it21 << bam_records[it].beginPos << "\n";// << *it1 << " " << *it2<< "\n";
                     cigar2SamSeq(bam_records[it3].cigar[j], bam_records[it].seq, it1, it2, f_is_align);
-                    //std::cout << "fb1" << bam_records[it3].cigar[j].count << bam_records[it3].cigar[j].operation << " " << it1 - it11 << " " << it2 - it21 << bam_records[it].beginPos << " " << *it1 << " " << *it2<< "\n";
                 }
                 if (bam_records[it3].isEnd())
                 {

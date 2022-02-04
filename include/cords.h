@@ -198,7 +198,7 @@ void printAnchors(String<uint64_t> & anchors, CharString header = "", bool f_pri
 int reformCords(String<uint64_t> & cords_str,
                 String<uint64_t> & cords_end,
                 int (*reformCordFunc) (String<uint64_t> &, String<uint64_t> &, String<int> &,
-                    String<int> &, String<int> &, String<int> &, unsigned &, unsigned &,  CordsParms &),
+                    String<int> &, String<int> &, String<int> &, unsigned &, CordsParms &),
                 CordsParms & cords_parms);
 
 int reformCordsDxDy1(String<uint64_t> & cords_str,
@@ -207,8 +207,7 @@ int reformCordsDxDy1(String<uint64_t> & cords_str,
                      String<int> & bands12,
                      String<int> & bands21,
                      String<int> & bands22,
-                     unsigned & i1,
-                     unsigned & i2,
+                     unsigned & it,
                      CordsParms & cords_parms);
 
 struct CordInfo
