@@ -274,7 +274,7 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                      */   
                     mapGeneric (seqs, read, comstr, f1, f2, tiles_str1, tiles_end1, 
                         t_gap_str, t_gap_end, gap_parms);
-                                g_print_tiles_(tiles_end1, "mgs11");
+                                //g_print_tiles_(tiles_end1, "mgs11");
                     if (!empty(tiles_str1))
                     {
                         erase(tiles_str1, 0); //inserted by reform_tiles
