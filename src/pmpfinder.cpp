@@ -1590,9 +1590,9 @@ int clean_blocks_ (String<uint64_t> & cords, uint64_t thd_drop_len, int64_t thd_
 
 /*
  * WARN::1.
-   gaps use cord structure to record y coordinate for simplicity. 
-   But the x and strand bits are not defined.
-   So Do Not use any functions related to x and strand for gaps 
+   gaps use cord structure to record y coordinate for simplicity,
+   while the bits for x and strands are not defined.
+   Do Not calld any function of x and strand for gaps 
  * 2. Any y of gaps is on the forward strand.
  */
 //Collect gaps in coordinates y
@@ -1605,11 +1605,14 @@ int gather_gaps_y_ (String<uint64_t> & cords,
     unused(cords);
     uint64_t cord_frt = shift_cord(0, 0, 0); //cord at front 
     uint64_t cord_end = shift_cord(0, 0, read_len - 1); //..end
+    int gap_lens_sum = 0;
 
     if (empty(str_ends))
     {
         appendValue (gaps, UPair(cord_frt, cord_end));
-        return 0;
+        UPair gap_y = getUPForwardy(back(gaps), read_len);
+        gap_lens_sum += gap_y.second - gap_y.first;
+        return gap_lens_sum;
     }
     std::sort (begin(str_ends), end(str_ends), [&read_len](UPair & i, UPair & j)
     {
@@ -1627,18 +1630,21 @@ int gather_gaps_y_ (String<uint64_t> & cords,
     UPair y2 = y1;
     if (y1.first > thd_gap_size) //check str[0]
     {
-        cordy2 = y1.first;
+        cordy2 = get_cord_y(y1.first);
         appendValue(gaps, UPair(cord_frt, cordy2));
+        UPair gap_y = getUPForwardy(back(gaps), read_len);
+        gap_lens_sum += gap_y.second - gap_y.first;
     }
     for (unsigned i = 1; i < length(str_ends); i++)
     {
         if (!f_cover)
         {
             y1 = getUPForwardy(str_ends[i - 1], read_len);
-            cordy1 = get_cord_y(str_ends[i - 1].second);
+            cordy1 = get_cord_y(y1.second);
         }
-        cordy2 = get_cord_y(str_ends[i].first);
+        //dout << "cordy1" << cordy1 << y1.second << f_cover << get_cord_y)<< "\n"
         y2 = getUPForwardy(str_ends[i], read_len);
+        cordy2 = get_cord_y(y2.first);
         if (y1.second > y2.second)  
         {
             //skip y2
@@ -1652,6 +1658,8 @@ int gather_gaps_y_ (String<uint64_t> & cords,
                 y2.first - y1.second > thd_gap_size) 
             {
                 appendValue (gaps, UPair(cordy1, cordy2));
+                UPair gap_y = getUPForwardy(back(gaps), read_len);
+                gap_lens_sum += gap_y.second - gap_y.first;
             }
             f_cover = 0; 
         }
@@ -1660,8 +1668,10 @@ int gather_gaps_y_ (String<uint64_t> & cords,
     if (read_len - max_y_end > thd_gap_size) //be sure y2 = back(str_ends)
     {
         appendValue(gaps, UPair(max_y_end, cord_end));
+        UPair gap_y = getUPForwardy(back(gaps), read_len);
+        gap_lens_sum += gap_y.second - gap_y.first;
     }
-    return 0;
+    return gap_lens_sum;
 }
 
 /*
@@ -2691,7 +2701,7 @@ uint64_t apxMap_ (IndexDynamic & index,
             //dout << "cors3" << max_score << cords_info[i].score << i << "\n";
         }
     path_dst(hits, f1, f2, cords, read_str, read_end, length(read), alg_type);
-    dout << "apx_t" << t1 / (sysTime() - t0) << "\n";
+    dout << "apx_t" << t1 << t1 / (sysTime() - t0) << "\n";
     //print_cords(hits, "cors5");
     return 0;
 }
@@ -2716,6 +2726,7 @@ uint64_t apxMap (IndexDynamic & index,
     int64_t thd_chain_blocks_lower = -100;
     int64_t thd_chain_blocks_upper = 10000; //two blocks of cords will be combined to one if they can be combined and close enough (< this)
     int64_t thd_drop_len = 2;
+    float thd_reapx_max_gap_ratio = 0.7;
     thd_drop_len = std::min (thd_drop_len, int64_t(length(read) * 0.05 / thd_cord_size)); //drop blocks length < this
     clear(apx_gaps);
     if (f_chain)
@@ -2735,27 +2746,29 @@ uint64_t apxMap (IndexDynamic & index,
         //print_cords(cords_str, "ap2");
         //>>!!!!!!!!! comment for debug, restore after debug
         gather_blocks_ (cords_str, str_ends, str_ends_p, 1, length(cords_str), length(read), thd_large_gap, thd_cord_size, 1, &is_cord_block_end, &set_cord_end);
-        gather_gaps_y_ (cords_str, str_ends, apx_gaps, length(read), thd_large_gap);
+        int gap_lens_sum = gather_gaps_y_ (cords_str, str_ends, apx_gaps, length(read), thd_large_gap);
         //uint64_t map_d = thd_cord_size >> 1; // cords + to map areas
         //uint64_t str_y = 0;                  //stry y of interval between two consecutive blocks
-        for (unsigned i = 0; i < length(apx_gaps); i++) //check large gap and remap the gaps
+        if (float(gap_lens_sum) / length(read) < thd_reapx_max_gap_ratio)
         {
-            UPair y = getUPForwardy (apx_gaps[i], length(read));
-            uint64_t y1 = y.first;
-            uint64_t y2 = y.second;   
-            pm_pmp.toggle(1); 
-            map_str =  y1; 
-            map_end =  create_cord(MAX_CORD_ID, MAX_CORD_X, y2, 0);
-            //dout << "apx1" << y1 << y2 << "\n";
-            apxMap_(index, read, anchors, hit, f1, f2, cords_str, cords_info, map_str, map_end, alg_type, pm_g, pm_pmp);
-            pm_pmp.toggle(0);
+            for (unsigned i = 0; i < length(apx_gaps); i++) //check large gap and remap the gaps
+            {
+                UPair y = getUPForwardy (apx_gaps[i], length(read));
+                uint64_t y1 = y.first;
+                uint64_t y2 = y.second;   
+                pm_pmp.toggle(1); 
+                map_str =  y1; 
+                map_end =  create_cord(MAX_CORD_ID, MAX_CORD_X, y2, 0);
+                apxMap_(index, read, anchors, hit, f1, f2, cords_str, cords_info, map_str, map_end, alg_type, pm_g, pm_pmp);
+                pm_pmp.toggle(0);
+            }
+            //>>!!!!!!!!! comment for debug, restore after debug
+            //print_cords(cords_str, "ap2");
+            //>>!!!!!!!!! comment for debug, restore after debug
+            clear (str_ends);
+            clear (str_ends_p);
+            gather_blocks_ (cords_str, str_ends, str_ends_p, 1, length(cords_str), length(read), thd_large_gap, thd_cord_size, 1, & is_cord_block_end, & set_cord_end);
         }
-        //>>!!!!!!!!! comment for debug, restore after debug
-        //print_cords(cords_str, "ap2");
-        //>>!!!!!!!!! comment for debug, restore after debug
-        clear (str_ends);
-        clear (str_ends_p);
-        gather_blocks_ (cords_str, str_ends, str_ends_p, 1, length(cords_str), length(read), thd_large_gap, thd_cord_size, 1, & is_cord_block_end, & set_cord_end);
         t2 = sysTime() - t2;
         double t3 = sysTime();
         chainApxCordsBlocks (cords_str, str_ends_p, length(read), thd_chain_blocks_lower, thd_chain_blocks_upper, alg_type);
