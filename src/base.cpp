@@ -135,7 +135,7 @@ std::pair<uint, uint> loadRecords(StringSet<String<Dna5> > & seqs,
     std::pair<uint, uint> res;
     if (!open(gFile, toCString(path)))
     {
-        serr.print_message("\033[1;31mError[02]:\033[0m can't open file ", 2, 0, std::cerr);
+        serr.print_message("\033[1;31mE[03]:\033[0m can't open file ", 0, 0, std::cerr);
         serr.print_message(toCString(path), 0, 1, std::cerr);
         res =std::make_pair (uint(~0), uint(~0));
         return res;
@@ -157,28 +157,11 @@ std::pair<uint, uint> loadRecords(StringSet<String<Dna5> > & seqs,
         {
             #pragma omp section
             {
-                //unsigned preSeqCount = 0;
-                String <char> probar;
-                float prepercent = 0, percent = 0, showpercent = 0, v = 0.87 ;
                 unsigned k = 1;
                 while (!flag)
                 {
-                    prepercent = percent;
-                    percent = currentFileSize / fileSize * 100;
-                    percent = (percent > 100)?prepercent:percent;
-                    showpercent += v;
-                    showpercent = (showpercent > percent)?percent:showpercent;
-                    
-                    std::cerr << "                                                            \r";
-                    if (seqCount > 2)
-                    {
-                        std::cerr << "=>Read genomes" << dotstatus[(k - 1)/10 %3] << "            " 
-                        << seqCount << "/" << std::setprecision(2) << std::fixed << showpercent << "%\r";
-                    }
-                    else
-                    {
-                        std::cerr << "=>Read genomes" << dotstatus[(k - 1)/10 %3] << "\r";
-                    }
+                    serr.print_message("", 50, 2, std::cerr);
+                    std::cerr << "=>Read genomes " << seqCount << dotstatus[(k - 1)/10 %3] << "\r"; 
                     std::this_thread::sleep_for(std::chrono::milliseconds(100));
                     k++;
                 }
@@ -194,13 +177,13 @@ std::pair<uint, uint> loadRecords(StringSet<String<Dna5> > & seqs,
                     try
                     {
                         readRecord (tmp_id, tmp_seq, gFile);
-                                            }
+                    }
                     catch (Exception const & e)
                     {
                         std::string msg1 = "File: " + path + " ";
                         serr.print_message (msg1, 2, 0, std::cerr);
                         serr.print_message ("[", 20, 0, std::cerr);
-                        serr.print_message("\033[1;31mError:\033[0m can't read records in file]", 0, 1, std::cerr);
+                        serr.print_message("\033[1;31mE[04]:\033[0m can't read records in file]", 0, 1, std::cerr);
                         error = 1;
                     }
                     for (unsigned i = 0; i < length(tmp_id); i++)
@@ -250,7 +233,8 @@ int loadRecords(StringSet<String<Dna5> > & seqs,
         }
         if (i == 0)
         {
-            serr.print_message ("--Read genomes ", 0, 1, cerr);
+            serr.print_message ("--Read genomes ", 0, 0, cerr);
+            serr.print_message (" ", 50, 1, cerr);
         }
         std::string msg1 = "File: " + paths[i] + " ";
         serr.print_message (msg1, 2, 0, cerr);

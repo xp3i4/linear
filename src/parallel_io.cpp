@@ -435,7 +435,7 @@ int p_FetchReads(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
         {
             if(!open(p_tasks.fin, toCString(file_name)))
             {
-                serr.print_message("\033[1;31mError[01]:\033[0m can't open read file ", 2, 0, std::cerr);
+                serr.print_message("\033[1;31mE[10]:\033[0mcan't open read file ", 0, 0, std::cerr);
                 serr.print_message(toCString(file_name), 0, 1, std::cerr);
                 return 2; 
             }  

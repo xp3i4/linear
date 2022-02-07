@@ -55,7 +55,7 @@ parseCommandLine(Options & options)
     // Setup ArgumentParser.
     seqan::ArgumentParser parser("Linear");
     // Set short description, version, and date.
-    setShortDescription(parser, "Easy-to-use options and arguments.");
+    setShortDescription(parser, "options and arguments. 😀");
     setVersion(parser, options.version);
     setDate(parser, options.date);
     addUsageLine(parser, "[\\fIOPTIONS\\fP] \\fIread.fa/fastq(.gz)\\fP \\fIgenome.fa(.gz)\\fP ");
@@ -82,8 +82,8 @@ parseCommandLine(Options & options)
     */
                  
     addListItem(parser,
-                "\\fPlinear \\fIreads_dir/*.fa.gz x grch37/*.fa\\fP",
-                "The argumnet \\fBx \\fPto map all files against the reference genomes in the directory");
+                "\\fPlinear \\fIreads_dir/*.fa.gz x grch38/*.fa\\fP",
+                "Use the argumnet \\fBx \\fPto map all files in the directory reads_dir against all reference genomes in the directory grch38");
     /*
     addListItem(parser,
                 "\\fPlinear \\fIreads.fa genome.fa -g -a\\fP",
@@ -96,7 +96,7 @@ parseCommandLine(Options & options)
         seqan::ArgParseArgument::INPUT_FILE, "genome"));
     setHelpText(parser, 1, "Reference file .fa(.gz), .fasta(.gz)");
 */
-    addSection(parser, "Basic Options");
+    addSection(parser, "Basic options");
     addOption(parser, seqan::ArgParseOption(
         "o", "output", "Set the path of output. \
         Linear will use the prefix of the reads filename for output if the this option is empty",
@@ -176,9 +176,10 @@ parseCommandLine(Options & options)
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
     addOption (parser, seqan::ArgParseOption(
-        "r", "reform_ccs_cigar_flag", "Enable/Disable compressing the cigar string for Pacbio CCS reads. -r 0{Disale} {DEFAULT}",
+        "r", "reform_ccs_cigar_flag", "Enable/Disable compressing the cigar string for Pacbio CCS reads. -r 0(Disable) {DEFAULT}",
         seqan::ArgParseArgument::INTEGER, "INT"
         ));
+    /*
     addOption(parser, seqan::ArgParseOption(
         "l1", "listn1", "mapping::listn1",
             seqan::ArgParseArgument::INTEGER, "INT"));     
@@ -200,6 +201,7 @@ parseCommandLine(Options & options)
     addOption(parser, seqan::ArgParseOption(
         "p1", "par1", "mapping::p1",
             seqan::ArgParseArgument::INTEGER, "INT")); 
+            */
     // Parse command line.
     seqan::ArgumentParser::ParseResult res = seqan::parse(parser, argc, &new_args[0]);
     if (res != seqan::ArgumentParser::PARSE_OK)
@@ -228,7 +230,7 @@ parseCommandLine(Options & options)
     args = getArgumentValues(parser, 0);
     if (length(args) < 2)
     {
-        std::cerr << "\033[1;31m[Err]\033[m: Please specify the files of reads and genomes \n";
+        serr.print_message("\033[1;31mE[01]:\033[0m: Please specify the files of reads and genomes", 0, 1, std::cerr);
         return seqan::ArgumentParser::PARSE_ERROR;
     }
     else if (length(args) == 2)
@@ -240,19 +242,29 @@ parseCommandLine(Options & options)
     else
     {
         Options::PathsType * pp = & options.r_paths;
+        bool f_CARTESIAN = false;
         for (size_t i = 0; i < length(args); i++)
         {
             if (args[i] == CARTESIAN)
             {
                 pp = & options.g_paths;
+                f_CARTESIAN = true;
             }
             else
             {
                 appendValue (*pp, args[i]);
             }
         }
+        if (!f_CARTESIAN)
+        {
+            options.op_status = 2;
+            serr.print_message("\033[1;31mE[02]:\033[0mPlease add '\033[1;31mx\033[0m' between files of reads and genomes.", 0, 1, std::cerr);
+            res = seqan::ArgumentParser::PARSE_ERROR;
+            return res;
+        }
     }
      
+     /*
     getOptionValue(options.listN, parser, "listn1");
     getOptionValue(options.listN2, parser, "listn2");
     getOptionValue(options.alpha, parser, "alpha1");
@@ -260,6 +272,7 @@ parseCommandLine(Options & options)
     getOptionValue(options.cordThr, parser, "cordThr");
     getOptionValue(options.senThr, parser, "senThr");
     getOptionValue(options.p1, parser, "p1");
+    */
 
     return seqan::ArgumentParser::PARSE_OK;
 

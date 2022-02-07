@@ -147,7 +147,7 @@ int Mapper::loadOptions(Options & options)
         if (! ifFileExists(r_paths[i]))
         {
             options.op_status |= 1;
-            serr.print_message("\033[1;31mError[03]:\033[0m can't open file ", 2, 0, std::cerr);
+            serr.print_message("\033[1;31mE[05]:\033[0mCan't open file ", 0, 0, std::cerr);
             serr.print_message(toCString(r_paths[i]), 0, 1, std::cerr);
             return options.op_status;
         }
@@ -157,7 +157,7 @@ int Mapper::loadOptions(Options & options)
         if (! ifFileExists(g_paths[i]))
         {
             options.op_status |= 2;
-            serr.print_message("\033[1;31mError[03]:\033[0m can't open file ", 2, 0, std::cerr);
+            serr.print_message("\033[1;31mE[06]:\033[0mCan't open file ", 0, 0, std::cerr);
             serr.print_message(toCString(g_paths[i]), 0, 1, std::cerr);
             return options.op_status;
         }
@@ -835,7 +835,7 @@ int map(Mapper & mapper,
     {
         if(!open(rFile, toCString(path)))
         {
-            serr.print_message("\033[1;31mError[01]:\033[0m can't open read file ", 2, 0, std::cerr);
+            serr.print_message("\033[1;31mE[07]:\033[0mCan't open read file ", 0, 0, std::cerr);
             serr.print_message(toCString(path), 0, 1, std::cerr);
             continue; 
         }
@@ -1076,7 +1076,7 @@ int filter(Mapper & mapper,
         auto & path = mapper.getRPaths()[i];
         if(!open(rFile, toCString(path)))
         {
-            serr.print_message("\033[1;31mError[01]:\033[0m can't open read file ", 2, 0, std::cerr);
+            serr.print_message("\033[1;31mE[08]:\033[0mCan't open read file ", 0, 0, std::cerr);
             serr.print_message(toCString(path), 0, 1, std::cerr);
             continue; 
         }
@@ -1099,7 +1099,7 @@ int filter(Mapper & mapper,
             }
             catch (Exception const & e)
             {
-                std::cerr << "\033[1;31mError:\033[0m can't read records " << e.what () << "\n";
+                std::cerr << "\033[1;31mE[09]:\033[0mCan't read records " << e.what () << "\n";
                 //none;
             }
             //serr.print_message("", 50, 2, std::cerr); 
