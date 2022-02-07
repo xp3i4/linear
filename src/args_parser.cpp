@@ -53,9 +53,9 @@ parseCommandLine(Options & options)
     }
     argc = length(new_args); 
     // Setup ArgumentParser.
-    seqan::ArgumentParser parser("linear");
+    seqan::ArgumentParser parser("Linear");
     // Set short description, version, and date.
-    setShortDescription(parser, "Options & arguments ");
+    setShortDescription(parser, "Easy-to-use options and arguments.");
     setVersion(parser, options.version);
     setDate(parser, options.date);
     addUsageLine(parser, "[\\fIOPTIONS\\fP] \\fIread.fa/fastq(.gz)\\fP \\fIgenome.fa(.gz)\\fP ");
@@ -70,20 +70,26 @@ parseCommandLine(Options & options)
     //addTextSection(parser, "Examples");
     addTextSection(parser, "Examples");
     addListItem(parser,
-                "\\fPlinear \\fIreads_dir/*.fa.gz grch37/chr1.fa\\fP",
-                "Map the set of reads to the reference chr1.fa");
-    addListItem(parser,
-                "\\fPlinear \\fIreads_dir/*.fa.gz grch37/chr1.fa -g 0\\fP",
+                "\\fPlinear \\fIreads_dir/example.fa.gz ref.fa\\fP",
+                "Map the reads in example.fa against the reference genome ref.fa");
+    
+    //addListItem(parser,
+    //            "\\fPlinear \\fIreads_dir/*.fa.gz grch37/chr1.fa -g 0\\fP",
+    /*
                 "Map the set of reads to the reference chr1.fa with the mapping of gaps disabled.\
                 In such case, Linear generates approximate range of the reference where the reads are\
                  supposed to be mapped to");
+    */
+                 
     addListItem(parser,
                 "\\fPlinear \\fIreads_dir/*.fa.gz x grch37/*.fa\\fP",
-                "Use the argumnet \\fBx \\fPto map the set of reads to the set of genomes");
+                "The argumnet \\fBx \\fPto map all files against the reference genomes in the directory");
+    /*
     addListItem(parser,
                 "\\fPlinear \\fIreads.fa genome.fa -g -a\\fP",
                 "Use the option \\fB-a \\fPto enable the alignment"
         );
+        */
 
 /*
     addArgument(parser, seqan::ArgParseArgument(
@@ -92,28 +98,28 @@ parseCommandLine(Options & options)
 */
     addSection(parser, "Basic Options");
     addOption(parser, seqan::ArgParseOption(
-        "o", "output", "Set the path of output.",
+        "o", "output", "Set the path of output. \
+        Linear will use the prefix of the reads filename for output if the this option is empty",
             seqan::ArgParseArgument::STRING, "STR"));
+    /*
     addOption(parser, seqan::ArgParseOption(
         "ot", "output_type", "Set the type of output. 1 to enable .apf; 2 to enable .sam; 4 to enable \
-        standard bam; 8 to enable .bam for pbsv; Adding values, such as 1+2+4=7, with 7{DEFAULT} to enable .apf, .sam \
-        and .bam;\n \033[1;33mNote\033[m: The sv caller pbsv uses a non-standard format of sam/bam, \
+        standard bam; 8 to enable .bam for pbsv; Adding values, such as 1+2=3{DEFAULT} to enable .apf, .sam \
+        \033[1;33mNote\033[m: The sv caller pbsv uses a non-standard format of sam/bam, \
         in which delimiter of header is space rather than tab. The non-standard sam/bam can be called \
         only by pbsv, while it's incompatible to tools following strictly to the sam/bam format, such as\
         samtools. Hence enable the option with value 8 only when the bam is supposed to be called by pbsv",
             seqan::ArgParseArgument::INTEGER, "INT"));
+    */
     addOption(parser, seqan::ArgParseOption(
-        "p", "preset", "Set preset of parms. -p 0 normal {DEFAULT} -p 1 efficient  -p 2 additional",
+        "ot", "output_type", "Set the format of output file. 1 to enable .APF, an approximate mapping file for non-standard application; \
+         2 to enable .SAM; 4 to enable .BAM; Set values 3 {DEFAULT 3=1+2} to enable both .apf and .sam",
             seqan::ArgParseArgument::INTEGER, "INT"));
     addOption(parser, seqan::ArgParseOption(
-        "t", "thread", "Set threads to run -t 4 {DEFAULT}",
+        "t", "thread", "Set the number of threads to run -t 4 {DEFAULT}",
             seqan::ArgParseArgument::INTEGER, "INT"));
     addOption(parser, seqan::ArgParseOption(
-        "g", "gap_len", "Set the minimal length of gaps to map. -g 50 {DEFAULT}. -g 0 to turn off mapping of gaps.",
-            seqan::ArgParseArgument::INTEGER, "INT"
-        )); 
-    addOption(parser, seqan::ArgParseOption(
-        "a", "aln_flag", "Set to Enable/Disable alignment. -a 0(Disable) {DEFAULT}",
+        "g", "gap_len", "Set the minimal length of gaps. -g 50 {DEFAULT}. -g 0 to turn off mapping of gaps.",
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
     /*
@@ -134,10 +140,13 @@ parseCommandLine(Options & options)
         "sn", "sample_name", "Set the name of sample specified in the SAM header",
         seqan::ArgParseArgument::STRING, "STR"
         ));
+    /*
     addOption (parser, seqan::ArgParseOption(
         "ss", "sequence_sam", "Set to Enable/Disable printing sequence segment of reads in the SAM/BAM format. -ss 1(Enable) {DEFAULT}",
         seqan::ArgParseArgument::INTEGER, "INT"
         ));
+        */
+    addSection(parser, "More optoins (tweak)");
     addOption(parser, seqan::ArgParseOption(
         "b", "bal_flag", "Set to Enable/Disable dynamic balancing tasks schedule. -b 1(Enable) {DEFAULT}",
             seqan::ArgParseArgument::INTEGER, "INT" 
@@ -145,13 +154,21 @@ parseCommandLine(Options & options)
 //    addDefaultValue(parser, "gap_len", "1");
 
 // Advanced parms for mapping
-    addSection(parser, "Advanced optoins(for tweak & debug)");
+    addOption(parser, seqan::ArgParseOption(
+        "p", "preset", "Set preset of parms. -p 0 {DEFAULT} -p 1 efficient  -p 2 additional",
+            seqan::ArgParseArgument::INTEGER, "INT"));
+    /*
+    addOption(parser, seqan::ArgParseOption(
+        "a", "aln_flag", "Set to Enable/Disable alignment. -a 0(Disable) {DEFAULT}",
+            seqan::ArgParseArgument::INTEGER, "INT"
+        )); 
+        */
     addOption(parser, seqan::ArgParseOption(
         "i", "index_type", "Choose the type of indices{1, 2}. -i 1 {DEFAULT}",
             seqan::ArgParseArgument::INTEGER, "INT"
         ));
     addOption(parser, seqan::ArgParseOption(
-        "c", "apx_chain_flag", "0 to turn off chaining in apx mapping",
+        "c", "apx_c_flag", "0 to turn off apx c mapping",
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
     addOption(parser, seqan::ArgParseOption(
@@ -181,11 +198,10 @@ parseCommandLine(Options & options)
         "t2", "senThr", "mapping::senThr",
             seqan::ArgParseArgument::DOUBLE, "DOUBLE"));        
     addOption(parser, seqan::ArgParseOption(
-        "p1", "par1", "options::p1",
+        "p1", "par1", "mapping::p1",
             seqan::ArgParseArgument::INTEGER, "INT")); 
     // Parse command line.
     seqan::ArgumentParser::ParseResult res = seqan::parse(parser, argc, &new_args[0]);
-
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res;
     getOptionValue(options.oPath, parser, "output");
@@ -195,8 +211,8 @@ parseCommandLine(Options & options)
     getOptionValue(options.index_t, parser, "index_type");
     getOptionValue(options.feature_t, parser, "feature_type");
     getOptionValue(options.gap_len, parser, "gap_len");
-    getOptionValue(options.apx_chain_flag, parser, "apx_chain_flag");
-    getOptionValue(options.aln_flag, parser, "aln_flag");
+    getOptionValue(options.apx_chain_flag, parser, "apx_c_flag");
+    //getOptionValue(options.aln_flag, parser, "aln_flag");
     /*
     getOptionValue(options.sam_flag, parser, "output_sam");
     getOptionValue(options.apf_flag, parser, "output_apf");
@@ -204,7 +220,7 @@ parseCommandLine(Options & options)
     getOptionValue(options.reform_ccs_cigar_flag, parser, "reform_ccs_cigar_flag");
     getOptionValue(options.read_group, parser, "read_group");
     getOptionValue(options.sample_name, parser, "sample_name");
-    getOptionValue(options.sequence_sam_flag, parser, "sequence_sam");
+    //getOptionValue(options.sequence_sam_flag, parser, "sequence_sam");
     getOptionValue(options.bal_flag, parser, "bal_flag");
 
     //std::cerr << "xxxxx " << options.gap_len << isSet(parser, "gap_len") << "\n";
@@ -212,7 +228,7 @@ parseCommandLine(Options & options)
     args = getArgumentValues(parser, 0);
     if (length(args) < 2)
     {
-        std::cerr << "[Err]::At least two argments required to specify the reads and genomes \n";
+        std::cerr << "\033[1;31m[Err]\033[m: Please specify the files of reads and genomes \n";
         return seqan::ArgumentParser::PARSE_ERROR;
     }
     else if (length(args) == 2)

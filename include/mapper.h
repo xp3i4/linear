@@ -76,7 +76,7 @@ class Mapper : public P_Mapper
 public:
     Mapper();
     Mapper(Options & options);
-    void loadOptions(Options & options);
+    int loadOptions(Options & options);
     int setMapperBamHeaders(Options & options);
     StringSet<String<Dna5> > & getReads() {return record.seq1;}             
     StringSet<String<Dna5> > & getGenomes() {return record.seq2;}             

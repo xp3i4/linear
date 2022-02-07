@@ -80,7 +80,6 @@ int process3(Mapper & mapper, Options & options, int p1)
         p_ThreadProcess(mapper, p_parms, omp_get_thread_num());
     }
     //mapper.getTasks().printInfos();
-    dout << "p3" << "\n";
     unused(p1);
     unused(options);
     return 0;
@@ -90,12 +89,16 @@ int main(int argc, char const ** argv)
 {
     double time = sysTime();
     Options options(argc, argv);
-    options.printRunInfo();
-    std::cerr << std::fixed << std::setprecision(2);
     seqan::ArgumentParser::ParseResult res = parseCommandLine(options);
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res == seqan::ArgumentParser::PARSE_ERROR;
+    std::cerr << std::fixed << std::setprecision(2);
+    options.printRunInfo();
     Mapper mapper(options);
+    if (options.op_status)
+    {
+        return 1;
+    }
     if (options.bal_flag)
     {
         process3 (mapper, options, 0);

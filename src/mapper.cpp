@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <ctime>
+#include <unistd.h>
 #include "cords.h"
 #include "pmpfinder.h"
 //#include "gap.h"
@@ -121,16 +122,46 @@ Mapper::Mapper(Options & options):
                index_dynamic(getGenomes())
 {
     loadOptions(options);
-    loadGenomes();
-    setMapperBamHeaders(options);
+    if (!options.op_status)
+    {
+        loadGenomes();
+        setMapperBamHeaders(options);
+    }
 }
 
-void Mapper::loadOptions(Options & options)
+inline bool ifFileExists (const std::string& name) {
+ // struct stat buffer;   
+//  return (stat (name.c_str(), &buffer) == 0); 
+      return ( access( name.c_str(), F_OK ) != -1 );
+
+}
+
+int Mapper::loadOptions(Options & options)
 {
     uint64_t thd_gap_default = 50; //minium length of gap > 50 bases.
     uint64_t thd_gap_lower = 10; 
     r_paths = options.r_paths;
     g_paths = options.g_paths; 
+    for (unsigned i = 0; i < length(r_paths); i++)
+    {
+        if (! ifFileExists(r_paths[i]))
+        {
+            options.op_status |= 1;
+            serr.print_message("\033[1;31mError[03]:\033[0m can't open file ", 2, 0, std::cerr);
+            serr.print_message(toCString(r_paths[i]), 0, 1, std::cerr);
+            return options.op_status;
+        }
+    }
+    for (unsigned i = 0; i < length(g_paths); i++)
+    {
+        if (! ifFileExists(g_paths[i]))
+        {
+            options.op_status |= 2;
+            serr.print_message("\033[1;31mError[03]:\033[0m can't open file ", 2, 0, std::cerr);
+            serr.print_message(toCString(g_paths[i]), 0, 1, std::cerr);
+            return options.op_status;
+        }
+    }
     cord_size = window_size;
     //dout << "loadoptions" << options.bal_flag << "\n";
     switch (options.sensitivity)
@@ -237,6 +268,7 @@ void Mapper::loadOptions(Options & options)
     fio_parms.f_output_type = options.f_output_type;
     //fio_parms.bam_header()
     //dout << "par" << options.sequence_sam_flag << fio_parms.f_sequence_sam << "\n";
+    return options.op_status;
 }
 int Mapper::setMapperBamHeaders(Options & options)
 {
@@ -803,7 +835,7 @@ int map(Mapper & mapper,
     {
         if(!open(rFile, toCString(path)))
         {
-            serr.print_message("\033[1;31mError:\033[0m can't open read file ", 2, 0, std::cerr);
+            serr.print_message("\033[1;31mError[01]:\033[0m can't open read file ", 2, 0, std::cerr);
             serr.print_message(toCString(path), 0, 1, std::cerr);
             continue; 
         }
@@ -1044,7 +1076,7 @@ int filter(Mapper & mapper,
         auto & path = mapper.getRPaths()[i];
         if(!open(rFile, toCString(path)))
         {
-            serr.print_message("\033[1;31mError:\033[0m can't open read file ", 2, 0, std::cerr);
+            serr.print_message("\033[1;31mError[01]:\033[0m can't open read file ", 2, 0, std::cerr);
             serr.print_message(toCString(path), 0, 1, std::cerr);
             continue; 
         }

@@ -199,7 +199,7 @@ public:
 
     void init()
     {
-        addOption(*this, ArgParseOption("h", "help", "Displays this help message."));
+        addOption(*this, ArgParseOption("h", "help", "Display this help message."));
 
         // hidden flags used for export of man pages and ctd formats
         addOption(*this, ArgParseOption("",

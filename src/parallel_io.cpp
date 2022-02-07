@@ -83,13 +83,13 @@ void P_Tasks::printRunningInfos()
     std::cerr << "--\033[1;31m" << current_in_path << "\033[0m\n"
               << "\033[2K  I/O::in :" << counters.getInCounter() << "\t"
               << " cpu:" << counters.getInTimer() << "[s]\t"
-              << " speed:" << counters.getInCounter() / counters.getInTimer() << "[rds/cpu/s]\033[7h\n"
+              << " speed:" << counters.getInCounter() / counters.getInTimer() << "[rds/thd/s]\033[7h\n"
               << "\033[2K  I/O::out:" << counters.getOutCounter() << "\t"
               << " cpu:" << counters.getOutTimer() << "[s]\t"
-              << " speed:" << counters.getOutCounter() / counters.getOutTimer() << "[rds/cpu/s]\033[7h\n"
-              << "\033[2K  Calculate:" << counters.getCalCounter() << ""
+              << " speed:" << counters.getOutCounter() / counters.getOutTimer() << "[rds/thd/s]\033[7h\n"
+              << "\033[2K  Compute:" << counters.getCalCounter() << ""
               << " cpu:" << counters.getCalTimer() << "[s]"
-              << " speed:" << counters.getCalCounter() / counters.getCalTimer() << "[rds/cpu/s]\033[7h\n"
+              << " speed:" << counters.getCalCounter() / counters.getCalTimer() << "[rds/thd/s]\033[7h\n"
               << "\033[2K  \033[1;31mProcessed:\033[0m" << counters.getOutCounter() << ""
               << " time:" << sysTime() - start__time << "[s]" 
               << " speed:" << counters.getOutCounter() / t_t << "[rds/s]\033[7h\n\r";
@@ -435,7 +435,7 @@ int p_FetchReads(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
         {
             if(!open(p_tasks.fin, toCString(file_name)))
             {
-                serr.print_message("\033[1;31mError:\033[0m can't open read file ", 2, 0, std::cerr);
+                serr.print_message("\033[1;31mError[01]:\033[0m can't open read file ", 2, 0, std::cerr);
                 serr.print_message(toCString(file_name), 0, 1, std::cerr);
                 return 2; 
             }  

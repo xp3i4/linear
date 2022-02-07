@@ -19,14 +19,16 @@ uint64_t const ULLMAX = ~0;
 int64_t const LLMAX = (1LL << 62) - 1; //(1ULL << 63) - 1 integer overflow on some compilers
 int64_t const LLMIN = -LLMAX;
 
-bool f_debug = false;
+bool f_debug = true;
 
 using std::cerr;
 
 Options::Options():
-        name("li\033[1;31mN\033[m\033[1;34mE\033[mar"),
+        op_status(0),
+        name("Linear"),
         version("1.8.2"),
-        slogan("\033[1;31mN\033[movel \033[1;34mE\033[mfficient \033[1;33mC\033[moncise"),
+        //slogan("\033[1;31mN\033[movel \033[1;34mE\033[mfficient \033[1;33mC\033[moncise"),
+        slogan("A\033[1;31mL\033[m\033[1;32mI\033[mg\033[1;33mN\033[mment-fre\033[1;34mE\033[m method for long-read v\033[1;35mA\033[m\033[1;36mR\033[miants resolution"),
         oPath(""),
         gap_len(1),
         apx_chain_flag(1),
@@ -50,7 +52,7 @@ Options::Options():
         }
 std::string Options::getOutputPath() const {return oPath;}
 void Options::printRunInfo(){
-    std::cerr << name <<": " << slogan << std::endl; 
+    std::cerr << name << ": " << slogan << std::endl; 
 }
 
 Options::Options(int argc, char const ** & argv) : Options()
@@ -133,7 +135,7 @@ std::pair<uint, uint> loadRecords(StringSet<String<Dna5> > & seqs,
     std::pair<uint, uint> res;
     if (!open(gFile, toCString(path)))
     {
-        serr.print_message("\033[1;31mError:\033[0m can't open file ", 2, 0, std::cerr);
+        serr.print_message("\033[1;31mError[02]:\033[0m can't open file ", 2, 0, std::cerr);
         serr.print_message(toCString(path), 0, 1, std::cerr);
         res =std::make_pair (uint(~0), uint(~0));
         return res;

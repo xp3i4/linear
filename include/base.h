@@ -32,6 +32,7 @@ struct Options{
     int op_argc;
     char const ** op_argv;
     CharString cmd_line;
+    int op_status;
 
     typedef std::string PathType;
     typedef StringSet<PathType> PathsType;
