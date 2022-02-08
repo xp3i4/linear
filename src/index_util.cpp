@@ -1663,16 +1663,6 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
                 if (++count > thd_min_step)
                 {
                     hashNextX(shape, begin(seqs[i]) + j);
-            //<<debug
-                    /*
-            String<Dna5> kmer;
-            for (int ii = 0; ii < 9; ii++)
-            {
-                appendValue(kmer, *(begin(seqs[i]) + j + ii));
-            }
-            std::cout << "cdx1 " << j << " " << shape.XValue << " " << shape.hValue << " " << shape.strand << " "<< kmer << " " << shape.x << " x"<< "\n";
-            */
-            //>>debug
                     if (preVal != shape.XValue || j - last_j > thd_max_step)
                     {
                         atomicInc(dir[shape.XValue]);
@@ -1686,7 +1676,6 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
                     j_count = 0; 
                     finished_ratio += float(t_percent_cerr) / (t_end - t_str) * 100 * current_lens_ratio;
 
-                    //std::cout << "idx1 " << finished_ratio << " " << i << " " << gend << " " << current_lens_ratio << " j " << j << " "<< t_str << " " << t_end << "\n";
                     serr.print_message("=>Index::Initiating [", 0, 0, std::cerr);
                     serr.print_message(int(finished_ratio), 0, 0, std::cerr);
                     serr.print_message("%]", 0, 2, std::cerr);
@@ -1825,7 +1814,6 @@ int SIndex::printStatistics()
         return 0;
     }
     float mean = 0 ;
-    int count = 0;
     String<float> lens;
     resize(lens, hs.size(), 0);
     for (unsigned i = 0; i < hs.size(); i++)
@@ -1879,6 +1867,7 @@ int SIndex::printStatistics()
 }
 int64_t SIndex::queryHsStr(int64_t xval)
 {
+    (void) xval;
     return 0;
 }
 int64_t SIndex::queryHsEnd(int64_t xval)
@@ -1978,6 +1967,7 @@ void _initSIndexHs(SIndex & index, unsigned threads)
     //resize (index.cas_keys, index.fullSize(), 0);
     index.getHs().resize(index.fullSize()); //hs[0] is always non empty no matter how many threads
     resize (index.cas_keys, index.fullSize(), 0);
+    (void) threads;
 }
 /**
  * All threads access the same dir which is a StringSet
@@ -2090,7 +2080,7 @@ int _createSIndexHsThreadUnit(String<Dna5> & seq,
         {
             hashNextX(shape, begin(seq) + i);
             //hashNextX(shape, it);
-            if ((preVal != shape.XValue ) || i - last_i > thd_max_step)
+            if ((preVal != int64_t(shape.XValue)) || i - last_i > thd_max_step)
             //if ((preVal != shape.XValue && index.queryHsBlockLen(shape.XValue) < thd_rehash) || i - last_i > thd_max_step)
             {
                 while (1)
@@ -2110,13 +2100,13 @@ int _createSIndexHsThreadUnit(String<Dna5> & seq,
         {
             j_count = 0; 
             finished_ratio += float(t_percent_cerr) / (seq_end - seq_str) * 100 * current_lens_ratio;
-            std::cout << "idx1 " << finished_ratio <<  "\n";
             serr.print_message("=>Index::Hashing [", 0, 0, std::cerr);
             serr.print_message(int(finished_ratio), 0, 0, std::cerr);
             serr.print_message("%]", 0, 2, std::cerr);
         }
         ++j_count;
     }
+    (void)thd_rehash;
     return 0;
 }
 int createSIndex(StringSet<String<Dna5> > & seqs, 
@@ -2154,7 +2144,6 @@ int createSIndex(StringSet<String<Dna5> > & seqs,
             unsigned t_id = omp_get_thread_num();
             int64_t t_str = t_blocks[t_id];
             int64_t t_end = t_blocks[t_id + 1];
-            LShape shape = t_shape;
             _createSIndexHsThreadUnit (seqs[i], index, i, 
                 thd_min_step, thd_max_step, thd_omit_block, t_str, t_end, t_id, genome_lens_sum, finished_ratio);
         }
@@ -2162,9 +2151,9 @@ int createSIndex(StringSet<String<Dna5> > & seqs,
     t1 = sysTime() - t1;
     //index.printStatistics();
     #pragma omp for 
-    for (int64_t i = 0; i < length(index.getHs()); i++)
+    for (uint64_t i = 0; i < length(index.getHs()); i++)
     {
-        if (length(index.getHs()[i]) > thd_omit_block)
+        if (length(index.getHs()[i]) > (uint64_t) thd_omit_block)
         {
             clear(index.getHs()[i]);
             index.getHs()[i].shrink_to_fit();
@@ -2205,7 +2194,6 @@ int _createDIndexFromHs(String<uint64_t> & hs, String<uint64_t> & hs_str_end, DI
         {
             t_str++;
         }
-        dout << "t_str" << t_str << _DefaultHs.getLength(hs) << length(hs) << "\n";
         appendValue(t_blocks, t_str); 
         t_str += _DefaultHs.getLength(hs) / threads;
     }

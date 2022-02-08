@@ -19,6 +19,7 @@ if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/seqan/include/seqan/version.h")
         ${CMAKE_CURRENT_SOURCE_DIR}/seqan/util/cmake
         ${CMAKE_MODULE_PATH})
 endif ()
+set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # ----------------------------------------------------------------------------
 # Add linear targets

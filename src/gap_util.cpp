@@ -19,7 +19,7 @@ int editDist(String<Dna5> & seq1, String<Dna5> seq2, uint64_t str1, uint64_t str
     //assignSource(row(align, 1), infix(seq2, str2, str2 + 96));
     String<Dna5> tmp1 = infix(seq1, str1, str1 + 96);
     String<Dna5> tmp2 = infix(seq2, str2, str2 + 96);
-//    return globalAlignmentScore (tmp1, tmp2, MyersBitVector());
+    //return globalAlignmentScore (tmp1, tmp2, MyersBitVector());
     unsigned score =  0; //globalAlignmentScore (tmp1, tmp2, scoreAffine);
     return score; 
 }
@@ -78,26 +78,15 @@ GapParms::GapParms(float err_rate) : //estimated err_rate
 { 
     clipChainParms(5, 0.1);
 }
-//todo::fill in the parms 
+
 void GapParms::clipChainParms(int shape_len, float thd_err_rate)
 {
     unused(shape_len);
     thd_ccps_window_size = 5;
-    //if (thd_err_rate > 0.20)
-    //{
-
-    //}
-    //else if (thd_err_rate >=0.15 && thd_err_rate < 0.17)
-    //{
-
-    //}
-    //else //regarded as err = 0.1
-    //{
-        thd_ccps_clip_min = std::min(thd_err_rate, float(0.1)) * int_precision;
-        thd_ccps_clip_init = thd_err_rate * int_precision; 
-        thd_ccps_clip1_upper = 8 * int_precision;
-        thd_ccps_clip2_lower = 12 * int_precision;
-    //}
+    thd_ccps_clip_min = std::min(thd_err_rate, float(0.1)) * int_precision;
+    thd_ccps_clip_init = thd_err_rate * int_precision; 
+    thd_ccps_clip1_upper = 8 * int_precision;
+    thd_ccps_clip2_lower = 12 * int_precision;
 }
 void GapParms::printParms(std::string header)
 {
@@ -694,8 +683,11 @@ int g_mapHs_setAnchors_ (String<uint64_t> & g_hs,
             }   
         }
     }
-    else if (direction < 0) //towards left : for mapping extend collect anchor of same strand and close to gap_str or gap_end, NOTE<red> anchors of different strands with gap_str or gap_end are skipped
+    else if (direction < 0) 
     {
+        //towards left : for mapping extend collect anchor of same strand and 
+        //close to gap_str or gap_end, NOTE<red> anchors of different strands 
+        //with gap_str or gap_end are skipped
         int64_t y_end = get_cord_y(gap_end);
         int64_t anchor_base = g_hs_Cord2StrAnchor(gap_end);
         int64_t d_anchor = (1LL << 7) * gap_parms.thd_gmsa_d_anchor_rate;
@@ -937,8 +929,8 @@ int createTilesFromAnchors1_(String<uint64_t> & anchor,
                            [](uint64_t & s1, uint64_t & s2)
                            {return g_hs_anchor_getX(s2) > g_hs_anchor_getX(s1);
                            });
-//                g_CreateTilesFromChains_(anchor, tiles, f1, f2, gap_str, prek, k,
-//                                &g_hs_anchor_getX, &g_hs_anchor_getY, &g_hs_anchor_get_strand, gap_parms);
+                //g_CreateTilesFromChains_(anchor, tiles, f1, f2, gap_str, prek, k,
+                //                &g_hs_anchor_getX, &g_hs_anchor_getY, &g_hs_anchor_get_strand, gap_parms);
             }
             prek = k;
             anchor_len = 0;
@@ -1093,7 +1085,6 @@ int getGapBlocksChainScore2(uint64_t const & cord11, uint64_t const & cord12, ui
             score = 100 - score_dy;
         }
     }
-    dout << "gbs" << score << dx << dy << get_cord_y(cord11) << get_cord_y(cord12) << get_cord_y(cord21) << get_cord_y(cord22) << get_cord_x(cord11) << get_cord_x(cord12) << get_cord_x(cord21) << get_cord_x(cord22) << chn_score_parms.chn_block_strand << "\n";
     unused(d_err);
     unused(thd_max_dx);
     unused(thd_max_dy);
@@ -1180,15 +1171,6 @@ int chainTiles(String<uint64_t> & tiles, uint64_t read_len, uint64_t thd_gather_
     String<int> str_ends_p_score;
 
     gather_blocks_(tiles, str_ends, str_ends_p, 0, length(tiles), read_len, thd_gather_block_gap_size, 0, 0, &is_tile_end, &set_tile_end);
-    
-    //<<debug
-    //for (unsigned i = 0; i < length(str_ends); i++)
-    //{
-    //    uint64_t stri = str_ends[i].first;
-    //    uint64_t endi = str_ends[i].second;
-    //    dout << "ct1" << get_cord_x(stri) << get_cord_y(stri) << get_cord_x(endi) << get_cord_y(endi) << str_ends_p[i].first << str_ends_p[i].second << "\n";
-    //}
-    //>>debug
 
     //preFilterChains2(tiles, str_ends_p, &set_tile_end);
     //ChainScoreMetric chn_score(0, &getGapChainScore2);
@@ -1498,7 +1480,7 @@ int mapClipChains(String<uint64_t> & chain)
             get_tile_strand(tmp_tiles[i] ^ tmp_tiles[i + 1]))
         {
             int len = length(tiles);
-    ///extendClipInterval(ref, read, comstr, tmp_tiles, direction, gap_parms);
+            //extendClipInterval(ref, read, comstr, tmp_tiles, direction, gap_parms);
             g_CreateTilesFromChains_(tmp_tiles, tiles, f1, f2, gap_str, pre_i, i + 1, &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);
             if (len != length(tiles))
             {
@@ -2554,7 +2536,7 @@ uint64_t c_clip_extend_( uint64_t & ex_d, // results
                     di = std::max((int64_t)thd_scan_radius, di);
             int64_t dj = thd_scan_radius << 1;
 
-//TODO::check boundary of j_str and j_end
+            //TODO::check boundary of j_str and j_end
             g_cmpll.min(j_end, i + di) << int64_t(chain_x[k_str]) 
                                        << int64_t(hs_len2 - 1)
                                        << int64_t(length(hashs));
@@ -2756,7 +2738,7 @@ uint64_t c_clip_(String<Dna5> & genome,
     int band = (gs_end - gs_str) * thd_band_ratio;
     ///clip scaffold
  
-//step1. extend anchor : currently aborted since the gap map is precies enough
+    //step1. extend anchor : currently aborted since the gap map is precies enough
     c_stream_(seq1, g_hs, gs_str, gs_end, 1, c_shape_len, 0);
     c_stream_(seq2, g_hs, gr_str, gr_end, 1, c_shape_len, 1);
     //std::sort (begin(g_hs), end(g_hs));
@@ -2770,7 +2752,7 @@ uint64_t c_clip_(String<Dna5> & genome,
                                     thd_merge1, thd_merge1_lower, thd_merge2,  clip_direction);
     //uint64_t clip = (clip_direction < 0 )? clip_end : clip_str;
 
-//step2. clip_extend gap pattern further.
+    //step2. clip_extend gap pattern further.
     int64_t extend_window = 100;
     int64_t thd_ovlp_shift = 10;
     int64_t thd_merge_anchor = 5;
@@ -4105,12 +4087,6 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
     }
     reform_tiles(ref, read, comstr, tiles_str1, tiles_end1, sp_tiles1, 
                  gap_str1, gap_end1, direction1, gap_parms);
-    //<<debug
-    if (!empty(tiles_end1))
-    {
-    //    back(tiles_end1) = shift_tile(back(tiles_end1), -95, -95);
-    }
-    //>>debug
     //direction = -1 part
     gap_parms.direction = direction2; 
     mapExtendResultFilter_(tiles_str2, tiles_end2, gap_str2, gap_end2, direction2, gap_parms);
@@ -4222,15 +4198,10 @@ int createTilesFromAnchors2_(String<Dna5> & ref,
             unsigned len = length(tiles_str);
             uint64_t head_tile = tmp_tiles[pre_i];
             uint64_t tail_tile = tmp_tiles[i];
-            //<<debug
-            //if (!get_tile_strand(tmp_tiles[pre_i])) 
-            //{
-            //>>debug
             i += reExtendClipOneSide(ref, read, comstr, tmp_tiles, gap_str, gap_end,
                                      pre_i, i, -1, gap_parms);
             i += reExtendClipOneSide(ref, read, comstr, tmp_tiles, gap_str, gap_end, 
                                      pre_i, i, 1, gap_parms);
-            //}
             if (!(empty(tmp_tiles) || pre_i < 0 || i <0))
             {
                 copy_tile_sgn(head_tile, tmp_tiles[pre_i]);
@@ -4244,11 +4215,7 @@ int createTilesFromAnchors2_(String<Dna5> & ref,
                     remove_tile_sgn_end(back(tiles_end));
                 }
             }
-        //}
             pre_i = i + 1;    
-            //<<debug
-            //return 0;
-            //>>debug 
         }
     }    
     t2=sysTime() - t2;
@@ -4442,22 +4409,8 @@ int filterGapAnchors(String<uint64_t> & anchors,
 {
     String<std::pair<unsigned, unsigned> > anchors_list;
     _createGapAnchorsList(anchors, anchors_list, uint64_t(0), uint64_t(20), uint64_t(20), unsigned(0));
-    //<<debug
-    //for (unsigned i = 0; i < length(anchors_list); i++)
-    //{
-        //dout << "cts2" << length(anchors) << anchors_list[i].first << anchors_list[i].second << gap_parms.read_id << "\n";
-    //}
-    //>>debug
     _filterGapAnchorsList(anchors, anchors_list, gap_str, gap_end, 
         direction, gap_parms);
-    //>>debug
-    //for (unsigned i = 0; i < length(anchors_list); i++)
-    //{
-    //    dout << "cts3" << length(anchors) << anchors_list[i].first << anchors_list[i].second << gap_parms.read_id << "\n";
-    //}
-    //>>debug
-    
-    
     unsigned it = 0;
     for (unsigned i = 0; i < length(anchors_list); i++)
     {

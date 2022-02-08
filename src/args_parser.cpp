@@ -89,13 +89,13 @@ parseCommandLine(Options & options)
                 "\\fPlinear \\fIreads.fa genome.fa -g -a\\fP",
                 "Use the option \\fB-a \\fPto enable the alignment"
         );
-        */
+    */
 
-/*
+    /*
     addArgument(parser, seqan::ArgParseArgument(
         seqan::ArgParseArgument::INPUT_FILE, "genome"));
     setHelpText(parser, 1, "Reference file .fa(.gz), .fasta(.gz)");
-*/
+    */
     addSection(parser, "Basic options");
     addOption(parser, seqan::ArgParseOption(
         "o", "output", "Set the path of output. \
@@ -151,9 +151,9 @@ parseCommandLine(Options & options)
         "b", "bal_flag", "Set to Enable/Disable dynamic balancing tasks schedule. -b 1(Enable) {DEFAULT}",
             seqan::ArgParseArgument::INTEGER, "INT" 
         ));   
-//    addDefaultValue(parser, "gap_len", "1");
+    //addDefaultValue(parser, "gap_len", "1");
 
-// Advanced parms for mapping
+    //Advanced parms for mapping
     addOption(parser, seqan::ArgParseOption(
         "p", "preset", "Set preset of parms. -p 0 {DEFAULT} -p 1 efficient  -p 2 additional",
             seqan::ArgParseArgument::INTEGER, "INT"));
@@ -162,7 +162,7 @@ parseCommandLine(Options & options)
         "a", "aln_flag", "Set to Enable/Disable alignment. -a 0(Disable) {DEFAULT}",
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
-        */
+    */
     addOption(parser, seqan::ArgParseOption(
         "i", "index_type", "Choose the type of indices{1, 2}. -i 1 {DEFAULT}",
             seqan::ArgParseArgument::INTEGER, "INT"
@@ -201,7 +201,7 @@ parseCommandLine(Options & options)
     addOption(parser, seqan::ArgParseOption(
         "p1", "par1", "mapping::p1",
             seqan::ArgParseArgument::INTEGER, "INT")); 
-            */
+    */
     // Parse command line.
     seqan::ArgumentParser::ParseResult res = seqan::parse(parser, argc, &new_args[0]);
     if (res != seqan::ArgumentParser::PARSE_OK)
@@ -264,7 +264,7 @@ parseCommandLine(Options & options)
         }
     }
      
-     /*
+    /*
     getOptionValue(options.listN, parser, "listn1");
     getOptionValue(options.listN2, parser, "listn2");
     getOptionValue(options.alpha, parser, "alpha1");

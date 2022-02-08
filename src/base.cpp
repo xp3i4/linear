@@ -90,7 +90,7 @@ unsigned Options::isOutputBamStandard()
 }
 
 void Parms::toggle(int i)
-{}
+{(void) i;}
 
 GlobalParms::GlobalParms()
 {
@@ -140,7 +140,7 @@ std::pair<uint, uint> loadRecords(StringSet<String<Dna5> > & seqs,
         res =std::make_pair (uint(~0), uint(~0));
         return res;
     }
-    double fileSize = _filesize (toCString(path));
+    //double fileSize = _filesize (toCString(path));
     bool flag = false;
     unsigned seqCount = 0;
     double currentFileSize = 0;
@@ -337,7 +337,7 @@ static const String<Dna5> _complt = "tgcan";
 {
     resize(res, length(str));
     for (unsigned k = 0; k < length(str); k++)
-     //   res[k]=_complt[str[k] - 'A'];
+    //res[k]=_complt[str[k] - 'A'];
     {
         res[k] = _complt[(unsigned)ordValue(str[length(str) - k - 1])];
         //std::cout << (unsigned)ordValue(str[length(str) - k - 1]) << std::endl;

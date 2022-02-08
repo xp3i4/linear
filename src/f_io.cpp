@@ -682,7 +682,6 @@ void createRectangleCigarPair (uint64_t cord1, uint64_t cord2,
         cigar2.operation = 'D';
         cigar1.count = dy;
         cigar2.count = dx - dy;
-        dout << "crc" << cigar2.count << get_cord_x(cord1) << get_cord_x(cord2) << get_cord_y(cord1) << get_cord_y(cord2) << "\n";
     }
     else 
     {
@@ -697,7 +696,7 @@ void createRectangleCigarPair (uint64_t cord1, uint64_t cord2,
    cigar2 \in {'I' or 'D'}
  */
 void socreCigarPair(CigarElement<> & cigar1, CigarElement<> & cigar2, BamAlignmentRecordLinkScore & score,
-        int thd_variant_indel_min_len = 100)
+        unsigned thd_variant_indel_min_len = 100)
 {
     if ((cigar1.operation == '=' || cigar1.operation == 'X') &&
         (cigar2.operation == 'I' || cigar2.operation == 'D'))
@@ -748,8 +747,6 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
     uint64_t y12 = get_cord_y(cord1_end);
     uint64_t x21 = get_cord_x(cord2_str);
     uint64_t y21 = get_cord_y(cord2_str);
-
-    dout << "c2c1" << x11 << y11 << x12 << y12 << x21 << y21 << "\n";
 
     if (x0 - y0 != x11 - y11) 
     {
@@ -829,8 +826,6 @@ int cords2BamLink(String<uint64_t> & cords_str,
     int flag = 0;
     String<int> bam_records_ptrs; //pointer to bam records
     String<int> cords_block_end_ptrs; //pointer to last cord of block
-    float cigar_score = 0;
-    int cigar_count = 0;
     int n_block = -1;
     for (unsigned i = 1; i < length(cords_str); i++)
     {
@@ -875,7 +870,6 @@ int cords2BamLink(String<uint64_t> & cords_str,
             cord1_end = cords_end[i];
             cord2_str = cords_str[i + 1];
         }
-        float score_tmp = 0;
         cigar_str = cord2cigar_ (cigar_str, 
                                  cord1_str, cord1_end, cord2_str, 
                                  back(bam_link_records).cigar,
@@ -919,18 +913,17 @@ int cords2BamLink(String<uint64_t> & cords_str,
             s2 += bam_link_records[j].score.s2;
             s3 += bam_link_records[j].score.s3;
         }
-//
+        //
         bam_link_records[ptr].mapQ =  10 * s1 * s3 / ((s2 + 1) * length(read)); // +1 in case of s2 =0
         if (bam_link_records[ptr].mapQ >= 255)
         {
             bam_link_records[ptr].mapQ = 255;
         }
         bam_link_records[ptr].mapQ = cords_info[i].score;
-        dout << "s12" << s1 << s2 << s3 << ptr << i << cords_info[i].score << length(cords_info) << "\n";
     }
 */
     bls_operator.setNewUnAvailable(bam_link_records);
-
+    (void) cords_info;
     //print_cords(cords_str, "s13");
     return 0;
 }
@@ -1195,8 +1188,6 @@ void print_cords_sam (StringSet<String<uint64_t> > & cordset_str,
     {
         reformCCSBams(bam_records, fio_parms);
     }
-    //<<degbug
-    //>>debug
     printAlignSamBam (genms, reads, genmsId, readsId, bam_records, of, f_header, fio_parms);
 }   
 */

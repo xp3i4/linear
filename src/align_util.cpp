@@ -764,10 +764,6 @@ int BamLinkStringOperator::fillBamRecordLinkRecords(
             Iterator<String<Dna5> >::Type it1 = begin(genomes[bam_records[it].rID]) + bam_records[it].beginPos;
             Iterator<String<Dna5> >::Type it2 = begin(read);
             int it3 = it;
-            //<<debug
-            Iterator<String<Dna5> >::Type it11 = it1;
-            Iterator<String<Dna5> >::Type it21 = it2;
-            //>>debug
             String<Dna5> comp_reverse;
             //dout << "fb3" << (int(bam_records[it].flag) & (int)16) << "\n";
             if (int(bam_records[it].flag) & 16)
@@ -779,7 +775,6 @@ int BamLinkStringOperator::fillBamRecordLinkRecords(
             {
                 for (unsigned j = 0; j < length(bam_records[it3].cigar); ++j)
                 {
-                    //std::cout << "fb1" << bam_records[it3].cigar[j].count << bam_records[it3].cigar[j].operation << " " << it1 - it11 << " " << it2 - it21 << bam_records[it].beginPos << "\n";// << *it1 << " " << *it2<< "\n";
                     cigar2SamSeq(bam_records[it3].cigar[j], bam_records[it].seq, it1, it2, f_is_align);
                 }
                 if (bam_records[it3].isEnd())
@@ -856,13 +851,7 @@ int BamLinkStringOperator::convert2SeqanCompatibleFormat(String<BamAlignmentReco
         resize(bam_records, getHeadNum(bam_records));
     }
     updateHeadsTable(bam_records);
-    /*
-    dout << "het2" << getHeadNum(bam_records) << "\n";
-    for (unsigned i = 0; i < length(bam_records[0].heads_table); i++)
-    {
-        dout << "het1" << bam_records[0].heads_table[i] << length(bam_records) << getHeadNum(bam_records) << "\n";
-    }
-    */
+    
     return 0;
 }
 
@@ -1107,14 +1096,13 @@ int64_t seqanRemoveHead_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row)
             row._sourceBeginPos = 0;  //0
             row._clippingEndPos -= row._clippingBeginPos;
             row._clippingBeginPos = 0; //0
-      //      dout << "srh1" << row._sourceBeginPos << " " << row._sourceEndPos << " " << row._clippingBeginPos << " " << row._clippingEndPos << " " << src_count << " " << view_pos << "\n";
+            //dout << "srh1" << row._sourceBeginPos << " " << row._sourceEndPos << " " << row._clippingBeginPos << " " << row._clippingEndPos << " " << src_count << " " << view_pos << "\n";
             break;
         }
     }
     //std::cout << row << "\n";
-     //       dout << "srh11" << row._sourceBeginPos << " " << row._sourceEndPos << " " << row._clippingBeginPos << " " << row._clippingEndPos << " " << src_count << " " << view_pos << length(row._array) << "\n";
+    //dout << "srh11" << row._sourceBeginPos << " " << row._sourceEndPos << " " << row._clippingBeginPos << " " << row._clippingEndPos << " " << src_count << " " << view_pos << length(row._array) << "\n";
     return src_count;
-    
     /*
     int d = 0;
     for (int i = 0; i < length(row._array); i++)
@@ -1164,12 +1152,7 @@ int64_t seqanExtendHead_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row,
     } 
     row._sourceEndPos += extend_len - row._sourceBeginPos;
     row._clippingEndPos += extend_len - row._sourceBeginPos;
-    /*
-    for (int i = 0; i < length(row._array); i++)
-    {
-        dout << "seq2" << row._array[i] << "\n";
-    }
-    */
+    
     return -extend_len + row._sourceBeginPos;
 }
 /*
@@ -1336,88 +1319,25 @@ int createMergedRows_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
                       uint64_t & cord2)
 {
     //print_cord(cord2, "rh1c");
-/*
-    dout << "min1" << min_clip1 << min_clip2 << min_gaps_len << "\n";
-                if (min_gaps_len > 100)
-            {
-                dout << "shiftm5" << min_clip1 << min_clip2 << min_gaps_len << get_cord_x(cord1) + endPosition(row11) << get_cord_x(cord2) + beginPosition(row21)  << "\n";
-            print_cord(cord1, "shiftm5");
-            print_cord(cord2, "shiftm5");
-            std::cout << "shiftm5" << row11 << "\n";
-            std::cout << "shiftm5" << row12 << "\n";
-            std::cout << "shiftm5" << row21 << "\n";
-            std::cout << "shiftm5" << row22 << "\n";
-            }
-    print_cord(cord1, "min1");
-    print_cord(cord2, "min1");
-            */
     setClippedEndPosition(row11, min_clip1);
     setClippedEndPosition(row12, min_clip1); 
     setClippedBeginPosition(row21, min_clip2);
     setClippedBeginPosition(row22, min_clip2);
     int64_t src_shift1 = 0, src_shift2 = 0;
-    //<<debug
-    String<Dna5> & seqr = !get_cord_strand(cord2) ? read : comrev_read;
-    //std::cout << "malign21 " << value(row11._source)[0] << ref[get_cord_x(cord1)] << " " << value(row21._source)[0] << ref[get_cord_x(cord2)] << " " << value(row12._source)[0]<< seqr[get_cord_y(cord1)] << " " << value(row22._source)[0] << seqr[get_cord_y(cord2)] << "\n";
-    //>>debug
     if (f_xy_min == 1) // dx == 1 ins
     {
         String<Dna5> & seq = !get_cord_strand(cord2) ? read : comrev_read;
         if (!replaceHead_(row21, row22, seq, min_gaps_len, get_cord_y(cord2), src_shift1, src_shift2))
         
         {
-            //<<debug
-            //dout << "shiftm1" << min_gaps_len << "\n";
-            /*
-            if (min_gaps_len > 100)
-            {
-            print_cord(cord1, "shiftm1");
-            print_cord(cord2, "shiftm1");
-            std::cout << "shiftm1" << row11 << "\n";
-            std::cout << "shiftm1" << row12 << "\n";
-            std::cout << "shiftm1" << row21 << "\n";
-            std::cout << "shiftm1" << row22 << "\n";
-            }
-            //>>debug 
-            */
             cord2 = shift_cord(cord2, src_shift1, src_shift2);
         }
     }
     else // dy == 1 del
     {
         String<Dna5> & seq = ref;
-        //<<debug
-            //std::cout << "malign22 " << value(row11._source)[0] << ref[get_cord_x(cord1)] << " " << value(row21._source)[0] << ref[get_cord_x(cord2)]<< "\n";
-        //>>debug
-        /*
-       if (min_gaps_len > 100)
-            {
-                dout << "shiftm4" << min_clip1 << min_clip2 << min_gaps_len << get_cord_x(cord1) + endPosition(row11) << get_cord_x(cord2) + beginPosition(row21) << "\n";
-            print_cord(cord1, "shiftm4");
-            print_cord(cord2, "shiftm4");
-            std::cout << "shiftm4" << row11 << "\n";
-            std::cout << "shiftm4" << row12 << "\n";
-            std::cout << "shiftm4" << row21 << "\n";
-            std::cout << "shiftm4" << row22 << "\n";
-            } 
-*/
         if(!replaceHead_(row22, row21, seq, min_gaps_len, get_cord_x(cord2), src_shift2, src_shift1))
         {
-            /*
-                        //<<debug
-            //dout << "shiftm1" << min_gaps_len << "\n";
-            if (min_gaps_len > 100)
-            {
-                dout << "shiftm2" << min_clip1 << min_clip2 << min_gaps_len << get_cord_x(cord1) + endPosition(row11) << get_cord_x(cord2) + beginPosition(row21)  << "\n";
-            print_cord(cord1, "shiftm2");
-            print_cord(cord2, "shiftm2");
-            std::cout << "shiftm2" << row11 << "\n";
-            std::cout << "shiftm2" << row12 << "\n";
-            std::cout << "shiftm2" << row21 << "\n";
-            std::cout << "shiftm2" << row22 << "\n";
-            }
-            //>>debug 
-            */
             cord2 = shift_cord(cord2, src_shift1, src_shift2);
             //dout << "shiftm22" << length(seq) << src_shift1 << src_shift2 << get_cord_x(cord1) + endPosition(row11) << "\n";
         }
@@ -1426,7 +1346,7 @@ int createMergedRows_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row11,
     //dout << "fmin1 " << min_gaps_len << " " << beginPosition(row21) << endPosition(row21) << clippedBeginPosition(row21) << clippedEndPosition(row21) << "\n";
     //std::cout << "fmin11" << row21 << "\n";
     //std::cout << "fmin11" << row22 << "\n";
-    unused(seqr);
+    //unused(seqr);
     unused(cord1);
     return 0;
 }

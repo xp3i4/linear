@@ -111,7 +111,6 @@ int check_cigar(StringSet<String<Dna5> > & genomes,
                         if (infix1[it1] != infix2[it2]) 
                         {
                             ++count_mis;
-                            std::cout << "xxxxxxxxxxxxxxxxxxxxxx\n";
                         }
                         else
                         {

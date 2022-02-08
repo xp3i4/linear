@@ -544,7 +544,7 @@ int p_PrintResults(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
 
 int p_ThreadProcess(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
 {
-        //std::cout << "p1" << "\n";
+    //std::cout << "p1" << "\n";
     int f_error = 0;
     P_Tasks & p_tasks = p_mapper.getPTasks();
     while (true)

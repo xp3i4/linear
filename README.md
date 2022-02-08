@@ -1,5 +1,5 @@
 
-Linear <img width="80px" src="images/linear_logo-1.svg"/>
+Linear <img width="60px" src="images/linear_logo-1.svg"/>
 ====
 ![example workflow](https://github.com/catx1024/linear/actions/workflows/cmake.yml/badge.svg)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
@@ -8,24 +8,13 @@ Linear <img width="80px" src="images/linear_logo-1.svg"/>
 ## ALIgNment-freE method for long-read vARiants resolution 
 Structural variants (SVs) pipelines commonly rely on the alignment.
 However, rigid static gap model in alignment is inflexible to resolve diverse SVs and inefficient to compute.
-Thus we develop the alignment-free method for mor efficient dection of SVs in 3rd sequencing reads.
+Thus we develop the alignment-free method for more efficient dection of SVs in 3rd sequencing reads.
+The results can be called directly by alignment based tools such as the SVs caller PBSV and the visualization tool IGV.
 
-### Efficient
-With diverse algorithms and optimizations, alignment-free methods is commonly orders of magnitude faster with comparable accuracy and higher sensitivity.  
-
-### Flexible
-Linear applies more flexible SVs models than these in aligners.
-Models includes but not limited to basic types, such as ins, dels, invs, as well as nested ones. 
-More enhanced models are flexible to develop and extend.
-
-### Compatible 
-The alignment-free results is compatible to the alignment based pipelines.
-The results can be called directly by existing tools such as the SVs caller PBSV and the visualization tool IGV.
-
-## Build and usage
+## Build and usage 💩
 Linear is easy to build and use.
 Make sure the following tools or libraries are available before building the source.
-| Prerequisites  |   Versions          |
+|Prerequisites|Versions|
 | ------------------- | ------------------------- |
 |<img src="images/linux_logo.png" width="16"/> Linux| >4.9.0|
 |<img src="images/gcc_logo.png" width="16"/> GCC|>4.9|
@@ -36,14 +25,15 @@ Make sure the following tools or libraries are available before building the sou
 To build from the source create a new directory. In the directory type:
 ```bash
 $CMake [path to source] 
-$make linear 
+$make linear -j 8 
 ```
+Note:The <b>'-j 8'</b> option is to set up 8 threads to speedup the compilation
 ### Usage
 Supported file formats  for input: .fa(.gz) and .fastq(.gz).
 ```bash
 $linear read.fa genome.fa
 ``` 
-Please add argument <b>'x'</b> if computing more than one reads and genomes.
+Please add argument <b>'-x'</b> if computing more than one reads and genomes.
 ```bash
 $linear *fa x *fa
 ``` 
@@ -52,8 +42,8 @@ Use -h for more details of options
 $linear -h
 ```
 
-## Format of files
-Output of Linear is an extended SAM/BAM format based on the standard formats for sequence alignment.
+## Format of files 
+Output of Linear extends standard SAM/BAM format to alignment-free results.
 Definitions of each fields are extended to adapt to the alignment-free results.
 Theses changes include:
 ### SAM/BAM
@@ -147,13 +137,22 @@ Following is an example of the apf the read mapped to the reference.
 | 9870 19020 190 181 69 -
 ```
 
-## Adaption to existing pipelines
-The result of alignment is can be called by existing pipelines like other aligners.
-Besides, the alignment-free results (with the alignment completely disbaled) can be called by existing alignment based pipelines, such as the SVs caller as well.
+## Adaption to existing pipelines 
+The alignment-free results can be called by existing alignment based pipelines.
+
+### Adaption to Samtools
+The compatibility of alignment results to Samtools 1.10 has been test.
+Alignment-free results can work with samtools view, samtools index and samtools sort and convert the SAM to BAM file.
 
 ### Adaption to SVs callers
-The compatibility of the alignment-free results to the SVs caller [PBSV](https://github.com/PacificBiosciences/pbsv) has been tested with PacBio long reads.
+The compatibility of the alignment-free results to the SVs caller [PBSV](https://github.com/PacificBiosciences/pbsv) 2.6.2 has been tested with PacBio raw reads and CCS reads.
+SAM/BAM from Linear can work with pbsv discover and pbsv call provided the sample and group name is set appropriately with the -s option in pbsv discover.
 
 ### Adaption to seqeunce graphical tools (IGV)
-The compatibility of the alignment-free results to the IGV has been tested.
-Alignment-free .bam  can be called directly.
+The compatibility of the alignment-free results to the IGV 2.8.3 has been tested.
+Alignment-free .bam  can be visualised directly in IGV.
+
+## Updating variants models 🐢
+Alignment-free model for variants is  flexible to replace.
+Thus we will update models in Linear continuously if there are better ones, such as a new model for nested variants.
+This will probably lead to different results between versions.

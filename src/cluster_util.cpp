@@ -145,7 +145,7 @@ int traceBackChains0(String<ChainElementType> & elements,  StringSet<String<Chai
                 max_len   = chain_records[j].len;
                 f_done = false;
             }
-        //    dout << "tr01" << i << max_score << chain_records[j].score << chain_records[j].len << "\n";
+        //dout << "tr01" << i << max_score << chain_records[j].score << chain_records[j].len << "\n";
         }
         if (!empty(chains))
         {
@@ -159,11 +159,11 @@ int traceBackChains0(String<ChainElementType> & elements,  StringSet<String<Chai
             break;
         }
         //dout << "tr02" << i << max_len << max_score << _chain_min_len << (max_score/(max_len - 1)) << _chain_abort_score << "\n";
-        if (max_len > _chain_min_len && max_score / (max_len - 1) > _chain_abort_score) //max_len is the number of anchors, ..-1 is the number of connection(interval) between anchors
-        {
+        if (max_len > _chain_min_len && max_score / (max_len - 1) > _chain_abort_score) 
+        {   //max_len is the number of anchors, ..-1 is the number of connection(interval) between anchors
             for (int j = max_str; j != chain_end; j = chain_records[j].p2anchor)
             {
-               //dout << "tr03" << chain_records[j].p2anchor << chain_records[j].score << "\n";
+                //dout << "tr03" << chain_records[j].p2anchor << chain_records[j].score << "\n";
                 if (chain_records[j].score != delete_score)
                 {
                     appendValue (chain, elements[j]);
@@ -262,20 +262,20 @@ int traceBackChains1(String<ChainElementType> & elements,
     
     String<std::pair<int,int> > tree_score_ranks;
     resize(tree_score_ranks, length (leaves));
-    for (unsigned i = 0; i < length(leaves); i++)
+    for (int i = 0; i < (int) length(leaves); i++)
     {
         tree_score_ranks[i] = std::pair<int, int> (i, leaves[i][1]);
     }
     std::sort (begin(tree_score_ranks), end(tree_score_ranks), 
         [](std::pair<int, int> & a, std::pair<int, int> & b){return a.second > b.second;});
-    for (unsigned i = 0; i < std::min(bestn, int(length(tree_score_ranks))); i++) 
+    for (int i = 0; i < std::min(bestn, int(length(tree_score_ranks))); i++)
     {
         int max_score = leaves[tree_score_ranks[i].first][1];
         int max_len = leaves[tree_score_ranks[i].first][2];
         int max_str = leaves[tree_score_ranks[i].first][3];
         int mean_score = max_len > 1 ? max_score / (max_len - 1) : _chain_abort_score + 1;
-        if (max_len > _chain_min_len && mean_score > _chain_abort_score) //max_len is the number of anchors, ..-1 is the number of connection(interval) between anchors
-        {
+        if (max_len > _chain_min_len && mean_score > _chain_abort_score) 
+        {   //max_len is the number of anchors, ..-1 is the number of connection(interval) between anchors
             for (int j = max_str; j != chain_end; j = chain_records[j].p2anchor)
             {
                 appendValue (chain, elements[j]);
@@ -396,17 +396,18 @@ int chainAnchorsBase(String<uint64_t> & anchors, StringSet<String<uint64_t> > & 
     String<int> & anchors_chains_score, uint it_str, uint it_end,  uint thd_chain_depth, uint64_t thd_chain_dx_depth, 
     int thd_best_n, float thd_stop_chain_len_ratio, ChainScoreMetric & chn_metric, uint64_t (*get_anchor_x) (uint64_t))
 {
-    double t0 = sysTime();
+    //double t0 = sysTime();
     if (length(anchors) < 2){
         return 0;
     }
     String<ChainsRecord> chain_records;
     resize (chain_records, length(anchors));
-    double t1 = sysTime();
+    //double t1 = sysTime();
     getBestChains (anchors, chain_records, it_str, it_end, thd_chain_depth, thd_chain_dx_depth, chn_metric, get_anchor_x);
-    t1 = sysTime() - t1;
-    traceBackChains(anchors, anchors_chains, chain_records, anchors_chains_score, chn_metric.getMinChainLen(), chn_metric.getAbortScore(), thd_best_n, thd_stop_chain_len_ratio);
-    dout << "cab1" << t1 / (sysTime() - t0) << "\n";
+    //t1 = sysTime() - t1;
+    traceBackChains(anchors, anchors_chains, chain_records, anchors_chains_score, 
+        chn_metric.getMinChainLen(), chn_metric.getAbortScore(), thd_best_n, thd_stop_chain_len_ratio);
+    //dout << "cab1" << t1 / (sysTime() - t0) << "\n";
     return 0;
 }
 
@@ -444,13 +445,6 @@ int getBestChains2(String<uint64_t> & hits,
                              hits[str_ends_p[i].first], hits[str_ends_p[i].second - 1],
                                    read_len, chn_metric.chn_score_parms);
 
-            //<<debug
-            uint64_t cs1 = hits[str_ends_p[j].first];
-            uint64_t ce1 = hits[str_ends_p[j].second - 1];
-            uint64_t cs2 = hits[str_ends_p[i].first];
-            uint64_t ce2 = hits[str_ends_p[i].second - 1];
-            //dout << "gb2" << new_score << new_max_score << j_str << i << get_cord_y(cs1) << get_cord_y(ce1) << get_cord_y(cs2) << get_cord_y(ce2) << get_cord_x(cs1) << get_cord_x(ce1) << get_cord_x(cs2) << get_cord_x(ce2) << "\n";
-            //>>debug
             if (new_score > 0 && new_score + chain_records[j].score + str_ends_p_score[i] >= new_max_score)
             {
                 max_j = j;
@@ -527,23 +521,8 @@ int chainBlocksBase(StringSet<String<UPair> > & chains,
 
     resize (chain_records, length(str_ends_p_tmp));
     getBestChains2(records, str_ends_p_tmp, str_ends_p_score_tmp, chain_records, read_len, chn_metric);
-    //<<debug
-    //for (unsigned i =0 ; i < length(str_ends_p_tmp); i++)
-    //{
-    //    dout << "cbb1" << str_ends_p_tmp[i].first << str_ends_p_tmp[i].second << length(records) << "\n";
-    //}
-    //>>debug
-    traceBackChains(str_ends_p_tmp, chains, chain_records, chains_score, chn_metric.getMinChainLen(), chn_metric.getAbortScore(), thd_best_n, thd_stop_chain_len_ratio);
-    //<<debug
-    //for (unsigned i =0 ; i < length(chains); i++)
-    //{
-        //dout << "cbb2" << i << "\n";
-        //for (unsigned j = 0; j < length(chains[i]); j++)
-        //{
-        //    dout << "cbb2" << chains[i][j].first << chains[i][j].second << length(records) << "\n";
-        //}
-    //}
-    //>>debug
+    traceBackChains(str_ends_p_tmp, chains, chain_records, chains_score, chn_metric.getMinChainLen(), 
+        chn_metric.getAbortScore(), thd_best_n, thd_stop_chain_len_ratio);
     return 0;
 }
 
@@ -565,7 +544,8 @@ int getApxChainScore2(uint64_t const & cord11, uint64_t const & cord12, uint64_t
     int64_t thd_indel_op = 30; //indel open penalty
     int64_t dy = get_cord_y(cord11) - get_cord_y(cord22);
     int64_t dx = get_cord_x(cord11) - get_cord_x(cord22);
-    //dout << "gacs2" << dx << dy << thd_max_d << get_cord_x(cord11) << get_cord_x(cord22) << get_cord_y(cord11) << get_cord_y(cord22) << "\n";
+    //dout << "gacs2" << dx << dy << thd_max_d << get_cord_x(cord11) 
+    //<< get_cord_x(cord22) << get_cord_y(cord11) << get_cord_y(cord22) << "\n";
     if (dx < 0 || dy < 0 || get_cord_strand(cord11 ^ cord22) || dx > thd_max_d || dy > thd_max_d)
     {
         return INT_MIN;
@@ -623,21 +603,6 @@ int _filterBlocksHits(StringSet<String<UPair> > & chains, String<uint64_t> & hit
         len_current += chains[0][i].second - chains[0][i].first;
         best_chain[i] = chains[0][i];
     }
-    //<<debug
-    for (uint k = 0; k < length(chains); k++)
-    {
-        String<uint64_t> htmps;
-        for (uint i = 0; i < length(chains[k]); i++)
-        {
-            for (uint j = chains[k][i].first; j < chains[k][i].second; j++)
-            {
-                appendValue(htmps, hits[j]);
-                _DefaultHit.unsetBlockEnd(back(htmps));
-            }
-        }
-        //print_cords(htmps, "fb2");
-    }
-    //>>debug
     _DefaultHit.setBlockEnd(back(hits_tmp));
     //process the chains left
     float thd_major_bound = 0.8 * len_current; // len > this * first major len is regarded as optional major chain
@@ -758,7 +723,6 @@ int chainBlocksHits(String<uint64_t> & hits, String<UPair> & str_ends_p, String<
 */
 int getChainBlockDxDy(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len, int strand, int64_t & dx, int64_t & dy)
 {
-    dout << "gbdxy1" << strand << "\n";
     //print_cord(cord11, "gbdxy1");
     //print_cord(cord12, "gbdxy1");
     //print_cord(cord21, "gbdxy1");
@@ -926,7 +890,6 @@ int chainBlocksSingleStrand(String<uint64_t> & cords, String<UPair> & str_ends_p
     String<int> str_ends_p_score;
     resize(str_ends_p_score, length(str_ends_p));
     int strand = chn_score.chn_score_parms.chn_block_strand;
-    dout << "cbss1 <<<" << strand << "\n";
     if (strand)
     {
         std::sort (begin(str_ends_p), end(str_ends_p), [&cords, &read_len](UPair & a, UPair &b){
@@ -954,24 +917,10 @@ int chainBlocksSingleStrand(String<uint64_t> & cords, String<UPair> & str_ends_p
         //init the score as the length of the blocks
         str_ends_p_score[i] = (str_ends_p[i].second - str_ends_p[i].first) * thd_init_cord_score;
     }
-    //<<debug
-    //for (unsigned i = 0; i < length(str_ends_p); i++)
-    //{
-    //    dout << "cbss1" << str_ends_p[i].first << str_ends_p[i].second << "\n";
-    //}
-    //>>debug
     int thd_best_n1 = 3; //unlimited
     float thd_stop_chain_len_ratio = 0.7;
     chainBlocksBase(cords_chains, cords, str_ends_p, str_ends_p_score, read_len, 
         chn_score, thd_best_n1, 0, thd_stop_chain_len_ratio);
-    //<<debug
-    //for (unsigned i = 0; i < length(cords_chains); i++)
-    //for (unsigned j = 0; j < length(cords_chains[i]); j++)
-    //{
-        //dout << "cbss2" << cords_chains[i][j].first << cords_chains[i][j].second << "\n";
-    //}
-    //>>debug
-    //dout << "cbs1" << length(cords_chains) << "\n";
     return 0;
 }
 /*
@@ -1085,26 +1034,12 @@ int chainBlocksCords(String<uint64_t> & cords,
     chn_score.chn_score_parms.chn_block_strand = 1;
     chainBlocksSingleStrand(cords, str_ends_p2, cords_chains2, chn_score, read_len, thd_init_cord_score);
     int best_strand = getChainBlocksBestStrand(cords_chains1, cords_chains2);
-    //<<debug
-    //print_cords(cords, "cbc1");
-    //for (int i = 0; i < length(str_ends_p); i++)
-    //{
-    //    dout << "cbc1" << str_ends_p[i].first << str_ends_p[i].second  << "\n";
-    //}
-    //>>debug
     if (best_strand == 0)
     {
         str_ends_p = str_ends_p1;
         revertChainBlockStrand(cords_chains1, cords, best_strand, read_len);
         _filterBlocksCords (cords_chains1, cords, read_len, thd_major_limit, unsetEndFunc, 
         setEndFunc, f_header);
-    //<<debug
-    //print_cords(cords, "cbc20");
-    //for (int i = 0; i < length(str_ends_p); i++)
-    //{
-    //    dout << "cbc20" << str_ends_p[i].first << str_ends_p[i].second  << "\n";
-    //}
-    //>>debug
     }
     else
     {
@@ -1112,13 +1047,6 @@ int chainBlocksCords(String<uint64_t> & cords,
         revertChainBlockStrand(cords_chains2, cords, best_strand, read_len);
         _filterBlocksCords (cords_chains2, cords, read_len, thd_major_limit, unsetEndFunc, 
         setEndFunc, f_header);  
-            //<<debug
-    //print_cords(cords, "cbc21");
-    //for (int i = 0; i < length(str_ends_p); i++)
-    //{
-    //    dout << "cbc21" << str_ends_p[i].first << str_ends_p[i].second  << "\n";
-    //}
-    //>>debug
     }
     return 0;
 }

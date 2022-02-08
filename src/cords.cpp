@@ -601,7 +601,6 @@ int reformCordsDxDy1(String<uint64_t> & cords_str,
     unused(bands12);
     unused(bands21);
     unused(bands22);
-    dout << "rfc " << it << length(cords_str) << "\n";
     unsigned i1 = it - 1, i2 = it;
     uint64_t cord11 = cords_str[i1], cord12 = cords_end[i1];
     uint64_t cord21 = cords_str[i2], cord22 = cords_end[i2];

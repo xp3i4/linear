@@ -12,14 +12,13 @@ find_package(OpenMP REQUIRED)
 find_package (SeqAn REQUIRED)
 
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} ${CXX11_CXX_FLAGS} \
-  ${SEQAN_CXX_FLAGS} -Wno-class-memaccess -Wno-deprecated-copy \
-  -Wno-alloc-size-larger-than -Wno-implicit-fallthrough")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} ${CXX11_CXX_FLAGS} ${SEQAN_CXX_FLAGS} \
+ -Wno-class-memaccess -Wno-deprecated-copy -Wno-alloc-size-larger-than -Wno-implicit-fallthrough")
 
 include_directories (${SEQAN_INCLUDE_DIRS})
 add_definitions (${SEQAN_DEFINITIONS})
-set (CMAKE_BUILD_TYPE Release)
 #set (CMAKE_BUILD_TYPE Debug)  
+set (CMAKE_BUILD_TYPE Release)
 
 
 

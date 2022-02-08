@@ -285,12 +285,12 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                         {
                             remove_tile_sgn(back(tiles_str1));
                             remove_tile_sgn(back(tiles_end1));
-     //                       erase(tiles_str, i - 1);
-     //                       erase(tiles_end, i - 1);
+                            //erase(tiles_str, i - 1);
+                            //erase(tiles_end, i - 1);
                             insert(tiles_str, i, tiles_str1);
                             insert(tiles_end, i, tiles_end1);
-    //                        erase(tiles_str, i + length(tiles_str1) - 1);
-    //                        erase(tiles_end, i + length(tiles_str1) - 1);
+                            //erase(tiles_str, i + length(tiles_str1) - 1);
+                            //erase(tiles_end, i + length(tiles_str1) - 1);
                         }
                         i += length(tiles_str1);
                     }
@@ -391,9 +391,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                     mapGap_ (seqs, read, comstr, gap_str, gap_end, f1, f2, tiles_str, tiles_end, clips, direction, thd_dxy_min, gap_parms);
                     //g_print_tiles_(tiles_end, "mg1");
                     insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size, thd_max_segs_num);
-                    //<<debug
                     //g_print_tiles_(tiles_end, "mg2");
-                    //>>debug
                 }
                 //_DefaultHit.setBlockEnd(cords_str[i - 1 + length(tiles_str)]);
                 //_DefaultHit.setBlockEnd(cords_end[i - 1 + length(tiles_str)]);
@@ -431,7 +429,8 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             int64_t dx_tmp = get_cord_x(gap_end) - get_cord_x(gap_str);
             if (std::abs(int64_t(dx_tmp)) < thd_max_gap)
             {
-            //dout << "g1" << get_cord_y(gap_str) << get_cord_y(gap_end) << get_cord_x(gap_str) << get_cord_x(gap_end) << dx_tmp << i - 1 << i << "\n";
+                //dout << "g1" << get_cord_y(gap_str) << get_cord_y(gap_end) 
+                //<< get_cord_x(gap_str) << get_cord_x(gap_end) << dx_tmp << i - 1 << i << "\n";
                 direction = g_map_closed;
                 _DefaultHit.unsetBlockEnd(gap_str);
                 _DefaultHit.unsetBlockEnd(gap_end);
