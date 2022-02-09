@@ -152,7 +152,7 @@ SAM/BAM from Linear can work with pbsv discover and pbsv call provided the sampl
 The compatibility of the alignment-free results to the IGV 2.8.3 has been tested.
 Alignment-free .bam  can be visualised directly in IGV.
 
-## Updating variants models 🐢
+## Updating variant models 🐢
 Alignment-free model for variants is  flexible to replace.
-Thus we will update models in Linear continuously if there are better ones, such as a new model for nested variants.
-This will probably lead to different results between versions.
+Thus we will update models in Linear continuously if there are better ones, such as new models for nested variants.
+This probably leads to different results between versions.
