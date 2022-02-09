@@ -14,20 +14,26 @@ The results can be called directly by alignment based tools such as the SVs call
 ## Build and usage 💩
 Linear is easy to build and use.
 Make sure the following tools or libraries are available before building the source.
-|Prerequisites|Versions|
-| ------------------- | ------------------------- |
-|<img src="images/linux_logo.png" width="16"/> Linux| >4.9.0|
-|<img src="images/gcc_logo.png" width="16"/> GCC|>4.9|
-|<img src="images/cmake_logo.png" width="16"/> CMAKE|>3.0.0|
-|<img src="images/Zlib_3D_green.svg" width="16"/> zlib|/|
 
+- <img src="images/linux_logo.png" width="26"/> GNU/Linux kernel> 4.9.0  GCC > 4.9
+- <img src="images/cmake_logo.png" width="26"/> CMAKE > 3.0.0
+- <img src="images/Zlib_3D_green.svg" width="36"/> zlib
 
-To build from the source create a new directory. In the directory type:
+To install zlib on
+Debian-based: Ubuntu, etc
+```bash
+sudo apt-get install zlib1g zlib1g-dev
+```
+RedHat-based: Fedora, etc
+```bash
+sudo dnf install zlib-devel
+```
+To build Linear from the source create a new directory. In the new directory type:
 ```bash
 $CMake [path to source] 
 $make linear -j 8 
 ```
-Note:The <b>'-j 8'</b> option is to set up 8 threads to speedup the compilation
+Note:The <b>'-j 8'</b> option is to set up 8 threads to speedup the compilation.
 ### Usage
 Supported file formats  for input: .fa(.gz) and .fastq(.gz).
 ```bash
@@ -44,8 +50,7 @@ $linear -h
 
 ## Format of files 
 Output of Linear extends standard SAM/BAM format to alignment-free results.
-Definitions of each fields are extended to adapt to the alignment-free results.
-Theses changes include:
+Definition of each fields are :
 ### SAM/BAM
 
 |col |filed|Description|Status|
@@ -63,18 +68,11 @@ Theses changes include:
 |   11 | QUAL  | ASCII of Phred-scaled base QUALity+33     | Yes       |
 |   12 | TAG   | Optional tags                             | Redefined   |
 
-- The 6th column of cigar is changed in the extended SAM/BAM.
-Alignment cigar denotes each base, while alignment-free cigar denotes virtual alignment between 2 points.
-Specially, alignment-free cigar in Linear is in the format of 'MG', where 'M' is allowed to be 'X' and '=' of standard cigar while 'G' is allowed to be 'I' and 'D' of standard cigar.
-An example of virtual alignment of '200=80D' between 2 vertexes is shown in the following figure.
-The green region is the estimated region, where the real alignment is supposed to be.
+- The 6th column of cigar is redefined in the extended SAM/BAM.
+Alignment-free cigar denotes the virtual alignment between 2 points, which is always in the pair of 'MG', where 'M' is 'X' or '=' and 'G' is 'I' and 'D'.
 
-<img src="images/cigar_apx_map.png" alt="drawing" width="300"/>
 
-- The 10th column of SEQ is inferred according to the reference and the 4,6th column rather than segment of read.
-For cigar operation '=', the corresponding base from the reference rather than the read is inserted into the SEQ.
-Thus the operation of '=' in alignment-free result doesn't necessarily mean the read is identical to the reference at the level of base pairs.
-This is different from the SEQ for alignment.
+- The 10th column of SEQ is inferred according to the both read and reference.
 The following table lists bases in SEQ from read or reference for each cigar operation, where
 1/0 are Yes/No and 0.5 is conditional Yes
 
@@ -83,37 +81,35 @@ The following table lists bases in SEQ from read or reference for each cigar ope
 |read|0|0.5|0|1|0|1|0|
 |ref|1|0|1|0|0|0|0|
 
-- The 12th column, in which the definition of 'SA:Z' is changed because of the change of 6th and 10th columns.
+- The 12th column is redefined because the tag 'SA:Z' uses cigar.
 Other tags are identical to the standard.
-Standard definition of the tag can be found at [SAM/BAM format](https://samtools.github.io/hts-specs/SAMv1.pdf) and [Optional tags](https://samtools.github.io/hts-specs/SAMtags.pdf)
+Definition of each tag can be found at [SAM/BAM format](https://samtools.github.io/hts-specs/SAMv1.pdf) and [Optional tags](https://samtools.github.io/hts-specs/SAMtags.pdf)
 
-### Approximate mapping file (.apf)
-This is a nonstandard format to provide readable overview of the alignment-free result.
+### Approximate mapping file (.apf) 
+This is a nonstandard format based on the [.PAF](https://github.com/lh3/miniasm/blob/master/PAF.md)
+The format is being developed.🛠
+It's to provide readable alignment-free result.
 The file can be enabled/disabled with the option '<b>-ot</b>'.
-The .apf file contains the header and records
-The following are the definition of the header and record.
-### header
-|col |filed|Description|Type|
+The .apf file contains the header and records.
+The following 2 tables lists the fields of the header(H) and record(R).
+|col(H/R) |filed|Description|Type|
 |--|--|--|--|
-|1|@|sign of header|{'@'}|
-|2| QNAME|Query template NAME|string|
-|3| QLEN|Query template LENGTH|int|
-|4| QSTR|Query template mapped START| int |
-|5| QEND|Query template mapped END| int |
-|5| QSTRD|Query template mapped main STRAND|{'+','-'}|
-|6| RNAME | Reference sequence NAME|String| 
-|6| RLEN | Reference sequence LENGTH|int| 
-|7| RSTR | Reference sequence mapped START|int| 
-|8| REND | Reference sequence mapped END|int| 
-### record
-|col |filed|Description|Type|
-|--|--|--|--|
-|1|\||sign to start record|string|
-|2|QSTR|Query region start|int|
-|3|RSTR|Reference region start|int|
-|4|DY|Distance of current 3th col to last|int|
-|5|DX|Distance of current 4th col to last|int|
-|6|RSTRD|region strand|{'+','-'}|
+|H1|@|sign of header|{'@'}|
+|H2| QNAME|Query template NAME|string|
+|H3| QLEN|Query template LENGTH|int|
+|H4| QSTR|Query template mapped START| int |
+|H5| QEND|Query template mapped END| int |
+|H5| QSTRD|Query template mapped main STRAND|{'+','-'}|
+|H6| RNAME | Reference sequence NAME|String| 
+|H6| RLEN | Reference sequence LENGTH|int| 
+|H7| RSTR | Reference sequence mapped START|int| 
+|H8| REND | Reference sequence mapped END|int| 
+|R1|\||sign to start record|string|
+|R2|QSTR|Query region start|int|
+|R3|RSTR|Reference region start|int|
+|R4|DY|Distance of current 3th col to last|int|
+|R5|DX|Distance of current 4th col to last|int|
+|R6|RSTRD|region strand|{'+','-'}|
 
 Following is an example of the apf the read mapped to the reference.
 ```
@@ -137,22 +133,21 @@ Following is an example of the apf the read mapped to the reference.
 | 9870 19020 190 181 69 -
 ```
 
-## Adaption to existing pipelines 
-The alignment-free results can be called by existing alignment based pipelines.
-
+## Adaption to existing pipelines 🐦
+Currently Linear in SAM has been tested with the following tools or pipelines.
 ### Adaption to Samtools
 The compatibility of alignment results to Samtools 1.10 has been test.
-Alignment-free results can work with samtools view, samtools index and samtools sort and convert the SAM to BAM file.
+Alignment-free results can work with 'samtools view', 'samtools index' and 'samtools sort' to convert and index SAM/BAM file.
 
 ### Adaption to SVs callers
 The compatibility of the alignment-free results to the SVs caller [PBSV](https://github.com/PacificBiosciences/pbsv) 2.6.2 has been tested with PacBio raw reads and CCS reads.
-SAM/BAM from Linear can work with pbsv discover and pbsv call provided the sample and group name is set appropriately with the -s option in pbsv discover.
+SAM/BAM from Linear can work with 'PBSV discover' and 'PBSV call' provided the sample and group name is set appropriately with the -s option in pbsv discover.
 
 ### Adaption to seqeunce graphical tools (IGV)
 The compatibility of the alignment-free results to the IGV 2.8.3 has been tested.
 Alignment-free .bam  can be visualised directly in IGV.
 
 ## Updating variant models 🐢
-Alignment-free model for variants is  flexible to replace.
-Thus we will update models in Linear continuously if there are better ones, such as new models for nested variants.
+Alignment-free model for variants is flexible to replace.
+We are updating models in Linear continuously such as new models for nested variants.
 This probably leads to different results between versions.
