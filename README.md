@@ -1,5 +1,5 @@
 
-Linear <img width="50px" src="images/linear_logo-1.svg"/>
+Linear 
 ====
 ![example workflow](https://github.com/catx1024/linear/actions/workflows/cmake.yml/badge.svg)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
@@ -73,7 +73,7 @@ Alignment-free model for variants is flexible to extend.
 We are updating models in Linear continuously if there are better ones.
 This can lead to different results between versions.
 
-## Format of alignment-free results 🐾
+## Format of alignment-free results 
 ### SAM/BAM
 We extended SAM/BAM for alignment-free results.\
 It's compatible with the standard SAM/BAM for alignment. Each field is defined in the following table:
@@ -123,4 +123,3 @@ The .APF format contains the header(H) and records(R) defined in the following t
 |R4|DY|Distance of R3  to last R3|int|
 |R5|DX|Distance of R4  to last R4|int|
 |R6|RSTRD|record strand|{'+','-'}|
-
