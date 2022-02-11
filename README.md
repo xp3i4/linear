@@ -1,52 +1,87 @@
 
-Linear <img width="60px" src="images/linear_logo-1.svg"/>
+Linear 
 ====
 ![example workflow](https://github.com/catx1024/linear/actions/workflows/cmake.yml/badge.svg)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 ![platforms](https://img.shields.io/badge/platform-linux-informational.svg)
 
 ## ALIgNment-freE method for long-read vARiants resolution 
-Structural variants (SVs) pipelines commonly rely on the alignment.
-However, rigid static gap model in alignment is inflexible to resolve diverse SVs and inefficient to compute.
-Thus we develop the alignment-free method for more efficient dection of SVs in 3rd sequencing reads.
-The results can be called directly by alignment based tools such as the SVs caller PBSV and the visualization tool IGV.
+Structural variants (SVs) detection pipelines for 3Gen sequencing are commonly based on the alignment.
+However, rigid static gap models in alignment are less flexible and efficient for diverse types of SVs.
+Thus we develop the alignment-free method for SVs detection.
+The alignment-free results can be called directly by alignment based tools such as the SVs caller PBSV.
 
-## Build and usage 💩
-Linear is easy to build and use.
-Make sure the following tools or libraries are available before building the source.
-|Prerequisites|Versions|
-| ------------------- | ------------------------- |
-|<img src="images/linux_logo.png" width="16"/> Linux| >4.9.0|
-|<img src="images/gcc_logo.png" width="16"/> GCC|>4.9|
-|<img src="images/cmake_logo.png" width="16"/> CMAKE|>3.0.0|
-|<img src="images/Zlib_3D_green.svg" width="16"/> zlib|/|
+## Build and usage 
+### Prerequisites
+Please make sure the following systems have been installed before building from the source.
+#### Linux only:
+||requirement|version|comment|
+|--|--|--|--|
+|**Compiler**|[GCC](https://gcc.gnu.org/) | ≥ 4.9.0|no other compiler is currently supported|
+|**Build system**| [CMAKE](https://cmake.org/) |≥ 3.0.0|/|
+|**External libs**|[zlib](https://github.com/madler/zlib)|≥ 1.2|required for `*.gz` and `*.bam` file support |
 
-
-To build from the source create a new directory. In the directory type:
+To install zlib on
+Debian-based: Ubuntu, etc
+```bash
+sudo apt-get install zlib1g zlib1g-dev
+```
+RedHat-based: Fedora, etc
+```bash
+sudo dnf install zlib-devel
+```
+#### Windows and osx are currently not supported.
+### Build
+To build from the source, create a new directory. In the new directory:
 ```bash
 $CMake [path to source] 
 $make linear -j 8 
 ```
-Note:The <b>'-j 8'</b> option is to set up 8 threads to speedup the compilation
+Note:The option `-j 8` is to set up 8 threads to speedup the compilation.
+
 ### Usage
-Supported file formats  for input: .fa(.gz) and .fastq(.gz).
+Supported formats  for input: `*.fa(stq)(.gz)`.
 ```bash
-$linear read.fa genome.fa
+$linear read.fastq genome.fa
 ``` 
-Please add argument <b>'-x'</b> if computing more than one reads and genomes.
+Please add argument <b>'-x'</b> between the reads and references to input more than 2 files. 
 ```bash
-$linear *fa x *fa
+$linear *.fastq x *.fa
 ``` 
 Use -h for more details of options
 ```bash
 $linear -h
 ```
 
-## Format of files 
-Output of Linear extends standard SAM/BAM format to alignment-free results.
-Definitions of each fields are extended to adapt to the alignment-free results.
-Theses changes include:
+
+## Adaption to existing pipelines 🐦
+Alignment -free results by Linear currently have been tested with the following pipelines.
+### Adaption to Samtools
+The compatibility of alignment results to Samtools 1.10 has been test.
+Alignment-free results can work with 'samtools view', 'samtools index' and 'samtools sort' to convert and index SAM/BAM file.
+
+### Adaption to SVs callers
+The compatibility of the alignment-free results to the SVs caller [PBSV](https://github.com/PacificBiosciences/pbsv) 2.6.2 has been tested with PacBio raw reads and CCS reads.
+SAM/BAM from Linear can work with 'PBSV discover' and 'PBSV call' provided the sample and group name is set appropriately with the -s option in pbsv discover.
+
+### Adaption to seqeunce graphical tools (IGV)
+The compatibility of the alignment-free results to the IGV 2.8.3 has been tested.
+Alignment-free .bam  can be visualised directly in IGV.
+
+## Updating variant models 🐢
+Alignment-free model for variants is flexible to extend.
+We are updating models in Linear continuously if there are better ones.
+This can lead to different results between versions.
+
+## Format of alignment-free results 
 ### SAM/BAM
+We extended SAM/BAM for alignment-free results.\
+It's compatible with the standard SAM/BAM for alignment. Each field is defined in the following table:
+- The 6th column of cigar is redefined in the extended SAM/BAM.
+Alignment-free cigar denotes the virtual alignment between 2 points, which is always in the pair of 'MG', where 'M' is 'X' or '=' and 'G' is 'I' and 'D'.
+- The 10th column of SEQ is subsequence from read or reference.
+- The 12th column of the tag 'SA:Z' is redefined.
+Other tags are identical to the standard tag, which can be found at [SAM/BAM format](https://samtools.github.io/hts-specs/SAMv1.pdf) and [Optional tags](https://samtools.github.io/hts-specs/SAMtags.pdf).
 
 |col |filed|Description|Status|
 |--|--|--|--|
@@ -63,96 +98,28 @@ Theses changes include:
 |   11 | QUAL  | ASCII of Phred-scaled base QUALity+33     | Yes       |
 |   12 | TAG   | Optional tags                             | Redefined   |
 
-- The 6th column of cigar is changed in the extended SAM/BAM.
-Alignment cigar denotes each base, while alignment-free cigar denotes virtual alignment between 2 points.
-Specially, alignment-free cigar in Linear is in the format of 'MG', where 'M' is allowed to be 'X' and '=' of standard cigar while 'G' is allowed to be 'I' and 'D' of standard cigar.
-An example of virtual alignment of '200=80D' between 2 vertexes is shown in the following figure.
-The green region is the estimated region, where the real alignment is supposed to be.
 
-<img src="images/cigar_apx_map.png" alt="drawing" width="300"/>
 
-- The 10th column of SEQ is inferred according to the reference and the 4,6th column rather than segment of read.
-For cigar operation '=', the corresponding base from the reference rather than the read is inserted into the SEQ.
-Thus the operation of '=' in alignment-free result doesn't necessarily mean the read is identical to the reference at the level of base pairs.
-This is different from the SEQ for alignment.
-The following table lists bases in SEQ from read or reference for each cigar operation, where
-1/0 are Yes/No and 0.5 is conditional Yes
-
-|From|=|X|M|I|D|S|H|
-|--|--|--|--|--|--|--|--|
-|read|0|0.5|0|1|0|1|0|
-|ref|1|0|1|0|0|0|0|
-
-- The 12th column, in which the definition of 'SA:Z' is changed because of the change of 6th and 10th columns.
-Other tags are identical to the standard.
-Standard definition of the tag can be found at [SAM/BAM format](https://samtools.github.io/hts-specs/SAMv1.pdf) and [Optional tags](https://samtools.github.io/hts-specs/SAMtags.pdf)
-
-### Approximate mapping file (.apf)
-This is a nonstandard format to provide readable overview of the alignment-free result.
-The file can be enabled/disabled with the option '<b>-ot</b>'.
-The .apf file contains the header and records
-The following are the definition of the header and record.
-### header
-|col |filed|Description|Type|
+### Alignment-free mapping file (.APF) 
+.APF is a nonstandard format based on the [.PAF](https://github.com/lh3/miniasm/blob/master/PAF.md).
+The format is still being improved🛠 to provide more readable alignment-free results.
+The file can be enabled/disabled with the option '<b>-ot</b>' in Linear.
+The .APF format contains the header(H) and records(R) defined in the following table.
+|col(H/R) |filed|Description|Type|
 |--|--|--|--|
-|1|@|sign of header|{'@'}|
-|2| QNAME|Query template NAME|string|
-|3| QLEN|Query template LENGTH|int|
-|4| QSTR|Query template mapped START| int |
-|5| QEND|Query template mapped END| int |
-|5| QSTRD|Query template mapped main STRAND|{'+','-'}|
-|6| RNAME | Reference sequence NAME|String| 
-|6| RLEN | Reference sequence LENGTH|int| 
-|7| RSTR | Reference sequence mapped START|int| 
-|8| REND | Reference sequence mapped END|int| 
-### record
-|col |filed|Description|Type|
-|--|--|--|--|
-|1|\||sign to start record|string|
-|2|QSTR|Query region start|int|
-|3|RSTR|Reference region start|int|
-|4|DY|Distance of current 3th col to last|int|
-|5|DX|Distance of current 4th col to last|int|
-|6|RSTRD|region strand|{'+','-'}|
-
-Following is an example of the apf the read mapped to the reference.
-```
-@ S1_14253 10049 45 10049 + chr1 44948 9964 19212 
-| 45 9964 0 0 1 - 
-| 215 10119 170 155 2 -
-| 352 10240 137 121 3 -
-| 446 10327 94 87 4 - 
-...
-| 6656 16080 144 128 48 - 
-| 6800 16208 144 128 49 - 
-| 6944 16336 144 128 50 - 
-| 1931 16507 -5013 171 51 + 
-| 2126 16690 195 183 52 + 
-| 2309 16857 183 167 53 + 
-| 2462 16999 153 142 54 + 
-| 2592 17120 130 121 55 + 
-| 2674 17189 82 69 56 + 
-...
-| 9680 18839 0 7 68 - 
-| 9870 19020 190 181 69 -
-```
-
-## Adaption to existing pipelines 
-The alignment-free results can be called by existing alignment based pipelines.
-
-### Adaption to Samtools
-The compatibility of alignment results to Samtools 1.10 has been test.
-Alignment-free results can work with samtools view, samtools index and samtools sort and convert the SAM to BAM file.
-
-### Adaption to SVs callers
-The compatibility of the alignment-free results to the SVs caller [PBSV](https://github.com/PacificBiosciences/pbsv) 2.6.2 has been tested with PacBio raw reads and CCS reads.
-SAM/BAM from Linear can work with pbsv discover and pbsv call provided the sample and group name is set appropriately with the -s option in pbsv discover.
-
-### Adaption to seqeunce graphical tools (IGV)
-The compatibility of the alignment-free results to the IGV 2.8.3 has been tested.
-Alignment-free .bam  can be visualised directly in IGV.
-
-## Updating variants models 🐢
-Alignment-free model for variants is  flexible to replace.
-Thus we will update models in Linear continuously if there are better ones, such as a new model for nested variants.
-This will probably lead to different results between versions.
+|H1|@|sign of header|{'@'}|
+|H2| QNAME|Query template NAME|string|
+|H3| QLEN|Query template LENGTH|int|
+|H4| QSTR|Query template mapped START| int |
+|H5| QEND|Query template mapped END| int |
+|H5| QSTRD|Query template mapped main STRAND|{'+','-'}|
+|H6| RNAME | Reference sequence NAME|String| 
+|H6| RLEN | Reference sequence LENGTH|int| 
+|H7| RSTR | Reference sequence mapped START|int| 
+|H8| REND | Reference sequence mapped END|int| 
+|R1|\||sign to start record|string|
+|R2|QSTR|Query template mapped base|int|
+|R3|RSTR|Reference sequence mapped base|int|
+|R4|DY|Distance of R3  to last R3|int|
+|R5|DX|Distance of R4  to last R4|int|
+|R6|RSTRD|record strand|{'+','-'}|
