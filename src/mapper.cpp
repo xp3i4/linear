@@ -363,7 +363,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
     resize (clips, length(cords_str));
     int f_chain = fm_handler_.isApxChain(f_map) ? 1 : 0; 
     CordsParms cords_parms;
-    //dout << "fdone3" << "\n";
+    dout << "fdone3" << "\n";
     for (unsigned j = 0; j < length(reads); j++)
     {
         if (length(reads[j]) > thd_min_read_len)
@@ -378,7 +378,9 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
             {
                 gap_parms_set[thread_id].read_id = reads_id[j];
                 mapGaps(this->getGenomes(), reads[j], comStr, cords_str[j], cords_end[j], clips[j], apx_gaps, f1, f2, gap_parms_set[thread_id]);
+                print_cords(cords_str[j], "pcal1");
                 reformCords(cords_str[j], cords_end[j], &reformCordsDxDy1, cords_parms);
+                print_cords(cords_str[j], "pcal2");
             }
             if (fm_handler_.isAlign(f_map))
             {

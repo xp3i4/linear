@@ -4497,6 +4497,7 @@ int mapInterval(String<Dna5> & seq1, //genome
         filterGapAnchors(g_hs_anchors, gap_str, gap_end, direction, gap_parms);
     }
     //>>debug
+    dout << "mp1" << get_cord_y(gap_str) << get_cord_y(gap_end) << get_cord_x(gap_str) << get_cord_x(gap_end) << "\n";
     mapTilesFromAnchors (seq1, seq2, comstr, g_hs_anchors, tiles_str, tiles_end, f1, f2, gap_str, gap_end, length(seq2) - 1, direction, gap_parms);
     //dout << "mp1" << (sysTime() - t2) << t1 << (sysTime() - t2) / t1<< "\n";
     return 0;

@@ -25,6 +25,8 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
              int64_t thd_dxy_min,
              GapParms & gap_parms)
 {
+
+    std::cout << "mg1" << get_cord_y(gap_str) << get_cord_y(gap_end) << get_cord_x(gap_str) << get_cord_x(gap_end) << "\n";
     unused(clips);
     CmpInt64 g_cmpll;
     //float thd_da_zero = gap_parms.thd_err;
