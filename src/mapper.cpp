@@ -412,10 +412,8 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
             {
                 gap_parms_set[thread_id].read_id = reads_id[j];
                 mapGaps(this->getGenomes(), reads[j], comStr, cords_str[j], cords_end[j], clips[j], apx_gaps, f1, f2, gap_parms_set[thread_id]);
-                print_cords(cords_str[j], "pcal1");
                 reformCords(cords_str[j], cords_end[j], &reformCordsDxDy1, cords_parms);
             }
-                print_cords(cords_str[j], "pcal2");
             if (fm_handler_.isAlign(f_map))
             {
                 double t = sysTime();

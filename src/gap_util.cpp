@@ -4077,10 +4077,6 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
                int64_t thd_dxy_min,
                GapParms & gap_parms)
 {
-    print_cord (gap_str1, "me11");
-    print_cord (gap_end1, "me12");
-    print_cord (gap_str2, "me21");
-    print_cord (gap_end2, "me22");
     unused(thd_dxy_min);
     /*--Specify gap parms map extending--*/
     gap_parms.thd_ctfas2_connect_danchor = 50;
@@ -4103,16 +4099,13 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
     {
         remove_tile_sgn_end(back(tiles_str1));
     }
-    g_print_tiles_(tiles_str1, "me3");
     reform_tiles(ref, read, comstr, tiles_str1, tiles_end1, sp_tiles1, 
                  gap_str1, gap_end1, direction1, gap_parms);
     //direction = -1 part
     gap_parms.direction = direction2; 
     mapExtendResultFilter_(tiles_str2, tiles_end2, gap_str2, gap_end2, direction2, gap_parms);
-    g_print_tiles_(tiles_str2, "me5");
     reform_tiles(ref, read, comstr, tiles_str2, tiles_end2, sp_tiles2, 
                  gap_str2, gap_end2, direction2, gap_parms);
-    g_print_tiles_(tiles_str2, "me6");
     //restore gap_parms
     gap_parms.direction = original_direction;
     gap_parms.f_rfts_clip = original_f_rfts_clip;
