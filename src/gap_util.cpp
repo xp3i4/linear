@@ -3053,35 +3053,49 @@ int reform_tiles(String<Dna5> & seq1,
     unused(comstr);
     unused(sp_tiles);
     //step.1 init tiles_str, tiles_end;
-    //Insert head_tile and tail tile at the front and end for each block of tiles
-    uint64_t head_tile = gap_str;
-    uint64_t tail_tile = shift_tile(gap_end, -gap_parms.thd_tile_size, -gap_parms.thd_tile_size); 
-    if ((int64_t)get_tile_x(gap_end) > gap_parms.thd_tile_size && (int64_t)get_tile_y (gap_end) > gap_parms.thd_tile_size)
+    //Insert head_tile and tail_tile at the front and end for each block of tiles
+    int64_t x1 = get_tile_x(gap_str);
+    int64_t x2 = get_tile_x(gap_end);
+    int64_t y1 = get_tile_y(gap_str);
+    int64_t y2 = get_tile_y(gap_end);
+    int64_t d1 = 0;
+    int64_t d2 = 0;
+    if (! empty (tiles_str))
     {
-        tail_tile = shift_tile(gap_end, -gap_parms.thd_tile_size, -gap_parms.thd_tile_size);
+        d1 = std::min({int64_t(get_tile_x(back(tiles_str))) - x1, 
+                       int64_t(get_tile_y(back(tiles_str))) - y1,
+                       int64_t(gap_parms.thd_tile_size)});
+        d2 = std::min({x2 - int64_t(get_tile_x(back(tiles_str))), 
+                       y2 - int64_t(get_tile_y(back(tiles_str))),
+                       int64_t(gap_parms.thd_tile_size)}); 
     }
     else
     {
-        tail_tile = head_tile;
+        d1 = d2 = std::min({x2 - x1, y2 - y1,int64_t(gap_parms.thd_tile_size)});
     }
-    remove_tile_sgn(head_tile);
-    //remove_tile_sgn(tail_tile);
-    set_tile_end(tail_tile);
+    uint64_t head_tile_str = gap_str;
+    uint64_t tail_tile_end = gap_end;
+    uint64_t head_tile_end = shift_tile(head_tile_str,  d1,  d1);
+    uint64_t tail_tile_str = shift_tile(tail_tile_end, -d2, -d2);
+
+    remove_tile_sgn(head_tile_str);
+    //remove_tile_sgn(tail_tile_str);
+    set_tile_end(tail_tile_str);
     if (!empty(tiles_str))
     {
-        copy_tile_sgn(back(tiles_str), tail_tile);
-        copy_tile_sgn(tiles_str[0], head_tile);
+        copy_tile_sgn(back(tiles_str), tail_tile_str);
+        copy_tile_sgn(tiles_str[0], head_tile_str);
         remove_tile_sgn(back(tiles_str));
         remove_tile_sgn(tiles_str[0]);
     }
     if (direction != g_map_left)
     {
-        insertValue(tiles_str, 0, head_tile);
+        insertValue(tiles_str, 0, head_tile_str);
 
     }
     if (direction != g_map_rght)
     {
-        appendValue(tiles_str, tail_tile);
+        appendValue(tiles_str, tail_tile_str);
     }
     int64_t d = shift_tile (0ULL, gap_parms.thd_tile_size, gap_parms.thd_tile_size);
     if (empty(tiles_end))
@@ -3089,20 +3103,20 @@ int reform_tiles(String<Dna5> & seq1,
         resize(tiles_end, length(tiles_str));
         for (int i = 0; i < (int)length(tiles_str); i++)
         {
-            tiles_end[i] = tiles_str[i] + d;
+            d = std::min({x2 - int64_t(get_tile_x(tiles_str[i])), 
+                          y2 - int64_t(get_tile_y(tiles_end[i])), int64_t(gap_parms.thd_tile_size)});
+            tiles_end[i] = shift_tile(tiles_str[i], d, d);
         }
     }
     else
     {
         if (direction != g_map_left)
         {
-            insertValue(tiles_end, 0, shift_tile(head_tile, gap_parms.thd_tile_size, 
-                gap_parms.thd_tile_size));
+            insertValue(tiles_end, 0, head_tile_end);
         }
         if (direction != g_map_rght)
         {
-            appendValue(tiles_end, shift_tile(tail_tile, gap_parms.thd_tile_size,
-                gap_parms.thd_tile_size));
+            appendValue(tiles_end, tail_tile_end);
         }
     }
     //step.2 reform tiles:clip and break block if necessary
@@ -3838,8 +3852,8 @@ int reExtendChainOneSide(String<Dna5> & ref,
     if (isClipTowardsLeft(direction))
     {
         int64_t d = -std::min({int64_t(get_cord_x(chain[i_ptr_str])), 
-                              int64_t(get_tile_y(chain[i_ptr_str])),
-                              int64_t(lower)});
+                               int64_t(get_tile_y(chain[i_ptr_str])),
+                               int64_t(lower)});
         for (ii = i_ptr_str; ii < i_ptr_end; ii++)
         {
             if (int64_t(get_tile_x(chain[ii]) - get_cord_x(chain[i_ptr_str])) >= upper)
@@ -4063,6 +4077,10 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
                int64_t thd_dxy_min,
                GapParms & gap_parms)
 {
+    print_cord (gap_str1, "me11");
+    print_cord (gap_end1, "me12");
+    print_cord (gap_str2, "me21");
+    print_cord (gap_end2, "me22");
     unused(thd_dxy_min);
     /*--Specify gap parms map extending--*/
     gap_parms.thd_ctfas2_connect_danchor = 50;
@@ -4085,15 +4103,17 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
     {
         remove_tile_sgn_end(back(tiles_str1));
     }
+    g_print_tiles_(tiles_str1, "me3");
     reform_tiles(ref, read, comstr, tiles_str1, tiles_end1, sp_tiles1, 
                  gap_str1, gap_end1, direction1, gap_parms);
     //direction = -1 part
     gap_parms.direction = direction2; 
     mapExtendResultFilter_(tiles_str2, tiles_end2, gap_str2, gap_end2, direction2, gap_parms);
+    g_print_tiles_(tiles_str2, "me5");
     reform_tiles(ref, read, comstr, tiles_str2, tiles_end2, sp_tiles2, 
                  gap_str2, gap_end2, direction2, gap_parms);
+    g_print_tiles_(tiles_str2, "me6");
     //restore gap_parms
-
     gap_parms.direction = original_direction;
     gap_parms.f_rfts_clip = original_f_rfts_clip;
     gap_parms.f_me_map_extend = 0;
@@ -4469,6 +4489,7 @@ int mapInterval(String<Dna5> & seq1, //genome
         filterGapAnchors(g_hs_anchors, gap_str, gap_end, direction, gap_parms);
     }
     //>>debug
+    dout << "mp1" << get_cord_y(gap_str) << get_cord_y(gap_end) << get_cord_x(gap_str) << get_cord_x(gap_end) << "\n";
     mapTilesFromAnchors (seq1, seq2, comstr, g_hs_anchors, tiles_str, tiles_end, f1, f2, gap_str, gap_end, length(seq2) - 1, direction, gap_parms);
     //dout << "mp1" << (sysTime() - t2) << t1 << (sysTime() - t2) / t1<< "\n";
     return 0;
