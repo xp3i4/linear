@@ -99,16 +99,19 @@ int createSIndex(StringSet<String<Dna5> > & seqs,
 class DIndex 
 {
     String <int> dir;
-    String <int64_t> hs;
+    String <uint64_t> hs;
     void * pt_dir[2];
     void * pt_hs[2];
     int pt;
+    uint64_t rs;
+    uint64_t fs;
     LShape shape;
 public:
     DIndex();
     DIndex(unsigned); //shape_len
     String<int> & getDir();
-    String<int64_t> & getHs();
+    String<uint64_t> & getHs();
+    uint64_t val2Anchor(int64_t &, uint64_t & y, uint64_t & read_len, LShape & shape);
     LShape & getShape();
     int fullSize();
     int getShapeLen();
@@ -125,8 +128,9 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
                  int64_t thd_omit_block,
                  unsigned threads
                 );
-int64_t queryHsStr(DIndex & index, int64_t xval);
-int64_t queryHsEnd(DIndex & index, int64_t xval);
+int64_t queryHsStr(DIndex & index, uint64_t & xval);
+int64_t queryHsEnd(DIndex & index, uint64_t & xval);
+void queryHsStrEnd(DIndex & index, uint64_t & xval, std::pair<int64_t, int64_t> & str_end);
 
 /*=============================================
 =        Section to optimize 25-mer index     =

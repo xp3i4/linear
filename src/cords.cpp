@@ -196,7 +196,7 @@ uint64_t create_cord (uint64_t id, uint64_t cordx, uint64_t cordy, uint64_t stra
 {
     return _DefaultCord.createCord(create_id_x (id, cordx), cordy, strand);
 }
-int64_t atomic_inc_cord_y (int64_t & cord) 
+int64_t atomic_inc_cord_y (uint64_t & cord) 
 {
     return atomicInc(cord);
 }

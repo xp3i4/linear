@@ -1483,6 +1483,8 @@ int const typeFIx = 16;
 
 unsigned dshape_len = 21; //!!WARN::only odd number, even is not allowed
 DIndex::DIndex():
+    rs( _DefaultCordBase.flag_strand),
+    fs(~_DefaultCordBase.flag_strand),
     shape(dshape_len)
 {}
 DIndex::DIndex (unsigned len):
@@ -1500,9 +1502,21 @@ String<int> & DIndex::getDir()
 {
     return dir;
 }
-String<int64_t> & DIndex::getHs()
+String<uint64_t> & DIndex::getHs()
 {
     return hs;
+}
+uint64_t DIndex::val2Anchor(int64_t & i, uint64_t  & y, uint64_t & read_len, LShape & shape)
+{
+    if (get_cord_strand(hs[i]) ^ shape.strand)
+    {
+        uint64_t cordy = read_len - 1 - y;
+        return (hs[i] - (cordy << 20) + cordy) | rs;
+    }
+    else 
+    {
+        return (hs[i] - (y << 20) + y) & fs;
+    }    
 }
 void DIndex::clear()
 {
@@ -1522,7 +1536,7 @@ int createDIndex_serial(StringSet<String<Dna5> > & seqs,
     unused(gend);
     LShape & shape = index.getShape();
     String<int> & dir = index.getDir();
-    String<int64_t> & hs = index.getHs();
+    String<uint64_t> & hs = index.getHs();
     resize (index.getDir(), index.fullSize(), 0);
     uint64_t preVal = ~0;
     uint64_t last_j = 0;
@@ -1626,7 +1640,7 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
     double t = sysTime();
     LShape & t_shape = index.getShape();
     String<int> & dir = index.getDir();
-    String<int64_t> & hs = index.getHs();
+    String<uint64_t> & hs = index.getHs();
     resize (dir, index.fullSize(), 0);
     unsigned genome_lens_sum = 0;
     float current_lens_ratio = 0;
@@ -1692,6 +1706,12 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
         {
             dir[i] = 0;
         }
+        /*
+        if (dir[i] != 0)
+        {
+            dout << "cdx" << dir[i] << "\n";
+        }
+        */
         sum += dir[i];
         dir[i] = sum - dir[i];
     }
@@ -1739,7 +1759,7 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
                             int64_t slot_str = dir[shape.XValue];
                             int64_t k = slot_str + getDIndexBlockPointer_(atomic_inc_cord_y(hs[slot_str])) - 1;
                             //int64_t new_cord = create_cord(i, j, 0, shape.strand); 
-                            int64_t new_cord = create_cord(i, j, shape2DIndexCordy(shape), shape.strand); //be sure lower bits of new_cord_y for share pointer == 0 
+                            uint64_t new_cord = create_cord(i, j + const_anchor_zero, 0, shape.strand); //be sure lower bits of new_cord_y for share pointer == 0 
                             if (k == slot_str) 
                             {   //atomic creation the first cord which cotains shared pointer
                                 new_cord -= EmptyVal;
@@ -2180,7 +2200,7 @@ CreateSIndexParms::CreateSIndexParms()
 int _createDIndexFromHs(String<uint64_t> & hs, String<uint64_t> & hs_str_end, DIndex & index, int64_t thd_omit_block, unsigned threads)
 {
     String<int> & dir = index.getDir();
-    String<int64_t> & d_hs = index.getHs();
+    String<uint64_t> & d_hs = index.getHs();
     resize (dir, index.fullSize(), 0);
     //double t2 = sysTime();
     //dout << "idx2" << length(dir) << t_shape.weight << thd_min_step << thd_max_step << thd_omit_block<< "\n";
@@ -2331,13 +2351,18 @@ int createMHIndex(IndexDynamic & index, uint64_t g_str, uint64_t g_end, uint64_t
 
 /*----------  DynamicIndex   ----------*/
 
-int64_t queryHsStr(DIndex & index, int64_t xval)
+int64_t queryHsStr(DIndex & index, uint64_t & xval)
 {
     return index.getDir()[xval];
 }
-int64_t queryHsEnd(DIndex & index, int64_t xval)
+int64_t queryHsEnd(DIndex & index, uint64_t & xval)
 {
     return index.getDir()[xval + 1];
+}
+void queryHsStrEnd(DIndex & index, uint64_t & xval, std::pair<int64_t, int64_t> & str_end)
+{
+    str_end.first  = index.getDir()[xval];
+    str_end.second = index.getDir()[xval + 1];
 }
 int IndexDynamic::isHIndex()
 {
