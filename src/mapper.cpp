@@ -365,7 +365,7 @@ void Mapper::initBuffers(int buffer_size1, int buffer_size2, P_Parms & p_parms)
 }
 int Mapper::p_calRecords(int in_id, int out_id, int thread_id) 
 {
-    double t0 = sysTime();
+    //double t0 = sysTime();
     Counters & counters = this->getPTask(thread_id).counters;
     StringSet<String<Dna5> > & reads = reads_buffer[in_id];
     StringSet<CharString> & reads_id = reads_ids_buffer[in_id]; 
@@ -397,7 +397,6 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
     int f_chain = fm_handler_.isApxChain(f_map) ? 1 : 0; 
     CordsParms cords_parms;
     //dout << "fdone3" << "\n";
-    double t1 = sysTime();
     for (unsigned j = 0; j < length(reads); j++)
     {
         if (length(reads[j]) > thd_min_read_len)
@@ -416,14 +415,13 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
             }
             if (fm_handler_.isAlign(f_map))
             {
-                double t = sysTime();
+                //double t = sysTime();
                 alignCords(this->getGenomes(), reads[j], comStr, cords_str[j], cords_end[j], bam_records[j]);
-                t = sysTime() - t;
+                //t = sysTime() - t;
                 //check_cigar (seqs, reads[j], comStr, cordsTmp[c], bam_records_tmp[c]);
             }
         }
     } 
-    t1 = sysTime() - t1;
     if (!fm_handler_.isAlign(f_map)) 
     {
         uint64_t thd_large_X = 8000; 
@@ -432,8 +430,6 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
         cords2BamLink (cords_str, cords_end, cords_info, bam_records, reads, this->getCordSize(), thd_large_X);
     }
     counters.setCalCounter(counters.getCalCounter() + length(reads));
-    t0 = sysTime() - t0;
-    dout << "pcal" << t1 * 1000 << t0 * 1000 << "\n";
     return 0;
 }
 //it1->reads buffer
