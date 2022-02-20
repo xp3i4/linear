@@ -421,7 +421,7 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                                 int64_t(gap_parms.thd_tile_size)});
             int64_t shift_y = std::min({int64_t(length(read) - 1 - get_cord_y(cords_str[i])),
                                 int64_t(gap_parms.thd_tile_size)});
-            if (! _DefaultCord.isBlockEnd(cords_str[i])) 
+            if (!_DefaultCord.isBlockEnd(cords_str[i]) && ! get_cord_strand(cords_str[i] ^ cords_str[i + 1])) 
             {
                 shift_x = std::min(int64_t(get_cord_x(cords_str[i + 1]) - get_cord_x(cords_str[i])), shift_x);
                 shift_y = std::min(int64_t(get_cord_y(cords_str[i + 1]) - get_cord_y(cords_str[i])), shift_y);
