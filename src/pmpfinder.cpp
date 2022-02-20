@@ -1870,8 +1870,8 @@ unsigned getDIndexMatchAll (DIndex & index,
     double t0 = sysTime();
     GetDIndexMatchAllParms & pm_gdima = pm_pmp.pm_gdima;
     int dt = 0;
-    int thd_alpha = pm_gdima.thd_alpha;
-    int unmatched_count = 0;
+    //int thd_alpha = pm_gdima.thd_alpha;
+    //int unmatched_count = 0;
     LShape shape(index.getShape());
     uint64_t read_len = length(read);
     uint64_t xpre = 0;
