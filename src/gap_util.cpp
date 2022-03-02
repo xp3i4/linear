@@ -1209,9 +1209,7 @@ int g_CreateChainsFromAnchors_(String<uint64_t> & anchors, String<uint64_t> & ti
         }
         set_tile_end(tiles[it - 1]);
     } 
-    //g_print_tiles_(tiles, "gcc22");
     chainTiles(tiles, read_len, thd_anchor_gap_size, gap_parms);
-    //g_print_tiles_(tiles, "gcc21");
     unused(block_str);
     unused(gap_str);
     unused(gap_end);
@@ -1311,7 +1309,6 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
                                                 get_y(chains[j]) - tmp_shift,
                                                 get_strand(chains[j]));
                 //unsigned score = _get_tile_f_(new_tile, f1, f2);
-                //g_print_tile(new_tile, "gs2");
                 uint64_t lower_tile = empty(tiles) ? gap_str : back(tiles);
                 uint64_t upper_tile = gap_end;
                 uint64_t lower_x = get_x(lower_tile);
@@ -1320,7 +1317,6 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
                 uint64_t upper_y = get_y(upper_tile);
                 unsigned score =  _get_tile_f_tri_(new_tile, f1, f2, lower_x, lower_y, upper_x, upper_y,
                     gap_parms.thd_ctfcs_accept_score, gap_parms.thd_tile_size);
-                //g_print_tile(new_tile, "gs22");
                 if (kcount >= (int)gap_parms.thd_ctfcs_pattern_in_window && score <= 32 &&
                     get_tile_y(new_tile) > get_tile_y(pre_tile))
                 {
@@ -1380,21 +1376,17 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
     int tiles_str_i = length(tiles_str);
     String<uint64_t> tiles_str_tmp;
     String<uint64_t> tiles_end_tmp;
-    //g_print_tiles_(chains, "gctf1");
     g_CreateTilesFromChains_(chains, tiles_str_tmp, f1, f2, gap_str, gap_end, it_str, it_end,
          get_x, get_y, get_strand, gap_parms);
-    //std::cout << "gctf2" << it_str << it_end << length(tiles_str_tmp)<< empty(tiles_str_tmp) << "\n";
     if (empty (tiles_str_tmp))
     {
         return 0;
     }
-    g_print_tiles_(tiles_str_tmp, "ctc31");
     int64_t tile_size = gap_parms.thd_tile_size;
     for (unsigned i = 0; i < length(tiles_str_tmp); i++)
     {
         int64_t dx1 = get_x(chains[it_str]) - get_tile_x(tiles_str_tmp[i]);
         int64_t dy1 = get_y(chains[it_str]) - get_tile_y(tiles_str_tmp[i]);
-        //dout << "gctf61" << dx1 << dx2 << dy1 << dy2 << "\n";
         if (dx1 <= 0 && dy1 <= 0)
         {
             if (dx1 ==  0 && dy1 == 0)
@@ -1431,8 +1423,6 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
     {
         tiles_end_tmp[i] = shift_tile (tiles_str_tmp[i], tile_size, tile_size);
     }
-    g_print_tiles_(tiles_str_tmp, "ctc11");
-    g_print_tiles_(tiles_end_tmp, "ctc12");
     for (int i = int(length(tiles_end_tmp)) - 1; i >= 0; i--)
     {
         int64_t dx1 = get_x(chains[it_end - 1]) - get_tile_x(tiles_end_tmp[i]);
@@ -1451,8 +1441,6 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
                                                 get_y(chains[it_end - 1]),
                                                 get_strand(chains[it_end - 1]));
             uint64_t new_tail_str = shift_tile(new_tail_end, -tile_size, -tile_size);
-            //g_print_tile(new_tail_str, "gctfc21");
-            //g_print_tile(new_tail_end, "gctfc22");
             if (is_tile_end(tiles_str_tmp[i]))
             {
                 remove_tile_sgn(tiles_str_tmp[i]);
@@ -1469,18 +1457,12 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
             erase(tiles_str_tmp, 1, length(tiles_str_tmp));
             erase(tiles_end_tmp, 1, length(tiles_end_tmp));
             tiles_end_tmp[0] = shift_tile(tiles_end_tmp[0], dx1, dy1);
-            //g_print_tile(tiles_end_tmp[0], "xxx1");
             //set_tile_end(tiles_str_tmp[0]);
             //set_tile_end(tiles_end_tmp[0]);
         }
     }
-    //g_print_tiles_(tiles_end_tmp, "gctfc1");
-    g_print_tiles_(tiles_end_tmp, "ctc2");
     append(tiles_str, tiles_str_tmp);
     append(tiles_end, tiles_end_tmp);
-    //print_cords(chains, "gct21");
-    //print_cords(tiles_str, "gct22");
-    //print_cords(tiles_end, "gct23");
     unused(tiles_str_i);
     return 0;
 }
@@ -1556,7 +1538,6 @@ int trimTiles(String<uint64_t> & tiles,
             i += extendPatch(f1, f2, tiles, i, tiles[i - 1], tiles[i], revscomp_const, thd_overlap_size, thd_gap_size, gap_parms.thd_accept_score);   
         }
     }
-    //g_print_tiles_(tiles, "tms12");
     //step2.Remove tiles out of bound.
     int64_t x_str = get_tile_x(gap_str);
     int64_t y_str = get_tile_y(gap_str);
@@ -1772,7 +1753,6 @@ int c_createAnchorsBlocks_ (String<uint64_t> & g_hs,
     {
         dx_lower = ~0;
         dx_upper = std::numeric_limits<int64_t>::max();
-        //dout << "dxm" << dx_upper << "\n";
     }
     else 
     {
@@ -4129,10 +4109,6 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
     mapExtendResultFilter_(tiles_str2, tiles_end2, gap_str2, gap_end2, direction2, gap_parms);
     reform_tiles(ref, read, comstr, tiles_str2, tiles_end2, sp_tiles2, 
                  gap_str2, gap_end2, direction2, gap_parms);
-    g_print_tiles_(tiles_str1, "me11");
-    g_print_tiles_(tiles_end1, "me12");
-    g_print_tiles_(tiles_str2, "me21");
-    g_print_tiles_(tiles_end2, "me22");
     //restore gap_parms
     gap_parms.direction = original_direction;
     gap_parms.f_rfts_clip = original_f_rfts_clip;
@@ -4180,7 +4156,6 @@ int reExtendClipOneSide(String<Dna5> & ref,
             length(read) - 1 - get_tile_y(chain[i_ptr_end]) - get_tile_y(extend_lower_cord) :
             get_tile_y(extend_upper_cord) - get_tile_y(chain[i_ptr_end]);
         upper = std::min({dx, dy, upper});
-    //dout << "luex" << lower << upper << direction << dx << dy  << "\n";   
     }
     return reExtendChainOneSide(ref, read, comstr, chain, i_ptr_str, i_ptr_end, lower, upper, 
                 shape_len, step1, step2, direction, 
@@ -4259,7 +4234,6 @@ int createTilesFromAnchors2_(String<Dna5> & ref,
         }
     }    
     t2=sysTime() - t2;
-    //dout << "mp1s1" << t2 << t1 << length(anchors) << "\n";
     //set_tile_end(back(tiles_str));
     //set_tile_end(back(tiles_end));
     return 0;
@@ -4319,8 +4293,6 @@ int _createGapAnchorsList(String<uint64_t> & anchors,
                 (dy2 >> thd_anchor_err_bit)); 
         if (f_continuous)
         {
-            //dout << "fts2" << g_hs_anchor_getStrAnchor(anchors[i]) - g_hs_anchor_getStrAnchor(ak2) 
-             //   << (dy2 >> thd_anchor_err_bit) << "\n";
             if (min_y > anc_y) {
                 min_y = anc_y;
             }
@@ -4381,7 +4353,6 @@ int _filterGapAnchorsList(String<uint64_t> & anchors,
         [](ListElemType & a, ListElemType & b){
         return a.second - a.first > b.second - b.first;
     });
-    //dout << "fgal3" << length(anchors) << length(anchors_list) << "\n";
     if (length(anchors) > thd_fgal_min_len1 && 
         length(anchors_list) > thd_fgal_min_len2)
     {
@@ -4389,11 +4360,9 @@ int _filterGapAnchorsList(String<uint64_t> & anchors,
         unsigned l_median = anchors_list[i_median].second 
                           - anchors_list[i_median].first;
         unsigned l_max = anchors_list[0].second - anchors_list[0].first;
-        //dout << "fgal2" << length(anchors_list) << "\n";
         if (l_max > l_median * thd_fgal_significant_median1 &&
             l_max > l_median + thd_fgal_significant_median2)
         {
-         //   dout << "fgal1" << length(anchors_list) << "\n";
             unsigned it = 0;
             uint64_t break_value =  (anchors_list[i_median].second - 
                 anchors_list[i_median].first) * thd_fgal_median;
@@ -4411,7 +4380,6 @@ int _filterGapAnchorsList(String<uint64_t> & anchors,
                 }
             }
             resize(anchors_list, it);
-          //  dout << "fgal4" << length(anchors) << length(anchors_list) << l_max << l_median << l_s << tmp << "\n";
         }
         else //in such case, only anchors within the bounds are stored
         {
@@ -4509,9 +4477,7 @@ int mapInterval(String<Dna5> & seq1, //genome
         filterGapAnchors(g_hs_anchors, gap_str, gap_end, direction, gap_parms);
     }
     //>>debug
-    dout << "mp1" << get_cord_y(gap_str) << get_cord_y(gap_end) << get_cord_x(gap_str) << get_cord_x(gap_end) << "\n";
     mapTilesFromAnchors (seq1, seq2, comstr, g_hs_anchors, tiles_str, tiles_end, f1, f2, gap_str, gap_end, length(seq2) - 1, direction, gap_parms);
-    //dout << "mp1" << (sysTime() - t2) << t1 << (sysTime() - t2) / t1<< "\n";
     return 0;
 }
 /*
@@ -4538,12 +4504,8 @@ int mapGeneric(StringSet<String<Dna5> > & seqs,
     mapInterval(seqs[get_tile_id(gap_str)], read, comstr, tiles_str, tiles_end, f1, f2,
                         gap_str, gap_end, LLMIN, LLMAX, t_direction, gap_parms, 1);  
     //chainTiles(tiles_str1, length(read), thd_gather_block_gap_size, gap_parms);
-    g_print_tiles_(tiles_str, "mgc11");
-    g_print_tiles_(tiles_end, "mgc12");
     reform_tiles(seqs[get_tile_id(gap_str)], read, comstr, tiles_str, tiles_end, 
         sp_tiles_inv, gap_str, gap_end, t_direction, gap_parms);
-    g_print_tiles_(tiles_str, "mgc21");
-    g_print_tiles_(tiles_end, "mgc22");
     gap_parms.f_rfts_clip = f_rfts_clip;
     (void)thd_gather_block_gap_size; 
     return 0;
