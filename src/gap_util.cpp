@@ -866,10 +866,16 @@ unsigned _get_tile_f_tri_ (uint64_t & new_tile,
 unsigned _get_tile_f_tri_ (uint64_t & new_tile,
                            StringSet<FeaturesDynamic > & f1,
                            StringSet<FeaturesDynamic > & f2, 
+                           uint64_t & lower_x,
+                           uint64_t & lower_y,
+                           uint64_t & upper_x,
+                           uint64_t & upper_y,
                            unsigned thd_accept_score,
                            int thd_tile_size)
 {
-    int shift = thd_tile_size / 4;
+    uint64_t x = get_tile_x(new_tile);
+    uint64_t y = get_tile_y(new_tile);
+    int shift = std::min({thd_tile_size / 4, int(x - lower_x), int(y - lower_y)});
     unsigned thd_abort_score = UMAX; // make sure thd_abort_score > thd_accept_score
     unsigned fscore1 =  _get_tile_f_ (new_tile, f1, f2) ;
     unsigned min_score = fscore1;
@@ -881,6 +887,7 @@ unsigned _get_tile_f_tri_ (uint64_t & new_tile,
         new_tile = tile_l;
         min_score = fscore2;
     }
+    shift = std::min({thd_tile_size / 4, int(upper_x - x - 1), int(upper_y - y - 1)});
     uint64_t tile_r = shift_tile(new_tile, shift, shift);
     unsigned fscore3 = _get_tile_f_(tile_r, f1, f2);
     if (fscore3 < min_score)
@@ -1268,6 +1275,7 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
                               StringSet<FeaturesDynamic> & f1,
                               StringSet<FeaturesDynamic> & f2,
                               uint64_t gap_str, 
+                              uint64_t gap_end,
                               int it_str, 
                               int it_end, 
                               uint64_t(*get_x)(uint64_t), //get_x of chains rather than tile
@@ -1304,7 +1312,13 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
                                                 get_strand(chains[j]));
                 //unsigned score = _get_tile_f_(new_tile, f1, f2);
                 //g_print_tile(new_tile, "gs2");
-                unsigned score =  _get_tile_f_tri_(new_tile, f1, f2, 
+                uint64_t lower_tile = empty(tiles) ? gap_str : back(tiles);
+                uint64_t upper_tile = gap_end;
+                uint64_t lower_x = get_x(lower_tile);
+                uint64_t lower_y = get_y(lower_tile);
+                uint64_t upper_x = get_x(upper_tile);
+                uint64_t upper_y = get_y(upper_tile);
+                unsigned score =  _get_tile_f_tri_(new_tile, f1, f2, lower_x, lower_y, upper_x, upper_y,
                     gap_parms.thd_ctfcs_accept_score, gap_parms.thd_tile_size);
                 //g_print_tile(new_tile, "gs22");
                 if (kcount >= (int)gap_parms.thd_ctfcs_pattern_in_window && score <= 32 &&
@@ -1338,7 +1352,7 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
     return 0;
 }
 /*
- * Create tiles for the block of @chains within [@it_str, it_end).
+ * Create tiles for the block of @chains within [@it_str, @it_end).
  * Note::chains are supposed to have one tile_end sign (one block) at most
  * This funtion requires @chains already clipped at the start and end of the chain,
    Thus the first elment of @tiles_str and last element of @tiles_end == @chains[0] 
@@ -1367,13 +1381,14 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
     String<uint64_t> tiles_str_tmp;
     String<uint64_t> tiles_end_tmp;
     //g_print_tiles_(chains, "gctf1");
-    g_CreateTilesFromChains_(chains, tiles_str_tmp, f1, f2, gap_str, it_str, it_end,
+    g_CreateTilesFromChains_(chains, tiles_str_tmp, f1, f2, gap_str, gap_end, it_str, it_end,
          get_x, get_y, get_strand, gap_parms);
     //std::cout << "gctf2" << it_str << it_end << length(tiles_str_tmp)<< empty(tiles_str_tmp) << "\n";
     if (empty (tiles_str_tmp))
     {
         return 0;
     }
+    g_print_tiles_(tiles_str_tmp, "ctc31");
     int64_t tile_size = gap_parms.thd_tile_size;
     for (unsigned i = 0; i < length(tiles_str_tmp); i++)
     {
@@ -1416,6 +1431,8 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
     {
         tiles_end_tmp[i] = shift_tile (tiles_str_tmp[i], tile_size, tile_size);
     }
+    g_print_tiles_(tiles_str_tmp, "ctc11");
+    g_print_tiles_(tiles_end_tmp, "ctc12");
     for (int i = int(length(tiles_end_tmp)) - 1; i >= 0; i--)
     {
         int64_t dx1 = get_x(chains[it_end - 1]) - get_tile_x(tiles_end_tmp[i]);
@@ -1458,6 +1475,7 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
         }
     }
     //g_print_tiles_(tiles_end_tmp, "gctfc1");
+    g_print_tiles_(tiles_end_tmp, "ctc2");
     append(tiles_str, tiles_str_tmp);
     append(tiles_end, tiles_end_tmp);
     //print_cords(chains, "gct21");
@@ -3079,8 +3097,12 @@ int reform_tiles(String<Dna5> & seq1,
     uint64_t tail_tile_str = shift_tile(tail_tile_end, -d2, -d2);
 
     remove_tile_sgn(head_tile_str);
+    remove_tile_sgn(tail_tile_str);
+    remove_tile_sgn(head_tile_end);
+    remove_tile_sgn(tail_tile_str);
     //remove_tile_sgn(tail_tile_str);
     set_tile_end(tail_tile_str);
+    set_tile_end(tail_tile_end);
     if (!empty(tiles_str))
     {
         copy_tile_sgn(back(tiles_str), tail_tile_str);
@@ -3122,6 +3144,7 @@ int reform_tiles(String<Dna5> & seq1,
     //step.2 reform tiles:clip and break block if necessary
     if (gap_parms.f_rfts_clip)
     {
+        //Thi is disabled for simplicity !
         //reform_tiles_(seq1, seq2, comstr, tiles_str, tiles_end, sp_tiles, direction, 
         //            gap_parms);
     }
@@ -3937,7 +3960,7 @@ int extendTilesOneSide(String<Dna5> & ref,
     remapChainOneEnd(ref, read, comstr, chain, shape_len, step1, step2, remap_num,
         direction, &get_tile_x, &get_tile_y, &get_tile_strand, &set_tile_strand,
          &g_hs_anchor2Tile, gap_parms);
-    g_CreateTilesFromChains_(chain, tiles1, f1, f2, gap_str, 0, length(chain), &get_tile_x, &
+    g_CreateTilesFromChains_(chain, tiles1, f1, f2, gap_str, gap_end, 0, length(chain), &get_tile_x, &
         get_tile_y, &get_tile_strand, gap_parms);    
     trimTiles(tiles1, f1, f2, gap_str, gap_end, read_len - 1, direction, gap_parms);
     gap_parms.direction = original_direction;
@@ -4106,6 +4129,10 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
     mapExtendResultFilter_(tiles_str2, tiles_end2, gap_str2, gap_end2, direction2, gap_parms);
     reform_tiles(ref, read, comstr, tiles_str2, tiles_end2, sp_tiles2, 
                  gap_str2, gap_end2, direction2, gap_parms);
+    g_print_tiles_(tiles_str1, "me11");
+    g_print_tiles_(tiles_end1, "me12");
+    g_print_tiles_(tiles_str2, "me21");
+    g_print_tiles_(tiles_end2, "me22");
     //restore gap_parms
     gap_parms.direction = original_direction;
     gap_parms.f_rfts_clip = original_f_rfts_clip;
@@ -4511,12 +4538,12 @@ int mapGeneric(StringSet<String<Dna5> > & seqs,
     mapInterval(seqs[get_tile_id(gap_str)], read, comstr, tiles_str, tiles_end, f1, f2,
                         gap_str, gap_end, LLMIN, LLMAX, t_direction, gap_parms, 1);  
     //chainTiles(tiles_str1, length(read), thd_gather_block_gap_size, gap_parms);
-    //g_print_tiles_(tiles_str, "mgc11");
-    //g_print_tiles_(tiles_end, "mgc12");
+    g_print_tiles_(tiles_str, "mgc11");
+    g_print_tiles_(tiles_end, "mgc12");
     reform_tiles(seqs[get_tile_id(gap_str)], read, comstr, tiles_str, tiles_end, 
         sp_tiles_inv, gap_str, gap_end, t_direction, gap_parms);
-    //g_print_tiles_(tiles_str, "mgc21");
-    //g_print_tiles_(tiles_end, "mgc22");
+    g_print_tiles_(tiles_str, "mgc21");
+    g_print_tiles_(tiles_end, "mgc22");
     gap_parms.f_rfts_clip = f_rfts_clip;
     (void)thd_gather_block_gap_size; 
     return 0;

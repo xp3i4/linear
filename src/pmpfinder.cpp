@@ -1393,19 +1393,13 @@ int path_dst_2(typename Iterator<String<uint64_t> >::Type hitBegin,
         if (f_append)
         {
             n_new_cord += extendWindow(f1[get_cord_strand(*itt)], f2[get_cord_id(*itt)], cords, cordy_str, cordy_end, score);
-            if (f_block_end)
-            {
-                _DefaultHit.setBlockEnd(back(cords));
-            }
         }
-        //<<test
         if (f_block_end)
         {
-            //dout << "path2" << score / n_new_cord << n_new_cord << "\n";
             score = 0;
             n_new_cord = 0;
+            _DefaultHit.setBlockEnd(back(cords));
         }
-        //>>test
         itt_next = f_block_end ? itt_first : itt_next;
         f_sp_l = false;
         f_sp_r = false;
@@ -1578,6 +1572,7 @@ int clean_blocks_ (String<uint64_t> & cords, uint64_t thd_drop_len, int64_t thd_
         {
             ptr = len < thd_drop_len ? ptr - len : ptr;
             len = 0;
+            set_cord_end(cords[ptr]);
         }
         ptr++;
     }

@@ -278,7 +278,8 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                      */   
                     mapGeneric (seqs, read, comstr, f1, f2, tiles_str1, tiles_end1, 
                         t_gap_str, t_gap_end, gap_parms);
-                                //g_print_tiles_(tiles_end1, "mgs11");
+                    g_print_tiles_(tiles_str1, "mgs11");
+                    g_print_tiles_(tiles_end1, "mgs12");
                     if (!empty(tiles_str1))
                     {
                         erase(tiles_str1, 0); //inserted by reform_tiles
@@ -310,7 +311,8 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         }
         resize(tiles_str, length(tiles_str) - 2);
         resize(tiles_end, length(tiles_end) - 2);
-        //g_print_tiles_(tiles_end, "mgs3");
+        g_print_tiles_(tiles_str, "mgs31");
+        g_print_tiles_(tiles_end, "mgs32");
     //}
     return 0;
 }
@@ -443,6 +445,8 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
                 mapGap_(seqs, read, comstr, gap_str, gap_end, f1, f2, tiles_str, tiles_end,
                         clips, direction, thd_dxy_min, gap_parms);
                 insert_tiles2Cords_(cords_str, cords_end, i, tiles_str, tiles_end, direction, thd_cord_size, thd_max_segs_num);
+                /g_print_tiles_(tiles_str, "mg5");
+                //print_cords(cords_str, "mg6");
             }
         }
         if (_DefaultHit.isBlockEnd(cords_str[i]))  ///right clip end cord
