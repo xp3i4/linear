@@ -319,7 +319,6 @@ int mapGaps(StringSet<String<Dna5> > & seqs,
             StringSet<FeaturesDynamic > & f2,
             GapParms & gap_parms)
 {
-    CmpInt64 g_cmpll;
     if (length(cords_str) <= 1)
     {
         return 0;
