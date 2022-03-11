@@ -642,14 +642,6 @@ int g_mapHs_kmer_(String<Dna5> & seq,
     {
         return 0;
     }
-      //<<debug
-      if (str >=length(seq))
-      {
-          dout << "gmk1" << str << length(seq) << gap_parms.read_id << "\n";
-      }
-      dout << "gmk2" << str << end << "\n";
-      //>>debug
-
     LShape shape(shape_len);
     hashInit(shape, begin(seq) + str);
     int count = 0; 
@@ -1690,7 +1682,6 @@ int g_stream_(String<Dna5> & seq1, //genome
         gr_end = length(seq2) - gr_end - 1;
         std::swap (gr_end, gr_str);
     }
-    dout << "gs1" << gs_str << gs_end << gr_str << gr_end << "\n";
     g_mapHs_kmer_(seq1, g_hs, gs_str, gs_end, shape_len, step1, 0, gap_parms);
     g_mapHs_kmer_(seq2, g_hs, gr_str, gr_end, shape_len, step2, 1, gap_parms);    
     return 0;
@@ -4071,11 +4062,9 @@ int mapExtend(StringSet<String<Dna5> > & seqs,
     {
         remove_tile_sgn_end(back(tiles_str));
     }
-    g_print_tiles_(tiles_end, "rf1");
     reform_tiles(ref, read, comstr, tiles_str, tiles_end, sp_tiles, 
                  gap_str, gap_end, direction, gap_parms);
 
-    g_print_tiles_(tiles_end, "rf2");
     gap_parms.f_me_map_extend = 0;
     gap_parms.thd_gmsa_d_anchor_rate = d_anchor_rate_origin;
     return 0;
@@ -4515,9 +4504,6 @@ int mapGeneric(StringSet<String<Dna5> > & seqs,
     String<uint64_t> sp_tiles_inv;
     int f_rfts_clip = gap_parms.f_rfts_clip;
     gap_parms.f_rfts_clip = 0; // createTileFromaAnchors2_ in mapInterval alredy clipped chain.
-    dout << "mgc10" << get_tile_id(gap_str) << "\n";
-    g_print_tile(gap_str, "mgc11");
-    g_print_tile(gap_end, "mgc12");
     mapInterval(seqs[get_tile_id(gap_str)], read, comstr, tiles_str, tiles_end, f1, f2,
                         gap_str, gap_end, LLMIN, LLMAX, t_direction, gap_parms, 1);  
     //chainTiles(tiles_str1, length(read), thd_gather_block_gap_size, gap_parms);
