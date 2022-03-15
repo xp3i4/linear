@@ -988,7 +988,6 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
             }
             else
             {
-                dout << "c2bbl" << length(cords_end) << length(cords_info) << length(bam_link_records_tmp) << length(reads) << "\n";
                 cords2BamLink (cords_str[i], cords_end[i], cords_info[i], bam_link_records_tmp[ii], reads[i], thd_large_X);
             }
             ii++;
