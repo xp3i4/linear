@@ -6,12 +6,12 @@ Linear: ALIgNment-freE method for long-read vARiants resolution
 
 
 Alignment plays an essential role in resolving structural variants.
-However forced alignment of complex structures and computational efficiency remain the problems.
-Fundamental alignment models for nonlinear structures are commonly empirically built, and thus they generates biased results, in which some structures are completely ignored.
-Alignment-free methods are more flexible and compute-efficient for structural variants resolution.
-Hence we develop Linear, the alignment-free framework. 
-Gap models in the Linear are extensible for different types of variants.
-And the results can be called directly by alignment based tools such as the SVs caller PBSV.
+However forced alignment of complex structural variants and computational efficiency remain the problems.
+Hence we develop Linear, the alignment-free framework for resolving structural variants in long reads. 
+Alignment-free methods are flexible and compute-efficient for structural variants resolution.
+Models for different structural variants in the Linear are more extensible.
+It's easier to develop effective and efficient models within the alignment-free framework.
+The results of Linear is based on SAM/BAM, and thus can be called directly by several alignment-based tools including samtools, SVs caller PBSV and visualization tool IGV.
 <p align="center">
 <img src="images/pipeline.svg" alt="drawing"  width="700"/> 
 </p>
@@ -27,7 +27,7 @@ Please make sure the following systems have been installed before building from 
 
 ```bash
 #To install cmake, zlib for Debian, Ubuntu, etc.
-sudo apt install cmake
+sudo apt-get install cmake
 sudo apt-get install zlib1g zlib1g-dev
 
 #To install cmake, zlib for RedHat, Fedora, etc.
@@ -46,7 +46,7 @@ make linear -j 4 #use 4 threads to compile
 ### Usage
 ```bash
 #Sequence format .fa(stq)(.gz) are supported for input.
-linear read.fa(stq genome.fa
+linear read.fa(stq)(.gz) genome.fa(.gz)
 #Please add argument x between the reads and 
 #references for more than 2 inputs. 
 linear *.fastq x *.fa
@@ -124,9 +124,10 @@ Please apply samtools to convert and index the sam file by Linear to bam.
 Indexed alignment-free bam file can be visualised directly in the IGV.
 
 ## Updating variant models 
-Since Linear models for SVs are flexible to be extended.
-We would continuously adopting more effective models for novel structures.
-This can lead to different results between versions.
+Models for SVs in Linear are flexible to extend.
+We would continuously adopting more effective models for novel structural variants.
+This would improve the performance of Linear.
+However it would lead to different results between versions as well.
 
 ## Format of alignment-free results 
 ### SAM/BAM
