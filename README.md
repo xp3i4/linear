@@ -108,7 +108,7 @@ DESCRIPTION
 ```
 
 
-## Adaptation to existing pipelines 🐦
+## Adaptation to existing pipelines
 
 ### Adaptation to Samtools
 Compatibility  with Samtools 1.10 has been test. 
