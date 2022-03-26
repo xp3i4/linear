@@ -5,13 +5,17 @@ Linear: ALIgNment-freE method for long-read vARiants resolution
 ![platforms](https://img.shields.io/badge/platform-linux-informational.svg)
 
 
-Alignment plays an essential role in resolving structural variants.
-However forced alignment of complex structural variants and computational efficiency remain the problems.
-Hence we develop Linear, the alignment-free framework for resolving structural variants in long reads. 
-Alignment-free methods are flexible and compute-efficient for structural variants resolution.
-Models for different structural variants in the Linear are more extensible.
-It's easier to develop effective and efficient models within the alignment-free framework.
-The results of Linear is based on SAM/BAM, and thus can be called directly by several alignment-based tools including samtools, SVs caller PBSV and visualization tool IGV.
+Linear is an alignment-free framework for resolving structural variants in long reads. 
+Existing pipelines for variants in long reads are commonly based on alignment. 
+Fundamental models of alignment plays an essential role in identifying novel structures.
+However forced alignment of complex structures remain the problems.
+Besides, inflexibility to extend models for diverse structures and computational inefficiency are problems of alignment-based pipelines as well.
+Thus we develop Linear to enable alignment-free methods for resolving variants in long reads. 
+Compared to the alignment, it's easier to adopt effective and efficient models within the alignment-free framework.
+Linear is composed of different layers of models (in the figure), which can be extended or replaced.
+The result of Linear is based on SAM/BAM.
+Hence it can be called directly by alignment-based tools such as samtools, SVs caller PBSV and visualization tool IGV.
+
 <p align="center">
 <img src="images/pipeline.svg" alt="drawing"  width="700"/> 
 </p>
@@ -24,6 +28,7 @@ Please make sure the following systems have been installed before building from 
 |**Compiler**|[GNU/Linux GCC](https://gcc.gnu.org/) | ≥ 4.9.0|no other compiler is currently supported|
 |**Build system**| [CMAKE](https://cmake.org/) |≥ 3.0.0|/|
 |**External libs**|[zlib](https://github.com/madler/zlib)|≥ 1.2|required for `*.gz` and `*.bam` file support |
+
 
 ```bash
 #To install cmake, zlib for Debian, Ubuntu, etc.
