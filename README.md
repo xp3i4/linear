@@ -128,24 +128,53 @@ Compatibility with the IGV 2.8.3 has been tested.
 Please apply samtools to convert and index the sam file by Linear to bam.
 Indexed alignment-free bam file can be visualised directly in the IGV.
 
-## Updating variant models 
-Models for SVs in Linear are flexible to extend.
-We would continuously adopting more effective models for novel structural variants.
-This would improve the performance of Linear.
-However it would lead to different results between versions as well.
+## Variant model updating
+Current models for variants in Linear are completely alignment-free. 
+These models for variants are extendable.
+We are continuously evaluating models regarding effectiveness and efficiency to novel structural variants.
+And effective models would be integrated with existing ones.
+This would lead to different performance between versions.
+Our first priority of developing models is effectiveness to novel structures.
+Then we would optimize the model to keep the overall performance is better than alignment-based pipelines.
 
 ## Format of alignment-free results 
 ### SAM/BAM
 The output of Linear is converted to the SAM/BAM format for alignment-free result.
-The format is based on the standard SAM/BAM format and extended for alignment-free result.
-It's compatible with the alignment.
-3 fields in the standard format are redfined while others fields remain:
+The format is based on the standard SAM/BAM format.
+The redefined format is compatible with the alignment.
+Namely alignment expressed in the redefined format is identical to the standard format.
+3 fields in the standard format are redefined while other fields remain the same:
 - The 6th column of cigar is redefined in the extended SAM/BAM.
 Alignment-free cigar denotes the virtual alignment between 2 points, which is always in the pair of 'MG', where 'M' is 'X' or '=' and 'G' is 'I' and 'D'.
 - The 10th column of SEQ is subsequence from read or reference.
 - The 12th column of the tag 'SA:Z' is redefined.
 Other tags are identical to the standard tag, which can be found at [SAM/BAM format](https://samtools.github.io/hts-specs/SAMv1.pdf) and [Optional tags](https://samtools.github.io/hts-specs/SAMtags.pdf).
 
+```bash
+#An example of one record in the alignment-free SAM from an read spanning an inversion.
+#Cigars are to denote the virtual alignment by alignment-free result. 
+#SEQs are generated according to cigars rather than segments of read.
+#Bases in SEQs corresponding to ’49S’ are from read;
+#Bases in SEQs corresponding to ’6=’  are from genome;
+#Bases in SEQs corresponding to '1I'  are from read;
+#Bases in SEQs corresponding to ’35X’ are from read.
+#     if the base is unequal to the corresponding base in the genome, 
+#     otherwise the ’N’ is inserted.
+#SA:Z tag is generated according to the cigars and SEQs.
+
+@HD VN:1.6
+@SQ SN:chr10 LN:135534747
+@PG PN:Linear
+@RG ID:1 SM:1
+m140612_082500_42156_c100652082550000001823118110071461_s1_p0/104454/5061_10840
+0 chr10 59256034 255 49S6=1I34=1I31=5I30=1I110=2I1=1I49=3I11=2I49=1I6=4I44=2I74
+=16I1=1I51=17I96=35X26I66=5I40=3I70=2I101=5319S * 0 0 TAGCATAAGCTCTTTAGTTTAATTAG
+ATCAGACATTTGTCAATGTTTGTGTCAATGGTTGGCTTTTGTTGCCTTTGCTTTTAGTGTTTTAAGTCATGAAGTCTTTG
+...CCACTTGTGTAGAGAGGATGTGGAGAAAAAGAAATGCTTTTACACAGTTGGTGGGAGTGTAAATTCGTTCAACCACT
+GTAGAAGACAGTGTTGTGATTCCTCAAGACACACNNNTTTTNCGCNNNTTTAANNNCTTTGNAGAACCCAACAATTAATA
+...AGCTGGAAACCATCATTCTCAGCAAACTAACACAGGAACAGAAAACCAAACAC * SA:Z:chr10,59257622,-
+,4379S320M5I4884S,255,27;chr10,59257982,+,1371S3138M338I146S,255,528;
+```
 
 
 ### Alignment-free mapping file (APF) 
