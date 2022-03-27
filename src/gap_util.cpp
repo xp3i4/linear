@@ -656,6 +656,7 @@ int g_mapHs_kmer_(String<Dna5> & seq,
             count = 0;
         }
     }
+    (void) gap_parms;
     return length(g_hs);
 }
 
