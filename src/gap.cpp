@@ -240,67 +240,64 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
     {
 
     }
-    //if (direction == 0)
-    //{
-        insertValue(tiles_str, 0, gap_str);
-        insertValue(tiles_end, 0, shift_tile(gap_str, gap_parms.thd_tile_size, gap_parms.thd_tile_size));
-        appendValue(tiles_str, shift_tile(gap_end, -gap_parms.thd_tile_size, -gap_parms.thd_tile_size));
-        appendValue(tiles_end, gap_end);
-        for (uint i = 1; i < length(tiles_str); i++)
+    insertValue(tiles_str, 0, gap_str);
+    insertValue(tiles_end, 0, shift_tile(gap_str, gap_parms.thd_tile_size, gap_parms.thd_tile_size));
+    appendValue(tiles_str, shift_tile(gap_end, -gap_parms.thd_tile_size, -gap_parms.thd_tile_size));
+    appendValue(tiles_end, gap_end);
+    for (uint i = 1; i < length(tiles_str); i++)
+    {
+        int64_t dx = get_tile_x(tiles_str[i]) - get_tile_x(tiles_end[i - 1]);
+        int64_t dy = get_tile_y(tiles_str[i]) - get_tile_y(tiles_end[i - 1]);
+        if(get_tile_strand(tiles_str[i] ^ tiles_str[i - 1]))
         {
-            int64_t dx = get_tile_x(tiles_str[i]) - get_tile_x(tiles_end[i - 1]);
-            int64_t dy = get_tile_y(tiles_str[i]) - get_tile_y(tiles_end[i - 1]);
-            if(get_tile_strand(tiles_str[i] ^ tiles_str[i - 1]))
-            {
 
-            }
-            else
+        }
+        else
+        {
+            if (dx > 100 && dy > 100)
             {
-                if (dx > 100 && dy > 100)
+                String<uint64_t> tiles_str1;
+                String<uint64_t> tiles_end1;
+                String<uint64_t> sp_tiles_inv;
+                uint64_t t_gap_str = tiles_str[i - 1];
+                uint64_t t_gap_end = tiles_str[i];
+                /*
+                mapInterval(seqs[get_tile_id(gap_str)], read, comstr, tiles_str1, f1, f2,
+                    t_gap_str, t_gap_end, LLMIN, LLMAX, t_direction, gap_parms);  
+                reform_tiles(seqs[get_tile_id(gap_str)], read, comstr, tiles_str1, tiles_end1, sp_tiles_inv, 
+                    t_gap_str, t_gap_end, t_direction, gap_parms);
+                 */   
+                mapGeneric (seqs, read, comstr, f1, f2, tiles_str1, tiles_end1, 
+                    t_gap_str, t_gap_end, gap_parms);
+                if (!empty(tiles_str1))
                 {
-                    String<uint64_t> tiles_str1;
-                    String<uint64_t> tiles_end1;
-                    String<uint64_t> sp_tiles_inv;
-                    uint64_t t_gap_str = tiles_str[i - 1];
-                    uint64_t t_gap_end = tiles_str[i];
-                    /*
-                    mapInterval(seqs[get_tile_id(gap_str)], read, comstr, tiles_str1, f1, f2,
-                        t_gap_str, t_gap_end, LLMIN, LLMAX, t_direction, gap_parms);  
-                    reform_tiles(seqs[get_tile_id(gap_str)], read, comstr, tiles_str1, tiles_end1, sp_tiles_inv, 
-                        t_gap_str, t_gap_end, t_direction, gap_parms);
-                     */   
-                    mapGeneric (seqs, read, comstr, f1, f2, tiles_str1, tiles_end1, 
-                        t_gap_str, t_gap_end, gap_parms);
+                    erase(tiles_str1, 0); //inserted by reform_tiles
+                    erase(tiles_end1, 0);
+                    eraseBack(tiles_str1);
+                    eraseBack(tiles_end1);
                     if (!empty(tiles_str1))
                     {
-                        erase(tiles_str1, 0); //inserted by reform_tiles
-                        erase(tiles_end1, 0);
-                        eraseBack(tiles_str1);
-                        eraseBack(tiles_end1);
-                        if (!empty(tiles_str1))
-                        {
-                            remove_tile_sgn(back(tiles_str1));
-                            remove_tile_sgn(back(tiles_end1));
-                            //erase(tiles_str, i - 1);
-                            //erase(tiles_end, i - 1);
-                            insert(tiles_str, i, tiles_str1);
-                            insert(tiles_end, i, tiles_end1);
-                            //erase(tiles_str, i + length(tiles_str1) - 1);
-                            //erase(tiles_end, i + length(tiles_str1) - 1);
-                        }
-                        i += length(tiles_str1);
+                        remove_tile_sgn(back(tiles_str1));
+                        remove_tile_sgn(back(tiles_end1));
+                        //erase(tiles_str, i - 1);
+                        //erase(tiles_end, i - 1);
+                        insert(tiles_str, i, tiles_str1);
+                        insert(tiles_end, i, tiles_end1);
+                        //erase(tiles_str, i + length(tiles_str1) - 1);
+                        //erase(tiles_end, i + length(tiles_str1) - 1);
                     }
+                    i += length(tiles_str1);
                 }
             }
         }
-        for (int i = 1; i < (int)length(tiles_str) - 1; i++)
-        {
-            tiles_str[i - 1] = tiles_str[i];
-            tiles_end[i - 1] = tiles_end[i];
-        }
-        resize(tiles_str, length(tiles_str) - 2);
-        resize(tiles_end, length(tiles_end) - 2);
-    //}
+    }
+    for (int i = 1; i < (int)length(tiles_str) - 1; i++)
+    {
+        tiles_str[i - 1] = tiles_str[i];
+        tiles_end[i - 1] = tiles_end[i];
+    }
+    resize(tiles_str, length(tiles_str) - 2);
+    resize(tiles_end, length(tiles_end) - 2);
     return 0;
 }
 /**
