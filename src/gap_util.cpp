@@ -3106,7 +3106,7 @@ int reform_tiles(String<Dna5> & seq1,
         for (int i = 0; i < (int)length(tiles_str); i++)
         {
             d = std::min({x2 - int64_t(get_tile_x(tiles_str[i])), 
-                          y2 - int64_t(get_tile_y(tiles_end[i])), int64_t(gap_parms.thd_tile_size)});
+                          y2 - int64_t(get_tile_y(tiles_str[i])), int64_t(gap_parms.thd_tile_size)});
             tiles_end[i] = shift_tile(tiles_str[i], d, d);
         }
     }
