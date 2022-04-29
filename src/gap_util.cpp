@@ -1197,12 +1197,6 @@ int g_CreateChainsFromAnchors_(String<uint64_t> & anchors, String<uint64_t> & ti
     std::sort(begin(anchors), end(anchors), [](uint64_t & a, uint64_t & b){return g_hs_anchor_getX(a) > g_hs_anchor_getX(b);});
     int thd_best_n = 20;
     float thd_stop_chain_len_ratio = 0.7;
-    //<<debug
-    for (uint64_t i = 0; i < length(anchors); i++)
-    {
-        dout << "ccf1" << g_hs_anchor_getX(anchors[i]) << g_hs_anchor_getY(anchors[i]) << "\n";
-    }
-    //>>debug
     chainAnchorsBase(anchors, anchors_chains, anchors_chains_score, 0, length(anchors), 
         thd_chain_depth, thd_chain_dx_depth, thd_best_n, thd_stop_chain_len_ratio, gap_parms.chn_score1, &g_hs_anchor_getX);
     resize (tiles, lengthSum(anchors_chains)); 
@@ -1216,7 +1210,6 @@ int g_CreateChainsFromAnchors_(String<uint64_t> & anchors, String<uint64_t> & ti
         set_tile_end(tiles[it - 1]);
     } 
     chainTiles(tiles, read_len, thd_anchor_gap_size, gap_parms);
-    g_print_tiles_(tiles, "ccf2");
     unused(block_str);
     unused(gap_str);
     unused(gap_end);
@@ -1470,8 +1463,6 @@ int g_CreateTilesFromChains_ (String<uint64_t> & chains,
     }
     append(tiles_str, tiles_str_tmp);
     append(tiles_end, tiles_end_tmp);
-    g_print_tiles_(tiles_str_tmp, "gctf11");
-    g_print_tiles_(tiles_end_tmp, "gctf12");
     unused(tiles_str_i);
     return 0;
 }
@@ -3130,7 +3121,6 @@ int reform_tiles(String<Dna5> & seq1,
             appendValue(tiles_end, tail_tile_end);
         }
     }
-    g_print_tiles_(tiles_str, "rf1");
     //step.2 reform tiles:clip and break block if necessary
     if (gap_parms.f_rfts_clip)
     {
@@ -3673,27 +3663,21 @@ int extendsTilesFromAnchors (String<Dna5> & ref,
     gap_parms.direction = direction1;
     g_CreateChainsFromAnchors_(anchors1, tmp_tiles1, gap_str1, gap_end1, read_len, gap_parms);
     getClosestExtensionChain_(tmp_tiles1, gap_str1, gap_end1, true, gap_parms);
-    g_print_tiles_(tmp_tiles1,"et1");
     //!map left part
     gap_parms.direction = direction2;
     g_CreateChainsFromAnchors_(anchors2, tmp_tiles2, gap_str2, gap_end2, read_len, gap_parms);
     getClosestExtensionChain_(tmp_tiles2, gap_str2, gap_end2, true, gap_parms);
-    g_print_tiles_(tmp_tiles2,"et2");
     //!find and clip at the common breakpoint of the left and right chains
     int shape_len = gap_parms.thd_etfas_shape_len;
     int step1 = gap_parms.thd_etfas_step1;
     int step2 = gap_parms.thd_etfas_step2;
     extendsIntervalMapOverlaps_(ref, read, comstr, tmp_tiles1, tmp_tiles2, gap_str1, gap_end1, gap_str2, gap_end2,  shape_len, step1, step2, gap_parms);
-    g_print_tiles_(tmp_tiles1,"et3");
-    g_print_tiles_(tmp_tiles2,"et4");
     g_CreateTilesFromChains_(tmp_tiles1, tiles_str1, tiles_end1, f1, f2, gap_str1, gap_end1,
         0, length(tmp_tiles1), &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);    
-    g_print_tiles_(tiles_str1,"et5");
     //trimTiles(tiles_str1, tiles_end1, f1, f2, gap_str1, gap_end2, read_len - 1, 
     //    direction1, gap_parms);
     g_CreateTilesFromChains_(tmp_tiles2, tiles_str2, tiles_end2, f1, f2, gap_str2, gap_end2, 
         0, length(tmp_tiles2), &get_tile_x, &get_tile_y, &get_tile_strand, gap_parms);  
-    g_print_tiles_(tiles_str2,"et6");
     //trimTiles(tiles_str2, tiles_end2, f1, f2, gap_str1, gap_end2, read_len - 1, 
     //    direction2, gap_parms);
     gap_parms.direction = original_direction;
@@ -4113,9 +4097,7 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
         f1, f2, gap_str1, gap_end1, gap_str2, gap_end2, gap_parms);
     //direction = 1 part
     gap_parms.direction = direction1;
-    g_print_tiles_(tiles_end1, "me1");
     mapExtendResultFilter_(tiles_str1, tiles_end1, gap_str1, gap_end1, direction1, gap_parms);
-    g_print_tiles_(tiles_end1, "me2");
     if (!empty(tiles_str1))
     {
         remove_tile_sgn_end(back(tiles_str1));
@@ -4124,15 +4106,9 @@ int mapExtends(StringSet<String<Dna5> > & seqs,
                  gap_str1, gap_end1, direction1, gap_parms);
     //direction = -1 part
     gap_parms.direction = direction2; 
-    g_print_tiles_(tiles_str2, "me31");
-    g_print_tiles_(tiles_end2, "me32");
     mapExtendResultFilter_(tiles_str2, tiles_end2, gap_str2, gap_end2, direction2, gap_parms);
-    g_print_tiles_(tiles_str2, "me41");
-    g_print_tiles_(tiles_end2, "me42");
-    g_print_tile(gap_end2, "me43");
     reform_tiles(ref, read, comstr, tiles_str2, tiles_end2, sp_tiles2, 
                  gap_str2, gap_end2, direction2, gap_parms);
-    g_print_tiles_(tiles_end1, "me5");
     //restore gap_parms
     gap_parms.direction = original_direction;
     gap_parms.f_rfts_clip = original_f_rfts_clip;
@@ -4260,7 +4236,6 @@ int createTilesFromAnchors2_(String<Dna5> & ref,
     t2=sysTime() - t2;
     //set_tile_end(back(tiles_str));
     //set_tile_end(back(tiles_end));
-    g_print_tiles_(tiles_str, "kctfa2");
     return 0;
 }
 /**
