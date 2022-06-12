@@ -130,7 +130,7 @@ Indexed alignment-free bam file can be visualised directly in the IGV.
 
 ## Variant model updating
 Current models for variants in Linear are completely alignment-free. 
-These models for variants are extendable.
+These models for variants are extensible.
 We are continuously evaluating models regarding effectiveness and efficiency to novel structural variants.
 And effective models would be integrated with existing ones.
 This would lead to different performance between versions.
