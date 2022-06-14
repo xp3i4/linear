@@ -180,10 +180,7 @@ std::pair<uint, uint> loadRecords(StringSet<String<Dna5> > & seqs,
                     }
                     catch (Exception const & e)
                     {
-                        std::string msg1 = "File: " + path + " ";
-                        serr.print_message (msg1, 2, 0, std::cerr);
-                        serr.print_message ("[", 20, 0, std::cerr);
-                        serr.print_message("\033[1;31mE[04]:\033[0m can't read records in file]", 0, 1, std::cerr);
+                        serr.print_message("\033[1;31mE[04]:\033[0m can't read geonmes in file", 0, 1, std::cerr);
                         error = 1;
                     }
                     for (unsigned i = 0; i < length(tmp_id); i++)
