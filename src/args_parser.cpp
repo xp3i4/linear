@@ -84,12 +84,10 @@ parseCommandLine(Options & options)
     addListItem(parser,
                 "\\fPlinear \\fIreads_dir/*.fa.gz x grch38/*.fa\\fP",
                 "Use the argumnet \\fBx \\fPto map all files in the directory reads_dir against all reference genomes in the directory grch38");
-    /*
     addListItem(parser,
                 "\\fPlinear \\fIreads.fa genome.fa -g -a\\fP",
                 "Use the option \\fB-a \\fPto enable the alignment"
         );
-    */
 
     /*
     addArgument(parser, seqan::ArgParseArgument(
@@ -157,12 +155,10 @@ parseCommandLine(Options & options)
     addOption(parser, seqan::ArgParseOption(
         "p", "preset", "Set preset of parms. -p 0 {DEFAULT} -p 1 efficient  -p 2 additional",
             seqan::ArgParseArgument::INTEGER, "INT"));
-    /*
     addOption(parser, seqan::ArgParseOption(
         "a", "aln_flag", "Set to Enable/Disable alignment. -a 0(Disable) {DEFAULT}",
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
-    */
     addOption(parser, seqan::ArgParseOption(
         "i", "index_type", "Choose the type of indices{1, 2}. -i 1 {DEFAULT}",
             seqan::ArgParseArgument::INTEGER, "INT"
@@ -214,7 +210,7 @@ parseCommandLine(Options & options)
     getOptionValue(options.feature_t, parser, "feature_type");
     getOptionValue(options.gap_len, parser, "gap_len");
     getOptionValue(options.apx_chain_flag, parser, "apx_c_flag");
-    //getOptionValue(options.aln_flag, parser, "aln_flag");
+    getOptionValue(options.aln_flag, parser, "aln_flag");
     /*
     getOptionValue(options.sam_flag, parser, "output_sam");
     getOptionValue(options.apf_flag, parser, "output_apf");
