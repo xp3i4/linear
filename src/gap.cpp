@@ -257,14 +257,20 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
             }
         }
     }
-    else if (x1 < x2 && y1 > y2)
+    else if (y1 > y2)
     {
-
+        return 0;
     }
-    else if (x1 > x2 && y1 > y2)
+    else if (x1 + gap_parms.thd_tile_size > (int64_t)length(ref) - 1  || 
+             y1 + gap_parms.thd_tile_size > (int64_t)length(read) - 1 ||
+             x2 < gap_parms.thd_tile_size || 
+             y2 < gap_parms.thd_tile_size ||
+             x1 + gap_parms.thd_tile_size > x2|| 
+             y1 + gap_parms.thd_tile_size > y2)
     {
-
+        return 0;
     }
+
     insertValue(tiles_str, 0, gap_str);
     insertValue(tiles_end, 0, shift_tile(gap_str, gap_parms.thd_tile_size, gap_parms.thd_tile_size));
     appendValue(tiles_str, shift_tile(gap_end, -gap_parms.thd_tile_size, -gap_parms.thd_tile_size));
