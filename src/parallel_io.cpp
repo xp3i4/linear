@@ -423,6 +423,7 @@ int p_RequestTask(P_Tasks & p_tasks, P_Parms & p_parms, int thread_id, int f_err
 int p_FetchReads(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
 {
     double time = sysTime();
+    int error = 0;
     Counters & counters = p_mapper.getPTask(thread_id).counters;
     P_Tasks & p_tasks = p_mapper.getPTasks(); 
     P_ReadsIdsBuffer & buffer1 = * p_tasks.p_reads_ids_buffer;
@@ -464,7 +465,7 @@ int p_FetchReads(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
         }
     }
     counters.setInTimer(counters.getInTimer() + sysTime() - time);
-    return 0;
+    return error;
 }
 /*
  * Calculate records
@@ -559,7 +560,15 @@ int p_ThreadProcess(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
         }
         else if(p_tasks.isTaskFetchReads(thread_id)) 
         {
-            f_error = p_FetchReads(p_mapper, p_parms, thread_id);
+            try
+            {
+                f_error = p_FetchReads(p_mapper, p_parms, thread_id);
+            }
+            catch (Exception const & e)
+            {
+                serr.print_message ("", 0, 0, std::cerr);
+                serr.print_message("\033[1;31mE[042]:\033[0m can't read records in file", 0, 1, std::cerr);
+            }
         }
         else if (p_tasks.isTaskCalRecords(thread_id))
         {

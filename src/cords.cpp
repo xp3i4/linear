@@ -556,11 +556,17 @@ int scaleDxDy_(int64_t & dx, int64_t &d1, int64_t & dy, int64_t & d2)
         int64_t c1 = std::abs(d1 * dy), c2 = std::abs(d2 * dx);
         if (c1 > c2)
         {
-            d2 = d1 * dy / dx;
+            if (dx != 0)
+            {
+                d2 = d1 * dy / dx;
+            }
         }
         else if (c1 < c2)
         {
-            d1 = d2 * dx / dy;
+            if (dy != 0)
+            {
+                d1 = d2 * dx / dy;
+            }
         } 
         return 0;
     }

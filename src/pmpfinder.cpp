@@ -1770,7 +1770,7 @@ GetIndexMatchAllParms::GetIndexMatchAllParms()
     appendValue(thd_alphas, 15); 
     appendValue(thd_alphas, 7);
     thd_delta = 64; 
-    toggle(1);
+    toggle(0);
 }
 void GetIndexMatchAllParms::toggle(int i)
 {

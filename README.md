@@ -17,7 +17,7 @@ The result of Linear is based on SAM/BAM.
 Hence it can be called directly by alignment-based tools such as samtools, SVs caller PBSV and visualization tool IGV.
 
 <p align="center">
-<img src="images/pipeline.svg" alt="drawing"  width="700"/> 
+<img src="images/pipeline.png" alt="drawing"  width="700"/> 
 </p>
 
 ## Build and usage 
