@@ -10,6 +10,8 @@
 /*----------------------  Gap main  ----------------------*/
 /*
  * Map and resolve the gap specified by [@gap_str, @gap_end)
+ * New @tiles_str and @tile_end are within [@gap_str, @gap_end) if there is one block (sam record) in @tiles_str
+ * Otherwise, two inverted parts
  */
 int mapGap_ (StringSet<String<Dna5> > & seqs, 
              String<Dna5> & read, 
@@ -44,7 +46,17 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
     int64_t y2 = get_cord_y(gap_end);
     int64_t shift_x, shift_y;
     String<uint64_t> sp_tiles; 
-    if (get_cord_strand(gap_str ^ gap_end))
+    if (x1 + gap_parms.thd_tile_size > (int64_t)length(ref) - 1  || 
+        y1 + gap_parms.thd_tile_size > (int64_t)length(read) - 1 ||
+        x2 > (int64_t)length(ref) - 1  ||
+        y2 > (int64_t)length(read) - 1 ||
+        x2 < gap_parms.thd_tile_size   || 
+        y2 < gap_parms.thd_tile_size )
+    {
+        //These x1,y1,x2,y2 are invalid of @gap_str @gap_end of any strand.
+        return 0;
+    }
+    else if (get_cord_strand(gap_str ^ gap_end))
     {
         if (direction != g_map_closed)
         {
@@ -93,11 +105,11 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
             append(tiles_end, tiles_end2);
         }
     }
-    else if (y1 > (int64_t)length(read) - 1 || y2 > (int64_t)length(read) - 1 ||
-             x1 > (int64_t)length(ref) - 1  || x2 > (int64_t)length(ref) - 1)
+    else if (x1 + gap_parms.thd_tile_size > x2|| 
+             y1 + gap_parms.thd_tile_size > y2)
     {
-        //return 1;
-        //todo
+        //These x1,y1,x2,y2 are invalid if @gap_str @gap_end are of the same strand. 
+        return 0;
     }
     else if (y1 < y2)
     {
@@ -258,19 +270,6 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                 
             }
         }
-    }
-    else if (y1 > y2)
-    {
-        return 0;
-    }
-    else if (x1 + gap_parms.thd_tile_size > (int64_t)length(ref) - 1  || 
-             y1 + gap_parms.thd_tile_size > (int64_t)length(read) - 1 ||
-             x2 < gap_parms.thd_tile_size || 
-             y2 < gap_parms.thd_tile_size ||
-             x1 + gap_parms.thd_tile_size > x2|| 
-             y1 + gap_parms.thd_tile_size > y2)
-    {
-        return 0;
     }
 
     insertValue(tiles_str, 0, gap_str);
