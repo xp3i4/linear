@@ -10,6 +10,8 @@
 /*----------------------  Gap main  ----------------------*/
 /*
  * Map and resolve the gap specified by [@gap_str, @gap_end)
+ * New @tiles_str and @tile_end are within [@gap_str, @gap_end) if there is one block (sam record) in @tiles_str
+ * Otherwise, two inverted parts
  */
 int mapGap_ (StringSet<String<Dna5> > & seqs, 
              String<Dna5> & read, 
