@@ -324,63 +324,66 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
             }
         }
     }
-    //addons_2:
-    float thd_extend_range_rate1 = 0.1;
-    for (uint i = 1; i < length(tiles_str); i++)
+    //addons_2 start:
+    if (gap_parms.f_dup)
     {
-        if(!get_tile_strand(tiles_str[i] ^ tiles_str[i - 1]) && !is_tile_end(tiles_str[i - 1]))
+        float thd_extend_range_rate1 = 0.1;
+        for (uint i = 1; i < length(tiles_str); i++)
         {
-            int64_t x1 = get_tile_x(tiles_end[i - 1]);
-            int64_t y1 = get_tile_y(tiles_end[i - 1]);
-            int64_t x2 = get_tile_x(tiles_str[i]);
-            int64_t y2 = get_tile_y(tiles_str[i]);
-            int64_t dx = x2 - x1;
-            int64_t dy = y2 - y1;
-            if (dy > 100 && dy - dx > gap_parms.thd_mg1_danc_indel) //try dup for ins 
+            if(!get_tile_strand(tiles_str[i] ^ tiles_str[i - 1]) && !is_tile_end(tiles_str[i - 1]))
             {
-                String<uint64_t> tiles_str1;
-                String<uint64_t> tiles_end1;
-                String<uint64_t> sp_tiles_inv;
-                int64_t extend_range_x1 = -std::min(int64_t(dy * (1 + thd_extend_range_rate1)), x1);
-                int64_t extend_range_x2 =  std::min(int64_t(dy * (1 + thd_extend_range_rate1)), 
-                                                    int64_t(length(seqs[get_cord_id(gap_str)]) - x2 - 1));
-                uint64_t t_gap_str = shift_tile(tiles_end[i - 1], extend_range_x1 ,0);
-                uint64_t t_gap_end = shift_tile(tiles_str[i], extend_range_x2, 0);
-                mapGeneric (seqs, read, comstr, f1, f2, tiles_str1, tiles_end1, 
-                    t_gap_str, t_gap_end, gap_parms);
-                if (!empty(tiles_str1))
+                int64_t x1 = get_tile_x(tiles_end[i - 1]);
+                int64_t y1 = get_tile_y(tiles_end[i - 1]);
+                int64_t x2 = get_tile_x(tiles_str[i]);
+                int64_t y2 = get_tile_y(tiles_str[i]);
+                int64_t dx = x2 - x1;
+                int64_t dy = y2 - y1;
+                if (dy > 100 && dy - dx > gap_parms.thd_mg1_danc_indel) //try dup for ins 
                 {
-                    erase(tiles_str1, 0); //inserted by reform_tiles
-                    erase(tiles_end1, 0);
-                    eraseBack(tiles_str1);
-                    eraseBack(tiles_end1);
+                    String<uint64_t> tiles_str1;
+                    String<uint64_t> tiles_end1;
+                    String<uint64_t> sp_tiles_inv;
+                    int64_t extend_range_x1 = -std::min(int64_t(dy * (1 + thd_extend_range_rate1)), x1);
+                    int64_t extend_range_x2 =  std::min(int64_t(dy * (1 + thd_extend_range_rate1)), 
+                                                        int64_t(length(seqs[get_cord_id(gap_str)]) - x2 - 1));
+                    uint64_t t_gap_str = shift_tile(tiles_end[i - 1], extend_range_x1 ,0);
+                    uint64_t t_gap_end = shift_tile(tiles_str[i], extend_range_x2, 0);
+                    mapGeneric (seqs, read, comstr, f1, f2, tiles_str1, tiles_end1, 
+                        t_gap_str, t_gap_end, gap_parms);
                     if (!empty(tiles_str1))
                     {
-                        remove_tile_sgn(back(tiles_str1));
-                        remove_tile_sgn(back(tiles_end1));
-                        if (get_tile_x(tiles_str1[0]) < get_tile_x(tiles_str[i - 1]))
+                        erase(tiles_str1, 0); //inserted by reform_tiles
+                        erase(tiles_end1, 0);
+                        eraseBack(tiles_str1);
+                        eraseBack(tiles_end1);
+                        if (!empty(tiles_str1))
                         {
-                            set_tile_end(tiles_str[i - 1]);
-                            set_tile_end(tiles_end[i - 1]);
+                            remove_tile_sgn(back(tiles_str1));
+                            remove_tile_sgn(back(tiles_end1));
+                            if (get_tile_x(tiles_str1[0]) < get_tile_x(tiles_str[i - 1]))
+                            {
+                                set_tile_end(tiles_str[i - 1]);
+                                set_tile_end(tiles_end[i - 1]);
+                            }
+                            if (get_tile_x(back(tiles_str1)) > get_tile_x(tiles_str[i])) 
+                            {
+                                set_tile_end(back(tiles_str1));
+                                set_tile_end(back(tiles_end1));
+                            }
+                            //erase(tiles_str, i - 1);
+                            //erase(tiles_end, i - 1);
+                            insert(tiles_str, i, tiles_str1);
+                            insert(tiles_end, i, tiles_end1);
+                            //erase(tiles_str, i + length(tiles_str1) - 1);
+                            //erase(tiles_end, i + length(tiles_str1) - 1);
                         }
-                        if (get_tile_x(back(tiles_str1)) > get_tile_x(tiles_str[i])) 
-                        {
-                            set_tile_end(back(tiles_str1));
-                            set_tile_end(back(tiles_end1));
-                        }
-                        //erase(tiles_str, i - 1);
-                        //erase(tiles_end, i - 1);
-                        insert(tiles_str, i, tiles_str1);
-                        insert(tiles_end, i, tiles_end1);
-                        //erase(tiles_str, i + length(tiles_str1) - 1);
-                        //erase(tiles_end, i + length(tiles_str1) - 1);
+                        i += length(tiles_str1);
                     }
-                    i += length(tiles_str1);
                 }
             }
         }
-    }
-    
+    } 
+    //addons_2 end:
     for (int i = 1; i < (int)length(tiles_str) - 1; i++)
     {
         tiles_str[i - 1] = tiles_str[i];

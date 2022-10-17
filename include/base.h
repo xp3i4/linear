@@ -51,6 +51,7 @@ struct Options{
     uint reform_ccs_cigar_flag;
     uint bal_flag;
     uint f_output_type;
+    uint f_dup;
 
     unsigned    sensitivity;
     unsigned    thread;

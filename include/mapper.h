@@ -58,6 +58,8 @@ class Mapper : public P_Mapper
     std::string outputPrefix;
     int feature_type;
     int of_type;
+    int f_new_file;
+    int f_output_set;
     const int OF_APP = 0; //set of std::ios::app
     const int OF_NEW = 1;
     Options::PathsType r_paths;

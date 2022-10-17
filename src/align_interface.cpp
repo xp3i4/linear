@@ -1318,9 +1318,7 @@ int clip_rows_segs_(Row<Align<String<Dna5>,ArrayGaps> >::Type & row1,
                     appendValue(clip_records, clip_pair);
                     appendValue(clip_records_src1, clip_pair_src1);
                     appendValue(clip_records_src2, clip_pair_src2);
-
                     //dout << "cs1" << clip_pair_src2.first << clip_pair_src2.second << clip_pair.first - last_clip << thd_min_interval << "\n";
-                    
                     ++ct_clips;
                 }
                 else

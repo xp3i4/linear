@@ -142,6 +142,13 @@ int Mapper::loadOptions(Options & options)
     uint64_t thd_gap_lower = 10; 
     r_paths = options.r_paths;
     g_paths = options.g_paths; 
+    f_new_file = 1;
+    f_output_set = 0;
+    if (!options.oPath.empty()) 
+    {
+        outputPrefix = options.oPath;
+        f_output_set = 1;
+    }
     for (unsigned i = 0; i < length(r_paths); i++)
     {
         if (! ifFileExists(r_paths[i]))
@@ -192,6 +199,7 @@ int Mapper::loadOptions(Options & options)
     f_print = 0;
     //-------gap_parms-----
     GapParms gap_parms_template(0.2); //initial error rate 
+    gap_parms_template.f_dup = options.f_dup;
     if (options.gap_len == 0)
     {
         fm_handler_.setMapGapOFF(f_map);
@@ -439,15 +447,30 @@ int Mapper::p_printResults(int it1, int it2, int thread_id)
     Counters & counters = this->getPTask(thread_id).counters;
     std::string path = this->getPReadsPathsBuffer()[it1];
     std::string prefix = getFileName(path, "/", ~0);
-    std::string out_prefix  = getFileName(prefix, ".", 0);
-    if (this->outputPrefix != out_prefix)
+    std::string out_prefix  =  getFileName(prefix, ".", 0);
+    if (f_output_set)
     {
-        this->setOfNew();
-        this->outputPrefix = out_prefix;
+        if (f_new_file)
+        {
+            f_new_file = 0;
+            setOfNew();
+        }
+        else 
+        {
+            setOfApp();
+        }
     }
     else
     {
-        this->setOfApp();
+        if (outputPrefix != out_prefix)
+        {
+            setOfNew();
+            outputPrefix = out_prefix;
+        }
+        else
+        {
+            setOfApp();
+        }
     }
     print_mapper_results(*this, 1, it1, it2);
     counters.setOutCounter(counters.getOutCounter() + length(this->getPReadsBuffer()[it1]));

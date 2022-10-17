@@ -73,8 +73,8 @@ GapParms::GapParms(float err_rate) : //estimated err_rate
 
     //mapGap_
     thd_mg1_danc_indel(80),
-    thd_max_extend2(5000)
-
+    thd_max_extend2(5000),
+    f_dup(0)
 { 
     clipChainParms(5, 0.1);
 }
