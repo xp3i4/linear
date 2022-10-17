@@ -37,7 +37,7 @@ Options::Options():
         apf_flag(1),
         reform_ccs_cigar_flag(0),
         bal_flag(1),
-        f_output_type(3),
+        f_output_type(2),
         f_dup(0),
         sensitivity(1),
         thread(16),

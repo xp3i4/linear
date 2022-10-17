@@ -133,7 +133,7 @@ seqan::ArgumentParser::ParseResult parseCommandLineFilter(Options & options,
     //setHelpText(getArgument(parser, 1), "filter1 ");
 
     //Add descriptions 
-    addDescription (parser, "The filter submodule is an ultra-fast SVs filter for detecting SVs in long reads.\nIt uses generative models for detecting SVs hidden in noisy reads. The performance of the filter \ncommonly outperforms conventional approaches of SVs detection in the aspects of efficiency, sensitivity, and\n flexibility for complex rearrangements. The filter outputs the results in the SAM/BAM format, which is\n completely compatible with alignment-based software, such as variant callers. The module is particularly\n aiming for population-scale applications, it's orders of magnitude faster to compute. ");
+    addDescription (parser, "The filter submodule is an ultra-fast SVs filter for detecting SVs in long reads.It uses generative models to detect SVs hidden in long reads. The performance of the filter commonly outperforms conventional approaches of SVs detection in the aspects of efficiency, sensitivity, and flexibility for complex rearrangements. The filter outputs the results in the SAM/BAM format, which is completely compatible with alignment-based software, such as variant callers. The module is orders of magnitude faster than many other tools to compute and is particularly aiming for population-scale applications. ");
 
     // Add Examples Section.
     addTextSection(parser, "Examples");
@@ -151,8 +151,8 @@ seqan::ArgumentParser::ParseResult parseCommandLineFilter(Options & options,
     */
     addSection(parser, "Basic options");
     addOption(parser, seqan::ArgParseOption(
-        "o", "output", "Set the path of output. \
-        The filter submodule will use the prefix of the filename of reads for output if the option isn't set",
+        "o", "output", "Set the prefix of output. \
+        The filter will use the prefix of the filename of reads as the prefix of output if the option isn't set",
             seqan::ArgParseArgument::STRING, "STR"));
     /*
     addOption(parser, seqan::ArgParseOption(
@@ -166,10 +166,10 @@ seqan::ArgumentParser::ParseResult parseCommandLineFilter(Options & options,
     */
     addOption(parser, seqan::ArgParseOption(
         "ot", "output_type", "Set the format of output file. 1 to enable .APF, an approximate map file for non-standard application; \
-         2 to enable .SAM; 4 to enable .BAM; Set values 3 {DEFAULT 3=1+2} to enable both .apf and .sam",
+         2 to enable .SAM {DEFAULT}; 4 to enable .BAM; Set values 3 (3=1+2) to enable both .apf and .sam",
             seqan::ArgParseArgument::INTEGER, "INT"));
     addOption(parser, seqan::ArgParseOption(
-        "t", "thread", "Set the number of threads to run -t 4 {DEFAULT}",
+        "t", "thread", "Set the number of threads to run. -t 4 {DEFAULT}",
             seqan::ArgParseArgument::INTEGER, "INT"));
     addOption(parser, seqan::ArgParseOption(
         "g", "gap_len", "Set the minimal length of gaps. -g 50 {DEFAULT}. -g 0 to turn off map of gaps.",
@@ -201,7 +201,7 @@ seqan::ArgumentParser::ParseResult parseCommandLineFilter(Options & options,
         */
     addSection(parser, "More optoins (tweak)");
     addOption (parser, seqan::ArgParseOption(
-        "dup", "duplication", "Redetect duplications for signals of insertion. Enableing (-dup 1) this option will treat many insertions as duplications. This option is off (-dup 0) {DEFAULT}",
+        "dup", "duplication", "Redetect duplications for signals of insertions. Enabling (-dup 1) this option will treat many insertions as duplications. This option is off (-dup 0) {DEFAULT}",
         seqan::ArgParseArgument::INTEGER, "INT"
         )); 
     addOption(parser, seqan::ArgParseOption(
