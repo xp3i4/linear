@@ -38,14 +38,14 @@ Options::Options():
         reform_ccs_cigar_flag(0),
         bal_flag(1),
         f_output_type(3),
+        f_dup(0),
         sensitivity(1),
         thread(16),
         index_t(1),
         feature_t(2), //apx2_48 by defalut
         read_group(""),
         sample_name(""),
-        sequence_sam_flag(1),
-        f_dup(0)
+        sequence_sam_flag(1)
         {
            date += __TIME__; 
            date += " ";

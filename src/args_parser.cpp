@@ -109,7 +109,7 @@ parseCommandLineEmpty(Options & options, std::vector<const char*> new_args)
                 "It takes input as long reads and output SAM/BAM. Type \"linear filter -h\" for more info.");                
     addArgument(parser, seqan::ArgParseArgument(
         seqan::ArgParseArgument::STRING, "empty",true)); 
-    seqan::ArgumentParser::ParseResult res = seqan::parse(parser, length(new_args), &new_args[0]);
+    seqan::parse(parser, length(new_args), &new_args[0]);
     return seqan::ArgumentParser::PARSE_ERROR;
     //return res;
 }
