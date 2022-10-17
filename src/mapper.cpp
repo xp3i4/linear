@@ -199,6 +199,7 @@ int Mapper::loadOptions(Options & options)
     f_print = 0;
     //-------gap_parms-----
     GapParms gap_parms_template(0.2); //initial error rate 
+    gap_parms_template.f_dup = options.f_dup;
     if (options.gap_len == 0)
     {
         fm_handler_.setMapGapOFF(f_map);

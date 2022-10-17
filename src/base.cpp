@@ -44,7 +44,8 @@ Options::Options():
         feature_t(2), //apx2_48 by defalut
         read_group(""),
         sample_name(""),
-        sequence_sam_flag(1)
+        sequence_sam_flag(1),
+        f_dup(0)
         {
            date += __TIME__; 
            date += " ";

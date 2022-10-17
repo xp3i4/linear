@@ -174,6 +174,7 @@ struct GapParms
     //mapGap_
     int64_t thd_mg1_danc_indel;
     int64_t thd_max_extend2;
+    int64_t f_dup;
 
     //mapGaps 
     int64_t thd_gap_len_min;

@@ -9,8 +9,15 @@ bool is_number(const std::string& s)
 
 std::string CARTESIAN = "x";
 seqan::ArgumentParser::ParseResult
+parseCommandLineEmpty(Options & options, std::vector<const char*> new_args);
+seqan::ArgumentParser::ParseResult 
+parseCommandLineFilter(Options & options, std::vector<const char*> & new_args);
+ 
+seqan::ArgumentParser::ParseResult
 parseCommandLine(Options & options)
 {
+    //add submodules here
+    int submodules = 0;
     //char const * str_g = "-g";
     //return 0;
     int argc = options.op_argc;
@@ -19,6 +26,18 @@ parseCommandLine(Options & options)
     char* new_vals;
     for (int i = 0; i < argc; i++)
     {
+        if (i == 1)
+        {
+            if (strcmp(argv[1], "filter") == 0) 
+            {
+                submodules = 1;
+                continue;
+            }
+            else 
+            {
+                submodules = 0;
+            }   
+        }
         new_args.push_back(argv[i]);
         if (std::string(argv[i]) == "-a" && (i + 1 >= argc || !is_number (argv[i + 1])))
         {
@@ -51,43 +70,79 @@ parseCommandLine(Options & options)
             new_args.push_back ((const char*)new_vals);
         }
     }
-    argc = length(new_args); 
-    // Setup ArgumentParser.
+    /*dout << "new_args len" << length(new_args) << "\n";*/
+    if (length(new_args) < 3)
+    {
+        new_vals = (char*)"-h";
+        new_args.push_back((const char*)new_vals);
+    }
+    else if (length(new_args) >= 3)
+    {
+        submodules = 1;
+    }
+    if (submodules == 0)
+    {
+        return parseCommandLineEmpty(options, new_args);
+    }
+    else if (submodules == 1)
+    {   
+        return parseCommandLineFilter(options, new_args);
+    }
+    return  seqan::ArgumentParser::PARSE_OK;
+;
+}
+
+seqan::ArgumentParser::ParseResult
+parseCommandLineEmpty(Options & options, std::vector<const char*> new_args)
+{
     seqan::ArgumentParser parser("Linear");
+
     // Set short description, version, and date.
-    setShortDescription(parser, "options and arguments. 😀");
+    setShortDescription(parser, "options and arguments. 🐼");
+    setVersion(parser, options.version);
+    setDate(parser, options.date);
+    addUsageLine(parser, "<submodules> -h for help");
+    seqan::addTextSection(parser,
+        "Available submodules:");
+    addListItem(parser,
+                "filter: The submodule is to detect SVs signals hidden in long reads.",
+                "It takes input as long reads and output SAM/BAM. Type \"linear filter -h\" for more info.");                
+    addArgument(parser, seqan::ArgParseArgument(
+        seqan::ArgParseArgument::STRING, "empty",true)); 
+    seqan::ArgumentParser::ParseResult res = seqan::parse(parser, length(new_args), &new_args[0]);
+    return seqan::ArgumentParser::PARSE_ERROR;
+    //return res;
+}
+
+
+seqan::ArgumentParser::ParseResult parseCommandLineFilter(Options & options, 
+        std::vector<const char*> & new_args)
+{
+    // Setup ArgumentParser.
+    int argc = length(new_args); 
+    seqan::ArgumentParser parser("Linear filter");
+
+    // Set short description, version, and date.
+    setShortDescription(parser, "options and arguments. 🐼");
     setVersion(parser, options.version);
     setDate(parser, options.date);
     addUsageLine(parser, "[\\fIOPTIONS\\fP] \\fIread.fa/fastq(.gz)\\fP \\fIgenome.fa(.gz)\\fP ");
-    //addDescription(parser,
-                    //"Extensible Framework of extensifor noisy reads");
     // Argument.
     addArgument(parser, seqan::ArgParseArgument(
         seqan::ArgParseArgument::INPUT_FILE, "read",true));
-    setHelpText(parser, 0, "Reads file .fa(.gz), .fasta(.gz), .fq(.gz), .fastq(.gz) ");
+    //setHelpText(getArgument(parser, 1), "filter1 ");
+
+    //Add descriptions 
+    addDescription (parser, "The filter submodule is an ultra-fast SVs filter for detecting SVs in long reads.\nIt uses generative models for detecting SVs hidden in noisy reads. The performance of the filter \ncommonly outperforms conventional approaches of SVs detection in the aspects of efficiency, sensitivity, and\n flexibility for complex rearrangements. The filter outputs the results in the SAM/BAM format, which is\n completely compatible with alignment-based software, such as variant callers. The module is particularly\n aiming for population-scale applications, it's orders of magnitude faster to compute. ");
 
     // Add Examples Section.
-    //addTextSection(parser, "Examples");
     addTextSection(parser, "Examples");
     addListItem(parser,
-                "\\fPlinear \\fIreads_dir/example.fa.gz ref.fa\\fP",
-                "Map the reads in example.fa against the reference genome ref.fa");
-    
-    //addListItem(parser,
-    //            "\\fPlinear \\fIreads_dir/*.fa.gz grch37/chr1.fa -g 0\\fP",
-    /*
-                "Map the set of reads to the reference chr1.fa with the mapping of gaps disabled.\
-                In such case, Linear generates approximate range of the reference where the reads are\
-                 supposed to be mapped to");
-    */
-                 
+                "\\fPlinear filter \\fIreads_dir/example.fa.gz ref.fa\\fP",
+                "Filter SVs for the reads example.fa using the reference genome ref.fa");                
     addListItem(parser,
-                "\\fPlinear \\fIreads_dir/*.fa.gz x grch38/*.fa\\fP",
-                "Use the argumnet \\fBx \\fPto map all files in the directory reads_dir against all reference genomes in the directory grch38");
-    addListItem(parser,
-                "\\fPlinear \\fIreads.fa genome.fa -g -a\\fP",
-                "Use the option \\fB-a \\fPto enable the alignment"
-        );
+                "\\fPlinear filter \\fIreads_dir/*.fa.gz x grch38/*.fa\\fP",
+                "Set the additional argumnet \\fBx \\fPto filter SVs for more than one files of reads *.fa.gz using reference genomes grch38/*.fa");
 
     /*
     addArgument(parser, seqan::ArgParseArgument(
@@ -97,7 +152,7 @@ parseCommandLine(Options & options)
     addSection(parser, "Basic options");
     addOption(parser, seqan::ArgParseOption(
         "o", "output", "Set the path of output. \
-        Linear will use the prefix of the reads filename for output if the this option is empty",
+        The filter submodule will use the prefix of the filename of reads for output if the option isn't set",
             seqan::ArgParseArgument::STRING, "STR"));
     /*
     addOption(parser, seqan::ArgParseOption(
@@ -110,14 +165,14 @@ parseCommandLine(Options & options)
             seqan::ArgParseArgument::INTEGER, "INT"));
     */
     addOption(parser, seqan::ArgParseOption(
-        "ot", "output_type", "Set the format of output file. 1 to enable .APF, an approximate mapping file for non-standard application; \
+        "ot", "output_type", "Set the format of output file. 1 to enable .APF, an approximate map file for non-standard application; \
          2 to enable .SAM; 4 to enable .BAM; Set values 3 {DEFAULT 3=1+2} to enable both .apf and .sam",
             seqan::ArgParseArgument::INTEGER, "INT"));
     addOption(parser, seqan::ArgParseOption(
         "t", "thread", "Set the number of threads to run -t 4 {DEFAULT}",
             seqan::ArgParseArgument::INTEGER, "INT"));
     addOption(parser, seqan::ArgParseOption(
-        "g", "gap_len", "Set the minimal length of gaps. -g 50 {DEFAULT}. -g 0 to turn off mapping of gaps.",
+        "g", "gap_len", "Set the minimal length of gaps. -g 50 {DEFAULT}. -g 0 to turn off map of gaps.",
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
     /*
@@ -145,6 +200,10 @@ parseCommandLine(Options & options)
         ));
         */
     addSection(parser, "More optoins (tweak)");
+    addOption (parser, seqan::ArgParseOption(
+        "dup", "duplication", "Redetect duplications for signals of insertion. Enableing (-dup 1) this option will treat many insertions as duplications. This option is off (-dup 0) {DEFAULT}",
+        seqan::ArgParseArgument::INTEGER, "INT"
+        )); 
     addOption(parser, seqan::ArgParseOption(
         "b", "bal_flag", "Set to Enable/Disable dynamic balancing tasks schedule. -b 1(Enable) {DEFAULT}",
             seqan::ArgParseArgument::INTEGER, "INT" 
@@ -155,16 +214,18 @@ parseCommandLine(Options & options)
     addOption(parser, seqan::ArgParseOption(
         "p", "preset", "Set preset of parms. -p 0 {DEFAULT} -p 1 efficient  -p 2 additional",
             seqan::ArgParseArgument::INTEGER, "INT"));
+    /*
     addOption(parser, seqan::ArgParseOption(
         "a", "aln_flag", "Set to Enable/Disable alignment. -a 0(Disable) {DEFAULT}",
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
+        */
     addOption(parser, seqan::ArgParseOption(
         "i", "index_type", "Choose the type of indices{1, 2}. -i 1 {DEFAULT}",
             seqan::ArgParseArgument::INTEGER, "INT"
         ));
     addOption(parser, seqan::ArgParseOption(
-        "c", "apx_c_flag", "0 to turn off apx c mapping",
+        "c", "apx_c_flag", "0 to turn off apx map",
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
     addOption(parser, seqan::ArgParseOption(
@@ -210,7 +271,7 @@ parseCommandLine(Options & options)
     getOptionValue(options.feature_t, parser, "feature_type");
     getOptionValue(options.gap_len, parser, "gap_len");
     getOptionValue(options.apx_chain_flag, parser, "apx_c_flag");
-    getOptionValue(options.aln_flag, parser, "aln_flag");
+    //getOptionValue(options.aln_flag, parser, "aln_flag");
     /*
     getOptionValue(options.sam_flag, parser, "output_sam");
     getOptionValue(options.apf_flag, parser, "output_apf");
@@ -220,9 +281,10 @@ parseCommandLine(Options & options)
     getOptionValue(options.sample_name, parser, "sample_name");
     //getOptionValue(options.sequence_sam_flag, parser, "sequence_sam");
     getOptionValue(options.bal_flag, parser, "bal_flag");
+    getOptionValue(options.f_dup, parser, "duplication"); 
 
     //std::cerr << "xxxxx " << options.gap_len << isSet(parser, "gap_len") << "\n";
-    std::vector<std::string> args;
+    String<std::string> args;
     args = getArgumentValues(parser, 0);
     if (length(args) < 2)
     {
@@ -269,7 +331,16 @@ parseCommandLine(Options & options)
     getOptionValue(options.senThr, parser, "senThr");
     getOptionValue(options.p1, parser, "p1");
     */
-
+    /*
+    for (int i = 0; i < length(options.r_paths); i++)
+    {
+        dout << "rpaths" << options.r_paths[i] << "\n";
+    }
+    for (int i = 0; i < length(options.g_paths); i++)
+    {
+        dout << "gpaths" << options.g_paths[i] << "\n";
+    }
+    */
     return seqan::ArgumentParser::PARSE_OK;
 
 }
