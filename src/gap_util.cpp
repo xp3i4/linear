@@ -1232,7 +1232,7 @@ std::pair<int, int> getClosestExtensionChain_(String<uint64_t> & tmp_tiles, uint
     {
         if (is_tile_end(tmp_tiles[i]))
         {
-            int64_t danchor = 0, dx, dy;
+            int64_t danchor = 0, dx = 0, dy = 0;
             if (gap_parms.direction < 0) 
             {
                 dy = get_tile_y(gap_end) - get_tile_y(tmp_tiles[i]); 
