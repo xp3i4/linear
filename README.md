@@ -147,27 +147,37 @@ DESCRIPTION
           Enable/Disable compressing the cigar string for Pacbio CCS reads. -r 0(Disable) {DEFAULT}
 ```
 ### Adaption to software
-#### samtools ![](https://img.shields.io/badge/v1.10-%20tested-success) 
+#### samtools 
+![](https://img.shields.io/badge/v1.10-%20tested-success) 
+
 Compatibility with samtools 1.10 has been tested.
 Results of the filter are compatible with 'samtools view', 'samtools index' and 'samtools sort'.
 
-#### PBSV ![](https://img.shields.io/badge/v2.6.2-%20tested-success) 
+#### PBSV 
+![](https://img.shields.io/badge/v2.6.2-%20tested-success) 
+
 PBSV is a SVs caller for PacBio long reads. Compatibility with PBSV has been tested.
 Set the sample and group name appropriately with option -s when using pbsv discover.
 
-#### SVIM ![](https://img.shields.io/badge/v1.2.0-%20tested-success) 
+#### SVIM 
+![](https://img.shields.io/badge/v1.2.0-%20tested-success) 
+
 SVIM is an SVs caller for PacBio and ONT reads.
 SVIM takes as input the SAM/BAM.
 The compatibility of the filter with SVIM has been tested.
 And results of the filter can be processed directly by SVIM with default settings.
 
-#### cuteSV ![](https://img.shields.io/badge/v1.0.13-%20tested-success)
+#### cuteSV 
+![](https://img.shields.io/badge/v1.0.13-%20tested-success)
+
 cuteSV is an SVs caller for PacBio and ONT reads.
 cuteSV takes as input the SAM/BAM.
 The compatibility of the filter with cuteSV has been tested.
 And results of the filter can be processed directly by cuteSV with default settings.
 
-#### IGV ![](https://img.shields.io/badge/v2.8.3-%20tested-success)
+#### IGV 
+![](https://img.shields.io/badge/v2.8.3-%20tested-success)
+
 IGV is a sequencing visualization tool. Compatibility with IGV has been tested.
 Please use samtools to convert and index the results of filter before using IGV.
 The indexed BAM* can be visualized directly by IGV.
