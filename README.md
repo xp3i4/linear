@@ -148,27 +148,29 @@ DESCRIPTION
 ```
 ### Adaption to software
 #### samtools ![](https://img.shields.io/badge/v1.10-%20tested-success) 
-Compatibility with Samtools 1.10 has been tested.
-Results in the format of SAM/BAM* are compatible with 'samtools view', 'samtools index' and 'samtools sort' to convert and index SAM/BAM files.
+Compatibility with samtools 1.10 has been tested.
+Results of the filter are compatible with 'samtools view', 'samtools index' and 'samtools sort'.
 
 #### PBSV ![](https://img.shields.io/badge/v2.6.2-%20tested-success) 
-Compatibility with the SVs caller [PBSV](https://github.com/PacificBiosciences/pbsv) 2.6.2 has been tested with PacBio raw reads and CCS reads.
-SAM/BAM from Linear can work with 'PBSV discover' and 'PBSV call' provided the sample and group name are set appropriately with the -s option in pbsv discover.
+PBSV is a SVs caller for PacBio long reads. Compatibility with PBSV has been tested.
+Set the sample and group name appropriately with option -s when using pbsv discover.
+
 #### SVIM ![](https://img.shields.io/badge/v1.2.0-%20tested-success) 
-SVIM version 1.2.0: SVIM is an SVs caller for PacBio and ONT reads.
-The SVIM can take as input the SAM/BAM.
+SVIM is an SVs caller for PacBio and ONT reads.
+SVIM takes as input the SAM/BAM.
 The compatibility of the filter with SVIM has been tested.
 And results of the filter can be processed directly by SVIM with default settings.
+
 #### cuteSV ![](https://img.shields.io/badge/v1.0.13-%20tested-success)
-cuteSV version 1.0.13: cuteSV is an SVs caller for PacBio and ONT reads.
-The cuteSV can take as input the SAM/BAM as well.
+cuteSV is an SVs caller for PacBio and ONT reads.
+cuteSV takes as input the SAM/BAM.
 The compatibility of the filter with cuteSV has been tested.
 And results of the filter can be processed directly by cuteSV with default settings.
 
 #### IGV ![](https://img.shields.io/badge/v2.8.3-%20tested-success)
-Compatibility with the IGV 2.8.3 has been tested.
-Please apply samtools to convert and index the sam file by Linear to bam.
-The indexed alignment-free bam file can be visualized directly by the IGV.
+IGV is a sequencing visualization tool. Compatibility with IGV has been tested.
+Please use samtools to convert and index the results of filter before using IGV.
+The indexed BAM* can be visualized directly by IGV.
 
 ## File format
 ### SAM/BAM*
