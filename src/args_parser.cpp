@@ -106,7 +106,7 @@ parseCommandLineEmpty(Options & options, std::vector<const char*> new_args)
         "Available submodules:");
     addListItem(parser,
                 "filter: The submodule is to detect SVs signals hidden in long reads.",
-                "It takes input as long reads and output SAM/BAM. Type \"linear filter -h\" for more info.");                
+                "It takes input as long reads and outputs SAM/BAM. Type \"linear filter -h\" for more info.");
     addArgument(parser, seqan::ArgParseArgument(
         seqan::ArgParseArgument::STRING, "empty",true)); 
     seqan::parse(parser, length(new_args), &new_args[0]);
@@ -133,7 +133,7 @@ seqan::ArgumentParser::ParseResult parseCommandLineFilter(Options & options,
     //setHelpText(getArgument(parser, 1), "filter1 ");
 
     //Add descriptions 
-    addDescription (parser, "The filter submodule is an ultra-fast SVs filter for detecting SVs in long reads.It uses generative models to detect SVs hidden in long reads. The performance of the filter commonly outperforms conventional approaches of SVs detection in the aspects of efficiency, sensitivity, and flexibility for complex rearrangements. The filter outputs the results in the SAM/BAM format, which is completely compatible with alignment-based software, such as variant callers. The module is orders of magnitude faster than many other tools to compute and is particularly aiming for population-scale applications. ");
+    addDescription (parser, "The submodule filter is an ultra-fast SVs filter for detecting SVs in long reads. Unlike conventional assembly- or alignment-based pipelines, it uses generative models to detect SVs hidden in long reads. The filter does not compute assembly or alignment. However it takes as input long reads and outputs SAM/BAM*, which is compatible with alignment-based software including but not limited to samtools, SVs callers. The module is orders of magnitude faster than conventional pipelines for long-read SVs detection to compute and mainly aims for population-scale applications.");
 
     // Add Examples Section.
     addTextSection(parser, "Examples");
@@ -165,14 +165,14 @@ seqan::ArgumentParser::ParseResult parseCommandLineFilter(Options & options,
             seqan::ArgParseArgument::INTEGER, "INT"));
     */
     addOption(parser, seqan::ArgParseOption(
-        "ot", "output_type", "Set the format of output file. 1 to enable .APF, an approximate map file for non-standard application; \
+        "ot", "output_type", "Set the format of the output file. 1 to enable .APF, an approximate map file for non-standard application; \
          2 to enable .SAM {DEFAULT}; 4 to enable .BAM; Set values 3 (3=1+2) to enable both .apf and .sam",
             seqan::ArgParseArgument::INTEGER, "INT"));
     addOption(parser, seqan::ArgParseOption(
         "t", "thread", "Set the number of threads to run. -t 4 {DEFAULT}",
             seqan::ArgParseArgument::INTEGER, "INT"));
     addOption(parser, seqan::ArgParseOption(
-        "g", "gap_len", "Set the minimal length of gaps. -g 50 {DEFAULT}. -g 0 to turn off map of gaps.",
+        "g", "gap_len", "Set the minimal length of gaps. -g 50 {DEFAULT}. -g 0 to turn off mapping gaps.",
             seqan::ArgParseArgument::INTEGER, "INT"
         )); 
     /*
@@ -186,11 +186,11 @@ seqan::ArgumentParser::ParseResult parseCommandLineFilter(Options & options,
         ));
     */
     addOption (parser, seqan::ArgParseOption(
-        "rg", "read_group", "Set the name of read group specified in the SAM header",
+        "rg", "read_group", "Set the name of the read group specified in the SAM header",
         seqan::ArgParseArgument::STRING, "STR"
         ));
     addOption (parser, seqan::ArgParseOption(
-        "sn", "sample_name", "Set the name of sample specified in the SAM header",
+        "sn", "sample_name", "Set the name of the sample specified in the SAM header",
         seqan::ArgParseArgument::STRING, "STR"
         ));
     /*
@@ -199,7 +199,7 @@ seqan::ArgumentParser::ParseResult parseCommandLineFilter(Options & options,
         seqan::ArgParseArgument::INTEGER, "INT"
         ));
         */
-    addSection(parser, "More optoins (tweak)");
+    addSection(parser, "More options (tweak)");
     addOption (parser, seqan::ArgParseOption(
         "dup", "duplication", "Redetect duplications for signals of insertions. Enabling (-dup 1) this option will treat many insertions as duplications. This option is off (-dup 0) {DEFAULT}",
         seqan::ArgParseArgument::INTEGER, "INT"
