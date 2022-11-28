@@ -8,8 +8,8 @@ Linear is a framework integrating workflows distinct from assembly- and alignmen
 It aims for developing effective and efficient long-read algorithms.
 Linear outputs SAM/BAM* and is compatible with software including but not limited to samtools, SVs callers, and visualization tools.
 
-# Build and usage
-## Prerequisites
+## Build and usage
+### Prerequisites
 Please make sure the following systems have been installed before building from the source.
 ||requirement|version|comment|
 |--|--|--|--|
@@ -32,14 +32,14 @@ sudo dnf install zlib-devel
 sudo pacman -S cmake
 ```
 
-## Build from source
+### Build from source
 ```bash
 #To build from source, please type in the commandline
 mkdir -p build/release && cd $_
 CMake [path to source]
 make linear -j4 #use 4 threads to compile
 ```
-## Generic usage
+### Generic usage
 ```bash
 # Specify modules in Linear
 linear module [options]
@@ -66,8 +66,8 @@ AVAILABLE SUBMODULES:
 ```
 
 
-# Available submodules
-## Filter
+## Available submodules
+### Filter
 The filter submodule (pipeline B in the figure) is an ultra-fast SVs filter for population-scale long-read SVs detection.
 It is built on generative models, which are very effective in detecting SVs embedded in long reads.
 The filter outputs SAM/BAM*, which is compatible with alignment-based software.
@@ -76,7 +76,7 @@ The filter outputs SAM/BAM*, which is compatible with alignment-based software.
 <img src="images/c22.png" alt="drawing"  width="700"/>
 </p>
 
-### Filter usage
+#### Filter usage
 ```bash
 #Example 1: Sequence format .fa(stq)(.gz) are supported for input.
 linear filter read.fa(stq)(.gz) genome.fa(.gz)
@@ -146,33 +146,32 @@ DESCRIPTION
     -r, --reform_ccs_cigar_flag INT
           Enable/Disable compressing the cigar string for Pacbio CCS reads. -r 0(Disable) {DEFAULT}
 ```
-## Adaption to software
-
-### samtools ![](https://img.shields.io/badge/v1.10-%20tested-success) 
+### Adaption to software
+#### samtools ![](https://img.shields.io/badge/v1.10-%20tested-success) 
 Compatibility with Samtools 1.10 has been tested.
 Results in the format of SAM/BAM* are compatible with 'samtools view', 'samtools index' and 'samtools sort' to convert and index SAM/BAM files.
 
-### PBSV ![](https://img.shields.io/badge/v2.6.2-%20tested-success) 
+#### PBSV ![](https://img.shields.io/badge/v2.6.2-%20tested-success) 
 Compatibility with the SVs caller [PBSV](https://github.com/PacificBiosciences/pbsv) 2.6.2 has been tested with PacBio raw reads and CCS reads.
 SAM/BAM from Linear can work with 'PBSV discover' and 'PBSV call' provided the sample and group name are set appropriately with the -s option in pbsv discover.
-### SVIM ![](https://img.shields.io/badge/v1.2.0-%20tested-success) 
+#### SVIM ![](https://img.shields.io/badge/v1.2.0-%20tested-success) 
 SVIM version 1.2.0: SVIM is an SVs caller for PacBio and ONT reads.
 The SVIM can take as input the SAM/BAM.
 The compatibility of the filter with SVIM has been tested.
 And results of the filter can be processed directly by SVIM with default settings.
-### cuteSV ![](https://img.shields.io/badge/v1.0.13-%20tested-success)
+#### cuteSV ![](https://img.shields.io/badge/v1.0.13-%20tested-success)
 cuteSV version 1.0.13: cuteSV is an SVs caller for PacBio and ONT reads.
 The cuteSV can take as input the SAM/BAM as well.
 The compatibility of the filter with cuteSV has been tested.
 And results of the filter can be processed directly by cuteSV with default settings.
 
-### IGV ![](https://img.shields.io/badge/v2.8.3-%20tested-success)
+#### IGV ![](https://img.shields.io/badge/v2.8.3-%20tested-success)
 Compatibility with the IGV 2.8.3 has been tested.
 Please apply samtools to convert and index the sam file by Linear to bam.
 The indexed alignment-free bam file can be visualized directly by the IGV.
 
-# File format
-## SAM/BAM*
+## File format
+### SAM/BAM*
 We defined the SAM/BAM*, an extension of standard SAM/BAM for virtual alignment.
 The SAM/BAM* format is a superset of the standard SAM/BAM.
 Exact alignment in the format of SAM/BAM* is identical to that in the format of the standard one.
@@ -210,7 +209,7 @@ GTAGAAGACAGTGTTGTGATTCCTCAAGACACACNNNTTTTNCGCNNNTTTAANNNCTTTGNAGAACCCAACAATTAATA
 ,4379S320M5I4884S,255,27;chr10,59257982,+,1371S3138M338I146S,255,528;
 ```
 
-## Alignment-free mapping file (APF)
+### Alignment-free mapping file (APF)
 The filter additionally outputs an .apf file by default.
 APF is a nonstandard format based on the [PAF](https://github.com/lh3/miniasm/blob/master/PAF.md).
 The format is to provide more readable results.
