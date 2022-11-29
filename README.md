@@ -182,13 +182,13 @@ The indexed BAM* can be visualized directly by IGV.
 
 ## File format
 ### SAM/BAM*
-The SAM/BAM* is an extension of standard SAM/BAM for virtual alignment between given points.
+The SAM/BAM* is an extension of standard SAM/BAM to express the virtual alignment between a series of given points.
 We defined 4 basic types of virtual alignment in SAM/BAM*.
-The figure shows an example to designate the virtual alignment of 5 arbitrary given points A−E by using the 4 basic types whose cigars are =I, =D, XI, and XD. 
+The figure shows an example to designate the virtual alignment of 5 given points A−E by using the 4 basic types whose cigars are =I, =D, XI, and XD. 
 <p align="center">
 <img src="images/virtual_alignment.png" alt="drawing"  width="400"/>
 </p>
-SAM/BAM* is identical to standard SAM/BAM when the distance between the two given points is constant 1.
+SAM/BAM* is identical to the standard SAM/BAM when the distance between the given points is constant 1.
 Thus SAM/BAM* is a superset of the standard SAM/BAM.
 And exact alignment in the format of SAM/BAM* is identical to that in the format of the standard one.
 
@@ -223,6 +223,11 @@ GTAGAAGACAGTGTTGTGATTCCTCAAGACACACNNNTTTTNCGCNNNTTTAANNNCTTTGNAGAACCCAACAATTAATA
 ...AGCTGGAAACCATCATTCTCAGCAAACTAACACAGGAACAGAAAACCAAACAC * SA:Z:chr10,59257622,-
 ,4379S320M5I4884S,255,27;chr10,59257982,+,1371S3138M338I146S,255,528;
 ```
+
+## Updating
+As a new type of pipeline for resolving long-read SVs, Linear will be steadily improved.
+Unlike conventional workflows, Linear applies models which are flexible to extend.
+There will be differences in performance as more and more models are extended while computational efficiency and effectiveness will always be the priorities.
 
 
 
