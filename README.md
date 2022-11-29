@@ -4,18 +4,16 @@ Linear: ALIgNment-freE framework for long-read vARiants resolution
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 ![platforms](https://img.shields.io/badge/platform-linux-informational.svg)
 
-Linear is a framework integrating workflows distinct from assembly- and alignment-based ones.
+Linear is a framework integrating long-read workflows distinct from assembly- and alignment-based ones.
 It aims for developing effective and efficient long-read algorithms.
-Linear outputs SAM/BAM* and is compatible with software including but not limited to samtools, SVs callers, and visualization tools.
+Linear is designed to be compatible with existing software including but not limited to samtools, SVs callers, and visualization tools.
 
 ## Build and usage
 ### Prerequisites
 Please make sure the following systems have been installed before building from the source.
-||requirement|version|comment|
-|--|--|--|--|
-|**Compiler**|[GNU/Linux GCC](https://gcc.gnu.org/) | ≥ 4.9.0|no other compiler is currently supported|
-|**Build system**| [CMAKE](https://cmake.org/) |≥ 3.0.0|/|
-|**External libs**|[zlib](https://github.com/madler/zlib)|≥ 1.2|required for `*.gz` and `*.bam` file support |
+- GNU/Linux GCC ≥ 4.9.0
+- CMAKE ≥ 3.0.0
+- zlib ≥ 1.2
 
 
 ```bash
@@ -66,9 +64,9 @@ AVAILABLE SUBMODULES:
 ```
 
 
-## Available submodules
-### Filter
-The filter submodule (pipeline B in the figure) is an ultra-fast SVs filter for population-scale long-read SVs detection.
+## Submodules
+### 1.Filter
+The filter (pipeline B in the figure) is an ultra-fast SVs filter for population-scale long-read SVs detection.
 It is built on generative models, which are very effective in detecting SVs embedded in long reads.
 The filter outputs SAM/BAM*, which is compatible with alignment-based software.
 
@@ -184,9 +182,15 @@ The indexed BAM* can be visualized directly by IGV.
 
 ## File format
 ### SAM/BAM*
-We defined the SAM/BAM*, an extension of standard SAM/BAM for virtual alignment.
-The SAM/BAM* format is a superset of the standard SAM/BAM.
-Exact alignment in the format of SAM/BAM* is identical to that in the format of the standard one.
+The SAM/BAM* is an extension of standard SAM/BAM for virtual alignment between given points.
+We defined 4 basic types of virtual alignment in SAM/BAM*.
+The figure shows an example to designate the virtual alignment of 5 arbitrary given points A−E by using the 4 basic types whose cigars are =I, =D, XI, and XD. 
+<p align="center">
+<img src="images/virtual_alignment.png" alt="drawing"  width="400"/>
+</p>
+SAM/BAM* is identical to standard SAM/BAM when the distance between the two given points is constant 1.
+Thus SAM/BAM* is a superset of the standard SAM/BAM.
+And exact alignment in the format of SAM/BAM* is identical to that in the format of the standard one.
 
 3 fields in the standard format are redefined and other fields remain the same:
 - The 6th column, cigar (denoted by cigar*), is redefined.
@@ -196,8 +200,7 @@ cigar* denotes the virtual alignment between 2 points, which is always in the pa
 Other tags are identical to the standard tag, which can be found at [SAM/BAM format](https://samtools.github.io/hts-specs/SAMv1.pdf) and [Optional tags](https://samtools.github.io/hts-specs/SAMtags.pdf).
 
 ```bash
-#An example of one record in the alignment-free SAM from a read spanning an inversion.
-#Cigars are to denote the virtual alignment.
+#An example of records in SAM/BAM*.
 #SEQs are generated according to cigars rather than segments of read.
 #Bases in SEQs corresponding to ’49S’ are from read;
 #Bases in SEQs corresponding to ’6=’  are from genome;
@@ -221,29 +224,7 @@ GTAGAAGACAGTGTTGTGATTCCTCAAGACACACNNNTTTTNCGCNNNTTTAANNNCTTTGNAGAACCCAACAATTAATA
 ,4379S320M5I4884S,255,27;chr10,59257982,+,1371S3138M338I146S,255,528;
 ```
 
-### Alignment-free mapping file (APF)
-The filter additionally outputs an .apf file by default.
-APF is a nonstandard format based on the [PAF](https://github.com/lh3/miniasm/blob/master/PAF.md).
-The format is to provide more readable results.
-The APF format contains the header(H) and records(R) defined in the following table.
-|col(H/R) |filed|Description|Type|
-|--|--|--|--|
-|H1|@|sign of header|{'@'}|
-|H2| QNAME|Query template NAME|string|
-|H3| QLEN|Query template LENGTH|int|
-|H4| QSTR|Query template mapped START| int |
-|H5| QEND|Query template mapped END| int |
-|H7| QSTRD|Query template mapped main STRAND|{'+','-'}|
-|H7| RNAME | Reference sequence NAME|String|
-|H8| RLEN | Reference sequence LENGTH|int|
-|H9| RSTR | Reference sequence mapped START|int|
-|H10| REND | Reference sequence mapped END|int|
-|R1|RSGN|sign to start record|{'\|'}|
-|R2|QSTR|Query template mapped base|int|
-|R3|RSTR|Reference sequence mapped base|int|
-|R4|DY|Distance of R3  to last R3|int|
-|R5|DX|Distance of R4  to last R4|int|
-|R6|RSTRD|record strand|{'+','-'}|
+
 
 
 
