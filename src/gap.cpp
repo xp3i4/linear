@@ -27,9 +27,6 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
              int64_t thd_dxy_min,
              GapParms & gap_parms)
 {
-    dout << "mg0" << "\n";
-    g_print_tile(gap_str, "mg1");
-    g_print_tile(gap_end, "mg1");
 
     unused(clips);
     CmpInt64 g_cmpll;
@@ -117,10 +114,8 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
     else if (y1 < y2)
     {
         int64_t danc = x1 - x2 - y1 + y2;
-        dout << "mg3" << danc << gap_parms.thd_mg1_danc_indel << "\n";
         if (std::abs(danc) > gap_parms.thd_mg1_danc_indel && direction == g_map_closed) //ins/del/dup/none when{x1>x2}
         {
-        dout << "mg31" << danc << gap_parms.thd_mg1_danc_indel << "\n";
             //!add declaration of variables here
             int f_extends = 1;
             ChainScoreMetric chn_score1_tmp = gap_parms.chn_score1; //used to restore the original parms after mapExtend
@@ -274,20 +269,17 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
             }
         }
     }
-    g_print_tiles_(tiles_str, "mg4");
     insertValue(tiles_str, 0, gap_str);
     //insertValue(tiles_end, 0, shift_tile(gap_str, gap_parms.thd_tile_size, gap_parms.thd_tile_size));
     insertValue(tiles_end, 0, shift_tile(gap_str, 1,1));
     //appendValue(tiles_str, shift_tile(gap_end, -gap_parms.thd_tile_size, -gap_parms.thd_tile_size));
     appendValue(tiles_str, shift_tile(gap_end, -1, -1));
     appendValue(tiles_end, gap_end);
-    g_print_tiles_(tiles_str, "mg5"); 
     //addons_1: Map generic gaps
     for (uint i = 1; i < length(tiles_str); i++)
     {
         int64_t dx = get_tile_x(tiles_str[i]) - get_tile_x(tiles_end[i - 1]);
         int64_t dy = get_tile_y(tiles_str[i]) - get_tile_y(tiles_end[i - 1]);
-        dout << "mg2" << get_tile_x(tiles_str[i]) << get_tile_x(tiles_end[i-1]) << dx << dy << "\n";
         if(get_tile_strand(tiles_str[i] ^ tiles_str[i - 1]))
         {
 
@@ -309,8 +301,6 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
                  */   
                 mapGeneric (seqs, read, comstr, f1, f2, tiles_str1, tiles_end1, 
                     t_gap_str, t_gap_end, gap_parms);
-                g_print_tiles_(tiles_str1, "mg61");
-                g_print_tiles_(tiles_end1, "mg62"); 
                 if (!empty(tiles_str1))
                 {
                     erase(tiles_str1, 0); //inserted by reform_tiles
