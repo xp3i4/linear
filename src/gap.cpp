@@ -273,8 +273,10 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
     }
 
     insertValue(tiles_str, 0, gap_str);
-    insertValue(tiles_end, 0, shift_tile(gap_str, gap_parms.thd_tile_size, gap_parms.thd_tile_size));
-    appendValue(tiles_str, shift_tile(gap_end, -gap_parms.thd_tile_size, -gap_parms.thd_tile_size));
+    //insertValue(tiles_end, 0, shift_tile(gap_str, gap_parms.thd_tile_size, gap_parms.thd_tile_size));
+    insertValue(tiles_end, 0, shift_tile(gap_str, 1,1));
+    //appendValue(tiles_str, shift_tile(gap_end, -gap_parms.thd_tile_size, -gap_parms.thd_tile_size));
+    appendValue(tiles_str, shift_tile(gap_end, -1, -1));
     appendValue(tiles_end, gap_end);
     //addons_1: Map generic gaps
     for (uint i = 1; i < length(tiles_str); i++)
@@ -287,7 +289,7 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         }
         else
         {
-            if (dx > 100 && dy > 100)
+            if (dx > 90 && dy > 90)
             {
                 String<uint64_t> tiles_str1;
                 String<uint64_t> tiles_end1;
