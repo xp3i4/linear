@@ -10,6 +10,9 @@ message (STATUS "Configuring linear/src")
 find_package(ZLIB REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package (SeqAn REQUIRED)
+#find_package (Eigen3 REQUIRED)
+find_package (Eigen3 3.3 REQUIRED NO_MODULE)
+
 
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} ${CXX11_CXX_FLAGS} ${SEQAN_CXX_FLAGS} \
@@ -28,6 +31,7 @@ add_library(linear_cords STATIC cords.cpp)
 add_library(linear_shape_extend STATIC shape_extend.cpp)
 add_library(linear_index_util STATIC index_util.cpp)
 add_library(linear_args_parser STATIC args_parser.cpp)
+add_library(linear_nnetwork STATIC dl.cpp)
 add_library(linear_cluster_util STATIC cluster_util.cpp)
 add_library(linear_pmpfinder STATIC pmpfinder.cpp)
 add_library(linear_gap_util STATIC gap_util.cpp)
@@ -56,6 +60,7 @@ target_link_libraries (linear
                        linear_gap_util
                        linear_fio 
                        linear_align_util
+                       linear_nnetwork
                        linear_index_util 
                        linear_shape_extend
                        linear_cords 
@@ -63,21 +68,9 @@ target_link_libraries (linear
                        linear_base
                       ${SEQAN_LIBRARIES})
 
-#add_executable (test_case test_case.cpp)
-#target_link_libraries (test_case 
-                       #linear_mapper
-                       #linear_test_units
-                       #linear_align_interface
-                       #linear_args_parser 
-                       #linear_pmpfinder 
-                       #linear_gap 
-                       #linear_fio 
-                       #linear_align_util
-                       #linear_index_util 
-                       #linear_shape_extend
-                       #linear_cords 
-                       #linear_base
-                      #${SEQAN_LIBRARIES})
+add_executable (test_case test_case.cpp)
+target_link_libraries(test_case
+                      linear_nnetwork)
 #
 install (TARGETS linear RUNTIME DESTINATION bin)
 

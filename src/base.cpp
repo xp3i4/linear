@@ -28,8 +28,9 @@ Options::Options():
         name("Linear"),
         version("1.8.2"),
         //slogan("\033[1;31mN\033[movel \033[1;34mE\033[mfficient \033[1;33mC\033[moncise"),
-        slogan("A\033[1;31mL\033[m\033[1;32mI\033[mg\033[1;33mN\033[mment-fre\033[1;34mE\033[m method for long-read v\033[1;35mA\033[m\033[1;36mR\033[miants resolution"),
-        oPath(""),
+        //slogan("A\033[1;31mL\033[m\033[1;32mI\033[mg\033[1;33mN\033[mment-fre\033[1;34mE\033[m method for long-read v\033[1;35mA\033[m\033[1;36mR\033[miants resolution"),
+        slogan("Extensible Long-read Algorithms Framework"),
+        //oPath(""),
         gap_len(1),
         apx_chain_flag(1),
         aln_flag(0),
@@ -37,7 +38,8 @@ Options::Options():
         apf_flag(1),
         reform_ccs_cigar_flag(0),
         bal_flag(1),
-        f_output_type(3),
+        f_output_type(2),
+        f_dup(0),
         sensitivity(1),
         thread(16),
         index_t(1),
@@ -433,11 +435,14 @@ Gout & Gout::operator << (CharString n)
 {
     if (f_print)
     {
-        buffer << n << " ";
         if (n == "\n")
         {
-            std::cout << buffer.str();
+            std::cout << buffer.str() << "\n";
             buffer.str("");
+        }
+        else 
+        {
+            buffer << n << " ";
         }
     }
     return *this;

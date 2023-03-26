@@ -91,6 +91,7 @@ struct GapParms
     int int_precision;
     int thd_tile_size;
     CharString read_id;
+    int f_nn1_anchor_sv; //flag of dl::nn1
 
     //extendClipRange() 
     int thd_ecr_shape_len;
@@ -174,6 +175,7 @@ struct GapParms
     //mapGap_
     int64_t thd_mg1_danc_indel;
     int64_t thd_max_extend2;
+    int64_t f_dup;
 
     //mapGaps 
     int64_t thd_gap_len_min;

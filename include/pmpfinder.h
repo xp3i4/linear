@@ -60,6 +60,7 @@ struct PMPParms : public Parms
     ChainAnchorsHitsParms  pm_cah;
     ApxParms               pm_apx;
 
+    CharString             read_id; 
     PMPParms();
     void toggle (int i);
 };
@@ -209,6 +210,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
  
 uint64_t apxMap (IndexDynamic & index,
                  String<Dna5> & read,
+                 CharString & read_id,
                  Anchors & anchors,
                  String<uint64_t> & hit, 
                  StringSet<FeaturesDynamic> & f1,

@@ -3,6 +3,7 @@
 #include "base.h"
 #include "shape_extend.h"
 #include "cords.h"
+#include "dl.h"
 #include "gap_util.h"
 
 /*=============================================
@@ -33,6 +34,7 @@ GapParms::GapParms(float err_rate) : //estimated err_rate
     direction(0),
     int_precision(10000), //convert float to int to avoid float division, precision : 10^-4
     thd_tile_size(96), 
+    f_nn1_anchor_sv(0),
 
     thd_ecr_shape_len(3),
     thd_ecr_reject_da(20),
@@ -73,7 +75,8 @@ GapParms::GapParms(float err_rate) : //estimated err_rate
 
     //mapGap_
     thd_mg1_danc_indel(80),
-    thd_max_extend2(5000)
+    thd_max_extend2(5000),
+    f_dup(0)
 
 { 
     clipChainParms(5, 0.1);
@@ -470,6 +473,38 @@ void g_print_tiles_(String<uint64_t> & tiles, CharString str)
         }
     }
 }
+
+//cal sv
+int calNNAnchorSVPrior(dl::AcGan2 & nn, String<uint64_t> & anchors, StringSet<String<float> > & priors)
+{
+//    if (nn.D1.nn00.layers.empty())
+//    {
+//        return 1;
+//    }
+    unsigned input_size = nn.D1.getInput().rows();
+    unsigned output_size = nn.D1.getOutput().rows();
+    dl::Matrix input(input_size, 1);
+    String<float> n_prior;
+    resize (n_prior, output_size);
+    for (unsigned i = input_size; i < length(anchors); i += input_size)
+    {
+        for (unsigned j = i - input_size; j < i; j++)
+        {
+            input.coeffRef(j, 0) = anchors[j];
+        }
+        //nn.D1.forward(input, 0);
+        nn.E.forward(input, 0);
+        nn.G2.forward(nn.E.getOutput(), 0);
+        nn.D2.forward(nn.G2.getOutput(), 0);
+        for (unsigned j = 0; j < output_size; i++)
+        {
+            n_prior[j] = nn.D2.getOutput().coeffRef(j,0);
+        }
+        appendValue(priors, n_prior);
+    }
+    return 0;
+}
+
 
 /*=============================================
 =           Index free Map and clip           =
@@ -1231,7 +1266,7 @@ std::pair<int, int> getClosestExtensionChain_(String<uint64_t> & tmp_tiles, uint
     {
         if (is_tile_end(tmp_tiles[i]))
         {
-            int64_t danchor = 0, dx, dy;
+            int64_t danchor = 0, dx = 0, dy = 0;
             if (gap_parms.direction < 0) 
             {
                 dy = get_tile_y(gap_end) - get_tile_y(tmp_tiles[i]); 
@@ -1594,7 +1629,7 @@ int trimTiles(String<uint64_t> & tiles,
 }
 
 int g_create_anchors_ (String<uint64_t> & g_hs,
-                       String<uint64_t> & g_hs_anchor,
+                       String<uint64_t> & g_hs_anchors,
                        int shape_len, 
                        int direction,
                        int64_t anchor_lower,
@@ -1617,7 +1652,7 @@ int g_create_anchors_ (String<uint64_t> & g_hs,
                 p2 = k;
                 break;
             default:      //anchor current block before process next block 
-                g_mapHs_setAnchors_(g_hs, g_hs_anchor, p1, p2, k, rvcp_const, anchor_lower, anchor_upper, gap_str, gap_end, direction, gap_parms);
+                g_mapHs_setAnchors_(g_hs, g_hs_anchors, p1, p2, k, rvcp_const, anchor_lower, anchor_upper, gap_str, gap_end, direction, gap_parms);
                 p1 = k;
                 p2 = k; 
         }
@@ -4466,11 +4501,16 @@ int mapInterval(String<Dna5> & seq1, //genome
     int step2 = 1; //seq2...
     String<uint64_t> g_hs;
     String<uint64_t> g_hs_anchors;
+    StringSet<String<float> > anchor_sv_priors;
     reserve(g_hs, 2048);
     reserve(g_hs_anchors, 2048);
     double t1 = sysTime();
     g_stream_(seq1, seq2, g_hs, gap_str, gap_end, shape_len, step1, step2, gap_parms);
     g_create_anchors_(g_hs, g_hs_anchors, shape_len, direction, anchor_lower, anchor_upper, length(seq2) - 1, gap_str, gap_end, gap_parms);
+    if (gap_parms.f_nn1_anchor_sv)
+    {
+        calNNAnchorSVPrior(dl::nn2_anc_sv, g_hs_anchors, anchor_sv_priors);
+    }
     t1 = sysTime() - t1;
     //filterGapAnchors()
     //<<debug

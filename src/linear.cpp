@@ -99,6 +99,13 @@ int main(int argc, char const ** argv)
     {
         return 1;
     }
+    if (length(mapper.getGenomes()) >= 1024)
+    {
+        serr.print_message("\033[1;31mE[m01G]:\033[0m Too many reference genoemes ", 0, 0, std::cerr);
+        //serr.print_message(length(mapper.getGenomes()), 0, 0, std::cerr);
+        serr.print_message("<=1024", 0, 1, std::cerr);
+        return 1;
+    }
     if (options.bal_flag)
     {
         process3 (mapper, options, 0);

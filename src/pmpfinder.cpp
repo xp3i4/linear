@@ -2459,7 +2459,8 @@ ChainAnchorsHitsParms::ChainAnchorsHitsParms()
 }
 
 //chain anchors to hits
-int getAnchorHitsChains(Anchors & anchors, 
+int getAnchorHitsChains(CharString & read_id,
+                        Anchors & anchors, 
                         String<uint64_t> & hits, 
                         String<int> & hits_score,
                         uint64_t read_len, 
@@ -2499,6 +2500,7 @@ int getAnchorHitsChains(Anchors & anchors,
  */  
 uint64_t mnMapReadList(IndexDynamic & index,
                        String<Dna5> & read,
+                       CharString & read_id,
                        Anchors & anchors,
                        String<uint64_t> & hits,
                        String<int> & hits_score,
@@ -2539,7 +2541,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
         int64_t thd_anchor_accept_err = 2500; //(-2500, 2500) 2500=avearge_read_len(10k) * average_err (25%) , use int64_t, not uint64_t
         uint64_t thd_large_gap = 600;     
         unsigned thd_anchor_err_bit = 2; //  = 1/2^2 = 0.25
-        getAnchorHitsChains(anchors, hits, hits_score, length(read), thd_anchor_accept_density, thd_anchor_accept_min, thd_large_gap, thd_anchor_err_bit, thd_max_anchors_num, thd_anchor_accept_err, 2, pm_g, pm_pmp);
+        getAnchorHitsChains(read_id, anchors, hits, hits_score, length(read), thd_anchor_accept_density, thd_anchor_accept_min, thd_large_gap, thd_anchor_err_bit, thd_max_anchors_num, thd_anchor_accept_err, 2, pm_g, pm_pmp);
     }
     return 0;
 }
@@ -2549,6 +2551,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
  */
 uint64_t apxMap_ (IndexDynamic & index,
                   String<Dna5> & read,
+                  CharString & read_id,
                   Anchors & anchors,
                   String<uint64_t> & hits, 
                   StringSet<FeaturesDynamic> & f1,
@@ -2566,7 +2569,7 @@ uint64_t apxMap_ (IndexDynamic & index,
     initHits(hits);
     
     String<int> hits_score;
-    mnMapReadList(index, read, anchors, hits, hits_score, map_str, map_end, alg_type, 
+    mnMapReadList(index, read, read_id, anchors, hits, hits_score, map_str, map_end, alg_type, 
         pm_g, pm_pmp);
     uint64_t read_str = get_cord_y(map_str);
     uint64_t read_end = get_cord_y(map_end);
@@ -2626,6 +2629,7 @@ uint64_t apxMap_ (IndexDynamic & index,
 
 uint64_t apxMap (IndexDynamic & index,
                  String<Dna5> & read,
+                 CharString & read_id,
                  Anchors & anchors,
                  String<uint64_t> & hit, 
                  StringSet<FeaturesDynamic> & f1,
@@ -2653,7 +2657,7 @@ uint64_t apxMap (IndexDynamic & index,
         uint64_t map_str = 0ULL;
         uint64_t map_end = create_cord (MAX_CORD_ID, MAX_CORD_X, length(read), 0);
         //double t1 = sysTime();
-        apxMap_(index, read, anchors, hit, f1, f2, cords_str, cords_info, map_str, map_end, alg_type, 
+        apxMap_(index, read, read_id, anchors, hit, f1, f2, cords_str, cords_info, map_str, map_end, alg_type, 
             pm_g, pm_pmp);
         //t1 = sysTime() - t1;
         //double t2 = sysTime();
@@ -2674,7 +2678,7 @@ uint64_t apxMap (IndexDynamic & index,
                 pm_pmp.toggle(1); 
                 map_str =  y1; 
                 map_end =  create_cord(MAX_CORD_ID, MAX_CORD_X, y2, 0);
-                apxMap_(index, read, anchors, hit, f1, f2, cords_str, cords_info, map_str, map_end, alg_type, pm_g, pm_pmp);
+                apxMap_(index, read, read_id, anchors, hit, f1, f2, cords_str, cords_info, map_str, map_end, alg_type, pm_g, pm_pmp);
                 pm_pmp.toggle(0);
             }
             clear (str_ends);
@@ -2691,12 +2695,12 @@ uint64_t apxMap (IndexDynamic & index,
     {
         float senThr = pm_pmp.pm_apx.thd_sen / thd_cord_size;
         int alg_type = 1;
-        apxMap_(index, read, anchors, hit, f1, f2, cords_str, cords_info, 0, length(read), alg_type, pm_g, pm_pmp);
+        apxMap_(index, read, read_id, anchors, hit, f1, f2, cords_str, cords_info, 0, length(read), alg_type, pm_g, pm_pmp);
         if (_DefaultCord.getMaxLen(cords_str) < length(read) * senThr)
         {
             clear(cords_str);
             pm_pmp.toggle(1);
-            apxMap_ (index, read, anchors, hit, f1, f2, cords_str, cords_info, 0, length(read), alg_type, pm_g, pm_pmp);
+            apxMap_ (index, read, read_id, anchors, hit, f1, f2, cords_str, cords_info, 0, length(read), alg_type, pm_g, pm_pmp);
             pm_pmp.toggle(0);
         }   
         clean_blocks_ (cords_str, thd_drop_len);
