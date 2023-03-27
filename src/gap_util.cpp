@@ -493,8 +493,8 @@ int calNNAnchorSVPrior(dl::AcGan2 & nn, String<uint64_t> & anchors, StringSet<St
             input.coeffRef(j, 0) = anchors[j];
         }
         //nn.D1.forward(input, 0);
-        nn.E.forward(input, 0);
-        nn.G2.forward(nn.E.getOutput(), 0);
+        nn.E1.forward(input, 0);
+        nn.G2.forward(nn.E1.getOutput(), 0);
         nn.D2.forward(nn.G2.getOutput(), 0);
         for (unsigned j = 0; j < output_size; i++)
         {
