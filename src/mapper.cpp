@@ -180,12 +180,14 @@ int Mapper::loadOptions(Options & options)
         }
         case 1:
         {
-            map_parms =  parm1; //fast
+            map_parms = parm1; //fast
             break;
         }
         case 2:
         {
-            map_parms = parm2; //sensitive
+            map_parms = parm0; //sensitive
+            map_parms.pm_pmp.pm_cah.thd_stop_chain_len_ratio = 0;
+            std::cout << "pm2 " << map_parms.pm_pmp.pm_cah.thd_stop_chain_len_ratio << "\n";
             break;
         }
     }
