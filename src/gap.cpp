@@ -116,7 +116,8 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         //These x1,y1,x2,y2 are invalid if @gap_str @gap_end are of the same strand. 
         return 0;
     }
-    else if (y1 < y2)
+    //else if (y1 < y2)
+    if (0)
     {
         int64_t danc = x1 - x2 - y1 + y2;
         if (std::abs(danc) > gap_parms.thd_mg1_danc_indel && direction == g_map_closed) //ins/del/dup/none when{x1>x2}
