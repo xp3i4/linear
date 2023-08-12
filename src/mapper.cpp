@@ -176,6 +176,7 @@ int Mapper::loadOptions(Options & options)
         case 0: 
         {
             map_parms = parm0; //normal
+            std::cout << "pm0\n";
             break;
         }
         case 1:
@@ -186,7 +187,9 @@ int Mapper::loadOptions(Options & options)
         case 2:
         {
             map_parms = parm0; //sensitive
-            map_parms.pm_pmp.pm_cah.thd_stop_chain_len_ratio = 0;
+            //map_parms.pm_pmp.pm_cah.thd_stop_chain_len_ratio = 0;
+            fio_parms.thd_DI = 80;
+            fio_parms.thd_X = 200;
             std::cout << "pm2 " << map_parms.pm_pmp.pm_cah.thd_stop_chain_len_ratio << "\n";
             break;
         }
@@ -437,7 +440,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
         uint64_t thd_large_X = 8000; 
         clear(bam_records);
         //print_cords(cords_str[0], "pca1");
-        cords2BamLink (cords_str, cords_end, cords_info, bam_records, reads, this->getCordSize(), thd_large_X);
+        cords2BamLink (cords_str, cords_end, cords_info, bam_records, reads, this->getCordSize(), thd_large_X, getFIOParms().thd_DI, getFIOParms().thd_X);
     }
     counters.setCalCounter(counters.getCalCounter() + length(reads));
     return 0;
@@ -711,6 +714,7 @@ int map_(IndexDynamic & index,
          StringSet<String<Dna5> > & seqs,
          StringSet<String<BamAlignmentRecordLink> >& bam_records,
          String<GapParms> & gap_parms,
+         FIOParms & fio_parms,
          uint f_map,   //control flags
          uint threads,
          int cord_size,
@@ -812,7 +816,7 @@ int map_(IndexDynamic & index,
         uint64_t thd_large_X = 8000;
         int f_parallel = 1;
         clear(bam_records);
-        cords2BamLink(cords_str, cords_end, cords_info, bam_records, reads, cord_size, thd_large_X, threads, f_parallel);
+        cords2BamLink(cords_str, cords_end, cords_info, bam_records, reads, cord_size, thd_large_X, fio_parms.thd_DI, fio_parms.thd_X, threads, f_parallel);
     }
     return 0;
 }
@@ -895,6 +899,7 @@ int map(Mapper & mapper,
                  mapper.getGenomes(),
                  mapper.getBamRecords(),
                  mapper.getGapParms(),
+                 mapper.getFIOParms(),
                  mapper.getMapFlag(),
                  mapper.getThreads(), 
                  mapper.getCordSize(),

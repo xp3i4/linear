@@ -27,7 +27,12 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
              int64_t thd_dxy_min,
              GapParms & gap_parms)
 {
-
+    if (get_cord_x(gap_str) < 125154158)
+    {
+        return 0;
+    }
+    //print_cord(gap_str, "mg11");
+    //print_cord(gap_end, "mg12");
     unused(clips);
     CmpInt64 g_cmpll;
     //float thd_da_zero = gap_parms.thd_err;
@@ -391,6 +396,8 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
     }
     resize(tiles_str, length(tiles_str) - 2);
     resize(tiles_end, length(tiles_end) - 2);
+    //g_print_tiles_(tiles_str, "mg21");
+    //g_print_tiles_(tiles_end, "mg22");
     return 0;
 }
 /**

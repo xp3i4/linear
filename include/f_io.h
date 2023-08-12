@@ -12,6 +12,8 @@ struct FIOParms
 {
     uint64_t thd_large_X; 
     uint64_t thd_trim_bound;
+    int64_t thd_DI;
+    int64_t thd_X;
     //reformCCSBams
     int thd_rcb_xy;
     int f_reform_ccs;
@@ -88,7 +90,9 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
                    StringSet<String<BamAlignmentRecordLink> > & bam_link_records,
                    StringSet<String<Dna5> > & reads,
                    int thd_cord_size,
-                   uint64_t thd_large_X);
+                   uint64_t thd_large_X,
+                   int64_t thd_DI,
+                   int64_t thd_X);
 
 void cords2BamLink(StringSet<String<uint64_t> > & cords_str, 
                    StringSet<String<uint64_t> > & cords_end,
@@ -97,6 +101,8 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
                    StringSet<String<Dna5> > & reads,
                    int thd_cord_size,
                    uint64_t thd_large_X,
+                   int64_t thd_DI,
+                   int64_t thd_X,
                    unsigned threads,
                    int f_parallel);
 
