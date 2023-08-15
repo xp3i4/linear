@@ -2544,7 +2544,7 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
         {
             int64_t thd_min_step = 8;
             int64_t thd_max_step = 10; 
-            int64_t thd_omit_block = 200; //std::min(1024, (1 << DINDEXY_BITS1) - 1);  
+            int64_t thd_omit_block = 400; //std::min(1024, (1 << DINDEXY_BITS1) - 1);  
             unsigned thd_shape_len = 21;
             index.dindex.getShape().init_shape_parm(thd_shape_len);
             return createDIndex(seqs, index.dindex, thd_min_step, thd_max_step, thd_omit_block,

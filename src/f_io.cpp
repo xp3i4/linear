@@ -785,20 +785,44 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
             int64_t split_X = X / split_n;  
             uint64_t split_cord_str = cord1_end;
          //   dout << "c21" << split_n << "\n";
+//<<debug
+
+            createRectangleCigarPair(cord1_end, cord2_str, cigar1, cigar2, 1); //'X'
+            dout << "origin" << cigar1.count << cigar1.operation << cigar2.count << cigar2.operation << "\n";
+//>>debug
             for (int i = 0; i < split_n - 1; i++)
             {
                 uint64_t split_cord_end = DI < 0 ? 
                     shift_cord (split_cord_str, split_X, split_X + split_DI) :
                     shift_cord (split_cord_str, split_X + split_DI, split_X) ;
-                createRectangleCigarPair(split_cord_str, split_cord_end, cigar1, cigar2, 1);
+                createRectangleCigarPair(split_cord_str, split_cord_end, cigar1, cigar2, 0);
+            dout << "change" << cigar1.count << cigar1.operation << cigar2.count << cigar2.operation << "\n";
                 if (cigar1.count) appendCigarShrink(cigar, cigar1);
                 if (cigar2.count) appendCigarShrink(cigar, cigar2);
                 split_cord_str = split_cord_end;
             }
             createRectangleCigarPair(split_cord_str, cord2_str, cigar1, cigar2, 1);
+            dout << "change" << cigar1.count << cigar1.operation << cigar2.count << cigar2.operation << "\n";
             if (cigar1.count) appendCigarShrink(cigar, cigar1);
             if (cigar2.count) appendCigarShrink(cigar, cigar2);
         }
+        //else if (std::abs(DI) > 80 && std::abs(DI) < 100 && X > 20) 
+        //{
+        //    int64_t new_X = X - (100 - std::abs(DI))
+        //    uint64_t cord_tmp1 = shift_cord(cord1_end, new_X, new_X);
+        //    uint64_t cord_tmp2 = DI < 0 ? 
+        //            shift_cord(comrd_tmp1, X - new_X, 0):
+        //            shift_cord(comrd_tmp1, 0, X - new_X);
+        //    createRectangleCigarPair(cord1_end, cord_tmp1);
+        //    if (cigar1.count) appendCigarShrink(cigar, cigar1);
+        //    if (cigar2.count) appendCigarShrink(cigar, cigar2);
+        //    createRectangleCigarPair(cord_tmp1, cord_tmp2);
+        //    if (cigar1.count) appendCigarShrink(cigar, cigar1);
+        //    if (cigar2.count) appendCigarShrink(cigar, cigar2);
+        //    createRectangleCigarPair(cord_tmp2, cords_str);
+        //    if (cigar1.count) appendCigarShrink(cigar, cigar1);
+        //    if (cigar2.count) appendCigarShrink(cigar, cigar2);
+        //} 
         else
         {
             createRectangleCigarPair(cord1_end, cord2_str, cigar1, cigar2, 1); //'X'
