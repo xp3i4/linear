@@ -1,3 +1,4 @@
+#include <seqan/seq_io.h>
 #include "shape_extend.h"
 
 using namespace seqan;
@@ -5,6 +6,51 @@ using namespace seqan;
 //WARN!!:: Only odd Shape len is allowed if call the hash due to the double strand hash value
 //All even shape len will be converted to len + 1
 typedef Dna5 ShapeType;
+int lexicoHash2kmer(uint64_t val, uint64_t k, String<char> & kmer)
+{
+    char s1[5] = {'A','C','G','T','N'};
+    clear(kmer);
+    for (int i = 0; i < k; i++)
+    {
+        uint64_t vi = (val >> (2 * (k - i - 1))) & (3ULL);
+        //std::cout << "vi" << vi << s1[vi]<< k << " " << val <<"\n";
+        appendValue(kmer, s1[vi]);
+    }
+    return 0;
+}
+int print_minimizer(Iterator<String<Dna5> >::Type it, uint64_t x, uint64_t y, uint64_t strand, uint64_t span, uint64_t weight, String<char> header)
+{
+    char s1[5] = {'A','C','G','T','N'};
+    char s2[5] = {'T','G','C','A','N'};
+    String<char> kmer;
+    String<char> pre;
+    String<char> suf;
+    String<char> m1;
+    String<char> m2;
+    lexicoHash2kmer(x, weight, m1);
+    lexicoHash2kmer(y, 4, m2);
+    for (int i = 0; i < span + 4; i++)
+    {
+        if (strand == 0) 
+        {
+            if (i == span)
+            {
+                appendValue(kmer,'|');
+            }
+            appendValue(kmer,s1[seqan::ordValue((Dna5)*(it + i))]);
+        }
+        else if (strand == 1)
+        {
+            if (i == span)
+            {
+                appendValue(kmer,'|');
+            }
+            appendValue(kmer,s2[seqan::ordValue((Dna5)*(it + span - 1 - i ))]);
+        }
+    }
+    std::cout << header << " " << strand << " " << kmer << " " << m1 << " " << m2 << " " << y << " | "<< "\n";
+    return 0;
+}
 void LShape::init_shape_parm (unsigned shape_span)
 {
     span = shape_span ;
@@ -194,16 +240,10 @@ uint64_t hashNextV(LShape & me, TIterS it)
     me.strand = me.x < 0 ? 1 : 0;
     return me.strand ? me.crhValue : me.hValue;
 }
-/*
- * this hashNext function is for index only collect mini hash value [minindex]
- * calculate XValue
- */ 
-uint64_t hashNextX(LShape & me, TIterS it)
+uint64_t hashNextXX(LShape & me, TIterS it, uint64_t & v2, uint64_t & t)
 {
-    SEQAN_ASSERT_GT((unsigned)me.span, 0u);
     uint64_t v1;
     unsigned span = me.span << 1, weight = me.weight << 1;
-    uint64_t t = 0, v2;
     if (me.x > 0)
     {
         v2 =me.hValue; 
@@ -224,11 +264,92 @@ uint64_t hashNextX(LShape & me, TIterS it)
             t = k;
         }
     } 
+    (void)it;
+    return me.XValue;
+}
+uint64_t hashNextXY(LShape & me, TIterS it, uint64_t & v2, uint64_t & t)
+{
+    unsigned span = me.span << 1, weight = me.weight << 1;
     me.YValue = (v2 >> (64 - t) << (64 - t - weight)) +
                 (v2 & ((1ULL<<(64 - t - weight)) - 1)) + 
                 (t << (span - weight - 1));
     (void)it;
+    return me.YValue;
+}
+uint64_t hashNextXY2(LShape & me, TIterS it, uint64_t & v2, uint64_t & t)
+{
+    me.YValue = 0;
+    int64_t n = 4;
+    //<<debug
+    String<char> kmer1;
+    String<char> kmer2;
+    //>>debu
+    if (me.x > 0)
+    {
+        int64_t d_it = (t >> 1) + me.span + me.weight - 32;
+//        for (int64_t i = d_it; i < d_it + (me.span - me.weight); i++)
+        for (int64_t i = d_it; i < d_it + n; i++)
+        {
+            int64_t val = ordValue((ShapeType)*(it + i));
+            me.YValue = val > 3 ? (me.YValue << 2) : (me.YValue << 2) + val;
+            //<<debug
+            lexicoHash2kmer(me.XValue, me.weight, kmer1);
+            lexicoHash2kmer(me.YValue, n, kmer2);
+            //std::cout << "hnxy2 " << kmer1 << " " << kmer2 << " " << t << " " << d_it << "\n";
+            //>>debug
+        }
+    }
+    else
+    {
+        int64_t d_it = -(t >> 1) - me.weight + 31;
+        //for (int64_t i = d_it; i < d_it + (me.span - me.weight); i++)
+        //std::cout << "hnxy35 " << d_it << " " << d_it - n <<  "\n";
+        for (int64_t i = d_it; i > d_it - n; i--)
+        {
+            int64_t val = COMP4 - ordValue((ShapeType)*(it + i));
+ //           std::cout << "hnxy34 " << me.YValue << "\n"; 
+            if (val < 0)
+            {
+                me.YValue = me.YValue << 2;
+  //              std::cout << "hnxy33 " << me.YValue << " " << *(it + i) << "\n";
+            }
+            else 
+            {
+                me.YValue = (me.YValue << 2) + val;
+   //             std::cout << "hnxy32 " << me.YValue << " " << *(it + i) << "\n";
+            }
+            //me.YValue = val < 0 ? (me.YValue << 2) : (me.YValue << 2) + val;
+        } 
+         //std::cout << "hnxy3 " << me.YValue <<" " << d_it << *(it + d_it) << *(it -1+d_it) << *(it -2+d_it) << *(it -3+d_it) << "\n";
+    }
+    /*
+    if (me.YValue > 4)
+    {
+        std::cout << "hashNextXY2 " << me.YValue << "\n";
+    }
+    */
+    return me.YValue;
+}
+/*
+ * this hashNext function is for index only collect mini hash value [minindex]
+ * calculate XValue
+ */ 
+uint64_t hashNextX(LShape & me, TIterS it)
+{
+    SEQAN_ASSERT_GT((unsigned)me.span, 0u);
+    uint64_t v1;
+    uint64_t t = 0, v2;
+    hashNextXX(me, it, v2, t);
+    hashNextXY2(me, it, v2, t);
     return me.XValue; 
 }
 
-
+uint64_t hashNextX2(LShape & me, TIterS it)
+{
+    SEQAN_ASSERT_GT((unsigned)me.span, 0u);
+    uint64_t v1;
+    uint64_t t = 0, v2;
+    hashNextXX(me, it, v2, t);
+    hashNextXY2(me, it, v2, t);
+    return me.XValue; 
+}

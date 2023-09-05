@@ -1849,6 +1849,7 @@ unsigned getSIndexMatchAll (SIndex & index,
     }
     return 0;    
 }
+
 unsigned getDIndexMatchAll (DIndex & index,
                             String<Dna5> & read,
                             String<uint64_t> & set,
@@ -1866,7 +1867,7 @@ unsigned getDIndexMatchAll (DIndex & index,
     hashInit(shape, begin(read));
     String<Dna5> rd;
 
-    for (uint64_t k = read_str; k < read_end; k++)
+    for (uint64_t k = read_str + shape.span; k < read_end - shape.span; k++)
     {
         hashNexth(shape, begin(read) + k);
         if (++dt == pm_gdima.thd_alpha)
@@ -1878,9 +1879,26 @@ unsigned getDIndexMatchAll (DIndex & index,
                 int64_t str_ = queryHsStr(index, shape.XValue);
                 int64_t end_ = queryHsEnd(index, shape.XValue);
                 //queryHsStrEnd(index, shape.XValue, str_end);
+                //dout << "dx" << "\n";
                 for (int64_t i = str_; i < end_; i++)
                 {
-                    appendValue(set, index.val2Anchor(i, k, read_len, shape));
+                    uint64_t hs_y = get_cord_y(index.getHs()[i]);
+                    //dout << "dx1" << shape.YValue << hs_y << "\n";
+                    //if (shape.YValue == hs_y)
+                    uint64_t val = hs_y ^ shape.YValue; 
+                    if (1)
+                    //if (val >> __builtin_ctzl(val) < 4)
+                    //if (hs_y == shape.YValue)
+                    {
+                        uint64_t index_cord = index.getHs()[i];
+                        //print_minimizer(index.tmp_it + get_cord_x(index_cord) - const_anchor_zero, shape.XValue, hs_y, get_cord_strand(index_cord), shape.span, shape.weight, "mm5_g");
+                        //print_minimizer(begin(read) + k, shape.XValue, shape.YValue, shape.strand, shape.span, shape.weight, "mm5_r");
+                        appendValue(set, index.val2Anchor(i, k, read_len, shape));
+                    }
+                    else
+                    {
+                        //dout << "missed" << shape.YValue << hs_y << "\n";
+                    }
                 }
                 xpre = shape.XValue;
             }
@@ -2512,13 +2530,16 @@ uint64_t mnMapReadList(IndexDynamic & index,
     uint64_t read_str = get_cord_y(map_str);
     uint64_t read_end = get_cord_y(map_end);
     //double tt1 = sysTime();
+    double t1, t2;
     if (index.isHIndex())
     {  
         getHIndexMatchAll(index.hindex, read, anchors.set, map_str, map_end, pm_pmp);    
     }   
     else if (index.isDIndex())
     {
+         t1 = sysTime();
         getDIndexMatchAll(index.dindex, read, anchors.set, read_str, read_end, pm_pmp);    
+        t1 = sysTime() - t1;
     }
     else if (index.isSIndex())
     {
@@ -2532,6 +2553,7 @@ uint64_t mnMapReadList(IndexDynamic & index,
     }
     else if (alg_type == 2)
     {
+         t2 = sysTime();
         uint64_t thd_anchor_accept_density = 1;// 1 anchor per 1000 bases
         uint64_t thd_anchor_accept_min = 2; //> this
         //uint64_t thd_anchor_accept_lens = (read_end - read_str) * 0.01;
@@ -2540,7 +2562,25 @@ uint64_t mnMapReadList(IndexDynamic & index,
         uint64_t thd_large_gap = 600;     
         unsigned thd_anchor_err_bit = 2; //  = 1/2^2 = 0.25
         getAnchorHitsChains(anchors, hits, hits_score, length(read), thd_anchor_accept_density, thd_anchor_accept_min, thd_large_gap, thd_anchor_err_bit, thd_max_anchors_num, thd_anchor_accept_err, 2, pm_g, pm_pmp);
+                //<<debug
+        /*
+        for (unsigned i = 0; i < length(anchors.set); i++)
+        {
+            dout << "mm3" << getAnchorX(anchors.set[i]) << get_cord_y(anchors.set[i]) << get_cord_x(anchors.set[i])  <<get_cord_id(anchors.set[i]) << "\n";
+        }
+        */
+        //>>debug
+                //<<debug
+        /*
+        for (unsigned i = 0; i < length(hits); i++)
+        {
+            dout << "mm4" << get_cord_x(hits[i]) << get_cord_y(hits[i]) << "\n";
+        }
+        */
+        t2 = sysTime() - t2;
+        //>>debug
     }
+    dout << "mm1" << t1 << t2 << t1/t2 << "\n";
     return 0;
 }
 
