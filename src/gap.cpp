@@ -27,10 +27,6 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
              int64_t thd_dxy_min,
              GapParms & gap_parms)
 {
-    if (get_cord_x(gap_str) < 125154158)
-    {
-        return 0;
-    }
     //print_cord(gap_str, "mg11");
     //print_cord(gap_end, "mg12");
     unused(clips);
@@ -116,8 +112,7 @@ int mapGap_ (StringSet<String<Dna5> > & seqs,
         //These x1,y1,x2,y2 are invalid if @gap_str @gap_end are of the same strand. 
         return 0;
     }
-    //else if (y1 < y2)
-    else if (0)
+    else if (y1 < y2)
     {
         int64_t danc = x1 - x2 - y1 + y2;
         if (std::abs(danc) > gap_parms.thd_mg1_danc_indel && direction == g_map_closed) //ins/del/dup/none when{x1>x2}
