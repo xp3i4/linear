@@ -240,6 +240,7 @@ int Mapper::loadOptions(Options & options)
     }
     for (unsigned i = 0; i < _thread; i++)
     { 
+        appendValue(map_parms_set, map_parms);
         appendValue(gap_parms_set, gap_parms_template); //a copy for each thread
     }
     //gap_parms_template.printParms("gap_parms");
@@ -428,7 +429,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
             //clear(f1[1].fs2_48);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
             createFeatures(begin(comStr), end(comStr), f1[1]);
-            apxMap(getIndex(), reads[j], anchors, crhit, f1, f2, apx_gaps, cords_str[j], cords_end[j], cords_info[j], f_chain, getMapParms().pm_g, getMapParms().pm_pmp);
+            apxMap(getIndex(), reads[j], anchors, crhit, f1, f2, apx_gaps, cords_str[j], cords_end[j], cords_info[j], f_chain, map_parms_set[thread_id].pm_g, map_parms_set[thread_id].pm_pmp);
             if (fm_handler_.isMapGap(f_map))
             {
                 gap_parms_set[thread_id].read_id = reads_id[j];
@@ -1213,7 +1214,7 @@ MapParms::MapParms(unsigned bs, unsigned dt, unsigned thr,
             GlobalParms();
             PMPParms();
         }
-
+/*
 MapParms::MapParms(MapParms & parm):
         blockSize(parm.blockSize),
         delta(parm.delta),
@@ -1236,7 +1237,7 @@ MapParms::MapParms(MapParms & parm):
             GlobalParms();
             PMPParms();
         }
-
+*/
 void MapParms::print()
 {
     std::cerr << "blockSize " << blockSize << std::endl

@@ -1790,7 +1790,8 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
         {
             std::sort(begin(hs) + dir[i], begin(hs) + dir[i + 1], 
                 [](uint64_t & x, uint64_t & y){
-                return get_cord_y (x) < get_cord_y(y); 
+                //return get_cord_y (x) < get_cord_y(y); 
+                return x < y;
             });
         }
     }
