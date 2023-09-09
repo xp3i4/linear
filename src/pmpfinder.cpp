@@ -925,6 +925,7 @@ uint64_t previousWindow(FeaturesDynamic & f1, //read
             x_min = x;
         }
     }
+    //std::cout << "previousWindow " << parm->windowThreshold << "\n";
     if (min > parm->windowThreshold)
         return 0;    
     else 
@@ -1451,6 +1452,7 @@ bool path_dst(String<uint64_t> & hits,
               uint64_t read_len,
               int alg_type)
 {
+    std::cout << "path " << alg_type << "\n";
     if (isHitsEmpty(hits)) 
     {
         return true;
@@ -1865,9 +1867,9 @@ unsigned getDIndexMatchAll (DIndex & index,
     uint64_t read_len = length(read);
     uint64_t xpre = 0;
     hashInit(shape, begin(read));
-    String<Dna5> rd;
 
-                        std::stringstream msg;
+    std::stringstream msg;
+    msg << "gdx1 " << pm_gdima.thd_alpha << "\n";
     for (uint64_t k = read_str + shape.span; k < read_end - shape.span; k++)
     {
         hashNexth(shape, begin(read) + k);
@@ -1905,7 +1907,7 @@ unsigned getDIndexMatchAll (DIndex & index,
         }
     }
     //msg << "\n";
-    //std::cout << "gdx " << msg.str();
+    std::cout  << msg.str();
     return 0;    
 }
 /**
@@ -2450,6 +2452,14 @@ int chainAnchorsHits(String<uint64_t> & anchors,
     //double t0 = sysTime();
     ChainAnchorsHitsParms & pm_cah = pm_pmp.pm_cah;
     ChainScoreMetric chn_score(pm_cah.thd_min_chain_len, pm_cah.thd_drop_score, &getApxChainScore);
+    if (pm_cah.f_score_type == 0)
+    {
+        chn_score.getScore = &getApxChainScore;   
+    }
+    else if (pm_cah.f_score_type == 1)
+    {
+        chn_score.getScore = &getApxChainScore0; 
+    }
     StringSet<String<uint64_t> > anchors_chains;
     std::sort(begin(anchors), end(anchors), 
         [](uint64_t & a, uint64_t & b){return getAnchorX(a) > getAnchorX(b);});
@@ -2476,6 +2486,19 @@ ChainAnchorsHitsParms::ChainAnchorsHitsParms()
     thd_chain_depth = 20;
     thd_chain_dx_depth = 300;
     thd_stop_chain_len_ratio = 0.7;    
+
+    f_score_type = 0;
+}
+void ChainAnchorsHitsParms::toggle(int i) 
+{
+    if (i == 0)
+    {
+        f_score_type = 0;
+    }
+    else
+    {
+        f_score_type = 1;
+    }
 }
 
 //chain anchors to hits
@@ -2500,6 +2523,14 @@ int getAnchorHitsChains(Anchors & anchors,
     initHitsScore(hits_score); 
     //printAnchors(anchors.set, "gach1");
     chainAnchorsHits(anchors.set, hits, hits_score, pm_pmp);
+    //>>debug
+    /*
+    for (unsigned i = 0; i < length(anchors.set); i++)
+    {
+        std::cout << "getAnchorHitsChains1 " << getAnchorX(anchors.set[i]) << " "<< get_cord_y(anchors.set[i]) << "\n";
+    }
+    */
+    //<<debug
     gather_blocks_ (hits, str_ends, str_ends_p, 1, length(hits), read_len, thd_large_gap, 0, 0, & is_cord_block_end, & set_cord_end);
     //preFilterChains1 (hits, hits_score, str_ends_p, 0.5);
     preFilterChains2 (hits, str_ends_p, &set_cord_end, &get_cord_y);
@@ -2511,6 +2542,14 @@ int getAnchorHitsChains(Anchors & anchors,
         str_ends_p_score[i] = hits_score[str_ends_p[i].first] - hits_score[str_ends_p[i].second - 1];
     }
     chainBlocksHits(hits, str_ends_p, str_ends_p_score, read_len);
+    //>>debug
+    /*
+    for (unsigned i = 0; i < length(hits); i++)
+    {
+        std::cout << "getAnchorHitsChains2 " << get_cord_x(hits[i]) << " "<< get_cord_y(hits[i]) << "\n";
+    }
+    */
+    //<<debug
     return 0;
 }
 
@@ -2714,10 +2753,12 @@ uint64_t apxMap (IndexDynamic & index,
                 uint64_t y1 = y.first;
                 uint64_t y2 = y.second;   
                 pm_pmp.toggle(1); 
+                dout << "apx1" << pm_pmp.pm_cah.f_score_type << "\n";
                 map_str =  y1; 
                 map_end =  create_cord(MAX_CORD_ID, MAX_CORD_X, y2, 0);
                 apxMap_(index, read, anchors, hit, f1, f2, cords_str, cords_info, map_str, map_end, alg_type, pm_g, pm_pmp);
                 pm_pmp.toggle(0);
+                dout << "apx1" << pm_pmp.pm_cah.f_score_type << "\n";
             }
             clear (str_ends);
             clear (str_ends_p);

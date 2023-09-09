@@ -1719,7 +1719,7 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
     //make sure genomeid >= length(seqs) and cord x cord y be 0! since x is counter and y points to next empty. 
     int64_t x1_cord = create_cord(0,1,0,0);
     resize (hs, sum, EmptyVal);
-    serr.print_message("--Index::Initiate[100%]   ", 0, 1, std::cerr);
+    serr.print_message("--Index::Init    [100%]   ", 0, 1, std::cerr);
     serr.print_message("=>Index::Hashing", 0, 2, std::cerr);
 
     current_lens_ratio = 0;
@@ -2550,7 +2550,7 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
         {
             int64_t thd_min_step = 8;
             int64_t thd_max_step = 10; 
-            int64_t thd_omit_block = 400; //std::min(1024, (1 << DINDEXY_BITS1) - 1);  
+            int64_t thd_omit_block = 200; //std::min(1024, (1 << DINDEXY_BITS1) - 1);  
             unsigned thd_shape_len = 21;
             index.dindex.getShape().init_shape_parm(thd_shape_len);
             return createDIndex(seqs, index.dindex, thd_min_step, thd_max_step, thd_omit_block,

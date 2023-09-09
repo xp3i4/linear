@@ -14,6 +14,7 @@ struct ChainScoreParms
 };
 
 int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2, ChainScoreParms & chn_sc_parms);
+int getApxChainScore0(uint64_t const & anchor1, uint64_t const & anchor2, ChainScoreParms & chn_sc_parms);
 int getApxChainScore2(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len, ChainScoreParms & chn_sc_parms);
 int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len, ChainScoreParms & chn_sc_parms);
 

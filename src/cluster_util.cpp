@@ -334,6 +334,56 @@ int traceBackChains(String<ChainElementType> & elements,  StringSet<String<Chain
     return 0;
 }
 
+int getApxChainScore0(uint64_t const & anchor1, uint64_t const & anchor2, ChainScoreParms & chn_sc_parms)
+{
+    unused(chn_sc_parms);
+    int64_t dy = get_cord_y(anchor1) - get_cord_y(anchor2);
+    if (dy < 5)
+    {
+        //dy < 0 : y should in descending order
+        //0 <= dy < 10 : too close anchors are excluded;
+        return -10000;
+    }
+    int64_t thd_min_dy = 50;
+    int64_t dx = getAnchorX(anchor1) -  getAnchorX(anchor2);
+    int64_t da = std::abs(dx - dy);
+    int64_t derr =  (100 * da) / std::max({std::abs(dy), std::abs(dx), thd_min_dy}); // 1/100 = 0.01
+
+    int score_derr;
+    if (derr < 5)
+    {
+        score_derr = 4 * derr;
+    }
+    else if (derr < 10)
+    {
+        score_derr = 6 * derr - 10;
+    }
+    else if (derr < 100) 
+    {
+        score_derr =  derr * derr - 5 * derr;
+    }
+    else
+    {
+        return -1000;
+    }
+    //d_y
+    int score_dy;
+    if (dy < 10)           {score_dy = 0;}
+    else if (dy < 40)      {score_dy = dy - 50;}
+    else if (dy < 80)    {score_dy = dy * dy / 200 + 20;}
+    else                    {score_dy = 10000;}
+    score_dy = dy;
+    score_derr = da;
+    if (da < 30)
+    {
+        return 100 - score_dy;
+    }
+    else
+    {
+        return 100 - score_dy - score_derr ;    
+    }
+}
+
 int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2, ChainScoreParms & chn_sc_parms)
 {
     unused(chn_sc_parms);
