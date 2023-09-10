@@ -1452,7 +1452,7 @@ bool path_dst(String<uint64_t> & hits,
               uint64_t read_len,
               int alg_type)
 {
-    std::cout << "path " << alg_type << "\n";
+    //std::cout << "path " << alg_type << "\n";
     if (isHitsEmpty(hits)) 
     {
         return true;
@@ -1869,7 +1869,7 @@ unsigned getDIndexMatchAll (DIndex & index,
     hashInit(shape, begin(read));
 
     std::stringstream msg;
-    msg << "gdx1 " << pm_gdima.thd_alpha << "\n";
+    //msg << "gdx1 " << pm_gdima.thd_alpha << "\n";
     for (uint64_t k = read_str + shape.span; k < read_end - shape.span; k++)
     {
         hashNexth(shape, begin(read) + k);
@@ -1907,7 +1907,7 @@ unsigned getDIndexMatchAll (DIndex & index,
         }
     }
     //msg << "\n";
-    std::cout  << msg.str();
+    //std::cout  << msg.str();
     return 0;    
 }
 /**
@@ -2548,8 +2548,8 @@ int getAnchorHitsChains(Anchors & anchors,
     {
         std::cout << "getAnchorHitsChains2 " << get_cord_x(hits[i]) << " "<< get_cord_y(hits[i]) << "\n";
     }
-    */
     //<<debug
+    */
     return 0;
 }
 
@@ -2756,7 +2756,7 @@ uint64_t apxMap (IndexDynamic & index,
                 dout << "apx1" << pm_pmp.pm_cah.f_score_type << "\n";
                 map_str =  y1; 
                 map_end =  create_cord(MAX_CORD_ID, MAX_CORD_X, y2, 0);
-                apxMap_(index, read, anchors, hit, f1, f2, cords_str, cords_info, map_str, map_end, alg_type, pm_g, pm_pmp);
+                //apxMap_(index, read, anchors, hit, f1, f2, cords_str, cords_info, map_str, map_end, alg_type, pm_g, pm_pmp);
                 pm_pmp.toggle(0);
                 dout << "apx1" << pm_pmp.pm_cah.f_score_type << "\n";
             }
