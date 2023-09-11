@@ -1769,7 +1769,7 @@ int chainApxCordsBlocks (String<uint64_t> & cords,
  ----------  streaming index features  ----------*/
 GetIndexMatchAllParms::GetIndexMatchAllParms()
 {
-    appendValue(thd_alphas, 15); 
+    appendValue(thd_alphas, 11); 
     appendValue(thd_alphas, 7);
     thd_delta = 64; 
     toggle(0);
@@ -2745,7 +2745,7 @@ uint64_t apxMap (IndexDynamic & index,
         int gap_lens_sum = gather_gaps_y_ (cords_str, str_ends, apx_gaps, length(read), thd_large_gap);
         //uint64_t map_d = thd_cord_size >> 1; // cords + to map areas
         //uint64_t str_y = 0;                  //stry y of interval between two consecutive blocks
-        if (float(gap_lens_sum) / length(read) < thd_reapx_max_gap_ratio)
+        if (float(gap_lens_sum) / length(read) >= thd_reapx_max_gap_ratio)
         {
             for (unsigned i = 0; i < length(apx_gaps); i++) //check large gap and remap the gaps
             {
@@ -2756,7 +2756,7 @@ uint64_t apxMap (IndexDynamic & index,
                 dout << "apx1" << pm_pmp.pm_cah.f_score_type << "\n";
                 map_str =  y1; 
                 map_end =  create_cord(MAX_CORD_ID, MAX_CORD_X, y2, 0);
-                //apxMap_(index, read, anchors, hit, f1, f2, cords_str, cords_info, map_str, map_end, alg_type, pm_g, pm_pmp);
+                apxMap_(index, read, anchors, hit, f1, f2, cords_str, cords_info, map_str, map_end, alg_type, pm_g, pm_pmp);
                 pm_pmp.toggle(0);
                 dout << "apx1" << pm_pmp.pm_cah.f_score_type << "\n";
             }
