@@ -35,7 +35,7 @@ struct MapParms{
             unsigned ad, unsigned mr, unsigned listn,
             unsigned listn2,
             float ap, float ap2, float alt, float rt, float ct, float sent, float clst);
-    MapParms(MapParms & parm);
+    //MapParms(MapParms & parm);
     void setMapParm(Options & options);
     void print ();
 };
@@ -44,7 +44,8 @@ class Mapper : public P_Mapper
 {
     PMRecord    record;
     MapParms     map_parms;
-    String<GapParms>  gap_parms_set; //each thread keep a copy of gap parms
+    String<MapParms> map_parms_set;
+    String<GapParms> gap_parms_set; //each thread keep a copy of gap parms
     IndexDynamic index_dynamic;
     StringSet<String<uint64_t> > cordSet;
     StringSet<String<uint64_t> > cordSet2;

@@ -1511,11 +1511,11 @@ uint64_t DIndex::val2Anchor(int64_t & i, uint64_t  & y, uint64_t & read_len, LSh
     if (get_cord_strand(hs[i]) ^ shape.strand)
     {
         uint64_t cordy = read_len - 1 - y;
-        return (hs[i] - (cordy << 20) + cordy) | rs;
+        return (hs[i] - (cordy << 20) + cordy - get_cord_y(hs[i])) | rs;
     }
     else 
     {
-        return (hs[i] - (y << 20) + y) & fs;
+        return (hs[i] - (y << 20) + y - get_cord_y(hs[i])) & fs;
     }    
 }
 void DIndex::clear()
@@ -1661,8 +1661,8 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
         #pragma omp parallel
         {
             unsigned t_id = omp_get_thread_num();
-            int64_t t_str = t_blocks[t_id];
-            int64_t t_end = t_blocks[t_id + 1];
+            int64_t t_str = t_blocks[t_id] + t_shape.span;
+            int64_t t_end = t_blocks[t_id + 1] - t_shape.span;
             int64_t last_j = t_str - 1;
             int64_t count = 0;
             uint64_t preVal = ~0;
@@ -1716,14 +1716,15 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
         dir[i] = sum - dir[i];
     }
     int64_t EmptyVal = create_cord(length(seqs),0,0,0); 
-    //make sure genomeid >= length(seqs) and cord y be 0! y points to next empty.
+    //make sure genomeid >= length(seqs) and cord x cord y be 0! since x is counter and y points to next empty. 
+    //int64_t x1_cord = create_cord(0,1,0,0);
     resize (hs, sum, EmptyVal);
-    serr.print_message("--Index::Initiate[100%]   ", 0, 1, std::cerr);
+    serr.print_message("--Index::Init    [100%]   ", 0, 1, std::cerr);
     serr.print_message("=>Index::Hashing", 0, 2, std::cerr);
 
     current_lens_ratio = 0;
     finished_ratio = 0;
-    for (uint64_t i = 0; i < length(seqs); i++)
+    for (uint64_t i = gstr; i < gend; i++)
     {
         String<int64_t> t_blocks;
         current_lens_ratio = float(length(seqs[i])) / genome_lens_sum;
@@ -1736,8 +1737,8 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
         #pragma omp parallel
         {   
             unsigned t_id = omp_get_thread_num();
-            int64_t t_str = t_blocks[t_id];
-            int64_t t_end = t_blocks[t_id + 1];
+            int64_t t_str = t_blocks[t_id] + t_shape.span;
+            int64_t t_end = t_blocks[t_id + 1] - t_shape.span;
             int64_t last_j = t_str - 1;
             int64_t count = 0;
             uint64_t preVal = ~0;
@@ -1757,18 +1758,9 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
                         if (dir[shape.XValue + 1] - dir[shape.XValue])
                         {
                             int64_t slot_str = dir[shape.XValue];
-                            int64_t k = slot_str + getDIndexBlockPointer_(atomic_inc_cord_y(hs[slot_str])) - 1;
-                            //int64_t new_cord = create_cord(i, j, 0, shape.strand); 
-                            uint64_t new_cord = create_cord(i, j + const_anchor_zero, 0, shape.strand); //be sure lower bits of new_cord_y for share pointer == 0 
-                            if (k == slot_str) 
-                            {   //atomic creation the first cord which cotains shared pointer
-                                new_cord -= EmptyVal;
-                                atomicAdd(hs[k], new_cord); //original hs[k] = EmptyVal + pointer
-                            }
-                            else
-                            {
-                                hs[k] = new_cord;
-                            }
+                            int64_t slot_end = dir[shape.XValue + 1];
+                            int64_t k = slot_end - getDIndexBlockPointer_(atomic_inc_cord_y(hs[slot_str]));
+                            hs[k] = create_cord(i, j + const_anchor_zero, shape.YValue, shape.strand);  
                             preVal = shape.XValue;
                             last_j = j;
                         }
@@ -1790,6 +1782,20 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
     //dout << "size" << float(length(dir)) * 8 / 1024/1024/1024 << float(length(hs)) /128/1024/1024 << "\n";
     //std::cout << "createDIndex " << sysTime() - t << " " << sysTime() - t2 << "\n";
     serr.print_message("Index::Hash    [100%]              ", 2, 1, std::cerr);
+    if (1)
+    {
+        serr.print_message("=>Index::Sorting tables", 0, 2, std::cerr);
+        #pragma omp for
+        for (uint64_t i = 0; i < length(dir) - 1; i++)
+        {
+            std::sort(begin(hs) + dir[i], begin(hs) + dir[i + 1], 
+                [](uint64_t & x, uint64_t & y){
+                //return get_cord_y (x) < get_cord_y(y); 
+                return x < y;
+            });
+        }
+    }
+    serr.print_message("Index::Sort    [100%]              ", 2, 1, std::cerr);
     serr.print_message("End creating index ", 2, 0, std::cerr);
     serr.print_message("Elapsed time[s] ", 2, 0, std::cerr);
     serr.print_message(sysTime() - t, 2, 1, std::cerr);
@@ -2544,7 +2550,7 @@ bool createIndexDynamic(StringSet<String<Dna5> > & seqs, IndexDynamic & index, u
         {
             int64_t thd_min_step = 8;
             int64_t thd_max_step = 10; 
-            int64_t thd_omit_block = 200; //std::min(1024, (1 << DINDEXY_BITS1) - 1);  
+            int64_t thd_omit_block = 400; //std::min(1024, (1 << DINDEXY_BITS1) - 1);  
             unsigned thd_shape_len = 21;
             index.dindex.getShape().init_shape_parm(thd_shape_len);
             return createDIndex(seqs, index.dindex, thd_min_step, thd_max_step, thd_omit_block,

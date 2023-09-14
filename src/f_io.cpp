@@ -13,6 +13,8 @@ using std::cout;
 ============================================================*/
 FIOParms::FIOParms()
 {
+    thd_DI = (int64_t(1) << 60) - 1; //Init with aG large number by default
+    thd_X =  (int64_t(1) << 60) - 1;
     thd_rcb_xy = 15;
     f_reform_ccs = 0;
     f_print_seq = 0;
@@ -735,7 +737,9 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
                       uint64_t cord1_end,
                       uint64_t cord2_str, 
                       String<CigarElement<> > & cigar,
-                      BamAlignmentRecordLinkScore & score)
+                      BamAlignmentRecordLinkScore & score,
+                      int64_t thd_DI, 
+                      int64_t thd_X)
 {
     CigarElement<> cigar1, cigar2;
     uint64_t next_cigar_str;
@@ -771,9 +775,60 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
         if (cigar2.count) appendCigarShrink(cigar, cigar2);
         //appendCigar (cigar, cigar1);
         //appendCigar (cigar, cigar2);
-        createRectangleCigarPair(cord1_end, cord2_str, cigar1, cigar2, 1); //'X'
-        if (cigar1.count) appendCigarShrink(cigar, cigar1);
-        if (cigar2.count) appendCigarShrink(cigar, cigar2);
+        int64_t DI = x21 - x12 - y21 + y12;
+        int64_t X = std::min(x21 - x12, y21 - y12);
+        //dout << "c2" << DI << thd_DI << X << thd_X << "\n";
+        if (std::abs(DI) > thd_DI && X > thd_X)
+        {
+            int64_t split_n = std::min(int64_t(std::ceil(float(std::abs(DI)) / thd_DI)), X);
+            int64_t split_DI = thd_DI; 
+            int64_t split_X = X / split_n;  
+            uint64_t split_cord_str = cord1_end;
+         //   dout << "c21" << split_n << "\n";
+//<<debug
+
+            createRectangleCigarPair(cord1_end, cord2_str, cigar1, cigar2, 1); //'X'
+            //dout << "origin" << cigar1.count << cigar1.operation << cigar2.count << cigar2.operation << "\n";
+//>>debug
+            for (int i = 0; i < split_n - 1; i++)
+            {
+                uint64_t split_cord_end = DI < 0 ? 
+                    shift_cord (split_cord_str, split_X, split_X + split_DI) :
+                    shift_cord (split_cord_str, split_X + split_DI, split_X) ;
+                createRectangleCigarPair(split_cord_str, split_cord_end, cigar1, cigar2, 0);
+            //dout << "change" << cigar1.count << cigar1.operation << cigar2.count << cigar2.operation << "\n";
+                if (cigar1.count) appendCigarShrink(cigar, cigar1);
+                if (cigar2.count) appendCigarShrink(cigar, cigar2);
+                split_cord_str = split_cord_end;
+            }
+            createRectangleCigarPair(split_cord_str, cord2_str, cigar1, cigar2, 1);
+            //dout << "change" << cigar1.count << cigar1.operation << cigar2.count << cigar2.operation << "\n";
+            if (cigar1.count) appendCigarShrink(cigar, cigar1);
+            if (cigar2.count) appendCigarShrink(cigar, cigar2);
+        }
+        //else if (std::abs(DI) > 80 && std::abs(DI) < 100 && X > 20) 
+        //{
+        //    int64_t new_X = X - (100 - std::abs(DI))
+        //    uint64_t cord_tmp1 = shift_cord(cord1_end, new_X, new_X);
+        //    uint64_t cord_tmp2 = DI < 0 ? 
+        //            shift_cord(comrd_tmp1, X - new_X, 0):
+        //            shift_cord(comrd_tmp1, 0, X - new_X);
+        //    createRectangleCigarPair(cord1_end, cord_tmp1);
+        //    if (cigar1.count) appendCigarShrink(cigar, cigar1);
+        //    if (cigar2.count) appendCigarShrink(cigar, cigar2);
+        //    createRectangleCigarPair(cord_tmp1, cord_tmp2);
+        //    if (cigar1.count) appendCigarShrink(cigar, cigar1);
+        //    if (cigar2.count) appendCigarShrink(cigar, cigar2);
+        //    createRectangleCigarPair(cord_tmp2, cords_str);
+        //    if (cigar1.count) appendCigarShrink(cigar, cigar1);
+        //    if (cigar2.count) appendCigarShrink(cigar, cigar2);
+        //} 
+        else
+        {
+            createRectangleCigarPair(cord1_end, cord2_str, cigar1, cigar2, 1); //'X'
+            if (cigar1.count) appendCigarShrink(cigar, cigar1);
+            if (cigar2.count) appendCigarShrink(cigar, cigar2);
+        }
         //appendCigar (cigar, cigar1);
         //appendCigar (cigar, cigar2);
         next_cigar_str = cord2_str;
@@ -807,7 +862,9 @@ int cords2BamLink(String<uint64_t> & cords_str,
                   String<CordInfo> & cords_info,
                   String<BamAlignmentRecordLink> & bam_link_records,
                   String<Dna5> & read,
-                  uint64_t thd_large_X)
+                  uint64_t thd_large_X,
+                  int64_t thd_DI,
+                  int64_t thd_X)
 {
     if (!empty(bam_link_records))
     {
@@ -873,7 +930,9 @@ int cords2BamLink(String<uint64_t> & cords_str,
         cigar_str = cord2cigar_ (cigar_str, 
                                  cord1_str, cord1_end, cord2_str, 
                                  back(bam_link_records).cigar,
-                                 back(bam_link_records).score);
+                                 back(bam_link_records).score,
+                                 thd_DI, 
+                                 thd_X);
         if (cigar_str == ~(uint64_t)0) //error
         {
             break;
@@ -934,7 +993,9 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
                    StringSet<String<BamAlignmentRecordLink> > & bam_link_records,
                    StringSet<String<Dna5> > & reads,
                    int thd_cord_size,
-                   uint64_t thd_large_X)
+                   uint64_t thd_large_X,
+                   int64_t thd_DI,
+                   int64_t thd_X)
 {
 
     String<BamAlignmentRecordLink> emptyRecords;
@@ -949,11 +1010,11 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
             {
                 appendValue(tmp_end, shift_cord(cords_str[i][j], thd_cord_size, thd_cord_size));
             }
-            cords2BamLink (cords_str[i], tmp_end, cords_info[i], bam_link_records[ii], reads[i], thd_large_X);
+            cords2BamLink (cords_str[i], tmp_end, cords_info[i], bam_link_records[ii], reads[i], thd_large_X, thd_DI, thd_X);
         }
         else
         {
-            cords2BamLink (cords_str[i], cords_end[i], cords_info[i], bam_link_records[ii], reads[i], thd_large_X);
+            cords2BamLink (cords_str[i], cords_end[i], cords_info[i], bam_link_records[ii], reads[i], thd_large_X, thd_DI, thd_X);
         }
         ii++;
     }
@@ -966,6 +1027,8 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
                    StringSet<String<Dna5> > & reads,
                    int thd_cord_size,
                    uint64_t thd_large_X,
+                   int64_t thd_DI,
+                   int64_t thd_X,
                    unsigned threads)
 {
     #pragma omp parallel
@@ -984,11 +1047,11 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
                 {
                     appendValue(tmp_end, shift_cord(cords_str[i][j], thd_cord_size, thd_cord_size));
                 }
-                cords2BamLink (cords_str[i], tmp_end, cords_info[i], bam_link_records_tmp[ii], reads[i], thd_large_X);
+                cords2BamLink (cords_str[i], tmp_end, cords_info[i], bam_link_records_tmp[ii], reads[i], thd_large_X, thd_DI, thd_X);
             }
             else
             {
-                cords2BamLink (cords_str[i], cords_end[i], cords_info[i], bam_link_records_tmp[ii], reads[i], thd_large_X);
+                cords2BamLink (cords_str[i], cords_end[i], cords_info[i], bam_link_records_tmp[ii], reads[i], thd_large_X, thd_DI,thd_X);
             }
             ii++;
         }
@@ -1008,16 +1071,18 @@ void cords2BamLink(StringSet<String<uint64_t> > & cords_str,
                    StringSet<String<Dna5> > & reads,
                    int thd_cord_size,
                    uint64_t thd_large_X,
+                   int64_t thd_DI,
+                   int64_t thd_X,
                    unsigned threads,
                    int f_parallel)
 {
     if (f_parallel)
     {
-        cords2BamLink (cords_str, cords_end, cords_info, bam_link_records, reads, thd_cord_size, thd_large_X, threads);
+        cords2BamLink (cords_str, cords_end, cords_info, bam_link_records, reads, thd_cord_size, thd_large_X, thd_DI, thd_X, threads);
     }
     else
     {
-        cords2BamLink (cords_str, cords_end, cords_info, bam_link_records, reads, thd_cord_size, thd_large_X);
+        cords2BamLink (cords_str, cords_end, cords_info, bam_link_records, reads, thd_cord_size, thd_large_X, thd_DI, thd_X);
     }
 }
 
@@ -1174,11 +1239,11 @@ void print_cords_sam (StringSet<String<uint64_t> > & cordset_str,
     //thd_large_X = 500;
     if (f_parallel)
     {
-        cords2BamLink (cordset_str, cordset_end, bam_records, reads, thd_cord_size, thd_large_X, threads);
+        cords2BamLink (cordset_str, cordset_end, bam_records, reads, thd_cord_size, thd_large_X, thd_DI, thd_X, threads);
     }
     else
     {
-        cords2BamLink (cordset_str, cordset_end, bam_records, reads, thd_cord_size, thd_large_X);
+        cords2BamLink (cordset_str, cordset_end, bam_records, reads, thd_cord_size, thd_large_X, thd_DI, thd_X);
     }
     //shrink_cords_cigar(bam_records);
     //fio_parms.f_print_seq = 1;

@@ -200,6 +200,10 @@ int64_t atomic_inc_cord_y (uint64_t & cord)
 {
     return atomicInc(cord);
 }
+int64_t atomic_dec_cord_y(uint64_t & cord)
+{
+    return atomicDec(cord);
+}
 void set_cord_block_end(uint64_t & val)
 {
     val |= _DefaultCordBase.flagEnd;
