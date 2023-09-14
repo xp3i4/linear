@@ -212,7 +212,7 @@ seqan::ArgumentParser::ParseResult parseCommandLineFilter(Options & options,
 
     //Advanced parms for mapping
     addOption(parser, seqan::ArgParseOption(
-        "p", "preset", "Set predefined sets of parameters. -p 0 {DEFAULT} -p 1 efficient  -p 2 additional",
+        "p", "preset", "Set predefined sets of parameters. -p 0 {DEFAULT} -p 1 Suggest to use for HiFi reads with cuteSV -p 2 Suggest to use for HiFi reads for cuteSV () or SVIM",
             seqan::ArgParseArgument::INTEGER, "INT"));
     /*
     addOption(parser, seqan::ArgParseOption(

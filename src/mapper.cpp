@@ -175,31 +175,23 @@ int Mapper::loadOptions(Options & options)
     {
         case 0: 
         {
-            map_parms = parm0; //sensitive
-            map_parms.pm_pmp.pm_cah.thd_stop_chain_len_ratio = 0;
-            fio_parms.thd_DI = 80;
-            fio_parms.thd_X = 200;
-            std::cout << "pm0 " << map_parms.pm_pmp.pm_cah.thd_stop_chain_len_ratio << "\n";
-
+            map_parms = parm0; //Default
             break;
         }
         case 1:
         {
-            map_parms = parm0; //sensitive
+            map_parms = parm0; //HiFi; cuteSV
             map_parms.pm_pmp.pm_cah.thd_stop_chain_len_ratio = 0;
-            //fio_parms.thd_DI = 80;
-            //fio_parms.thd_X = 200;
-            std::cout << "pm1 " << map_parms.pm_pmp.pm_cah.thd_stop_chain_len_ratio << "\n";
-
+            fio_parms.thd_DI = 80;
+            fio_parms.thd_X = 200;
             break;
         }
         case 2:
         {
-            map_parms = parm0; //sensitive
+            map_parms = parm0; //HiFi; cuteSV, SVIM
             map_parms.pm_pmp.pm_cah.thd_stop_chain_len_ratio = 0;
             //fio_parms.thd_DI = 80;
             //fio_parms.thd_X = 200;
-            std::cout << "pm2 " << map_parms.pm_pmp.pm_cah.thd_stop_chain_len_ratio << "\n";
             break;
         }
     }
