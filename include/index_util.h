@@ -107,6 +107,7 @@ class DIndex
     uint64_t fs;
     LShape shape;
 public:
+    Iterator<String<Dna5> >::Type tmp_it; 
     DIndex();
     DIndex(unsigned); //shape_len
     String<int> & getDir();

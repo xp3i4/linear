@@ -175,17 +175,23 @@ int Mapper::loadOptions(Options & options)
     {
         case 0: 
         {
-            map_parms = parm0; //normal
+            map_parms = parm0; //Default
             break;
         }
         case 1:
         {
-            map_parms =  parm1; //fast
+            map_parms = parm0; //HiFi; cuteSV
+            map_parms.pm_pmp.pm_cah.thd_stop_chain_len_ratio = 0;
+            fio_parms.thd_DI = 80;
+            fio_parms.thd_X = 200;
             break;
         }
         case 2:
         {
-            map_parms = parm2; //sensitive
+            map_parms = parm0; //HiFi; cuteSV, SVIM
+            map_parms.pm_pmp.pm_cah.thd_stop_chain_len_ratio = 0;
+            //fio_parms.thd_DI = 80;
+            //fio_parms.thd_X = 200;
             break;
         }
     }
@@ -226,6 +232,7 @@ int Mapper::loadOptions(Options & options)
     }
     for (unsigned i = 0; i < _thread; i++)
     { 
+        appendValue(map_parms_set, map_parms);
         appendValue(gap_parms_set, gap_parms_template); //a copy for each thread
     }
     //gap_parms_template.printParms("gap_parms");
@@ -414,7 +421,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
             //clear(f1[1].fs2_48);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
             createFeatures(begin(comStr), end(comStr), f1[1]);
-            apxMap(getIndex(), reads[j], anchors, crhit, f1, f2, apx_gaps, cords_str[j], cords_end[j], cords_info[j], f_chain, getMapParms().pm_g, getMapParms().pm_pmp);
+            apxMap(getIndex(), reads[j], anchors, crhit, f1, f2, apx_gaps, cords_str[j], cords_end[j], cords_info[j], f_chain, map_parms_set[thread_id].pm_g, map_parms_set[thread_id].pm_pmp);
             if (fm_handler_.isMapGap(f_map))
             {
                 gap_parms_set[thread_id].read_id = reads_id[j];
@@ -435,7 +442,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
         uint64_t thd_large_X = 8000; 
         clear(bam_records);
         //print_cords(cords_str[0], "pca1");
-        cords2BamLink (cords_str, cords_end, cords_info, bam_records, reads, this->getCordSize(), thd_large_X);
+        cords2BamLink (cords_str, cords_end, cords_info, bam_records, reads, this->getCordSize(), thd_large_X, getFIOParms().thd_DI, getFIOParms().thd_X);
     }
     counters.setCalCounter(counters.getCalCounter() + length(reads));
     return 0;
@@ -709,6 +716,7 @@ int map_(IndexDynamic & index,
          StringSet<String<Dna5> > & seqs,
          StringSet<String<BamAlignmentRecordLink> >& bam_records,
          String<GapParms> & gap_parms,
+         FIOParms & fio_parms,
          uint f_map,   //control flags
          uint threads,
          int cord_size,
@@ -810,7 +818,7 @@ int map_(IndexDynamic & index,
         uint64_t thd_large_X = 8000;
         int f_parallel = 1;
         clear(bam_records);
-        cords2BamLink(cords_str, cords_end, cords_info, bam_records, reads, cord_size, thd_large_X, threads, f_parallel);
+        cords2BamLink(cords_str, cords_end, cords_info, bam_records, reads, cord_size, thd_large_X, fio_parms.thd_DI, fio_parms.thd_X, threads, f_parallel);
     }
     return 0;
 }
@@ -893,6 +901,7 @@ int map(Mapper & mapper,
                  mapper.getGenomes(),
                  mapper.getBamRecords(),
                  mapper.getGapParms(),
+                 mapper.getFIOParms(),
                  mapper.getMapFlag(),
                  mapper.getThreads(), 
                  mapper.getCordSize(),
@@ -1198,6 +1207,7 @@ MapParms::MapParms(unsigned bs, unsigned dt, unsigned thr,
             PMPParms();
         }
 
+/*
 MapParms::MapParms(MapParms & parm):
         blockSize(parm.blockSize),
         delta(parm.delta),
@@ -1220,7 +1230,7 @@ MapParms::MapParms(MapParms & parm):
             GlobalParms();
             PMPParms();
         }
-
+*/
 void MapParms::print()
 {
     std::cerr << "blockSize " << blockSize << std::endl

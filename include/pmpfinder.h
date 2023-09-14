@@ -41,7 +41,10 @@ struct ChainAnchorsHitsParms : public Parms
     uint64_t thd_chain_dx_depth;
     float thd_stop_chain_len_ratio;
 
+    int f_score_type;
+    
     ChainAnchorsHitsParms();
+    void toggle(int);
 };
 
 struct ApxParms : public Parms

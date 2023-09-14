@@ -33,5 +33,10 @@ uint64_t hashPre_hs(LShape & me, TIterS it);
 uint64_t hashNextV(LShape & me, TIterS it);
 uint64_t hashNextX(LShape & me, TIterS it);
 
+
+int lexicoHash2kmer(uint64_t val, uint64_t k, String<char> & kmer);
+int print_minimizer(Iterator<String<Dna5> >::Type it, uint64_t x, uint64_t y, 
+    uint64_t strand, uint64_t span, uint64_t weight, String<char> header);
+
 #endif
 

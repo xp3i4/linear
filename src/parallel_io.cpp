@@ -81,7 +81,7 @@ void P_Tasks::printRunningInfos()
     int path_it = paths2_it;
     std::string current_in_path = (path_it >= int(length(paths2))) ? "Status::Fetch End" : paths2[paths2_it];
     std::cerr << "--\033[1;31m" << current_in_path << "\033[0m\n"
-              << "\033[2K  I/O::in :" << counters.getInCounter() << "\t"
+              << "\033[2K  I/O::in:" << counters.getInCounter() << "\t"
               << " cpu:" << counters.getInTimer() << "[s]\t"
               << " speed:" << counters.getInCounter() / counters.getInTimer() << "[rds/thd/s]\033[7h\n"
               << "\033[2K  I/O::out:" << counters.getOutCounter() << "\t"
