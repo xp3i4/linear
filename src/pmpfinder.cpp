@@ -1892,7 +1892,7 @@ unsigned getDIndexMatchAll (DIndex & index,
                     uint64_t val = hs_y ^ shape.YValue; 
                     if (val >> __builtin_ctzl(val) < 4)
                     {
-                        uint64_t index_cord = index.getHs()[i];
+                        //uint64_t index_cord = index.getHs()[i];
                         //print_minimizer(index.tmp_it + get_cord_x(index_cord) - const_anchor_zero, shape.XValue, hs_y, get_cord_strand(index_cord), shape.span, shape.weight, "mm5_g");
                         //print_minimizer(begin(read) + k, shape.XValue, shape.YValue, shape.strand, shape.span, shape.weight, "mm5_r");
                         appendValue(set, index.val2Anchor(i, k, read_len, shape));
@@ -2753,12 +2753,12 @@ uint64_t apxMap (IndexDynamic & index,
                 uint64_t y1 = y.first;
                 uint64_t y2 = y.second;   
                 pm_pmp.toggle(1); 
-                dout << "apx1" << pm_pmp.pm_cah.f_score_type << "\n";
+                //dout << "apx1" << pm_pmp.pm_cah.f_score_type << "\n";
                 map_str =  y1; 
                 map_end =  create_cord(MAX_CORD_ID, MAX_CORD_X, y2, 0);
                 apxMap_(index, read, anchors, hit, f1, f2, cords_str, cords_info, map_str, map_end, alg_type, pm_g, pm_pmp);
                 pm_pmp.toggle(0);
-                dout << "apx1" << pm_pmp.pm_cah.f_score_type << "\n";
+                //dout << "apx1" << pm_pmp.pm_cah.f_score_type << "\n";
             }
             clear (str_ends);
             clear (str_ends_p);

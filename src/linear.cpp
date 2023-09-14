@@ -70,6 +70,7 @@ int process3(Mapper & mapper, Options & options, int p1)
     int num_buffers = std::max(30, (int)(mapper.getThreads() * 1.5));
     P_Parms p_parms(1, 1, 1, 100);
     mapper.initBuffers(num_buffers, num_buffers, p_parms);
+    //dout << "p2" << mapper.getThreads() << "\n";
     omp_set_num_threads(mapper.getThreads());
     omp_set_num_threads(mapper.getThreads());
     createFeatures(mapper.getGenomes(), mapper.getGenomesFeatures(), mapper.getFeatureType(), mapper.getThreads());

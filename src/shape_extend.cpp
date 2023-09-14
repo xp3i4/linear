@@ -10,7 +10,7 @@ int lexicoHash2kmer(uint64_t val, uint64_t k, String<char> & kmer)
 {
     char s1[5] = {'A','C','G','T','N'};
     clear(kmer);
-    for (int i = 0; i < k; i++)
+    for (uint64_t i = 0; i < k; i++)
     {
         uint64_t vi = (val >> (2 * (k - i - 1))) & (3ULL);
         //std::cout << "vi" << vi << s1[vi]<< k << " " << val <<"\n";
@@ -29,7 +29,7 @@ int print_minimizer(Iterator<String<Dna5> >::Type it, uint64_t x, uint64_t y, ui
     String<char> m2;
     lexicoHash2kmer(x, weight, m1);
     lexicoHash2kmer(y, 4, m2);
-    for (int i = 0; i < span + 4; i++)
+    for (uint64_t i = 0; i < span + 4; i++)
     {
         if (strand == 0) 
         {
@@ -328,6 +328,7 @@ uint64_t hashNextXY2(LShape & me, TIterS it, uint64_t & v2, uint64_t & t)
         std::cout << "hashNextXY2 " << me.YValue << "\n";
     }
     */
+    (void) v2;
     return me.YValue;
 }
 /*
@@ -337,7 +338,6 @@ uint64_t hashNextXY2(LShape & me, TIterS it, uint64_t & v2, uint64_t & t)
 uint64_t hashNextX(LShape & me, TIterS it)
 {
     SEQAN_ASSERT_GT((unsigned)me.span, 0u);
-    uint64_t v1;
     uint64_t t = 0, v2;
     hashNextXX(me, it, v2, t);
     hashNextXY2(me, it, v2, t);
@@ -347,7 +347,6 @@ uint64_t hashNextX(LShape & me, TIterS it)
 uint64_t hashNextX2(LShape & me, TIterS it)
 {
     SEQAN_ASSERT_GT((unsigned)me.span, 0u);
-    uint64_t v1;
     uint64_t t = 0, v2;
     hashNextXX(me, it, v2, t);
     hashNextXY2(me, it, v2, t);

@@ -788,7 +788,7 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
 //<<debug
 
             createRectangleCigarPair(cord1_end, cord2_str, cigar1, cigar2, 1); //'X'
-            dout << "origin" << cigar1.count << cigar1.operation << cigar2.count << cigar2.operation << "\n";
+            //dout << "origin" << cigar1.count << cigar1.operation << cigar2.count << cigar2.operation << "\n";
 //>>debug
             for (int i = 0; i < split_n - 1; i++)
             {
@@ -796,13 +796,13 @@ uint64_t cord2cigar_ (uint64_t cigar_str, //coordinates where the first cigar st
                     shift_cord (split_cord_str, split_X, split_X + split_DI) :
                     shift_cord (split_cord_str, split_X + split_DI, split_X) ;
                 createRectangleCigarPair(split_cord_str, split_cord_end, cigar1, cigar2, 0);
-            dout << "change" << cigar1.count << cigar1.operation << cigar2.count << cigar2.operation << "\n";
+            //dout << "change" << cigar1.count << cigar1.operation << cigar2.count << cigar2.operation << "\n";
                 if (cigar1.count) appendCigarShrink(cigar, cigar1);
                 if (cigar2.count) appendCigarShrink(cigar, cigar2);
                 split_cord_str = split_cord_end;
             }
             createRectangleCigarPair(split_cord_str, cord2_str, cigar1, cigar2, 1);
-            dout << "change" << cigar1.count << cigar1.operation << cigar2.count << cigar2.operation << "\n";
+            //dout << "change" << cigar1.count << cigar1.operation << cigar2.count << cigar2.operation << "\n";
             if (cigar1.count) appendCigarShrink(cigar, cigar1);
             if (cigar2.count) appendCigarShrink(cigar, cigar2);
         }

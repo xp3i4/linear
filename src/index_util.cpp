@@ -1717,7 +1717,7 @@ int createDIndex(StringSet<String<Dna5> > & seqs,
     }
     int64_t EmptyVal = create_cord(length(seqs),0,0,0); 
     //make sure genomeid >= length(seqs) and cord x cord y be 0! since x is counter and y points to next empty. 
-    int64_t x1_cord = create_cord(0,1,0,0);
+    //int64_t x1_cord = create_cord(0,1,0,0);
     resize (hs, sum, EmptyVal);
     serr.print_message("--Index::Init    [100%]   ", 0, 1, std::cerr);
     serr.print_message("=>Index::Hashing", 0, 2, std::cerr);
