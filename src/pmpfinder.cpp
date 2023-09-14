@@ -1769,7 +1769,7 @@ int chainApxCordsBlocks (String<uint64_t> & cords,
  ----------  streaming index features  ----------*/
 GetIndexMatchAllParms::GetIndexMatchAllParms()
 {
-    appendValue(thd_alphas, 11); 
+    appendValue(thd_alphas, 15); 
     appendValue(thd_alphas, 7);
     thd_delta = 64; 
     toggle(0);
