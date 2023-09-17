@@ -435,11 +435,14 @@ Gout & Gout::operator << (CharString n)
 {
     if (f_print)
     {
-        buffer << n << " ";
         if (n == "\n")
         {
-            std::cout << buffer.str();
+            std::cout << buffer.str() << "\n";
             buffer.str("");
+        }
+        else 
+        {
+            buffer << n << " ";
         }
     }
     return *this;

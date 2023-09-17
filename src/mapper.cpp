@@ -421,7 +421,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
             //clear(f1[1].fs2_48);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
             createFeatures(begin(comStr), end(comStr), f1[1]);
-            apxMap(getIndex(), reads[j], anchors, crhit, f1, f2, apx_gaps, cords_str[j], cords_end[j], cords_info[j], f_chain, map_parms_set[thread_id].pm_g, map_parms_set[thread_id].pm_pmp);
+            apxMap(getIndex(), reads[j], reads_id[j], anchors, crhit, f1, f2, apx_gaps, cords_str[j], cords_end[j], cords_info[j], f_chain, map_parms_set[thread_id].pm_g, map_parms_set[thread_id].pm_pmp);
             if (fm_handler_.isMapGap(f_map))
             {
                 gap_parms_set[thread_id].read_id = reads_id[j];
@@ -782,7 +782,7 @@ int map_(IndexDynamic & index,
             _compltRvseStr(reads[j], comStr);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
             createFeatures(begin(comStr), end(comStr), f1[1]);
-            apxMap(index, reads[j], anchors, crhit, f1, f2, apx_gaps, cordsTmp[c], cordsTmp2[c], cords_info_tmp[c], f_chain, mapParm.pm_g, mapParm.pm_pmp);
+            apxMap(index, reads[j], reads_id[j], anchors, crhit, f1, f2, apx_gaps, cordsTmp[c], cordsTmp2[c], cords_info_tmp[c], f_chain, mapParm.pm_g, mapParm.pm_pmp);
             if (fm_handler_.isMapGap(f_map))
             {
                 mapGaps(seqs, reads[j], comStr, cordsTmp[c], cordsTmp2[c], clipsTmp[c], apx_gaps, f1, f2, gap_parms[thd_id]);
@@ -999,6 +999,7 @@ void append_genome_bucket(StringSet<String<short> > & buckets,
 int filter_(IndexDynamic & index,
             StringSet<FeaturesDynamic > & f2,
             StringSet<String<Dna5> > & reads,
+            StringSet<CharString> & reads_id,
             MapParms & mapParm,
             StringSet<String<uint64_t> > & cords_str,
             StringSet<String<uint64_t> > & cords_end,
@@ -1056,7 +1057,7 @@ int filter_(IndexDynamic & index,
             _compltRvseStr(reads[j], comStr);
             createFeatures(begin(reads[j]), end(reads[j]), f1[0]);
             createFeatures(begin(comStr), end(comStr), f1[1]);
-            apxMap(index, reads[j], anchors, crhit, f1, f2, apx_gaps, cordsTmp[c], cordsTmp2[c], cords_info[c], f_chain, mapParm.pm_g, mapParm.pm_pmp);
+            apxMap(index, reads[j], reads_id[j], anchors, crhit, f1, f2, apx_gaps, cordsTmp[c], cordsTmp2[c], cords_info[c], f_chain, mapParm.pm_g, mapParm.pm_pmp);
             //filterGenomes(index, reads[j], anchors, mapParm, crhit, f1, f2, apx_gaps, cordsTmp[c], cordLenThr, f_chain);
         }
         c += 1;
@@ -1126,6 +1127,7 @@ int filter(Mapper & mapper,
             filter_(mapper.getIndex(), 
                 mapper.getGenomesFeatures(),
                  mapper.getReads(), 
+                 mapper.getReadsId(),
                  mapper.getMapParms(), 
                  mapper.getCords(),  //cords_str 
                  mapper.getCords2(), //cords_end

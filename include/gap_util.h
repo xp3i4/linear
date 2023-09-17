@@ -91,6 +91,7 @@ struct GapParms
     int int_precision;
     int thd_tile_size;
     CharString read_id;
+    int f_nn1_anchor_sv; //flag of dl::nn1
 
     //extendClipRange() 
     int thd_ecr_shape_len;
