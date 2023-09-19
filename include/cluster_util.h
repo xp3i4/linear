@@ -10,11 +10,18 @@ struct ChainScoreParms
     int64_t var_d;
     int chn_block_strand;
     float gacs3_ins_read_len_ratio; //support ins of len < this * read_len, otherwise skip ins leaving unchanined
+
+    String<float> priors1;
+    String<float> mus1; 
+    String<float> sigmas1;
+    int f_map1;
+
     ChainScoreParms(float val_gacs3_ins_read_len_ratio = 1);
 };
 
 int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2, ChainScoreParms & chn_sc_parms);
 int getApxChainScore0(uint64_t const & anchor1, uint64_t const & anchor2, ChainScoreParms & chn_sc_parms);
+int getApxChainScoreGM(uint64_t const & anchor1, uint64_t const & anchor2, ChainScoreParms & chn_sc_parms);
 int getApxChainScore2(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len, ChainScoreParms & chn_sc_parms);
 int getApxChainScore3(uint64_t const & cord11, uint64_t const & cord12, uint64_t const & cord21, uint64_t const & cord22, uint64_t const & read_len, ChainScoreParms & chn_sc_parms);
 

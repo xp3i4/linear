@@ -15,6 +15,17 @@ ChainScoreParms::ChainScoreParms(float val_gacs3_ins_read_len_ratio)
     var_d = 1000;
     chn_block_strand = 0;
     gacs3_ins_read_len_ratio = val_gacs3_ins_read_len_ratio;
+
+    appendValue (priors1, 1); //regular gap
+    appendValue (priors1, 1); //ins gap
+    appendValue (priors1, 1); //del gap
+    appendValue (mus1, 60);
+    appendValue (mus1, 100);
+    appendValue (mus1, -100);
+    appendValue (sigmas1, 40);
+    appendValue (sigmas1, 100);
+    appendValue (sigmas1, 100);
+    f_map1 = 0; 
 }
 
 int ChainsRecord::isLeaf(){return f_leaf;}
@@ -334,6 +345,35 @@ int traceBackChains(String<ChainElementType> & elements,  StringSet<String<Chain
     return 0;
 }
 
+float getGMScore (int64_t map_x, int64_t map_y, int64_t gap_x, int64_t gap_y,
+    ChainScoreParms & chn_sc_parms)
+{
+    float score = 0;
+    
+    float p_reg = chn_sc_parms.priors1[0] * (1 - normalCdf(std::min(gap_x, gap_y), chn_sc_parms.mus1[0], chn_sc_parms.sigmas1[0])); //use normal instead of gamma for simplicity
+    float p_ins = chn_sc_parms.priors1[1] * normalCdf(gap_x - gap_y, chn_sc_parms.mus1[1], chn_sc_parms.sigmas1[1]); 
+    float p_del = chn_sc_parms.priors1[2] * normalCdf(gap_x - gap_y, chn_sc_parms.mus1[2], chn_sc_parms.sigmas1[2]);
+    float p_indel = p_ins * (1 - p_del) + p_del * (1 - p_ins);
+    float p_map = 1;
+    if (chn_sc_parms.f_map1)
+    {
+        p_map = normalCdf(std::min(map_x, map_y), 50, 50);
+    }
+    score = p_map * (p_reg + p_indel - p_reg * p_indel);
+    /*
+    double t2 = sysTime();
+    double s2 = 1;
+    for (unsigned i = 0; i < 100; i++)
+    {
+        //std::cout << "gm1 " << i << " " << normalCdf(i, 50, 10) << "\n";
+        s2 += s2 ; 
+    }
+    t2 = sysTime() - t2;
+    dout << "gm2" << s1 << s2 << t1 << t2 << t1 / t2 <<"\n";
+    */
+    return score;
+}
+
 int getApxChainScore0(uint64_t const & anchor1, uint64_t const & anchor2, ChainScoreParms & chn_sc_parms)
 {
     unused(chn_sc_parms);
@@ -440,6 +480,28 @@ int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2, ChainSc
     {
         return 100 - score_dy - score_derr ;    
     }
+}
+int getApxChainScoreGM(uint64_t const & anchor1, uint64_t const & anchor2, ChainScoreParms & chn_sc_parms)
+{
+    //unused(chn_sc_parms);
+    //dout << "gasgm1" << "\n";
+    int64_t dy = get_cord_y(anchor1) - get_cord_y(anchor2);
+    if (dy < 5)
+    {
+        //dy < 0 : y should in descending order
+        //0 <= dy < 10 : too close anchors are excluded;
+        //return -10000;
+    }
+    int64_t thd_min_dy = 50;
+    int64_t dx = getAnchorX(anchor1) -  getAnchorX(anchor2);
+    int64_t da = std::abs(dx - dy);
+    int64_t derr =  (100 * da) / std::max({std::abs(dy), std::abs(dx), thd_min_dy}); // 1/100 = 0.01
+
+    int score_derr;
+
+    int score = 100 * getGMScore(11, 11, dx, dy, chn_sc_parms);
+//    dout << score << "\n";
+    return score;
 }
 
 int chainAnchorsBase(String<uint64_t> & anchors, StringSet<String<uint64_t> > & anchors_chains, 

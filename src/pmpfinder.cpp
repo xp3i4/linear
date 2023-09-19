@@ -2460,6 +2460,10 @@ int chainAnchorsHits(String<uint64_t> & anchors,
     {
         chn_score.getScore = &getApxChainScore0; 
     }
+    else if (pm_cah.f_score_type == 2)
+    {
+        chn_score.getScore = &getApxChainScoreGM; 
+    }
     StringSet<String<uint64_t> > anchors_chains;
     std::sort(begin(anchors), end(anchors), 
         [](uint64_t & a, uint64_t & b){return getAnchorX(a) > getAnchorX(b);});

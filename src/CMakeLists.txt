@@ -68,9 +68,8 @@ target_link_libraries (linear
                        linear_base
                       ${SEQAN_LIBRARIES})
 
-add_executable (test_case test_case.cpp)
-target_link_libraries(test_case
-                      linear_nnetwork)
+#add_executable (test_case test_case.cpp)
+#target_link_libraries(test_case linear_nnetwork)
 #
 install (TARGETS linear RUNTIME DESTINATION bin)
 

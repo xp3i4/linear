@@ -190,9 +190,13 @@ int Mapper::loadOptions(Options & options)
         {
             map_parms = parm0; //HiFi; cuteSV, SVIM
             map_parms.pm_pmp.pm_cah.thd_stop_chain_len_ratio = 0;
-            //fio_parms.thd_DI = 80;
-            //fio_parms.thd_X = 200;
             break;
+        }
+        case 3:
+        {
+            map_parms = parm0; //HiFi; cuteSV, SVIM
+            map_parms.pm_pmp.pm_cah.thd_stop_chain_len_ratio = 0;
+            map_parms.pm_pmp.pm_cah.f_score_type = 2;
         }
     }
     _thread = options.thread;

@@ -1,3 +1,4 @@
+#include <math.h>
 #include "base.h"
 #include "ska_sort.hpp"
 using namespace seqan;
@@ -606,3 +607,13 @@ int F_Print_::isPrintBamPbsv(uint f){return f & 8;}
 int F_Print_::isPrintSamBam(uint f){return isPrintSam(f) || isPrintBam(f);}
 
 F_Print_ fp_handler_;
+
+
+/*
+ * return CDF of normal distribution
+ * Takes approximatly 7-8 times of cpu cycles of ADD of double type 
+ */
+double normalCdf(double x, double mu, double sigma)
+{
+    return 0.5 * (1 + std::erf((x-mu) / (M_SQRT1_2 * sigma)));
+}

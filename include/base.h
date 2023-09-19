@@ -288,4 +288,9 @@ struct F_Print_
 };
 extern F_Print_ fp_handler_;
 
+/*
+ * return CDF of normal distribution
+ */
+double normalCdf(double x, double mu, double delta);
+
 #endif
