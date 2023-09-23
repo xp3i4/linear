@@ -32,6 +32,7 @@ Scalar activationFun2(Scalar x)
 
 Scalar activationDerivativeFun2(Scalar x)
 {
+    (void) x;
     return 1;
 }
 //ReLu
@@ -182,7 +183,7 @@ void NeuralNetwork::propagateBackward(Matrix & expected)
     for (int i = topology.size() - 2; i >= 0; i--) 
     {
         //Compute gradients
-        if (i == topology.size() - 2)
+        if (i == int(topology.size()) - 2)
         {   
             //Since dfs for this layer is constantly 1. They're omitted.
             *gradients_H[i] = weights[i]->transpose() * *gradients_H[i + 1];
@@ -205,7 +206,7 @@ void NeuralNetwork::propagateBackward(Matrix & expected)
 
 void NeuralNetwork::updateWeights()
 {
-    for (int i = 0; i < weights.size(); i++)
+    for (unsigned i = 0; i < weights.size(); i++)
     {
         //*gradients_W_batch[i] /= batch_size;
         *weights[i] -= learningRate * *gradients_W_batch[i];
@@ -222,17 +223,17 @@ void NeuralNetwork::train(std::vector<Matrix*> input_data, std::vector<Matrix*> 
 {
     for (unsigned i = 0; i < input_data.size(); i++) 
     {
-        double t1 = clock();
+//        double t1 = clock();
         propagateForward(*input_data[i], 1); 
-        double t2 = clock();
+//        double t2 = clock();
         propagateBackward(*output_data[i]);
-        double t3 = clock();
+//        double t3 = clock();
         if (i % batch_size == batch_size - 1)
         {
             updateWeights();
         }
-        double t4 = clock();
-        double ts = t4-t1;
+//        double t4 = clock();
+//        double ts = t4-t1;
         //std::cout << "ts " << (t2-t1)/ts << " " << (t3-t2)/ts << " " << (t4-t3)/ts << "\n";
     }
 }
@@ -298,6 +299,8 @@ void genData(std::string filename)
         Scalar y2 = x1 + 2* x2*x1+x2*x3*x1 + x3*x3*x3; //+ err;
         file1 << x1 << ", " << x2 << ", " << x3 << "\n";
         file2 << y1 << "\n";
+        (void) err;
+        (void) y2;
     }
     file1.close();
     file2.close();
@@ -342,7 +345,7 @@ Model2::Model2(std::vector<unsigned> nn_toplogy1,
     nn00(nn_toplogy1),
     nn10(nn_toplogy2),
     nn11(nn_toplogy2)
-{}
+{(void)nn_toplogy3;}
 
 Matrix & Model2::getInput()
 {
@@ -392,7 +395,7 @@ AcGan2::AcGan2(std::vector<unsigned> E_topology,
     G2(G_topology), 
     D1(G_topology), 
     D2(G_topology)
-{}
+{(void)D_topology;}
 
 AcGan2::AcGan2(std::vector<Matrix> & E1_weights, std::vector<Matrix> & E1_biases, std::vector<TAcFun> & E1_activations,
                std::vector<Matrix> & G1_weights, std::vector<Matrix> & G1_biases, std::vector<TAcFun> & G1_activations,
@@ -406,7 +409,19 @@ AcGan2::AcGan2(std::vector<Matrix> & E1_weights, std::vector<Matrix> & E1_biases
         D2(D2_weights, D2_biases, D2_activations)
 {}
 
-
+float AcGan2::getRegPrior()
+{
+    return 1 - D2.getOutput().coeffRef(0, 0);
+}
+float AcGan2::getInsPrior()
+{
+    return D2.getOutput().coeffRef(0, 0);
+}
+float AcGan2::getDelPrior()
+{
+    return D2.getOutput().coeffRef(0, 0);
+}
+ 
 //Define global AcGan2 object
 AcGan2 nn2_anc_sv(acgan_parms.E1_weights, acgan_parms.E1_biases, acgan_parms.E1_activations,
                   acgan_parms.G1_weights, acgan_parms.G1_biases, acgan_parms.G1_activations,
@@ -2416,7 +2431,6 @@ D2_biases[0]<<
  0.7556611895561218,      0.6203457117080688,     -0.003364704316481948,    0.12089156359434128,    -0.5068503022193909,     
  0.010969582013785839,    1.0405981540679932,      0.06534360349178314,     0.06409911811351776,     1.0117156505584717,     
  0.5594169497489929,     -0.009426295757293701,    0.02181646041572094,    -0.6891876459121704,      0.05749097093939781;    
-
 
 
 }

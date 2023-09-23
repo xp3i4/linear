@@ -1750,13 +1750,21 @@ int chainApxCordsBlocks (String<uint64_t> & cords,
                          int64_t thd_chain_blocks_upper,
                          int alg_type)
 {
-    if (alg_type == 1)
+    if (alg_type & 1)
     {
         chainBlocksSimple_(cords, str_ends_p, read_len, thd_chain_blocks_lower, thd_chain_blocks_upper);
     }
-    else if (alg_type == 2)
+    else if (alg_type & 2)
     {
         //chainBlocksSimple_(cords, str_ends_p, read_len, thd_chain_blocks_lower, thd_chain_blocks_upper);
+        if (alg_type & 4)
+        {
+
+        }
+        else
+        {
+             
+        }
         int thd_min_chain_len = 1;
         int thd_drop_score = 0;
         ChainScoreMetric chn_score(thd_min_chain_len, thd_drop_score, &getApxChainScore3);

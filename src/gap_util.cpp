@@ -3,7 +3,6 @@
 #include "base.h"
 #include "shape_extend.h"
 #include "cords.h"
-#include "dl.h"
 #include "gap_util.h"
 
 /*=============================================
@@ -473,38 +472,6 @@ void g_print_tiles_(String<uint64_t> & tiles, CharString str)
         }
     }
 }
-
-//cal sv
-int calNNAnchorSVPrior(dl::AcGan2 & nn, String<uint64_t> & anchors, StringSet<String<float> > & priors)
-{
-//    if (nn.D1.nn00.layers.empty())
-//    {
-//        return 1;
-//    }
-    unsigned input_size = nn.D1.getInput().rows();
-    unsigned output_size = nn.D1.getOutput().rows();
-    dl::Matrix input(input_size, 1);
-    String<float> n_prior;
-    resize (n_prior, output_size);
-    for (unsigned i = input_size; i < length(anchors); i += input_size)
-    {
-        for (unsigned j = i - input_size; j < i; j++)
-        {
-            input.coeffRef(j, 0) = anchors[j];
-        }
-        //nn.D1.forward(input, 0);
-        nn.E1.forward(input, 0);
-        nn.G2.forward(nn.E1.getOutput(), 0);
-        nn.D2.forward(nn.G2.getOutput(), 0);
-        for (unsigned j = 0; j < output_size; i++)
-        {
-            n_prior[j] = nn.D2.getOutput().coeffRef(j,0);
-        }
-        appendValue(priors, n_prior);
-    }
-    return 0;
-}
-
 
 /*=============================================
 =           Index free Map and clip           =
@@ -4501,16 +4468,11 @@ int mapInterval(String<Dna5> & seq1, //genome
     int step2 = 1; //seq2...
     String<uint64_t> g_hs;
     String<uint64_t> g_hs_anchors;
-    StringSet<String<float> > anchor_sv_priors;
     reserve(g_hs, 2048);
     reserve(g_hs_anchors, 2048);
     double t1 = sysTime();
     g_stream_(seq1, seq2, g_hs, gap_str, gap_end, shape_len, step1, step2, gap_parms);
     g_create_anchors_(g_hs, g_hs_anchors, shape_len, direction, anchor_lower, anchor_upper, length(seq2) - 1, gap_str, gap_end, gap_parms);
-    if (gap_parms.f_nn1_anchor_sv)
-    {
-        calNNAnchorSVPrior(dl::nn2_anc_sv, g_hs_anchors, anchor_sv_priors);
-    }
     t1 = sysTime() - t1;
     //filterGapAnchors()
     //<<debug

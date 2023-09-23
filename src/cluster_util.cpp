@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cmath>
 #include "base.h"
 #include "cords.h"
 #include "cluster_util.h"
@@ -9,29 +10,132 @@ using std::endl;
 
 /*__________________________________________________
   ---------- @s::Generic funcs  ----------*/
-ChainScoreParms::ChainScoreParms(float val_gacs3_ins_read_len_ratio)
+
+//Anchors should be sorted by x in descending order.
+FragmentDLPriors::FragmentDLPriors(dl::AcGan2 & nn) 
+{
+    fragment_block_size = nn.D1.getInput().rows();
+    fragment_block_step = fragment_block_size;
+    p_nn = & nn;
+} 
+int FragmentDLPriors::computePriors(String<uint64_t> & fragments, StringSet<String<float> > & priors)
+{
+    unsigned input_size = p_nn->D1.getInput().rows();
+    unsigned output_size = p_nn->D1.getOutput().rows();
+    dl::Matrix input(input_size, 1);
+    String<float> n_prior;
+    clear (priors);
+    for (unsigned i = input_size; i < length(fragments); i += fragment_block_step)
+    {
+        for (unsigned j = i - 1; j >= i - input_size; j--)
+        {
+            input.coeffRef(j, 0) = fragments[j];
+        }
+        //nn.D1.forward(input, 0);
+        p_nn->E1.forward(input, 0);
+        p_nn->G2.forward(p_nn->E1.getOutput(), 0);  
+        p_nn->D2.forward(p_nn->G2.getOutput(), 0);
+            //n_prior[j] = nn.D2.getOutput().coeffRef(j,0); 
+        clear (n_prior);
+        appendValue(n_prior, p_nn->getRegPrior());
+        appendValue(n_prior, p_nn->getInsPrior());
+        appendValue(n_prior, p_nn->getDelPrior());
+        appendValue(priors, n_prior);
+    }
+    (void) output_size;
+    return 0;
+}
+/**return priors for the current anchor pair specified by it_record1 and it_record2;*/
+std::pair<int,int> FragmentDLPriors::getPriors(int anchor_i) 
+{
+    return std::pair<int, int> (std::max(0, int(std::ceil(float(anchor_i - fragment_block_size) / fragment_block_step))), 
+        anchor_i / fragment_block_step);
+}
+
+ChainScoreParms::ChainScoreParms(String<uint64_t> & fragments, dl::AcGan2 & nn, 
+    int f_prior_type_, float val_gacs3_ins_read_len_ratio) : fragment_dl_priors(nn)
 {
     mean_d = 1000; 
     var_d = 1000;
     chn_block_strand = 0;
     gacs3_ins_read_len_ratio = val_gacs3_ins_read_len_ratio;
 
-    appendValue (priors1, 1); //regular gap
-    appendValue (priors1, 1); //ins gap
-    appendValue (priors1, 1); //del gap
+    f_prior_type = f_prior_type_;
+    fragment1_id = 0;
+    fragment2_id = 0;
+    f_fragment_map = 0; 
+
+    computePriors (fragments);
+
     appendValue (mus1, 60);
     appendValue (mus1, 100);
     appendValue (mus1, -100);
     appendValue (sigmas1, 40);
     appendValue (sigmas1, 100);
     appendValue (sigmas1, 100);
-    f_map1 = 0; 
+}
+
+int ChainScoreParms::computePriors(String<uint64_t> & fragments) 
+{
+
+    String<float> default_priors;
+    for (int i = 0; i < 10; i++) //10, a number >= sv types
+    {
+        appendValue(default_priors, 1);
+    }
+
+    if (f_prior_type == 0)
+    {
+        resize(priors, 1);
+        clear(priors[0]);
+        priors = default_priors; 
+    }
+    else if (f_prior_type == 1)
+    {
+        clear (priors);
+        fragment_dl_priors.computePriors(fragments, priors);
+        appendValue(priors, default_priors); 
+    }
+    return 0;
+}
+
+String<float> & ChainScoreParms::getPriors()
+{
+    std::pair<int,int> range1, range2;
+    if (f_prior_type == 0)
+    {
+        return back(priors);
+    }
+    else if (f_prior_type == 1)
+    {
+        range1 = fragment_dl_priors.getPriors(fragment1_id); 
+        range2 = fragment_dl_priors.getPriors(fragment2_id);
+        int lower_bound = std::max(range1.first, range2.first);
+        int upper_bound = std::max(range1.second, range2.second);
+        if (lower_bound <= upper_bound)
+        {
+            return priors[(lower_bound + upper_bound) / 2];
+        }
+        else
+        {
+            return back(priors); 
+        }
+    }
+    else
+    {
+        return back(priors);
+    }
+}
+
+float & ChainScoreParms::getPrior(String<float> & priors, SVType sv_type)
+{
+    return priors[sv_type]; 
 }
 
 int ChainsRecord::isLeaf(){return f_leaf;}
 
 //Chainning Score metric wrapper: including a score function with corresponding parms.
-ChainScoreMetric::ChainScoreMetric(){}
+ChainScoreMetric::ChainScoreMetric(){} 
 ChainScoreMetric::ChainScoreMetric(int min_chain_len, int abort_socre, 
         int(*scoreFunc)(uint64_t const &, uint64_t const &, ChainScoreParms &)) 
         : thd_min_chain_len(min_chain_len), thd_abort_score(abort_socre), getScore(scoreFunc), getScore2(NULL)
@@ -91,6 +195,8 @@ int getBestChains(String<uint64_t>     & anchors, //todo:: anchor1 anchor2 of di
              j >=0 && (j >= j_str || get_anchor_x(anchors[j]) - get_anchor_x(anchors[i]) < thd_chain_dx_depth); 
              j--)
         {
+            chn_metric.chn_score_parms.fragment1_id = i;
+            chn_metric.chn_score_parms.fragment2_id = j;
             new_score = chn_metric.getScore(anchors[j], anchors[i], chn_metric.chn_score_parms);
             if (new_score > 0 && new_score + chains[j].score >= new_max_score)
             {
@@ -348,18 +454,19 @@ int traceBackChains(String<ChainElementType> & elements,  StringSet<String<Chain
 float getGMScore (int64_t map_x, int64_t map_y, int64_t gap_x, int64_t gap_y,
     ChainScoreParms & chn_sc_parms)
 {
-    float score = 0;
-    
-    float p_reg = chn_sc_parms.priors1[0] * (1 - normalCdf(std::min(gap_x, gap_y), chn_sc_parms.mus1[0], chn_sc_parms.sigmas1[0])); //use normal instead of gamma for simplicity
-    float p_ins = chn_sc_parms.priors1[1] * normalCdf(gap_x - gap_y, chn_sc_parms.mus1[1], chn_sc_parms.sigmas1[1]); 
-    float p_del = chn_sc_parms.priors1[2] * normalCdf(gap_x - gap_y, chn_sc_parms.mus1[2], chn_sc_parms.sigmas1[2]);
+    String<float> priors = chn_sc_parms.getPriors();
+    float probability = 0;
+    float p_reg = priors[REG] * (1 - normalCdf(std::min(gap_x, gap_y), chn_sc_parms.mus1[REG], chn_sc_parms.sigmas1[REG])); //use normal instead of gamma CDF for simplicity
+    float p_ins = priors[INS] * normalCdf(gap_x - gap_y, chn_sc_parms.mus1[INS], chn_sc_parms.sigmas1[INS]); 
+    float p_del = priors[DEL] * normalCdf(gap_x - gap_y, chn_sc_parms.mus1[DEL], chn_sc_parms.sigmas1[DEL]);
     float p_indel = p_ins * (1 - p_del) + p_del * (1 - p_ins);
+    float p_gap = p_reg + p_indel - p_reg * p_indel;
     float p_map = 1;
-    if (chn_sc_parms.f_map1)
+    if (chn_sc_parms.f_fragment_map)
     {
         p_map = normalCdf(std::min(map_x, map_y), 50, 50);
     }
-    score = p_map * (p_reg + p_indel - p_reg * p_indel);
+    probability = p_map * p_gap;
     /*
     double t2 = sysTime();
     double s2 = 1;
@@ -371,7 +478,7 @@ float getGMScore (int64_t map_x, int64_t map_y, int64_t gap_x, int64_t gap_y,
     t2 = sysTime() - t2;
     dout << "gm2" << s1 << s2 << t1 << t2 << t1 / t2 <<"\n";
     */
-    return score;
+    return probability;
 }
 
 int getApxChainScore0(uint64_t const & anchor1, uint64_t const & anchor2, ChainScoreParms & chn_sc_parms)
@@ -490,15 +597,9 @@ int getApxChainScoreGM(uint64_t const & anchor1, uint64_t const & anchor2, Chain
     {
         //dy < 0 : y should in descending order
         //0 <= dy < 10 : too close anchors are excluded;
-        //return -10000;
+        return -10000;
     }
-    int64_t thd_min_dy = 50;
     int64_t dx = getAnchorX(anchor1) -  getAnchorX(anchor2);
-    int64_t da = std::abs(dx - dy);
-    int64_t derr =  (100 * da) / std::max({std::abs(dy), std::abs(dx), thd_min_dy}); // 1/100 = 0.01
-
-    int score_derr;
-
     int score = 100 * getGMScore(11, 11, dx, dy, chn_sc_parms);
 //    dout << score << "\n";
     return score;
@@ -1274,4 +1375,5 @@ void unusedGlobalsClusterUtil()
 {
     unused(chain_end_score);
 }
+
 //End all mapper module

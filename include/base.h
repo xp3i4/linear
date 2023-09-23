@@ -24,6 +24,11 @@ extern int64_t const LLMAX;
 extern int64_t const LLMIN;
 extern unsigned const UMAX;
 
+extern String<float> _empty_string_float_;
+extern String<uint64_t> _empty_string_uint64_t_;
+
+enum SVType {REG, INS, DEL, INV, DUP};
+
 typedef Iterator <String <Dna5> >::Type TIter5;
 typedef unsigned uint;
 typedef uint64_t uintll;

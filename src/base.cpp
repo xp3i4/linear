@@ -1,4 +1,4 @@
-#include <math.h>
+#include <cmath>
 #include "base.h"
 #include "ska_sort.hpp"
 using namespace seqan;
@@ -21,6 +21,9 @@ int64_t const LLMAX = (1LL << 62) - 1; //(1ULL << 63) - 1 integer overflow on so
 int64_t const LLMIN = -LLMAX;
 
 bool f_debug = true;
+
+String<float> _empty_string_float_;
+String<uint64_t> _empty_string_uint64_t_;
 
 using std::cerr;
 

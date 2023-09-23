@@ -1,9 +1,12 @@
-// NeuralNetwork.hpp
+#ifndef LINEAR_HEADER_DL_H
+#define LINEAR_HEADER_DL_H
 #include <iostream>
 #include <fstream>      // std::ifstream
 #include <vector>
 #include <time.h>
-#include "Eigen/Eigen"
+//#include "Eigen/Eigen"
+//#include <Eigen>
+#include <eigen3/Eigen/Eigen>
 
 namespace dl
 {
@@ -166,6 +169,9 @@ struct AcGan2
 		  std::vector<Matrix> & G2_weights, std::vector<Matrix> & G2_biases, std::vector<TAcFun> &,
 		  std::vector<Matrix> & D1_weights, std::vector<Matrix> & D1_biases, std::vector<TAcFun> &,
 		  std::vector<Matrix> & D2_weights, std::vector<Matrix> & D2_biases, std::vector<TAcFun> &);
+	float getRegPrior();
+	float getInsPrior();
+	float getDelPrior();
 }; 
 
 void ReadCSV(std::string filename, Data & data);
@@ -174,3 +180,4 @@ Scalar MSE(NeuralNetwork & nn, std::vector<Matrix*> input_data, std::vector<Matr
 extern AcGan2 nn2_anc_sv;
 extern Nn2AncSVParms acgan_parms;
 }
+#endif
