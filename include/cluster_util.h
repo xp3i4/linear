@@ -24,12 +24,12 @@ struct ChainScoreParms
     int chn_block_strand;
     float gacs3_ins_read_len_ratio; //support ins of len < this * read_len, otherwise skip ins leaving unchanined
     
+    enum PriorType {pt_default, pt_dl};
     int f_prior_type;
     int f_fragment_map;
     int fragment1_id;
     int fragment2_id;
     FragmentDLPriors fragment_dl_priors;
-
     StringSet<String<float> > priors; 
     String<float> mus1; 
     String<float> sigmas1;
@@ -39,7 +39,6 @@ struct ChainScoreParms
         dl::AcGan2 & nn = dl::nn2_anc_sv, int f_prior_type = 0, float val_gacs3_ins_read_len_ratio = 1);  
     int computePriors(String<uint64_t> & fragments);
     String<float> & getPriors();
-    float & getPrior(String<float> & priors, SVType sv_type); 
 };
 
 int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2, ChainScoreParms & chn_sc_parms);

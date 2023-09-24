@@ -1,9 +1,23 @@
 #include "dl.h"
 namespace dl
 {
-std::vector<float> tf_weights = 
-{1, 
-2};
+
+Nn2AncSVParms acgan_parms; 
+
+AcGan2 nn2_anc_sv(acgan_parms.E1_weights, acgan_parms.E1_biases, acgan_parms.E1_activations, acgan_parms.E1_activation_derivatives,
+                  acgan_parms.G1_weights, acgan_parms.G1_biases, acgan_parms.G1_activations, acgan_parms.G1_activation_derivatives,
+                  acgan_parms.G2_weights, acgan_parms.G2_biases, acgan_parms.G2_activations, acgan_parms.G2_activation_derivatives,
+                  acgan_parms.D1_weights, acgan_parms.D1_biases, acgan_parms.D1_activations, acgan_parms.D1_activation_derivatives,
+                  acgan_parms.D2_weights, acgan_parms.D2_biases, acgan_parms.D2_activations, acgan_parms.D2_activation_derivatives);
+
+void deleteVectorMatrix(std::vector<Matrix*> & vector)
+{
+    for (unsigned i = 0; i < vector.size(); i++)
+    {
+        delete vector[i];
+    }
+}
+
 Scalar activationFun0(Scalar x)
 {
     return x < 0 ? 0 : x;
@@ -79,6 +93,7 @@ NeuralNetwork::NeuralNetwork(std::vector<unsigned> init_topology,
     {
         layers.push_back (new Matrix(topology[i], 1));
         gradients_H.push_back(new Matrix(topology[i], 1));
+        f_new |= Layers | GH;  
         if (i < topology.size() - 1)
         {
             weights.push_back(new Matrix(topology[i + 1], topology[i]));
@@ -92,21 +107,29 @@ NeuralNetwork::NeuralNetwork(std::vector<unsigned> init_topology,
             gradients_B.push_back(new Matrix(topology[i + 1], 1));
             gradients_B_batch.push_back(new Matrix(topology[i + 1], 1));
             gradients_B_batch.back()->setConstant(0);
+            f_new |= Weights | GW | GWB | Biases | GBB;
         }
         if (i < topology.size() - 2)
         {
             dfs.push_back(new Matrix(topology[i + 1], 1));
+            f_new |= Dfs;
         }
     }
 }
-NeuralNetwork::NeuralNetwork(std::vector<Matrix> & init_weights,  std::vector<Matrix> & init_biases,  std::vector<TAcFun> & init_activations)
+NeuralNetwork::NeuralNetwork(std::vector<Matrix*> & init_weights,  std::vector<Matrix*> & init_biases,  std::vector<TAcFun> & init_activations, std::vector<TAcFun> & init_activation_derivatives) 
 {
-    for (unsigned i = 0; i < weights.size(); i++)
+    if (!init_weights.empty())
     {
-        topology.push_back(init_weights[i].size());
-        weights.push_back( &init_weights[i]);
-        biases.push_back( &init_biases[i]);
-        activations.push_back(init_activations[i]);
+        for (unsigned i = 0; i < init_weights.size(); i++)
+        {
+            topology.push_back(init_weights[i]->size());
+            layers.push_back(new Matrix(init_weights[i]->cols(), 1));
+            weights.push_back(init_weights[i]);
+            biases.push_back(init_biases[i]);
+            activations.push_back(init_activations[i]);
+            activation_derivatives.push_back(init_activation_derivatives[i]);
+        }
+        layers.push_back(new Matrix(init_weights.back()->rows(), 1));
     }
 }
 
@@ -114,21 +137,41 @@ NeuralNetwork::NeuralNetwork(std::vector<Matrix> & init_weights,  std::vector<Ma
 
 NeuralNetwork::~NeuralNetwork()
 {
-    for (unsigned i = 0; i < layers.size(); i++)
+    if (f_new & Layers)
     {
-        delete layers[i];
+        deleteVectorMatrix (layers);
     }
-    for (unsigned i = 0; i < dfs.size(); i++)
+    if (f_new & GH)
     {
-        delete dfs[i];
+        deleteVectorMatrix (gradients_H);
     }
-    for (unsigned i = 0; i < gradients_H.size(); i++)
+    if (f_new & Dfs)
     {
-        delete gradients_H[i];
+        deleteVectorMatrix (dfs);
     }
-    for (unsigned i = 0; i < weights.size(); i++)
+    if (f_new & Weights) 
     {
-        delete weights[i];
+        deleteVectorMatrix (weights);
+    }  
+    if (f_new & GW)
+    {
+        deleteVectorMatrix(gradients_W);
+    }
+    if (f_new & GWB)
+    {
+        deleteVectorMatrix(gradients_W_batch);
+    }
+    if (f_new & Biases)
+    {
+        deleteVectorMatrix(biases);
+    }
+    if (f_new & GB)
+    {
+        deleteVectorMatrix(gradients_B);
+    }
+    if (f_new & GBB)
+    {
+        deleteVectorMatrix(gradients_B_batch);
     }
 }
 
@@ -156,8 +199,8 @@ void NeuralNetwork::propagateForward(Matrix & input, int f_train)
             *layers[i + 1] = (*weights[i]) * (*layers[i]) + *biases[i]; //=z_i not activated yet
             if (i < topology.size() - 2)
             {
-                *dfs[i] = (*layers[i + 1]).unaryExpr(TAcFun(activationDerivativeFun3));
-                *layers[i + 1] = (*layers[i + 1]).unaryExpr(TAcFun(activationFun3));
+                *dfs[i] = (*layers[i + 1]).unaryExpr(TAcFun(activation_derivatives[i]));
+                *layers[i + 1] = (*layers[i + 1]).unaryExpr(TAcFun(activations[i]));
             }
         }
     }
@@ -168,7 +211,7 @@ void NeuralNetwork::propagateForward(Matrix & input, int f_train)
             *layers[i + 1] = (*weights[i]) * (*layers[i]) + *biases[i]; //=z_i not activated yet
             if (i < topology.size() - 2)
             {
-                *layers[i + 1] = (*layers[i + 1]).unaryExpr(TAcFun(activationFun3));
+                *layers[i + 1] = (*layers[i + 1]).unaryExpr(TAcFun(activations[i]));
             }
         }
     }
@@ -315,8 +358,9 @@ Model1::Model1(std::vector<unsigned> nn_toplogy):
     nn(nn_toplogy)
 {}
 
-Model1::Model1(std::vector<Matrix> & init_weights, std::vector<Matrix> & init_biases, std::vector<TAcFun> & init_activations):
-    nn(init_weights, init_biases, init_activations) 
+Model1::Model1(std::vector<Matrix*> & init_weights, std::vector<Matrix*> & init_biases, 
+    std::vector<TAcFun> & init_activations, std::vector<TAcFun> & init_activation_derivatives):
+    nn(init_weights, init_biases, init_activations, init_activation_derivatives) 
 {}
 
 Matrix & Model1::getInput()
@@ -397,16 +441,16 @@ AcGan2::AcGan2(std::vector<unsigned> E_topology,
     D2(G_topology)
 {(void)D_topology;}
 
-AcGan2::AcGan2(std::vector<Matrix> & E1_weights, std::vector<Matrix> & E1_biases, std::vector<TAcFun> & E1_activations,
-               std::vector<Matrix> & G1_weights, std::vector<Matrix> & G1_biases, std::vector<TAcFun> & G1_activations,
-               std::vector<Matrix> & G2_weights, std::vector<Matrix> & G2_biases, std::vector<TAcFun> & G2_activations,
-               std::vector<Matrix> & D1_weights, std::vector<Matrix> & D1_biases, std::vector<TAcFun> & D1_activations,
-               std::vector<Matrix> & D2_weights, std::vector<Matrix> & D2_biases, std::vector<TAcFun> & D2_activations):
-        E1(E1_weights, E1_biases, E1_activations),
-        G1(G1_weights, G1_biases, G1_activations),
-        G2(G2_weights, G2_biases, G2_activations),
-        D1(D1_weights, D1_biases, D1_activations),
-        D2(D2_weights, D2_biases, D2_activations)
+AcGan2::AcGan2(std::vector<Matrix*> & E1_weights, std::vector<Matrix*> & E1_biases, std::vector<TAcFun> & E1_activations, std::vector<TAcFun> & E1_activation_derivatives,
+               std::vector<Matrix*> & G1_weights, std::vector<Matrix*> & G1_biases, std::vector<TAcFun> & G1_activations, std::vector<TAcFun> & G1_activation_derivatives,
+               std::vector<Matrix*> & G2_weights, std::vector<Matrix*> & G2_biases, std::vector<TAcFun> & G2_activations, std::vector<TAcFun> & G2_activation_derivatives,
+               std::vector<Matrix*> & D1_weights, std::vector<Matrix*> & D1_biases, std::vector<TAcFun> & D1_activations, std::vector<TAcFun> & D1_activation_derivatives,
+               std::vector<Matrix*> & D2_weights, std::vector<Matrix*> & D2_biases, std::vector<TAcFun> & D2_activations, std::vector<TAcFun> & D2_activation_derivatives):
+        E1(E1_weights, E1_biases, E1_activations, E1_activation_derivatives),
+        G1(G1_weights, G1_biases, G1_activations, G1_activation_derivatives),
+        G2(G2_weights, G2_biases, G2_activations, G2_activation_derivatives),
+        D1(D1_weights, D1_biases, D1_activations, D1_activation_derivatives),
+        D2(D2_weights, D2_biases, D2_activations, D2_activation_derivatives) 
 {}
 
 float AcGan2::getRegPrior()
@@ -423,44 +467,72 @@ float AcGan2::getDelPrior()
 }
  
 //Define global AcGan2 object
-AcGan2 nn2_anc_sv(acgan_parms.E1_weights, acgan_parms.E1_biases, acgan_parms.E1_activations,
-                  acgan_parms.G1_weights, acgan_parms.G1_biases, acgan_parms.G1_activations,
-                  acgan_parms.G2_weights, acgan_parms.G2_biases, acgan_parms.G2_activations,
-                  acgan_parms.D1_weights, acgan_parms.D1_biases, acgan_parms.D1_activations,
-                  acgan_parms.D2_weights, acgan_parms.D2_biases, acgan_parms.D2_activations);
 
-Nn2AncSVParms acgan_parms;
+Nn2AncSVParms::~Nn2AncSVParms()
+{
+    deleteVectorMatrix(E1_weights);
+    deleteVectorMatrix(G1_weights);
+    deleteVectorMatrix(G2_weights);
+    deleteVectorMatrix(D1_weights);
+    deleteVectorMatrix(D2_weights);
+    deleteVectorMatrix(E1_biases);
+    deleteVectorMatrix(G1_biases);
+    deleteVectorMatrix(G2_biases);
+    deleteVectorMatrix(D1_biases);
+    deleteVectorMatrix(D2_biases);
+}
+
 Nn2AncSVParms::Nn2AncSVParms()
 {
-    E1_weights.push_back(Matrix(50,35));
-    E1_weights.push_back(Matrix(35,30));
-    G1_weights.push_back(Matrix(30,35));
-    G1_weights.push_back(Matrix(35,50));
-    G2_weights.push_back(Matrix(30,35));
-    G2_weights.push_back(Matrix(35,50));
-    D1_weights.push_back(Matrix(50,25));
-    D1_weights.push_back(Matrix(25,2));
-    D2_weights.push_back(Matrix(50,25));
-    D2_weights.push_back(Matrix(25,2));
 
-    E1_biases.push_back(Matrix(35,1));
-    E1_biases.push_back(Matrix(30,1));
-    G1_biases.push_back(Matrix(35,1));
-    G1_biases.push_back(Matrix(50,1));
-    G2_biases.push_back(Matrix(35,1));
-    G2_biases.push_back(Matrix(50,1));
-    D1_biases.push_back(Matrix(25,1));
-    D1_biases.push_back(Matrix(2,1));
-    D2_biases.push_back(Matrix(25,1));
-    D2_biases.push_back(Matrix(2,1));
+    E1_weights.push_back(new Matrix(50,35));
+    E1_weights.push_back(new Matrix(35,16));
+    G1_weights.push_back(new Matrix(16,35));
+    G1_weights.push_back(new Matrix(35,50));
+    G2_weights.push_back(new Matrix(16,35));
+    G2_weights.push_back(new Matrix(35,50));
+    D1_weights.push_back(new Matrix(50,25));
+    D1_weights.push_back(new Matrix(25,2));
+    D2_weights.push_back(new Matrix(50,25));
+    D2_weights.push_back(new Matrix(25,2));
+
+    E1_biases.push_back(new Matrix(35,1));
+    E1_biases.push_back(new Matrix(16,1));
+    G1_biases.push_back(new Matrix(35,1));
+    G1_biases.push_back(new Matrix(50,1));
+    G2_biases.push_back(new Matrix(35,1));
+    G2_biases.push_back(new Matrix(50,1));
+    D1_biases.push_back(new Matrix(25,1));
+    D1_biases.push_back(new Matrix(2,1));
+    D2_biases.push_back(new Matrix(25,1));
+    D2_biases.push_back(new Matrix(2,1));
 
     E1_activations.push_back(TAcFun(activationFun3));
-    G1_activations.push_back(TAcFun(activationFun3));
-    G2_activations.push_back(TAcFun(activationFun3));
-    D1_activations.push_back(TAcFun(activationFun3));
-    D2_activations.push_back(TAcFun(activationFun3));
+    E1_activation_derivatives.push_back(TAcFun(activationDerivativeFun3));
+    E1_activations.push_back(TAcFun(activationFun2));
+    E1_activation_derivatives.push_back(TAcFun(activationDerivativeFun2));
 
-E1_weights[0]<<
+    G1_activations.push_back(TAcFun(activationFun3));
+    G1_activation_derivatives.push_back(TAcFun(activationDerivativeFun3));
+    G1_activations.push_back(TAcFun(activationFun2));
+    G1_activation_derivatives.push_back(TAcFun(activationDerivativeFun2));
+
+    G2_activations.push_back(TAcFun(activationFun3));
+    G2_activation_derivatives.push_back(TAcFun(activationDerivativeFun3));
+    G2_activations.push_back(TAcFun(activationFun2));
+    G2_activation_derivatives.push_back(TAcFun(activationDerivativeFun2));
+
+    D1_activations.push_back(TAcFun(activationFun3));
+    D1_activation_derivatives.push_back(TAcFun(activationDerivativeFun3));
+    D1_activations.push_back(TAcFun(activationFun3));
+    D1_activation_derivatives.push_back(TAcFun(activationDerivativeFun3));
+
+    D2_activations.push_back(TAcFun(activationFun3));
+    D2_activation_derivatives.push_back(TAcFun(activationDerivativeFun3));
+    D2_activations.push_back(TAcFun(activationFun3));
+    D2_activation_derivatives.push_back(TAcFun(activationDerivativeFun3));
+
+*E1_weights[0]<<
 -0.4475838541984558,     -0.023451054468750954,   -0.025174302980303764,    0.053875792771577835,   -0.027900412678718567,   
  0.05803608149290085,     0.03991997241973877,     0.07930999249219894,     0.06299286335706711,     0.01860782690346241,    
 -0.0017650286899879575,  -0.035742826759815216,    0.11789203435182571,     0.07493919879198074,     0.055541377514600754,   
@@ -812,7 +884,7 @@ E1_weights[0]<<
  0.038483619689941406,    0.11783962696790695,     0.01558401808142662,    -0.02412078157067299,     0.17082351446151733,    
  0.13033701479434967,     0.0508611835539341,      0.019619394093751907,    0.05654872581362724,     0.13625875115394592;    
 
-E1_biases[0]<<
+*E1_biases[0]<<
  0.04532511532306671,     0.10794896632432938,    -0.10949476808309555,    -0.1786632239818573,     -0.012545241974294186,   
 -0.003663112875074148,   -0.007578113116323948,    0.14262761175632477,     0.04956783726811409,     0.014058093540370464,   
 -0.08280088007450104,     0.016419852152466774,    0.6258626580238342,     -0.05501793697476387,     0.1128307431936264,     
@@ -821,7 +893,7 @@ E1_biases[0]<<
 -0.008674672804772854,    0.22892236709594727,     0.015444586984813213,    0.14526711404323578,    -0.1293809860944748,     
  0.12203404307365417,    -0.024396872147917747,   -0.05859176069498062,    -0.022955963388085365,    0.09074021875858307;    
 
-E1_weights[1]<<
+*E1_weights[1]<<
  0.04705769941210747,     0.17463935911655426,    -0.08795704692602158,    -0.1201552152633667,     -0.08937963098287582,    
 -0.07652770727872849,    -0.05394649878144264,    -0.1252586394548416,      0.15633445978164673,    -0.10203245282173157,    
 -0.1092347577214241,     -0.16869063675403595,     0.0083859758451581,      0.04181193187832832,    -0.026485901325941086,   
@@ -935,12 +1007,13 @@ E1_weights[1]<<
  0.24743300676345825,    -0.2878881096839905,      0.06382683664560318,     0.031594112515449524,    0.1684216558933258,     
 -0.09864287823438644,    -0.04883769527077675,    -0.05263268202543259,     0.03361870348453522,     0.10401292890310287;    
 
-E1_biases[1]<<
+*E1_biases[1]<<
  0.006480279378592968,    0.01477293111383915,     0.19588685035705566,     0.22365866601467133,    -0.13251928985118866,    
 -0.04617522656917572,    -0.025575144216418266,    0.008487478829920292,    0.06134071946144104,    -0.11467929184436798,    
 -0.07548150420188904,    -0.1142435148358345,     -0.023444321006536484,    0.21258388459682465,     0.19923099875450134,    
 -0.06995885074138641;    
-G1_weights[0]<<
+
+*G1_weights[0]<<
 -0.48967376351356506,     0.19932642579078674,    -0.07916060090065002,     0.2194623202085495,      0.5196143984794617,     
  0.6518265604972839,     -0.13805507123470306,    -0.2709712088108063,     -0.5168836116790771,     -0.6921016573905945,     
 -0.21658115088939667,    -0.3246201276779175,      0.30844196677207947,    -0.4011087119579315,      0.2774588465690613,     
@@ -1054,7 +1127,7 @@ G1_weights[0]<<
 -0.24091410636901855,    -0.15423350036144257,    -0.8363742232322693,     -0.37826645374298096,    -0.1632162481546402,     
 -0.28310492634773254,     0.07748096436262131,     0.10552392154932022,    -0.5654210448265076,      0.07463066279888153;    
 
-G1_biases[0]<<
+*G1_biases[0]<<
  0.14012272655963898,     0.05967460200190544,     0.09209666401147842,     0.18666619062423706,     0.20969150960445404,    
  0.29958266019821167,    -0.04659508541226387,     0.04332694783806801,     0.07431188970804214,    -0.08141321688890457,    
 -0.06722014397382736,     0.1801392287015915,      0.17972709238529205,     0.3217307925224304,      0.022489449009299278,   
@@ -1063,7 +1136,7 @@ G1_biases[0]<<
  0.36864012479782104,    -0.07428433001041412,    -0.12668855488300323,    -0.5509001612663269,      0.45582887530326843,    
  0.2665642201900482,      0.1690942347049713,     -0.07150360941886902,    -0.0024433848448097706,   0.07371106743812561;    
 
-G1_weights[1]<<
+*G1_weights[1]<<
 -0.003443147987127304,   -0.5313676595687866,     -0.04212702810764313,     0.20117616653442383,     0.14809313416481018,    
  0.09475776553153992,     0.14092451333999634,     0.29227426648139954,     0.11725679785013199,    -0.12458281219005585,    
 -0.027806919068098068,    0.23195406794548035,     0.1145414486527443,     -0.15387101471424103,     0.24957764148712158,    
@@ -1415,7 +1488,7 @@ G1_weights[1]<<
  0.012729129754006863,    0.06523630023002625,     0.2859145402908325,      0.47673487663269043,     0.18995510041713715,    
  0.5434783101081848,      0.2658849358558655,     -1.0403964519500732,      0.44122323393821716,     0.3677313029766083;     
 
-G1_biases[1]<<
+*G1_biases[1]<<
  0.004040894098579884,    0.0897534042596817,      0.029225178062915802,    0.08328638970851898,     0.03484508395195007,    
 -0.08096430450677872,    -0.1898910105228424,     -0.18789492547512054,     0.15817146003246307,     0.27795127034187317,    
  0.4638420045375824,      0.327300101518631,       0.04058884084224701,    -0.00021348045265767723,  0.07738471031188965,    
@@ -1427,7 +1500,7 @@ G1_biases[1]<<
 -0.0995250716805458,     -0.2105252593755722,     -0.28423503041267395,    -0.11064868420362473,     0.00010022985225077718, 
  0.12867093086242676,    -0.0629579946398735,      0.07405143976211548,     0.04921865463256836,    -0.26585596799850464;    
 
-G2_weights[0]<<
+*G2_weights[0]<<
 -0.15911489725112915,     0.11115849763154984,    -0.11899333447217941,    -0.305995911359787,       0.21188239753246307,    
 -0.0045171743258833885,   0.0720590353012085,      0.24279753863811493,     0.5371531844139099,      0.23303738236427307,    
  0.22952428460121155,    -0.3656739592552185,      0.18081629276275635,    -0.2618083655834198,      0.09729192405939102,    
@@ -1541,7 +1614,7 @@ G2_weights[0]<<
  0.05392367020249367,    -0.262930691242218,      -0.11458073556423187,     0.3570099174976349,      0.42829009890556335,    
 -0.11612026393413544,    -0.027940647676587105,   -0.3401435911655426,     -0.07718192040920258,    -0.12828581035137177;    
 
-G2_biases[0]<<
+*G2_biases[0]<<
  0.08899150788784027,    -0.04295072704553604,     0.20114164054393768,     0.16749940812587738,     0.15316390991210938,    
  0.10969782620668411,    -0.03570020943880081,     0.09770450741052628,     0.1767217069864273,      0.21418948471546173,    
 -0.12866951525211334,    -0.1800832748413086,      0.12893280386924744,     0.0683964416384697,      0.013762228190898895,   
@@ -1550,7 +1623,7 @@ G2_biases[0]<<
 -0.2725752890110016,     -0.02394517883658409,     0.18791738152503967,     0.2154342085123062,     -0.05086581036448479,    
 -0.12166508287191391,     0.0827615037560463,     -0.04258967190980911,     0.05993792414665222,     0.2769705355167389;     
 
-G2_weights[1]<<
+*G2_weights[1]<<
  0.07434465736150742,     0.5229705572128296,      0.19646666944026947,    -0.2748345136642456,     -0.08159920573234558,    
  0.25723516941070557,     0.12790466845035553,    -0.08782823383808136,    -0.4635770618915558,      0.24083854258060455,    
  0.22845251858234406,    -1.6055580377578735,      0.2286635786294937,      0.08142518997192383,    -0.18979544937610626,    
@@ -1902,7 +1975,7 @@ G2_weights[1]<<
  0.42057111859321594,    -0.02121608518064022,     0.26050305366516113,     0.2706669569015503,     -0.08985838294029236,    
 -0.44835230708122253,     0.27974453568458557,     0.3334437906742096,     -0.06500466167926788,    -0.03615495190024376;    
 
-G2_biases[1]<<
+*G2_biases[1]<<
  0.04369258135557175,     0.013287004083395004,    0.03193466365337372,     0.007058169227093458,   -0.027160143479704857,   
 -0.04521644860506058,     0.004570687189698219,    0.06337021291255951,     0.05655866861343384,     0.061471521854400635,   
  0.008941625244915485,   -0.0036855454090982676,   0.03603265434503555,     0.021363649517297745,    0.0060806917026638985,  
@@ -1914,7 +1987,7 @@ G2_biases[1]<<
  0.08278220146894455,     0.05019436031579971,     0.009643633849918842,    0.06434709578752518,    -0.005804017651826143,   
  0.0688631534576416,      0.049605704843997955,    0.06638138741254807,    -0.02338012494146824,     0.01193263754248619;    
 
-D1_weights[0]<<
+*D1_weights[0]<<
 -0.05250503495335579,    -0.10783080756664276,    -0.01515660248696804,     0.11496526747941971,     0.09812448918819427,    
 -0.07049556821584702,    -0.02062169276177883,     0.08253728598356247,     0.004174161236733198,   -0.02685532718896866,    
 -0.03670287877321243,     0.03373689204454422,    -0.01082331407815218,    -0.12307926267385483,    -0.11261660605669022,    
@@ -2166,14 +2239,14 @@ D1_weights[0]<<
 -0.17294883728027344,    -0.11132758110761642,     0.04626060277223587,     0.1403176635503769,      0.10959888994693756,    
  0.16351883113384247,     0.09923302382230759,    -0.046900663524866104,    0.3414154052734375,      0.11290889978408813;    
 
-D1_biases[0]<<
+*D1_biases[0]<<
  0.7992653250694275,     -0.24977366626262665,     0.14301525056362152,    -0.039787039160728455,    0.15446880459785461,    
 -0.07252187281847,        0.06311160326004028,     0.056674305349588394,    0.0123815406113863,      0.10132834315299988,    
 -0.1662786453962326,      0.2326633632183075,      0.07279402762651443,     0.22380340099334717,     0.7922183871269226,     
  0.03431886434555054,    -0.08190298080444336,     0.34820878505706787,     0.018099479377269745,    0.3701903522014618,     
  0.2775527536869049,      1.5280011892318726,     -0.02065056748688221,     0.30969807505607605,     0.28942301869392395;    
 
-D2_weights[0]<<
+*D2_weights[0]<<
 -0.03304712474346161,    -0.10021945834159851,    -0.016268163919448853,   -0.07389979064464569,    -0.0370941162109375,     
 -0.008725963532924652,   -0.015917502343654633,   -0.05827397108078003,     0.014775856398046017,   -0.029588257893919945,   
 -0.022319674491882324,   -0.02309878170490265,    -0.005542102735489607,   -0.06817969679832458,    -0.06675805151462555,    
@@ -2425,7 +2498,7 @@ D2_weights[0]<<
  0.008301585912704468,    0.07511195540428162,     0.0266365148127079,     -0.055796068161726,      -0.01780039630830288,    
  0.058667391538619995,    0.08319244533777237,     0.1386638581752777,      0.05115474388003349,     0.06495517492294312;    
 
-D2_biases[0]<<
+*D2_biases[0]<<
 -0.09588687121868134,     0.005625247489660978,   -0.006212329957634211,   -0.009209327399730682,    0.0008744547376409173,  
  0.07078775763511658,     0.01160139124840498,     0.0006070254603400826,  -0.436791330575943,       0.006498373579233885,   
  0.7556611895561218,      0.6203457117080688,     -0.003364704316481948,    0.12089156359434128,    -0.5068503022193909,     

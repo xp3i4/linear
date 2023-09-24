@@ -4,9 +4,7 @@
 #include <fstream>      // std::ifstream
 #include <vector>
 #include <time.h>
-//#include "Eigen/Eigen"
-//#include <Eigen>
-#include <eigen3/Eigen/Eigen>
+#include "Eigen/Eigen"
 
 namespace dl
 {
@@ -22,15 +20,39 @@ typedef std::function<Scalar(Scalar)> TAcFun;
 class NeuralNetwork {
 public:
 
+    enum F_new {Layers = 1, GH = 2, Dfs = 4, Weights = 8, GW = 16, GWB = 32, Biases = 64, GB = 128, GBB = 256};
+	int f_new;
+	/*
+		use pointers when using std::vector<Class> as std::vector<Class> calls destructor of
+		Class as soon as it is pushed back! when we use pointers it can't do that, besides
+		it also makes our neural network class less heavy!! It would be nice if you can use
+		smart pointers instead of usual ones like this
+		*/
+    std::vector<unsigned> topology;
+    std::vector<Matrix*> layers;//H_i, which are input, hidden, and output layers.
+	std::vector<Matrix*> gradients_H; // stores the gradients of cost C with respect to H_i
+
+	std::vector<Matrix*> dfs; //f'(z) activation Derivatives
+
+	std::vector<Matrix*> weights; // W_i
+	std::vector<Matrix*> gradients_W;
+	std::vector<Matrix*> gradients_W_batch;
+
+	std::vector<Matrix*> biases; //B_i
+	std::vector<Matrix*> gradients_B;
+	std::vector<Matrix*> gradients_B_batch;
+	Scalar learningRate;
+	unsigned batch_size;
 
 	// constructor
 	NeuralNetwork();
 	NeuralNetwork(std::vector<unsigned> topology, 
 		   	    Scalar learningRate = Scalar(0.005),
 			    unsigned batch_size = unsigned(100));
-	NeuralNetwork(std::vector<Matrix> & init_weights,  
-			    std::vector<Matrix> & init_biases, 
-			    std::vector<TAcFun> & init_activations);
+	NeuralNetwork(std::vector<Matrix*> & init_weights,  
+			    std::vector<Matrix*> & init_biases, 
+			    std::vector<TAcFun> & init_activations,
+			    std::vector<TAcFun> & init_activation_derivatives);
 
 	// destructor
 	~NeuralNetwork();
@@ -41,6 +63,7 @@ public:
 	Scalar activationDerivativeFun (Scalar z, unsigned layer_no, unsigned neuron_no = 0);
 
 	std::vector<TAcFun> activations;
+	std::vector<TAcFun> activation_derivatives;
 
 	// function for forward propagation of data
 	void propagateForward(Matrix& input, int f_train);
@@ -61,33 +84,6 @@ public:
 
 	void cost_gradient(Matrix & derivatives, Matrix & expected);
 
-	//cost function
-	//void cost ();
-
-	//cost function derivative	
-	//dfvoid 	
-	// storage objects for working of neural network
-	/*
-		use pointers when using std::vector<Class> as std::vector<Class> calls destructor of
-		Class as soon as it is pushed back! when we use pointers it can't do that, besides
-		it also makes our neural network class less heavy!! It would be nice if you can use
-		smart pointers instead of usual ones like this
-		*/
-    	std::vector<unsigned> topology;
-    	std::vector<Matrix*> layers;//H_i, which are input, hidden, and output layers.
-	std::vector<Matrix*> gradients_H; // stores the gradients of cost C with respect to H_i
-
-	std::vector<Matrix*> dfs; //f'(z) activation Derivatives
-
-	std::vector<Matrix*> weights; // W_i
-	std::vector<Matrix*> gradients_W;
-	std::vector<Matrix*> gradients_W_batch;
-
-	std::vector<Matrix*> biases; //B_i
-	std::vector<Matrix*> gradients_B;
-	std::vector<Matrix*> gradients_B_batch;
-	Scalar learningRate;
-	unsigned batch_size;
 };
 
 struct Model1
@@ -95,7 +91,8 @@ struct Model1
      NeuralNetwork nn; 
      Model1();
      Model1(std::vector<unsigned>);
-     Model1(std::vector<Matrix> & init_weights, std::vector<Matrix> & init_biases, std::vector<TAcFun> & init_activations);
+     Model1(std::vector<Matrix*> & init_weights, std::vector<Matrix*> & init_biases, 
+     	std::vector<TAcFun> & init_activations, std::vector<TAcFun> & init_activation_derivatives);
 
      void forward(Matrix & input, int f_train);
 	Matrix & getOutput();
@@ -132,24 +129,32 @@ struct AcGan1
 
 //Type 2 autoencoder generative adversarial networks
 struct Nn2AncSVParms{
-    std::vector<Matrix> E1_weights;
-    std::vector<Matrix> G1_weights;
-    std::vector<Matrix> G2_weights;
-    std::vector<Matrix> D1_weights;
-    std::vector<Matrix> D2_weights;
+    std::vector<Matrix*> E1_weights;
+    std::vector<Matrix*> G1_weights;
+    std::vector<Matrix*> G2_weights;
+    std::vector<Matrix*> D1_weights;
+    std::vector<Matrix*> D2_weights;
 
-    std::vector<Matrix> E1_biases;
-    std::vector<Matrix> G1_biases;
-    std::vector<Matrix> G2_biases;
-    std::vector<Matrix> D1_biases;
-    std::vector<Matrix> D2_biases;
+    std::vector<Matrix*> E1_biases;
+    std::vector<Matrix*> G1_biases;
+    std::vector<Matrix*> G2_biases;
+    std::vector<Matrix*> D1_biases;
+    std::vector<Matrix*> D2_biases;
 
     std::vector<TAcFun> E1_activations;
     std::vector<TAcFun> G1_activations;
     std::vector<TAcFun> G2_activations;
     std::vector<TAcFun> D1_activations;
     std::vector<TAcFun> D2_activations;
+
+    std::vector<TAcFun> E1_activation_derivatives;
+    std::vector<TAcFun> G1_activation_derivatives;
+    std::vector<TAcFun> G2_activation_derivatives;
+    std::vector<TAcFun> D1_activation_derivatives;
+    std::vector<TAcFun> D2_activation_derivatives; 
+
     Nn2AncSVParms();
+    ~Nn2AncSVParms();
 };
 
 struct AcGan2
@@ -164,11 +169,11 @@ struct AcGan2
 		  std::vector<unsigned> G_topology,
 		  std::vector<unsigned> D_topology
 		  );
-	AcGan2(std::vector<Matrix> & E1_weights, std::vector<Matrix> & E1_biases, std::vector<TAcFun> &,
-		  std::vector<Matrix> & G1_weights, std::vector<Matrix> & G1_biases, std::vector<TAcFun> &,
-		  std::vector<Matrix> & G2_weights, std::vector<Matrix> & G2_biases, std::vector<TAcFun> &,
-		  std::vector<Matrix> & D1_weights, std::vector<Matrix> & D1_biases, std::vector<TAcFun> &,
-		  std::vector<Matrix> & D2_weights, std::vector<Matrix> & D2_biases, std::vector<TAcFun> &);
+	AcGan2(std::vector<Matrix*> & E1_weights, std::vector<Matrix*> & E1_biases, std::vector<TAcFun> &, std::vector<TAcFun> &,
+		  std::vector<Matrix*> & G1_weights, std::vector<Matrix*> & G1_biases, std::vector<TAcFun> &, std::vector<TAcFun> &,
+		  std::vector<Matrix*> & G2_weights, std::vector<Matrix*> & G2_biases, std::vector<TAcFun> &, std::vector<TAcFun> &,
+		  std::vector<Matrix*> & D1_weights, std::vector<Matrix*> & D1_biases, std::vector<TAcFun> &, std::vector<TAcFun> &,
+		  std::vector<Matrix*> & D2_weights, std::vector<Matrix*> & D2_biases, std::vector<TAcFun> &, std::vector<TAcFun> &);
 	float getRegPrior();
 	float getInsPrior();
 	float getDelPrior();

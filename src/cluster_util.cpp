@@ -102,11 +102,11 @@ int ChainScoreParms::computePriors(String<uint64_t> & fragments)
 String<float> & ChainScoreParms::getPriors()
 {
     std::pair<int,int> range1, range2;
-    if (f_prior_type == 0)
+    if (f_prior_type == pt_default)
     {
         return back(priors);
     }
-    else if (f_prior_type == 1)
+    else if (f_prior_type == pt_dl)
     {
         range1 = fragment_dl_priors.getPriors(fragment1_id); 
         range2 = fragment_dl_priors.getPriors(fragment2_id);
@@ -127,10 +127,6 @@ String<float> & ChainScoreParms::getPriors()
     }
 }
 
-float & ChainScoreParms::getPrior(String<float> & priors, SVType sv_type)
-{
-    return priors[sv_type]; 
-}
 
 int ChainsRecord::isLeaf(){return f_leaf;}
 
