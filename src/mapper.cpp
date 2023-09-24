@@ -194,6 +194,7 @@ int Mapper::loadOptions(Options & options)
         }
         case 3:
         {
+            //enable priors
             map_parms = parm0; //HiFi; cuteSV, SVIM
             map_parms.pm_pmp.pm_cah.thd_stop_chain_len_ratio = 0;
             map_parms.pm_pmp.pm_cah.f_score_type = 2;
