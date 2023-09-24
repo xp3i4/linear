@@ -1,22 +1,44 @@
 #ifndef LINEAR_HEADER_CLUSTER_UTIL_H
 #define LINEAR_HEADER_CLUSTER_UTIL_H
 #include <seqan/sequence.h>
+#include "dl.h"
 #include "base.h"
 #include "cords.h"
 using namespace seqan;
+
+struct FragmentDLPriors
+{
+    int fragment_block_step;
+    int fragment_block_size;
+    dl::AcGan2 * p_nn;
+
+    FragmentDLPriors(dl::AcGan2 &);
+    int computePriors(String<uint64_t> & fragments, StringSet<String<float> > & priors);
+    std::pair<int, int> getPriors(int fragment_id); //return the first and last block prior id that contain the fragment 
+};
+
 struct ChainScoreParms
 {
     int64_t mean_d;  //mean of distance of kmers
     int64_t var_d;
     int chn_block_strand;
     float gacs3_ins_read_len_ratio; //support ins of len < this * read_len, otherwise skip ins leaving unchanined
-
-    String<float> priors1;
+    
+    enum PriorType {pt_default, pt_dl};
+    int f_prior_type;
+    int f_fragment_map;
+    int fragment1_id;
+    int fragment2_id;
+    FragmentDLPriors fragment_dl_priors;
+    StringSet<String<float> > priors; 
     String<float> mus1; 
     String<float> sigmas1;
-    int f_map1;
 
-    ChainScoreParms(float val_gacs3_ins_read_len_ratio = 1);
+
+    ChainScoreParms(String<uint64_t> & fragments = _empty_string_uint64_t_, 
+        dl::AcGan2 & nn = dl::nn2_anc_sv, int f_prior_type = 0, float val_gacs3_ins_read_len_ratio = 1);  
+    int computePriors(String<uint64_t> & fragments);
+    String<float> & getPriors();
 };
 
 int getApxChainScore(uint64_t const & anchor1, uint64_t const & anchor2, ChainScoreParms & chn_sc_parms);
@@ -68,4 +90,5 @@ int chainBlocksCords(String<uint64_t> & cords, String<UPair> & str_ends_p, Chain
 int getChainBlocksScore1(uint64_t const & cord11, uint64_t const & cord12, 
     uint64_t const & cord21, uint64_t const & cord22, 
     uint64_t const & read_len, ChainScoreParms & chn_sc_parms);
+
 #endif
