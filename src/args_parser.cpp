@@ -165,8 +165,8 @@ seqan::ArgumentParser::ParseResult parseCommandLineFilter(Options & options,
             seqan::ArgParseArgument::INTEGER, "INT"));
     */
     addOption(parser, seqan::ArgParseOption(
-        "ot", "output_type", "Set the format of the output file. 1 to enable .APF, an approximate map file for non-standard application; \
-         2 to enable .SAM {DEFAULT}; 4 to enable .BAM; Set values 3 (3=1+2) to enable both .apf and .sam",
+        "ot", "output_type", "Set the output format: 1 to enable .APF, an approximate map file for non-standard application; \
+         2 to enable .SAM {DEFAULT}; 4 to enable .BAM; Example: Set -ot 3 (=1+2) to enable .apf and .sam",
             seqan::ArgParseArgument::INTEGER, "INT"));
     addOption(parser, seqan::ArgParseOption(
         "t", "thread", "Set the number of threads to run. -t 4 {DEFAULT}",
@@ -193,12 +193,10 @@ seqan::ArgumentParser::ParseResult parseCommandLineFilter(Options & options,
         "sn", "sample_name", "Set the name of the sample specified in the SAM header",
         seqan::ArgParseArgument::STRING, "STR"
         ));
-    /*
     addOption (parser, seqan::ArgParseOption(
-        "ss", "sequence_sam", "Set to Enable/Disable printing sequence segment of reads in the SAM/BAM format. -ss 1(Enable) {DEFAULT}",
+        "ss", "sequence_sam", "Set to Enable/Disable printing sequence segment of reads in the SAM/BAM format. -ss 0(Disable) {DEFAULT}",
         seqan::ArgParseArgument::INTEGER, "INT"
         ));
-        */
     addSection(parser, "More options (tweak)");
     addOption (parser, seqan::ArgParseOption(
         "dup", "duplication", "Redetect duplications for signals of insertions. Enabling (-dup 1) this option will treat many insertions as duplications. This option is off (-dup 0) {DEFAULT}",
@@ -279,7 +277,7 @@ seqan::ArgumentParser::ParseResult parseCommandLineFilter(Options & options,
     getOptionValue(options.reform_ccs_cigar_flag, parser, "reform_ccs_cigar_flag");
     getOptionValue(options.read_group, parser, "read_group");
     getOptionValue(options.sample_name, parser, "sample_name");
-    //getOptionValue(options.sequence_sam_flag, parser, "sequence_sam");
+    getOptionValue(options.sequence_sam_flag, parser, "sequence_sam");
     getOptionValue(options.bal_flag, parser, "bal_flag");
     getOptionValue(options.f_dup, parser, "duplication"); 
 

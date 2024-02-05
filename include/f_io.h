@@ -122,4 +122,10 @@ void print_cords_sam (StringSet<String<uint64_t> > & cordset_str,
                       FIOParms & fio_parms,
                       int f_parallel = 1);
                       */
+int fillBamRecords(StringSet<String<Dna5> > & genms,
+                   StringSet<String<Dna5> > & reads,
+                   StringSet<CharString> & genms_id,
+                   StringSet<CharString> & reads_id,
+                   StringSet<String<BamAlignmentRecordLink> > & bam_records,
+                   FIOParms & fio_parms);
 #endif

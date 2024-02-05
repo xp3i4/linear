@@ -68,7 +68,8 @@ int process2(Mapper & mapper, Options & options, int p1)
 int process3(Mapper & mapper, Options & options, int p1)
 {
     int num_buffers = std::max(30, (int)(mapper.getThreads() * 1.5));
-    P_Parms p_parms(1, 1, 1, 100);
+    int buffer_size = std::max(4,  (int)mapper.getThreads()) * 32;
+    P_Parms p_parms(mapper.getThreads() * 8, 1, mapper.getThreads() * 8,  buffer_size);
     mapper.initBuffers(num_buffers, num_buffers, p_parms);
     //dout << "p2" << mapper.getThreads() << "\n";
     omp_set_num_threads(mapper.getThreads());
@@ -76,10 +77,12 @@ int process3(Mapper & mapper, Options & options, int p1)
     createFeatures(mapper.getGenomes(), mapper.getGenomesFeatures(), mapper.getFeatureType(), mapper.getThreads());
     mapper.createIndex(0, length(mapper.getGenomes()), false); 
     mapper.getPTasks().startRunTasks();
+    mapper.openOfs();
     #pragma omp parallel
     {
         p_ThreadProcess(mapper, p_parms, omp_get_thread_num());
     }
+    mapper.closeOfs();
     //mapper.getTasks().printInfos();
     unused(p1);
     unused(options);
