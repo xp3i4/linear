@@ -1852,6 +1852,7 @@ unsigned getSIndexMatchAll (SIndex & index,
     }
     return 0;    
 }
+
 unsigned getDIndexMatchAll (DIndex & index,
                             String<Dna5> & read,
                             String<uint64_t> & set,

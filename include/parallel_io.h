@@ -109,32 +109,38 @@ struct Counters{
     String<int> counters;
     String<double> timers;
     //add here the new counters 
-    Counters(){resize(counters, 3, 0); resize(timers, 3, 0);}
+    Counters(){resize(counters, 4, 0); resize(timers, 4, 0);}
     int getInCounter(){return counters[0];}
     int getCalCounter(){return counters[1];}
     int getOutCounter(){return counters[2];}
+    int getReqCounter(){return counters[3];}
     double getInTimer(){return timers[0];}
     double getCalTimer(){return timers[1];}
     double getOutTimer(){return timers[2];}
+    double getReqTimer(){return timers[3];}
     void setInCounter(int val){counters[0] = val;}
     void setCalCounter(int val){counters[1] = val;}
     void setOutCounter(int val){counters[2] = val;}
+    void setReqCounter(int val){counters[3] = val;}
     void setInTimer(double val){timers[0] = val;}
     void setCalTimer(double val){timers[1] = val;}
     void setOutTimer(double val){timers[2] = val;}
+    void setReqTimer(double val){timers[3] = val;}
     
     void clearCounters(){
-        counters[0] = counters[1] = counters[2] = 0;
-        timers[0] = timers[1] = timers[2] = 0;
+        counters[0] = counters[1] = counters[2] = counters[3] = 0;
+        timers[0] = timers[1] = timers[2] = timers[3] = 0;
     }
     void addCounters (Counters & b_counters)
     {
         counters[0] += b_counters.counters[0];
         counters[1] += b_counters.counters[1];
         counters[2] += b_counters.counters[2];
+        counters[3] += b_counters.counters[3];
         timers[0] += b_counters.timers[0];
         timers[1] += b_counters.timers[1];
         timers[2] += b_counters.timers[2];
+        timers[3] += b_counters.timers[3];
     }
 };
 

@@ -388,7 +388,7 @@ int writeSam(std::ofstream & target,
 
     writeValue(target, '\t');
 
-    if (empty(record.seq))
+    if (empty(record.seq) || !fio_parms.f_print_seq)
         writeValue(target, '*');  
     else
         write(target, record.seq);
@@ -590,6 +590,20 @@ int printAlignBam(StringSet<String<BamAlignmentRecordLink> > & bam_records,
     return 0;
 }
 
+int fillBamRecords(StringSet<String<Dna5> > & genms,
+                   StringSet<String<Dna5> > & reads,
+                   StringSet<CharString> & genms_id,
+                   StringSet<CharString> & reads_id,
+                   StringSet<String<BamAlignmentRecordLink> > & bam_records,
+                   FIOParms & fio_parms)
+{
+    for (unsigned i = 0; i < length(bam_records); i++)
+    {
+        bls_operator.fillBamRecordLinkRecords(bam_records[i], genms, genms_id,reads[i], reads_id[i], 
+            fio_parms.f_print_seq, fio_parms.f_is_align);
+    }
+    return 0;    
+}
 /*
  * Make sure length(reads) == length(reads_id) == length(bam_records)
  */
@@ -602,25 +616,34 @@ int printAlignSamBam (StringSet<String<Dna5> > & genms,
                       int f_header,
                       FIOParms & fio_parms)
 {
+
+    //double t1,t2;
     if (length(reads) != length(bam_records) ||
         length(reads) != length(reads_id))
     {
         std::cout << "[ERROR]::printAlignSamBam\n";
         return 0;
     }
+    //fillBamRecords(genms, reads, genms_id, reads_id, bam_records, fio_parms);
+    /*
     for (unsigned i = 0; i < length(bam_records); i++)
     {
         bls_operator.fillBamRecordLinkRecords(bam_records[i], genms, genms_id,reads[i], reads_id[i], 
             fio_parms.f_print_seq, fio_parms.f_is_align);
     }
+    */
     if (fp_handler_.isPrintSam(fio_parms.f_output_type))
     {
+    //t2 = sysTime();
         printAlignSam(bam_records, genms, reads, of, f_header, fio_parms);
+    //t2 = sysTime() - t2;
+    //dout << "pasb" << t2 << "\n";
     }
     else if (fp_handler_.isPrintBam(fio_parms.f_output_type))
     {
         printAlignBam(bam_records, of, f_header, fio_parms);
     }
+    (void)genms_id;
     return 0;
 }
 

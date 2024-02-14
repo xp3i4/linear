@@ -50,13 +50,13 @@ class Mapper : public P_Mapper
     StringSet<String<uint64_t> > cordSet;
     StringSet<String<uint64_t> > cordSet2;
     StringSet<String<CordInfo> > cords_info;
-    std::ofstream of;
+    std::ofstream of, of_sam, of_bam;
     unsigned _thread;
     String<size_t> rlens;
     StringSet<String<uint64_t> > clip_set;
     StringSet<String<BamAlignmentRecordLink> > bam_records;
     StringSet<FeaturesDynamic > f2; //features of genomes
-    std::string outputPrefix;
+    std::string outputPrefix, pre_output_prefix;
     int feature_type;
     int of_type;
     int f_new_file;
@@ -101,7 +101,10 @@ public:
     StringSet<String<uint64_t> > & getClips(){return clip_set;}
     String<size_t> & getReadsLen(){return rlens;}
     std::ofstream & getOf() {return of;}
+    std::ofstream & getOfSam() {return of_sam;}
+    std::ofstream & getOfBam() {return of_bam;}
     std::string & getOutputPrefix(){return outputPrefix;}
+    std::string & getPreOutputPrefix(){return pre_output_prefix;}
     StringSet<String<BamAlignmentRecordLink> > & getBamRecords() {return bam_records;}
     StringSet<FeaturesDynamic > & getGenomesFeatures(){return f2;} //features of genomes
     int  getFeatureType();
@@ -109,6 +112,8 @@ public:
     void setOfNew();
     bool isOfNew();
     bool isOfApp();
+    void openOfs();
+    void closeOfs();
     Options::PathsType & getRPaths();
     Options::PathsType & getGPaths();
     uint & getMapFlag(){return f_map;}

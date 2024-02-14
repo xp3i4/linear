@@ -80,19 +80,20 @@ void P_Tasks::printRunningInfos()
     //hence assign it to path_it to keep consistency between length check and get value from paths2[path_it]
     int path_it = paths2_it;
     std::string current_in_path = (path_it >= int(length(paths2))) ? "Status::Fetch End" : paths2[paths2_it];
+    float cal_elpased_time = counters.getCalTimer() / length(tasks);
     std::cerr << "--\033[1;31m" << current_in_path << "\033[0m\n"
-              << "\033[2K  I/O::in:" << counters.getInCounter() << "\t"
-              << " cpu:" << counters.getInTimer() << "[s]\t"
-              << " speed:" << counters.getInCounter() / counters.getInTimer() << "[rds/thd/s]\033[7h\n"
-              << "\033[2K  I/O::out:" << counters.getOutCounter() << "\t"
-              << " cpu:" << counters.getOutTimer() << "[s]\t"
-              << " speed:" << counters.getOutCounter() / counters.getOutTimer() << "[rds/thd/s]\033[7h\n"
-              << "\033[2K  Compute:" << counters.getCalCounter() << ""
-              << " cpu:" << counters.getCalTimer() << "[s]"
-              << " speed:" << counters.getCalCounter() / counters.getCalTimer() << "[rds/thd/s]\033[7h\n"
-              << "\033[2K  \033[1;31mProcessed:\033[0m" << counters.getOutCounter() << ""
-              << " time:" << sysTime() - start__time << "[s]" 
-              << " speed:" << counters.getOutCounter() / t_t << "[rds/s]\033[7h\n\r";
+              << "\033[2K  I/O::in:  " << counters.getInCounter() << " "
+              << " time:" << counters.getInTimer() << "[s] "
+              << " speed:" << counters.getInCounter() / counters.getInTimer() << "[reads/s]\033[7h\n"
+              << "\033[2K  I/O::out: " << counters.getOutCounter() << " "
+              << " time:" << counters.getOutTimer() << "[s] "
+              << " speed:" << counters.getOutCounter() / counters.getOutTimer() << "[reads/s]\033[7h\n"
+              << "\033[2K  Compute:  " << counters.getCalCounter() << " "
+              << " time:" << cal_elpased_time << "[s] "
+              << " speed:" << counters.getCalCounter() / cal_elpased_time  << "[reads/s]\033[7h\n"
+              << "\033[2K  \033[1;31mProcessed:\033[0m" << counters.getOutCounter() << " "
+              << " time:" << sysTime() - start__time << "[s] " 
+              << " speed:" << counters.getOutCounter() / t_t << "[reads/s]\033[7h\n\r";
 }
 void P_Tasks::nextGroup1In()
 {
@@ -134,10 +135,10 @@ void P_Tasks::setTaskAllEnd()
 }
 void P_Tasks::updateCounters()
 {
+    counters.clearCounters();
     for (unsigned i = 0; i < length(tasks); i++)
     {
         counters.addCounters(tasks[i].counters);
-        tasks[i].counters.clearCounters();
     }
 }
 //void P_Tasks::setAllOutBuffProtected()
@@ -233,6 +234,15 @@ int P_Tasks::assignCalRecords(P_Parms & p_parms, int thread_id)
         this->nextAssignIt2(); //assign_it2 iterator
         this->nextAssignIt3();
     }
+    if (buffer1.usedSize() > buffer1.size() - 2)
+    {
+        p_parms.thd_buffer_block_size = std::min(128, p_parms.thd_buffer_block_size * 2); 
+    }
+    else if (buffer1.usedSize() < 2)
+    {
+        p_parms.thd_buffer_block_size = std::max(32, p_parms.thd_buffer_block_size / 2); 
+    }
+    //dout << "asCR" << buffer1_used_size << p_parms.thd_buffer_block_size << "\n";
     int return_val = length(tasks[thread_id].p_ins) ? 0 : 1;
     return return_val;
 }
@@ -424,8 +434,10 @@ int p_FetchReads(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
 {
     double time = sysTime();
     int error = 0;
-    Counters & counters = p_mapper.getPTask(thread_id).counters;
+    //Counters & counters = p_mapper.getPTask(thread_id).counters;
     P_Tasks & p_tasks = p_mapper.getPTasks(); 
+    Counters & counters = p_mapper.getPTask(thread_id).counters;
+    double t0 = counters.getInTimer(); 
     P_ReadsIdsBuffer & buffer1 = * p_tasks.p_reads_ids_buffer;
     P_ReadsBuffer & buffer2 = * p_tasks.p_reads_buffer;
     P_ReadsPathsBuffer & buffer3 = * p_tasks.p_reads_paths_buffer;
@@ -448,12 +460,12 @@ int p_FetchReads(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
         clear(buffer1.in());
         clear(buffer2.in());
 
-        std::ostringstream ss;
         //std::cout << ss.str();
         buffer3.in() = file_name;
         int tmp_length = length(buffer1.in());
         readRecords(buffer1.in(), buffer2.in(), p_tasks.fin, p_parms.thd_buffer_block_size);
         counters.setInCounter(counters.getInCounter() + length(buffer1.in()) - tmp_length);
+        //dout << "sys2 " << counters.getInCounter() << " " << length(buffer1.in()) - tmp_length << "\n";
         buffer1.nextIn();
         buffer2.nextIn();
         buffer3.nextIn();
@@ -462,9 +474,13 @@ int p_FetchReads(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
             close(p_tasks.fin);
             p_tasks.paths2_it++;
             p_tasks.f_fin_open = 0;
+            break;
         }
+        counters.setInTimer(t0 + sysTime() - time);
     }
-    counters.setInTimer(counters.getInTimer() + sysTime() - time);
+    //std::cout << "fetch2 " << thread_id << " " << p_parms.thd_fetch_num << " " << i << "\n";
+    //counters.setInTimer(counters.getInTimer() + sysTime() - time);
+    (void)thread_id;
     return error;
 }
 /*
@@ -484,6 +500,7 @@ int p_CalRecords(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
     P_BamLinkBuffer & buffer4 = * p_tasks.p_bam_link_buffer;
     //p_tasks.p_reads_buffer -> nextOut();
     //p_tasks.p_reads_ids_buffer -> nextOut();
+    //std::cout << "pcal " << p_tasks.getTaskInBufferLen(thread_id) << "\n";
     for (int i = 0; i < p_tasks.getTaskInBufferLen(thread_id); i++)
     {
         //add cal function here
@@ -504,9 +521,10 @@ int p_CalRecords(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
  */
 int p_PrintResults(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
 {   
-    double time = sysTime();
-    Counters & counters = p_mapper.getPTask(thread_id).counters;
+    double time = sysTime();//, t2, t2s = 0;
     P_Tasks & p_tasks = p_mapper.getPTasks();
+    Counters & counters = p_mapper.getPTask(thread_id).counters;
+    double t0 = counters.getOutTimer();
     P_ReadsPathsBuffer & buffer0 = * p_tasks.p_reads_paths_buffer;
     P_ReadsIdsBuffer & buffer1 = * p_tasks.p_reads_ids_buffer;
     P_ReadsBuffer & buffer2 = * p_tasks.p_reads_buffer;
@@ -527,9 +545,11 @@ int p_PrintResults(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
         && !buffer4.isEmpty(); i++)
     {
         //add print_function here
+      //  t2 = sysTime();
         p_mapper.p_printResults(buffer1.outIt(), buffer31.outIt(), thread_id);
-        p_mapper.getPTasks().updateCounters();
-        p_mapper.getPTasks().printRunningInfos();
+       // t2 = sysTime() - t2;
+     //   dout << "syst2" << t2 << "\n";
+        
         buffer0.nextOut();
         buffer1.nextOut(); //release one block in reads_buffer
         buffer2.nextOut();
@@ -537,9 +557,14 @@ int p_PrintResults(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
         buffer32.nextOut();
         buffer33.nextOut();
         buffer4.nextOut();
+        //t2s += t2;
+        counters.setOutTimer(t0 + sysTime() - time);
+        p_mapper.getPTasks().updateCounters();
+        p_mapper.getPTasks().printRunningInfos();
     }
-    //dout << "syst" << counters.getOutTimer() << sysTime() - time << "\n";
-    counters.setOutTimer(counters.getOutTimer() + sysTime() - time);
+    //time = sysTime() - time;
+    //dout << "syst" << counters.getOutTimer() << t2 << t2s << time << t2s / time << "\n";
+    //counters.setOutTimer(counters.getOutTimer() + sysTime() - time);
     return 0; 
 }
 
@@ -574,7 +599,6 @@ int p_ThreadProcess(P_Mapper & p_mapper, P_Parms & p_parms, int thread_id)
         {
             f_error = p_CalRecords(p_mapper, p_parms, thread_id);
         }
-        
         else if (p_tasks.isTaskPrintResults(thread_id))
         {
             f_error = p_PrintResults(p_mapper, p_parms, thread_id);

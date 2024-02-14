@@ -353,6 +353,29 @@ bool Mapper::isOfApp()
     return of_type == OF_APP;
 }
 
+void Mapper::openOfs()
+{
+    if (fp_handler_.isPrintSam(getPrintFlag()))
+    {
+        std::string file = getOutputPrefix() + ".sam";
+        of_sam.open(toCString(file));
+    }
+}
+void Mapper::closeOfs()
+{
+    if (of.is_open())
+    {
+        of.close();
+    }
+    if (of_sam.is_open())
+    {
+        of_sam.close();
+    }
+    if(of_bam.is_open())
+    {
+        of_bam.close();
+    }
+}
 Options::PathsType & Mapper::getRPaths()
 {
     return r_paths;
@@ -444,6 +467,7 @@ int Mapper::p_calRecords(int in_id, int out_id, int thread_id)
         //print_cords(cords_str[0], "pca1");
         cords2BamLink (cords_str, cords_end, cords_info, bam_records, reads, this->getCordSize(), thd_large_X, getFIOParms().thd_DI, getFIOParms().thd_X);
     }
+    fillBamRecords(getGenomes(), reads, getGenomesId(), reads_id, bam_records, fio_parms);
     counters.setCalCounter(counters.getCalCounter() + length(reads));
     return 0;
 }
@@ -479,7 +503,10 @@ int Mapper::p_printResults(int it1, int it2, int thread_id)
             setOfApp();
         }
     }
+    //double t = sysTime();
     print_mapper_results(*this, 1, it1, it2);
+    //t = sysTime() - t;
+    // dout << "pr " << t << "\n";
     counters.setOutCounter(counters.getOutCounter() + length(this->getPReadsBuffer()[it1]));
 
     return 0;
@@ -516,7 +543,7 @@ int print_clips_gvf(Mapper & mapper)
                      mapper.getOf());
     return 0;
 }
-int print_align_sam_bam (Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
+int print_align_sam_bam (Mapper & mapper, std::ofstream & of, int f_p_mapper, int p_in_id, int p_out_id)
 {
     if (f_p_mapper)
     {
@@ -525,8 +552,7 @@ int print_align_sam_bam (Mapper & mapper, int f_p_mapper, int p_in_id, int p_out
                          mapper.getGenomesId(),
                          mapper.getPReadsIdBuffer()[p_in_id],
                          mapper.getPBamLinksBuffer()[p_out_id],
-                         mapper.getOf(),
-                         mapper.isOfNew(),
+                         of, mapper.isOfNew(),
                          mapper.getFIOParms());
     }
     else
@@ -536,8 +562,7 @@ int print_align_sam_bam (Mapper & mapper, int f_p_mapper, int p_in_id, int p_out
                          mapper.getGenomesId(),
                          mapper.getReadsId(),
                          mapper.getBamRecords(),
-                         mapper.getOf(),
-                         mapper.isOfNew(),
+                         of, mapper.isOfNew(),
                          mapper.getFIOParms());
     }
     return 0;
@@ -547,7 +572,7 @@ int print_align_sam (Mapper & mapper, int f_p_mapper, int p_in_id, int p_out_id)
     uint f_output_type_original = mapper.getFIOParms().f_output_type;
     fp_handler_.clear(mapper.getFIOParms().f_output_type);
     fp_handler_.setPrintSam(mapper.getFIOParms().f_output_type);
-    print_align_sam_bam(mapper,f_p_mapper, p_in_id, p_out_id);
+    print_align_sam_bam(mapper, mapper.getOfSam(), f_p_mapper, p_in_id, p_out_id);
     mapper.getFIOParms().f_output_type = f_output_type_original;
     return 0;
 }
@@ -556,7 +581,7 @@ int print_align_bam_std (Mapper & mapper, int f_p_mapper, int p_in_id, int p_out
     uint f_output_type_original = mapper.getFIOParms().f_output_type;
     fp_handler_.clear(mapper.getFIOParms().f_output_type);
     fp_handler_.setPrintBamStd(mapper.getFIOParms().f_output_type);
-    print_align_sam_bam(mapper, f_p_mapper, p_in_id, p_out_id);
+    print_align_sam_bam(mapper, mapper.getOfBam(), f_p_mapper, p_in_id, p_out_id);
     mapper.getFIOParms().f_output_type = f_output_type_original;
     return 0;
 }
@@ -565,7 +590,7 @@ int print_align_bam_pbsv (Mapper & mapper, int f_p_mapper, int p_in_id, int p_ou
     uint f_output_type_original = mapper.getFIOParms().f_output_type;
     fp_handler_.clear(mapper.getFIOParms().f_output_type);
     fp_handler_.setPrintBamPbsv(mapper.getFIOParms().f_output_type);
-    print_align_sam_bam(mapper, f_p_mapper, p_in_id, p_out_id);
+    print_align_sam_bam(mapper, mapper.getOfBam(), f_p_mapper, p_in_id, p_out_id);
     mapper.getFIOParms().f_output_type = f_output_type_original;
     return 0;
 }
@@ -597,7 +622,7 @@ void close_mapper_of (Mapper & mapper)
 int print_mapper_results(Mapper & mapper, 
     int f_p_mapper, int p_in_id, int p_out_id) //parms to enable P_Mapper
 {
-
+    double t1,t2;
     ///.apf
     std::string file1 = mapper.getOutputPrefix() + ".apf";
     //std::cout << "file ====== "  << "\n";
@@ -621,10 +646,21 @@ int print_mapper_results(Mapper & mapper,
         {
             //formatCordsBam4Print(mapper, f_p_mapper);
         }
-        std::string file3 = mapper.getOutputPrefix() + ".sam";
-        open_mapper_of (mapper, file3);
+        //double t = sysTime();
+        if (mapper.isOfNew())
+        {
+            if (mapper.getOfSam().is_open())
+            {
+                mapper.getOfSam().close();
+            }
+            std::string file3 = mapper.getOutputPrefix() + ".sam";
+            mapper.getOfSam().open(toCString(file3));
+            //mapper.getPreOutputPrefix() = mapper.getOutputPrefix();
+        }
         print_align_sam(mapper, f_p_mapper, p_in_id, p_out_id);
-        close_mapper_of(mapper);
+        //close_mapper_of(mapper);
+        //t = sysTime() - t;
+        //dout << "pm1" << t << "\n";
     }
 
     ///.bam
@@ -634,10 +670,17 @@ int print_mapper_results(Mapper & mapper,
         {
             //formatCordsBam4Print(mapper, f_p_mapper);
         }
-        std::string file4 = mapper.getOutputPrefix() + ".bam";
-        open_mapper_of (mapper, file4);
+        if (mapper.isOfNew())
+        {
+            if (mapper.getOfBam().is_open())
+            {
+                mapper.getOfBam().close();
+            }
+            std::string file4 = mapper.getOutputPrefix() + ".bam";
+            mapper.getOfBam().open(toCString(file4));
+            //mapper.getPreOutputPrefix() = mapper.getOutputPrefix();
+        }
         print_align_bam_std(mapper, f_p_mapper, p_in_id, p_out_id);
-        close_mapper_of(mapper);
     }
     //non-standard.bam for pbsv
     if (fp_handler_.isPrintBamPbsv(mapper.getPrintFlag()))
@@ -646,14 +689,22 @@ int print_mapper_results(Mapper & mapper,
         {
             //formatCordsBam4Print(mapper, f_p_mapper);
         }
-        std::string file5 = mapper.getOutputPrefix() + "_pbsv.bam";
-        open_mapper_of (mapper, file5);
+        if (mapper.isOfNew())
+        {
+            if (mapper.getOfBam().is_open())
+            {
+                mapper.getOfBam().close();
+            }
+            std::string file5 = mapper.getOutputPrefix() + "_pbsv.bam";
+            mapper.getOfBam().open(toCString(file5));
+            //mapper.getPreOutputPrefix() = mapper.getOutputPrefix();
+        }
         print_align_bam_pbsv(mapper, f_p_mapper, p_in_id, p_out_id);
-        close_mapper_of(mapper);
     }
     //add new file here
 
     mapper.setOfApp(); //set of_type to std::ios::app;
+    (void) t1; (void)t2;
     return 0;
 }
 //read records from fin_pos and buckckets
@@ -1206,7 +1257,6 @@ MapParms::MapParms(unsigned bs, unsigned dt, unsigned thr,
             GlobalParms();
             PMPParms();
         }
-
 /*
 MapParms::MapParms(MapParms & parm):
         blockSize(parm.blockSize),
